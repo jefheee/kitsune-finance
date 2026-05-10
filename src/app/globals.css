@@ -1,3 +1,26 @@
 @import "tailwindcss";
 
-/* KITSUNE FINANCE */
+@theme {
+  --color-kitsune: #FF7A00; /* Laranja de destaque */
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains-mono);
+}
+
+body {
+  @apply bg-[#0A0A0A] text-white overflow-x-hidden;
+}
+
+/* Scrollbar opcional customizada */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #2a2a2a;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #FF7A00;
+}
