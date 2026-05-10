@@ -51,7 +51,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" className={`${fontSans.variable} ${fontMono.variable}`}>
-      <body className="antialiased font-sans bg-[var(--color-noir-deep)] text-[var(--color-text-primary)]">
+      <body className="antialiased">
         {children}
       </body>
     </html>
