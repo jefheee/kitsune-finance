@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Mobile Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-feature-settings: 'liga';
+            -webkit-font-smoothing: antialiased;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "outline": "#8c7263",
+                        "inverse-surface": "#2e3132",
+                        "tertiary-fixed-dim": "#c0c7d6",
+                        "secondary-fixed": "#dce2f7",
+                        "on-surface-variant": "#584235",
+                        "on-secondary": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "surface-container-high": "#e7e8e9",
+                        "surface-bright": "#f8f9fa",
+                        "surface-dim": "#d9dadb",
+                        "primary-fixed": "#ffdbc8",
+                        "on-tertiary-container": "#303743",
+                        "secondary-fixed-dim": "#c0c6db",
+                        "surface-variant": "#e1e3e4",
+                        "surface-container": "#edeeef",
+                        "on-tertiary": "#ffffff",
+                        "on-background": "#191c1d",
+                        "inverse-primary": "#ffb68b",
+                        "tertiary-container": "#99a0af",
+                        "background": "#f8f9fa",
+                        "inverse-on-surface": "#f0f1f2",
+                        "tertiary": "#585f6c",
+                        "surface-container-highest": "#e1e3e4",
+                        "on-tertiary-fixed-variant": "#404754",
+                        "surface-tint": "#994700",
+                        "on-secondary-fixed-variant": "#404758",
+                        "on-error-container": "#93000a",
+                        "primary-container": "#ff7a00",
+                        "outline-variant": "#e0c0af",
+                        "surface": "#f8f9fa",
+                        "on-primary-container": "#5c2800",
+                        "error": "#ba1a1a",
+                        "surface-container-low": "#f3f4f5",
+                        "primary-fixed-dim": "#ffb68b",
+                        "on-surface": "#191c1d",
+                        "tertiary-fixed": "#dce2f3",
+                        "on-primary-fixed-variant": "#753400",
+                        "primary": "#994700",
+                        "secondary": "#575e70",
+                        "on-error": "#ffffff",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary-container": "#5c6274",
+                        "on-primary-fixed": "#321200",
+                        "secondary-container": "#d9dff5",
+                        "on-tertiary-fixed": "#151c27",
+                        "on-secondary-fixed": "#141b2b",
+                        "error-container": "#ffdad6"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "16px",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "sm": "8px",
+                        "lg": "24px",
+                        "gutter": "16px",
+                        "md": "16px",
+                        "margin-mobile": "16px",
+                        "margin-desktop": "32px",
+                        "xxl": "48px",
+                        "unit": "4px",
+                        "xs": "4px",
+                        "container-max": "1280px",
+                        "xl": "32px"
+                    },
+                    "fontFamily": {
+                        "display-lg-mobile": ["Hanken Grotesk"],
+                        "label-sm": ["Hanken Grotesk"],
+                        "label-md": ["Hanken Grotesk"],
+                        "body-lg": ["Hanken Grotesk"],
+                        "headline-md": ["Hanken Grotesk"],
+                        "headline-lg": ["Hanken Grotesk"],
+                        "display-lg": ["Hanken Grotesk"],
+                        "body-md": ["Hanken Grotesk"]
+                    },
+                    "boxShadow": {
+                        'ambient': '0px 4px 20px rgba(17, 24, 39, 0.05)',
+                        'modal': '0px 12px 32px rgba(17, 24, 39, 0.1)'
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background font-body-md text-on-background antialiased min-h-screen flex flex-col items-center justify-start overflow-x-hidden">
+<!-- Mobile Container (Max width for demonstration, behaves like full width on actual mobile) -->
+<div class="w-full max-w-[480px] bg-surface min-h-screen relative shadow-modal flex flex-col">
+<!-- Header -->
+<header class="flex items-center justify-between px-margin-mobile pt-md pb-sm bg-surface sticky top-0 z-10">
+<div class="flex items-center gap-md">
+<div class="size-12 rounded-full bg-surface-variant overflow-hidden flex-shrink-0" data-alt="A close-up portrait of a friendly professional in a modern, well-lit environment. Soft, natural lighting creates a warm, approachable mood. The image should feature a clean, bright aesthetic consistent with a light-mode UI, using subtle tones and avoiding harsh contrasts." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAkH9iCgByyUfPgBgoUf9HwolS8uKxxBdFTJrdTjV-Cazf3ODWkxWmiogdiaBrw2IiXLhsR3Ss5yfWWE_-IAPpiEkLOjJkriH89sgXSi-kUvGzxxeStBNngbY95sOmG-ggUfou2V_uSAKZAqwHDftYXIXrEy97ziEC_Zjnd8N5c_J3Zffj9Bg-DBK5Xsw5efUgZq7XMG9ZuT0ckI_tcx0pOVlzxEKfI2KsLSX87K8eNv0PwwprtSez5ccfrnB_3dub_I_J1M7JVe7o');">
+</div>
+<h2 class="font-headline-md text-on-surface m-0">Hello, Alex!</h2>
+</div>
+<button aria-label="Notifications" class="size-10 flex items-center justify-center rounded-full bg-surface-container-low text-on-surface hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined" data-icon="notifications" data-weight="regular">notifications</span>
+</button>
+</header>
+<!-- Main Content Scrollable Area -->
+<main class="flex-1 overflow-y-auto px-margin-mobile pb-xxl flex flex-col gap-lg pb-[100px]">
+<!-- Total Balance Card -->
+<section class="mt-sm">
+<div class="bg-surface-container-lowest rounded-lg p-lg shadow-ambient flex flex-col gap-sm">
+<div class="flex justify-between items-start">
+<div class="flex flex-col gap-xs">
+<span class="font-label-md text-on-surface-variant uppercase tracking-wider">Total Balance</span>
+<h3 class="font-display-lg-mobile text-on-surface m-0">$12,450.00</h3>
+</div>
+<div class="size-10 rounded-full bg-primary-container/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="account_balance_wallet" data-weight="fill" style="font-variation-settings: 'FILL' 1;">account_balance_wallet</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Secondary Stats Grid -->
+<section class="grid grid-cols-2 gap-gutter">
+<div class="bg-surface-container-lowest rounded-lg p-md shadow-ambient flex flex-col gap-sm border border-outline-variant/30">
+<div class="flex items-center gap-sm">
+<div class="size-8 rounded-full bg-secondary-container/30 flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-[18px]" data-icon="payments" data-weight="regular">payments</span>
+</div>
+<span class="font-label-md text-on-surface-variant">Checking</span>
+</div>
+<p class="font-headline-md text-on-surface m-0">$4,200.00</p>
+</div>
+<div class="bg-surface-container-lowest rounded-lg p-md shadow-ambient flex flex-col gap-sm border border-outline-variant/30">
+<div class="flex items-center gap-sm">
+<div class="size-8 rounded-full bg-tertiary-container/30 flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined text-[18px]" data-icon="savings" data-weight="regular">savings</span>
+</div>
+<span class="font-label-md text-on-surface-variant">Savings</span>
+</div>
+<p class="font-headline-md text-on-surface m-0">$8,250.00</p>
+</div>
+</section>
+<!-- Quick Actions -->
+<section class="flex flex-col gap-md">
+<h3 class="font-body-lg font-semibold text-on-surface m-0">Quick Actions</h3>
+<div class="grid grid-cols-4 gap-sm">
+<button class="flex flex-col items-center gap-xs group">
+<div class="size-[56px] rounded-lg bg-surface-container-low flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-on-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="send" data-weight="regular">send</span>
+</div>
+<span class="font-label-sm text-on-surface-variant text-center">Send</span>
+</button>
+<button class="flex flex-col items-center gap-xs group">
+<div class="size-[56px] rounded-lg bg-surface-container-low flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-on-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="arrow_downward" data-weight="regular">arrow_downward</span>
+</div>
+<span class="font-label-sm text-on-surface-variant text-center">Receive</span>
+</button>
+<button class="flex flex-col items-center gap-xs group">
+<div class="size-[56px] rounded-lg bg-surface-container-low flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-on-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="add_card" data-weight="regular">add_card</span>
+</div>
+<span class="font-label-sm text-on-surface-variant text-center">Top Up</span>
+</button>
+<button class="flex flex-col items-center gap-xs group">
+<div class="size-[56px] rounded-lg bg-surface-container-low flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-on-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="more_horiz" data-weight="regular">more_horiz</span>
+</div>
+<span class="font-label-sm text-on-surface-variant text-center">More</span>
+</button>
+</div>
+</section>
+<!-- Recent Activity -->
+<section class="flex flex-col gap-md">
+<div class="flex justify-between items-center">
+<h3 class="font-body-lg font-semibold text-on-surface m-0">Recent Activity</h3>
+<button class="font-label-md text-primary hover:underline">View All</button>
+</div>
+<div class="bg-surface-container-lowest rounded-lg shadow-ambient flex flex-col">
+<!-- Item 1 -->
+<div class="flex items-center gap-md p-md border-b border-surface-variant/50 last:border-0">
+<div class="size-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface flex-shrink-0">
+<span class="material-symbols-outlined text-[20px]" data-icon="shopping_bag" data-weight="regular">shopping_bag</span>
+</div>
+<div class="flex-1 flex flex-col">
+<span class="font-body-md font-medium text-on-surface leading-tight">Whole Foods Market</span>
+<span class="font-label-sm text-on-surface-variant">Today, 10:42 AM</span>
+</div>
+<div class="text-right">
+<span class="font-body-md font-medium text-on-surface">-$64.20</span>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="flex items-center gap-md p-md border-b border-surface-variant/50 last:border-0">
+<div class="size-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface flex-shrink-0">
+<span class="material-symbols-outlined text-[20px]" data-icon="subscriptions" data-weight="regular">subscriptions</span>
+</div>
+<div class="flex-1 flex flex-col">
+<span class="font-body-md font-medium text-on-surface leading-tight">Netflix Subscription</span>
+<span class="font-label-sm text-on-surface-variant">Yesterday</span>
+</div>
+<div class="text-right">
+<span class="font-body-md font-medium text-on-surface">-$15.99</span>
+</div>
+</div>
+<!-- Item 3 -->
+<div class="flex items-center gap-md p-md border-b border-surface-variant/50 last:border-0">
+<div class="size-10 rounded-full bg-primary-container/20 flex items-center justify-center text-primary flex-shrink-0">
+<span class="material-symbols-outlined text-[20px]" data-icon="payments" data-weight="regular">payments</span>
+</div>
+<div class="flex-1 flex flex-col">
+<span class="font-body-md font-medium text-on-surface leading-tight">Salary Deposit</span>
+<span class="font-label-sm text-on-surface-variant">Oct 24</span>
+</div>
+<div class="text-right">
+<span class="font-body-md font-medium text-primary">+$3,250.00</span>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Bottom Navigation Bar (Shared Component) -->
+<div class="absolute bottom-0 w-full z-20">
+<div class="flex gap-2 border-t border-surface-variant bg-surface px-4 pb-3 pt-2">
+<a class="just flex flex-1 flex-col items-center justify-end gap-1 rounded-full text-primary" href="#">
+<div class="text-primary flex h-8 items-center justify-center" data-icon="House" data-size="24px" data-weight="fill">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">home</span>
+</div>
+<p class="text-primary text-xs font-medium leading-normal tracking-[0.015em]">Home</p>
+</a>
+<a class="just flex flex-1 flex-col items-center justify-end gap-1 text-on-surface-variant" href="#">
+<div class="text-on-surface-variant flex h-8 items-center justify-center" data-icon="ChartBar" data-size="24px" data-weight="regular">
+<span class="material-symbols-outlined">bar_chart</span>
+</div>
+<p class="text-on-surface-variant text-xs font-medium leading-normal tracking-[0.015em]">Analytics</p>
+</a>
+<a class="just flex flex-1 flex-col items-center justify-end gap-1 text-on-surface-variant" href="#">
+<div class="text-on-surface-variant flex h-8 items-center justify-center" data-icon="CreditCard" data-size="24px" data-weight="regular">
+<span class="material-symbols-outlined">credit_card</span>
+</div>
+<p class="text-on-surface-variant text-xs font-medium leading-normal tracking-[0.015em]">Cards</p>
+</a>
+<a class="just flex flex-1 flex-col items-center justify-end gap-1 text-on-surface-variant" href="#">
+<div class="text-on-surface-variant flex h-8 items-center justify-center" data-icon="User" data-size="24px" data-weight="regular">
+<span class="material-symbols-outlined">person</span>
+</div>
+<p class="text-on-surface-variant text-xs font-medium leading-normal tracking-[0.015em]">Profile</p>
+</a>
+</div>
+</div>
+</div>
+</body></html>
