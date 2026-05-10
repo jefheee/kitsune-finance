@@ -60,10 +60,17 @@ export default function Dashboard() {
           transition: 'all 0.5s var(--ease-spring)',
         }}
       >
-        <div>
-          <p className="label" style={{ marginBottom: '4px' }}>
-            Patrimônio Total
-          </p>
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2 mb-1">
+            {/* Kitsune Geometric Fox Logo */}
+            <svg className="w-6 h-6 fill-[var(--color-text-primary)] drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]" viewBox="0 0 100 100">
+              <polygon points="50,10 90,40 50,90 10,40"></polygon>
+              <polygon fill="#1a1a1a" points="50,30 70,50 50,70 30,50"></polygon>
+            </svg>
+            <p className="label leading-none">
+              Patrimônio Total
+            </p>
+          </div>
           <h1
             className="font-value"
             style={{
@@ -117,8 +124,8 @@ export default function Dashboard() {
           <span
             className="font-value text-sm px-2 py-1 rounded-md"
             style={{
-              backgroundColor: 'rgba(149, 255, 72, 0.1)',
-              color: 'var(--color-success)',
+              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+              color: 'var(--color-text-primary)',
               fontSize: '0.75rem',
             }}
           >
@@ -135,8 +142,8 @@ export default function Dashboard() {
           >
             <defs>
               <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="var(--color-success)" stopOpacity="0.3" />
-                <stop offset="100%" stopColor="var(--color-success)" stopOpacity="0" />
+                <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.15" />
+                <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
               </linearGradient>
             </defs>
             {/* Area Fill */}
@@ -150,7 +157,7 @@ export default function Dashboard() {
                 .map((v, i) => `${(i / 6) * 280},${80 - v}`)
                 .join(' ')}
               fill="none"
-              stroke="var(--color-success)"
+              stroke="rgba(255, 255, 255, 0.8)"
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -164,7 +171,7 @@ export default function Dashboard() {
             style={{
               fontSize: 'var(--text-title)',
               fontWeight: 600,
-              color: 'var(--color-success)',
+              color: 'var(--color-text-primary)',
             }}
           >
             + {formatCurrency(PORTFOLIO.performance.change)}
@@ -173,8 +180,8 @@ export default function Dashboard() {
             className="font-value px-2 py-0.5 rounded-md"
             style={{
               fontSize: '0.75rem',
-              backgroundColor: 'rgba(149, 255, 72, 0.1)',
-              color: 'var(--color-success)',
+              backgroundColor: 'rgba(255, 255, 255, 0.08)',
+              color: 'var(--color-text-secondary)',
             }}
           >
             +{PORTFOLIO.performance.percentage}%
@@ -261,14 +268,8 @@ export default function Dashboard() {
                 <div
                   className="w-10 h-10 rounded-lg flex items-center justify-center"
                   style={{
-                    backgroundColor:
-                      inv.type === 'FIXED_INCOME'
-                        ? 'rgba(0, 209, 255, 0.1)'
-                        : 'rgba(124, 58, 237, 0.1)',
-                    color:
-                      inv.type === 'FIXED_INCOME'
-                        ? 'var(--color-info)'
-                        : 'var(--color-secondary)',
+                    backgroundColor: 'var(--color-noir-surface)',
+                    color: 'var(--color-text-primary)',
                   }}
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -284,7 +285,7 @@ export default function Dashboard() {
                     className="font-value"
                     style={{
                       fontSize: '0.7rem',
-                      color: 'var(--color-success)',
+                      color: 'var(--color-text-secondary)',
                     }}
                   >
                     +{inv.profitability}%
@@ -333,14 +334,8 @@ export default function Dashboard() {
                 <div
                   className="w-9 h-9 rounded-lg flex items-center justify-center"
                   style={{
-                    backgroundColor:
-                      tx.type === 'INFLOW'
-                        ? 'rgba(149, 255, 72, 0.1)'
-                        : 'rgba(255, 255, 255, 0.05)',
-                    color:
-                      tx.type === 'INFLOW'
-                        ? 'var(--color-success)'
-                        : 'var(--color-text-secondary)',
+                    backgroundColor: 'var(--color-noir-surface)',
+                    color: 'var(--color-text-primary)',
                   }}
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -369,10 +364,7 @@ export default function Dashboard() {
               <span
                 className="font-value text-sm font-medium"
                 style={{
-                  color:
-                    tx.type === 'INFLOW'
-                      ? 'var(--color-success)'
-                      : 'var(--color-text-primary)',
+                  color: 'var(--color-text-primary)',
                 }}
               >
                 {tx.type === 'INFLOW' ? '+' : ''}{formatCurrency(tx.amount)}

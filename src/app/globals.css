@@ -1,6 +1,3 @@
-/* ── Google Fonts Import (must precede all rules) ── */
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap");
-
 @import "tailwindcss";
 
 /* ============================================
@@ -12,7 +9,7 @@
   /* ── Color Palette: Deep Noir ── */
   --color-noir-deep: #050505;
   --color-noir-card: #121212;
-  --color-noir-border: #222222;
+  --color-noir-border: rgba(255, 255, 255, 0.05);
   --color-noir-elevated: #1A1A1A;
   --color-noir-surface: #2A2A2A;
 
@@ -21,9 +18,9 @@
   --color-accent-dim: #CC4B00;
   --color-accent-glow: rgba(255, 94, 0, 0.2);
 
-  /* ── Success / Growth ── */
-  --color-success: #95FF48;
-  --color-success-dim: #77DF27;
+  /* ── Success / Growth (Subtle/Monochromatic focus) ── */
+  --color-success: #FFFFFF;
+  --color-success-dim: rgba(255, 255, 255, 0.6);
 
   /* ── Info / Tertiary ── */
   --color-info: #00D1FF;

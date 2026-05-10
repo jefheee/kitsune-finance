@@ -1,9 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 interface NavItem {
   id: string;
+  href: string;
   label: string;
   icon: React.ReactNode;
 }
@@ -11,6 +13,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   {
     id: 'home',
+    href: '/',
     label: 'Home',
     icon: (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -21,6 +24,7 @@ const NAV_ITEMS: NavItem[] = [
   },
   {
     id: 'portfolio',
+    href: '/portfolio',
     label: 'Portfolio',
     icon: (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -31,6 +35,7 @@ const NAV_ITEMS: NavItem[] = [
   },
   {
     id: 'transfers',
+    href: '/transfers',
     label: 'Transfers',
     icon: (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -41,6 +46,7 @@ const NAV_ITEMS: NavItem[] = [
   },
   {
     id: 'profile',
+    href: '/profile',
     label: 'Profile',
     icon: (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -52,7 +58,7 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 export default function BottomNav() {
-  const [activeTab, setActiveTab] = useState('home');
+  const pathname = usePathname();
 
   return (
     <nav
@@ -64,12 +70,14 @@ export default function BottomNav() {
     >
       <div className="flex items-center justify-around h-[72px] max-w-md mx-auto px-4">
         {NAV_ITEMS.map((item) => {
-          const isActive = activeTab === item.id;
+          // Check for active state correctly (exact match for root, prefix for others)
+          const isActive = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href);
+
           return (
-            <button
+            <Link
               key={item.id}
+              href={item.href}
               id={`nav-${item.id}`}
-              onClick={() => setActiveTab(item.id)}
               className="flex flex-col items-center gap-1 py-2 px-3 rounded-xl transition-all duration-300"
               style={{
                 color: isActive
@@ -91,7 +99,7 @@ export default function BottomNav() {
                 {item.icon}
               </span>
               <span
-                className="transition-all duration-300"
+                className="transition-all duration-300 font-sans"
                 style={{
                   fontSize: '0.625rem',
                   fontWeight: isActive ? 600 : 400,
@@ -100,7 +108,7 @@ export default function BottomNav() {
               >
                 {item.label}
               </span>
-            </button>
+            </Link>
           );
         })}
       </div>

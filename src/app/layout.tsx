@@ -1,5 +1,20 @@
 import type { Metadata, Viewport } from 'next';
+import { Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
+
+const fontSans = Inter({
+  subsets: ['latin'],
+  variable: '--font-sans',
+  weight: ['300', '400', '500', '600', '700'],
+  display: 'swap',
+});
+
+const fontMono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-mono',
+  weight: ['400', '500', '600', '700'],
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'Kitsune Finance — Gestão Patrimonial Inteligente',
@@ -35,8 +50,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR">
-      <body className="antialiased">{children}</body>
+    <html lang="pt-BR" className={`${fontSans.variable} ${fontMono.variable}`}>
+      <body className="antialiased font-sans bg-[var(--color-noir-deep)] text-[var(--color-text-primary)]">
+        {children}
+      </body>
     </html>
   );
 }

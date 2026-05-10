@@ -84,9 +84,9 @@ export default function KitsuneAIDrawer({
         style={{
           opacity: isOpen ? 1 : 0,
           pointerEvents: isOpen ? 'auto' : 'none',
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          backdropFilter: isOpen ? 'blur(8px)' : 'blur(0px)',
-          WebkitBackdropFilter: isOpen ? 'blur(8px)' : 'blur(0px)',
+          backgroundColor: 'rgba(5, 5, 5, 0.4)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
         }}
         onClick={onClose}
         aria-hidden={!isOpen}
