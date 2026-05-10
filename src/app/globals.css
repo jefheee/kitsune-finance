@@ -1,1 +1,199 @@
+/* ── Google Fonts Import (must precede all rules) ── */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap");
+
 @import "tailwindcss";
+
+/* ============================================
+   KITSUNE FINANCE — Design Tokens (Tailwind v4)
+   No tailwind.config.ts. Everything lives here.
+   ============================================ */
+
+@theme {
+  /* ── Color Palette: Deep Noir ── */
+  --color-noir-deep: #050505;
+  --color-noir-card: #121212;
+  --color-noir-border: #222222;
+  --color-noir-elevated: #1A1A1A;
+  --color-noir-surface: #2A2A2A;
+
+  /* ── Accent: Neon Orange / Crimson Red ── */
+  --color-accent: #FF5E00;
+  --color-accent-dim: #CC4B00;
+  --color-accent-glow: rgba(255, 94, 0, 0.2);
+
+  /* ── Success / Growth ── */
+  --color-success: #95FF48;
+  --color-success-dim: #77DF27;
+
+  /* ── Info / Tertiary ── */
+  --color-info: #00D1FF;
+  --color-info-dim: #4CD6FF;
+
+  /* ── Secondary / Purple ── */
+  --color-secondary: #7C3AED;
+  --color-secondary-dim: #6D28D9;
+
+  /* ── Typography Colors ── */
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: rgba(255, 255, 255, 0.6);
+  --color-text-muted: rgba(255, 255, 255, 0.35);
+
+  /* ── Error ── */
+  --color-error: #FF4444;
+  --color-error-container: #93000A;
+
+  /* ── Typography: Font Families ── */
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Code", "Fira Code", monospace;
+
+  /* ── Typography: Font Sizes ── */
+  --text-display: 2.5rem;
+  --text-headline: 1.75rem;
+  --text-title: 1.25rem;
+  --text-body: 1rem;
+  --text-label: 0.75rem;
+  --text-caption: 0.625rem;
+
+  /* ── Spacing (8px base unit) ── */
+  --spacing-unit: 8px;
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+  --spacing-3xl: 64px;
+
+  /* ── Border Radius ── */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-full: 9999px;
+
+  /* ── Glassmorphism ── */
+  --glass-bg: rgba(26, 26, 26, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-blur: 20px;
+
+  /* ── Shadows ── */
+  --shadow-neon: 0 0 30px rgba(255, 94, 0, 0.15);
+  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.4);
+  --shadow-elevated: 0 8px 40px rgba(0, 0, 0, 0.6);
+
+  /* ── Transitions ── */
+  --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-fast: 150ms;
+  --duration-normal: 300ms;
+  --duration-slow: 500ms;
+}
+
+/* ── Global Reset ── */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-noir-deep);
+  color: var(--color-text-primary);
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+/* ── Utility: Glass Surface ── */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+}
+
+/* ── Utility: Card Surface ── */
+.card-surface {
+  background-color: var(--color-noir-card);
+  border: 1px solid var(--color-noir-border);
+  border-radius: var(--radius-lg);
+}
+
+/* ── Utility: Mono Values (Balances & Numbers) ── */
+.font-value {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* ── Utility: Neon Glow on Accent Elements ── */
+.glow-accent {
+  box-shadow: var(--shadow-neon);
+}
+
+/* ── Utility: Label Style ── */
+.label {
+  font-size: var(--text-label);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+/* ── Scrollbar: Hidden (Mobile) ── */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ── Bottom Nav Safe Area ── */
+.pb-safe-nav {
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+}
+
+/* ── Animations ── */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(255, 94, 0, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(255, 94, 0, 0.3);
+  }
+}
+
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.5s var(--ease-spring) both;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.4s var(--ease-spring) both;
+}
