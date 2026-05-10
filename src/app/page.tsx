@@ -1,384 +1,146 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import BottomNav from '@/components/BottomNav';
-import KitsuneAIDrawer from '@/components/KitsuneAIDrawer';
 
-// ── Mock Data (mirrors API route) ──
-const PORTFOLIO = {
-  total_balance: 61150.5,
-  accounts: [
-    { id: 'acc_001', name: 'Conta Corrente', institution: 'Nubank', balance: 15420.5 },
-    { id: 'acc_002', name: 'Poupança', institution: 'Itaú', balance: 8230.0 },
-  ],
-  investments: [
-    { id: 'inv_001', name: 'CDB 120% CDI', type: 'FIXED_INCOME', balance: 25000.0, profitability: 13.65 },
-    { id: 'inv_002', name: 'IVVB11', type: 'ETF', balance: 12500.0, profitability: 18.2 },
-  ],
-  transactions: [
-    { id: 'tx_001', description: 'iFood', amount: -89.9, category: 'Alimentação', type: 'OUTFLOW' },
-    { id: 'tx_002', description: 'Salário', amount: 4500.0, category: 'Receita', type: 'INFLOW' },
-    { id: 'tx_003', description: 'Energia CPFL', amount: -250.0, category: 'Moradia', type: 'OUTFLOW' },
-    { id: 'tx_004', description: 'Uber', amount: -32.5, category: 'Transporte', type: 'OUTFLOW' },
-    { id: 'tx_005', description: 'Freelance Dev', amount: 2800.0, category: 'Receita', type: 'INFLOW' },
-  ],
-  performance: {
-    change: 1250.0,
-    percentage: 5.3,
-    period: '1M',
-    chart: [42, 48, 45, 52, 55, 58, 62], // Normalized values for mini chart
-  },
-};
-
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-    minimumFractionDigits: 2,
-  }).format(value);
-}
-
-export default function Dashboard() {
-  const [isAIOpen, setIsAIOpen] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  useEffect(() => {
-    setIsLoaded(true);
-  }, []);
-
+export default function Home() {
   return (
-    <main
-      className="min-h-dvh pb-safe-nav"
-      style={{ backgroundColor: 'var(--color-noir-deep)' }}
-    >
-      {/* ── Header ── */}
-      <header
-        className="flex items-center justify-between px-5 pt-14 pb-4"
-        style={{
-          opacity: isLoaded ? 1 : 0,
-          transform: isLoaded ? 'translateY(0)' : 'translateY(-10px)',
-          transition: 'all 0.5s var(--ease-spring)',
-        }}
-      >
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2 mb-1">
-            {/* Kitsune Geometric Fox Logo */}
-            <svg className="w-6 h-6 fill-[var(--color-text-primary)] drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]" viewBox="0 0 100 100">
-              <polygon points="50,10 90,40 50,90 10,40"></polygon>
-              <polygon fill="#1a1a1a" points="50,30 70,50 50,70 30,50"></polygon>
-            </svg>
-            <p className="label leading-none">
-              Patrimônio Total
-            </p>
+    <main className="relative flex min-h-screen w-full max-w-md mx-auto flex-col bg-[#fcfaf8] group/design-root overflow-x-hidden font-sans pb-24">
+      
+      <div className="flex items-center bg-[#fcfaf8] p-4 pb-2 justify-between">
+        <div className="text-[#1d140c] flex size-12 shrink-0 items-center">
+          <svg fill="currentColor" height="24px" viewBox="0 0 256 256" width="24px" xmlns="http://www.w3.org/2000/svg">
+            <path d="M224,128a8,8,0,0,1-8,8H40a8,8,0,0,1,0-16H216A8,8,0,0,1,224,128ZM40,72H216a8,8,0,0,0,0-16H40a8,8,0,0,0,0,16ZM216,184H40a8,8,0,0,0,0,16H216a8,8,0,0,0,0-16Z"></path>
+          </svg>
+        </div>
+        <h2 className="text-[#1d140c] text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center">Dashboard</h2>
+        <div className="flex w-12 items-center justify-end">
+          <button className="flex max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 bg-transparent text-[#1d140c] gap-2 text-base font-bold leading-normal tracking-[0.015em] min-w-0 p-0">
+            <div className="text-[#1d140c]">
+              <svg fill="currentColor" height="24px" viewBox="0 0 256 256" width="24px" xmlns="http://www.w3.org/2000/svg">
+                <path d="M221.8,175.94C216.25,166.38,208,139.33,208,104a80,80,0,1,0-160,0c0,35.34-8.26,62.38-13.81,71.94A16,16,0,0,0,48,200H88.81a40,40,0,0,0,78.38,0H208a16,16,0,0,0,13.8-24.06ZM128,216a24,24,0,0,1-22.62-16h45.24A24,24,0,0,1,128,216ZM48,184c7.7-13.24,16-43.92,16-80a64,64,0,1,1,128,0c0,36.05,8.28,66.73,16,80Z"></path>
+              </svg>
+            </div>
+          </button>
+        </div>
+      </div>
+      
+      <div className="flex flex-wrap gap-3 px-4 py-3">
+        <div className="flex min-w-[111px] flex-1 basis-[fit-content] flex-col gap-2 rounded-lg border border-[#eadbcd] p-3 items-center text-center">
+          <p className="text-[#1d140c] tracking-light text-2xl font-bold leading-tight font-value">$24,500.00</p>
+          <div className="flex items-center gap-2"><p className="text-[#a17145] text-sm font-normal leading-normal">Total Balance</p></div>
+        </div>
+      </div>
+      
+      <div className="flex flex-wrap gap-4 px-4 py-6">
+        <div className="flex min-w-72 flex-1 flex-col gap-2">
+          <p className="text-[#1d140c] text-base font-medium leading-normal">Portfolio Performance</p>
+          <p className="text-[#1d140c] tracking-light text-[32px] font-bold leading-tight truncate font-value">+ $1,250.00</p>
+          <div className="flex gap-1">
+            <p className="text-[#a17145] text-base font-normal leading-normal">1M</p>
+            <p className="text-[#07880e] text-base font-medium leading-normal font-value">+5.3%</p>
           </div>
-          <h1
-            className="font-value"
-            style={{
-              fontSize: 'var(--text-display)',
-              fontWeight: 600,
-              letterSpacing: '-0.03em',
-              lineHeight: 1.1,
-            }}
-          >
-            {formatCurrency(PORTFOLIO.total_balance)}
-          </h1>
+          <div className="flex min-h-[180px] flex-1 flex-col gap-8 py-4">
+            <svg fill="none" height="148" preserveAspectRatio="none" viewBox="-3 0 478 150" width="100%" xmlns="http://www.w3.org/2000/svg">
+              <path d="M0 109C18.1538 109 18.1538 21 36.3077 21C54.4615 21 54.4615 41 72.6154 41C90.7692 41 90.7692 93 108.923 93C127.077 93 127.077 33 145.231 33C163.385 33 163.385 101 181.538 101C199.692 101 199.692 61 217.846 61C236 61 236 45 254.154 45C272.308 45 272.308 121 290.462 121C308.615 121 308.615 149 326.769 149C344.923 149 344.923 1 363.077 1C381.231 1 381.231 81 399.385 81C417.538 81 417.538 129 435.692 129C453.846 129 453.846 25 472 25V149H326.769H0V109Z" fill="url(#paint0_linear_1131_5935)"></path>
+              <path d="M0 109C18.1538 109 18.1538 21 36.3077 21C54.4615 21 54.4615 41 72.6154 41C90.7692 41 90.7692 93 108.923 93C127.077 93 127.077 33 145.231 33C163.385 33 163.385 101 181.538 101C199.692 101 199.692 61 217.846 61C236 61 236 45 254.154 45C272.308 45 272.308 121 290.462 121C308.615 121 308.615 149 326.769 149C344.923 149 344.923 1 363.077 1C381.231 1 381.231 81 399.385 81C417.538 81 417.538 129 435.692 129C453.846 129 453.846 25 472 25" stroke="#a17145" strokeLinecap="round" strokeWidth="3"></path>
+              <defs>
+                <linearGradient gradientUnits="userSpaceOnUse" id="paint0_linear_1131_5935" x1="236" x2="236" y1="1" y2="149">
+                  <stop stopColor="#f4ede6"></stop>
+                  <stop offset="1" stopColor="#f4ede6" stopOpacity="0"></stop>
+                </linearGradient>
+              </defs>
+            </svg>
+            <div className="flex justify-around">
+              <p className="text-[#a17145] text-[13px] font-bold leading-normal tracking-[0.015em]">Mon</p>
+              <p className="text-[#a17145] text-[13px] font-bold leading-normal tracking-[0.015em]">Tue</p>
+              <p className="text-[#a17145] text-[13px] font-bold leading-normal tracking-[0.015em]">Wed</p>
+              <p className="text-[#a17145] text-[13px] font-bold leading-normal tracking-[0.015em]">Thu</p>
+              <p className="text-[#a17145] text-[13px] font-bold leading-normal tracking-[0.015em]">Fri</p>
+              <p className="text-[#a17145] text-[13px] font-bold leading-normal tracking-[0.015em]">Sat</p>
+              <p className="text-[#a17145] text-[13px] font-bold leading-normal tracking-[0.015em]">Sun</p>
+            </div>
+          </div>
         </div>
+      </div>
+      
+      <div className="flex justify-stretch">
+        <div className="flex flex-1 gap-3 flex-wrap px-4 py-3 justify-between">
+          <button className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-5 bg-[#ff7b00] text-[#1d140c] text-base font-bold leading-normal tracking-[0.015em]">
+            <span className="truncate">Deposit</span>
+          </button>
+          <button className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-5 bg-[#ff7b00] text-[#1d140c] text-base font-bold leading-normal tracking-[0.015em]">
+            <span className="truncate">Transfer</span>
+          </button>
+        </div>
+      </div>
+      
+      <div className="h-5 bg-[#fcfaf8]"></div>
 
-        {/* AI Trigger Button */}
-        <button
-          id="ai-trigger"
-          onClick={() => setIsAIOpen(true)}
-          className="w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 glow-accent"
-          style={{
-            background:
-              'linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-dim) 100%)',
-          }}
-          aria-label="Abrir Kitsune AI"
-        >
-          <svg
-            width="22"
-            height="22"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="#050505"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-          </svg>
+      <div className="px-4 py-6 bg-white w-full rounded-t-3xl">
+        <h3 className="text-xl text-[#1d140c] font-bold mb-4">Active Positions</h3>
+        <div className="flex flex-col gap-2">
+          
+          <div className="bg-white rounded-xl p-4 border border-[#eadbcd] flex justify-between items-center transition-transform hover:-translate-y-[2px]">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-[#ffdbc8] text-[#994700] flex items-center justify-center">
+                M
+              </div>
+              <div>
+                <div className="text-sm font-bold text-[#1d140c]">AAPL</div>
+                <div className="text-xs text-[#584235] font-normal">Apple Inc.</div>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-sm font-bold text-[#1d140c] font-value">$185.92</div>
+              <div className="text-xs text-[#994700] font-medium flex items-center justify-end gap-1 font-value">
+                1.2%
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-xl p-4 border border-[#eadbcd] flex justify-between items-center transition-transform hover:-translate-y-[2px]">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-[#ffdbc8] text-[#994700] flex items-center justify-center">
+                E
+              </div>
+              <div>
+                <div className="text-sm font-bold text-[#1d140c]">TSLA</div>
+                <div className="text-xs text-[#584235] font-normal">Tesla, Inc.</div>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-sm font-bold text-[#1d140c] font-value">$242.50</div>
+              <div className="text-xs text-[#585f6c] font-medium flex items-center justify-end gap-1 font-value">
+                0.5%
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-xl p-4 border border-[#eadbcd] flex justify-between items-center transition-transform hover:-translate-y-[2px]">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-[#ffdbc8] text-[#994700] flex items-center justify-center">
+                C
+              </div>
+              <div>
+                <div className="text-sm font-bold text-[#1d140c]">MSFT</div>
+                <div className="text-xs text-[#584235] font-normal">Microsoft Corp.</div>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-sm font-bold text-[#1d140c] font-value">$378.85</div>
+              <div className="text-xs text-[#994700] font-medium flex items-center justify-end gap-1 font-value">
+                2.1%
+              </div>
+            </div>
+          </div>
+          
+        </div>
+        <button className="w-full mt-6 py-3 rounded-full border-2 border-[#8c7263] text-[#1d140c] text-sm font-bold flex justify-center items-center gap-2 hover:bg-[#e1e3e4] transition-colors">
+          View All Assets
         </button>
-      </header>
+      </div>
 
-      {/* ── Performance Card ── */}
-      <section
-        className="mx-5 mb-5 card-surface p-5"
-        style={{
-          opacity: isLoaded ? 1 : 0,
-          transform: isLoaded ? 'translateY(0)' : 'translateY(20px)',
-          transition: 'all 0.6s var(--ease-spring) 0.1s',
-        }}
-      >
-        <div className="flex items-center justify-between mb-4">
-          <p className="label">Performance do Portfólio</p>
-          <span
-            className="font-value text-sm px-2 py-1 rounded-md"
-            style={{
-              backgroundColor: 'rgba(255, 255, 255, 0.05)',
-              color: 'var(--color-text-primary)',
-              fontSize: '0.75rem',
-            }}
-          >
-            {PORTFOLIO.performance.period}
-          </span>
-        </div>
-
-        {/* Mini Chart (SVG) */}
-        <div className="mb-4" style={{ height: '80px' }}>
-          <svg
-            viewBox="0 0 280 80"
-            className="w-full h-full"
-            preserveAspectRatio="none"
-          >
-            <defs>
-              <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.15" />
-                <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
-              </linearGradient>
-            </defs>
-            {/* Area Fill */}
-            <path
-              d={`M0,${80 - PORTFOLIO.performance.chart[0]} ${PORTFOLIO.performance.chart.map((v, i) => `L${(i / 6) * 280},${80 - v}`).join(' ')} L280,80 L0,80 Z`}
-              fill="url(#chartGradient)"
-            />
-            {/* Line */}
-            <polyline
-              points={PORTFOLIO.performance.chart
-                .map((v, i) => `${(i / 6) * 280},${80 - v}`)
-                .join(' ')}
-              fill="none"
-              stroke="rgba(255, 255, 255, 0.8)"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <span
-            className="font-value"
-            style={{
-              fontSize: 'var(--text-title)',
-              fontWeight: 600,
-              color: 'var(--color-text-primary)',
-            }}
-          >
-            + {formatCurrency(PORTFOLIO.performance.change)}
-          </span>
-          <span
-            className="font-value px-2 py-0.5 rounded-md"
-            style={{
-              fontSize: '0.75rem',
-              backgroundColor: 'rgba(255, 255, 255, 0.08)',
-              color: 'var(--color-text-secondary)',
-            }}
-          >
-            +{PORTFOLIO.performance.percentage}%
-          </span>
-        </div>
-      </section>
-
-      {/* ── Accounts Section ── */}
-      <section
-        className="mx-5 mb-5"
-        style={{
-          opacity: isLoaded ? 1 : 0,
-          transform: isLoaded ? 'translateY(0)' : 'translateY(20px)',
-          transition: 'all 0.6s var(--ease-spring) 0.2s',
-        }}
-      >
-        <h2
-          className="label mb-3"
-          style={{ paddingLeft: '4px' }}
-        >
-          Contas
-        </h2>
-        <div className="flex flex-col gap-3">
-          {PORTFOLIO.accounts.map((account) => (
-            <div
-              key={account.id}
-              className="card-surface p-4 flex items-center justify-between"
-            >
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-10 h-10 rounded-lg flex items-center justify-center"
-                  style={{
-                    backgroundColor: 'var(--color-noir-surface)',
-                    color: 'var(--color-text-secondary)',
-                  }}
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
-                    <line x1="1" y1="10" x2="23" y2="10" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>
-                    {account.name}
-                  </p>
-                  <p style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>
-                    {account.institution}
-                  </p>
-                </div>
-              </div>
-              <span
-                className="font-value text-sm font-semibold"
-                style={{ color: 'var(--color-text-primary)' }}
-              >
-                {formatCurrency(account.balance)}
-              </span>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── Investments Section ── */}
-      <section
-        className="mx-5 mb-5"
-        style={{
-          opacity: isLoaded ? 1 : 0,
-          transform: isLoaded ? 'translateY(0)' : 'translateY(20px)',
-          transition: 'all 0.6s var(--ease-spring) 0.3s',
-        }}
-      >
-        <h2
-          className="label mb-3"
-          style={{ paddingLeft: '4px' }}
-        >
-          Investimentos
-        </h2>
-        <div className="flex flex-col gap-3">
-          {PORTFOLIO.investments.map((inv) => (
-            <div
-              key={inv.id}
-              className="card-surface p-4 flex items-center justify-between"
-            >
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-10 h-10 rounded-lg flex items-center justify-center"
-                  style={{
-                    backgroundColor: 'var(--color-noir-surface)',
-                    color: 'var(--color-text-primary)',
-                  }}
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                    <polyline points="22,7 13.5,15.5 8.5,10.5 2,17" />
-                    <polyline points="16,7 22,7 22,13" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>
-                    {inv.name}
-                  </p>
-                  <p
-                    className="font-value"
-                    style={{
-                      fontSize: '0.7rem',
-                      color: 'var(--color-text-secondary)',
-                    }}
-                  >
-                    +{inv.profitability}%
-                  </p>
-                </div>
-              </div>
-              <span
-                className="font-value text-sm font-semibold"
-                style={{ color: 'var(--color-text-primary)' }}
-              >
-                {formatCurrency(inv.balance)}
-              </span>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── Recent Transactions ── */}
-      <section
-        className="mx-5 mb-8"
-        style={{
-          opacity: isLoaded ? 1 : 0,
-          transform: isLoaded ? 'translateY(0)' : 'translateY(20px)',
-          transition: 'all 0.6s var(--ease-spring) 0.4s',
-        }}
-      >
-        <h2
-          className="label mb-3"
-          style={{ paddingLeft: '4px' }}
-        >
-          Transações Recentes
-        </h2>
-        <div className="card-surface overflow-hidden">
-          {PORTFOLIO.transactions.map((tx, index) => (
-            <div
-              key={tx.id}
-              className="flex items-center justify-between px-4 py-3.5"
-              style={{
-                borderBottom:
-                  index < PORTFOLIO.transactions.length - 1
-                    ? '1px solid var(--color-noir-border)'
-                    : 'none',
-              }}
-            >
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-9 h-9 rounded-lg flex items-center justify-center"
-                  style={{
-                    backgroundColor: 'var(--color-noir-surface)',
-                    color: 'var(--color-text-primary)',
-                  }}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    {tx.type === 'INFLOW' ? (
-                      <>
-                        <line x1="12" y1="19" x2="12" y2="5" />
-                        <polyline points="5 12 12 5 19 12" />
-                      </>
-                    ) : (
-                      <>
-                        <line x1="12" y1="5" x2="12" y2="19" />
-                        <polyline points="19 12 12 19 5 12" />
-                      </>
-                    )}
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>
-                    {tx.description}
-                  </p>
-                  <p style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)' }}>
-                    {tx.category}
-                  </p>
-                </div>
-              </div>
-              <span
-                className="font-value text-sm font-medium"
-                style={{
-                  color: 'var(--color-text-primary)',
-                }}
-              >
-                {tx.type === 'INFLOW' ? '+' : ''}{formatCurrency(tx.amount)}
-              </span>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── Bottom Nav ── */}
       <BottomNav />
-
-      {/* ── AI Drawer ── */}
-      <KitsuneAIDrawer isOpen={isAIOpen} onClose={() => setIsAIOpen(false)} />
     </main>
   );
 }

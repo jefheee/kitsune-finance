@@ -105,9 +105,8 @@ export default function KitsuneAIDrawer({
           maxHeight: '85dvh',
           borderTopLeftRadius: 'var(--radius-xl)',
           borderTopRightRadius: 'var(--radius-xl)',
-          background:
-            'linear-gradient(180deg, var(--color-noir-elevated) 0%, var(--color-noir-deep) 100%)',
-          borderTop: '1px solid var(--color-noir-border)',
+          backgroundColor: '#121212',
+          borderTop: '1px solid #333333',
         }}
       >
         {/* Drag Handle */}
