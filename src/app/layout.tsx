@@ -28,18 +28,22 @@ export const viewport: Viewport = {
   themeColor: '#0A0A0A',
 };
 
+import { ThemeProvider } from '@/components/theme-provider';
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" className={`${fontSans.variable} ${fontMono.variable}`}>
+    <html lang="pt-BR" className={`${fontSans.variable} ${fontMono.variable}`} suppressHydrationWarning>
       <head>
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
       </head>
       <body>
-        <AppShell>{children}</AppShell>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+          <AppShell>{children}</AppShell>
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:is(.dark *));
+
 @theme {
   --color-kitsune: #FF7A00; /* Laranja de destaque */
   --font-sans: var(--font-inter);
@@ -7,9 +9,14 @@
 }
 
 body {
+  background-color: #F9FAFB;
+  color: #111827;
+  overflow-x: hidden;
+}
+
+.dark body {
   background-color: #0A0A0A;
   color: white;
-  overflow-x: hidden;
 }
 
 /* Scrollbar opcional customizada */
