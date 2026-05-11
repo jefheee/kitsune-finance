@@ -7,7 +7,9 @@
 }
 
 body {
-  @apply bg-[#0A0A0A] text-white overflow-x-hidden;
+  background-color: #0A0A0A;
+  color: white;
+  overflow-x: hidden;
 }
 
 /* Scrollbar opcional customizada */
