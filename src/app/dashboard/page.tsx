@@ -8,7 +8,7 @@ export default function DashboardPage() {
 
       <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Card: Total Balance */}
-        <div className="flex flex-col bg-white dark:bg-[#121212] border border-gray-200 dark:border-white/5 rounded-2xl p-6">
+        <div className="flex flex-col bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/5 rounded-3xl p-6 shadow-sm">
           <span className="text-gray-500 dark:text-white/50 text-sm font-sans mb-2">Saldo Total</span>
           <span className="text-3xl font-bold font-mono tracking-tight text-gray-900 dark:text-white">R$ 0,00</span>
           <div className="flex items-center gap-2 mt-4">
@@ -18,21 +18,21 @@ export default function DashboardPage() {
         </div>
 
         {/* Card: Investimentos */}
-        <div className="flex flex-col bg-white dark:bg-[#121212] border border-gray-200 dark:border-white/5 rounded-2xl p-6">
+        <div className="flex flex-col bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/5 rounded-3xl p-6 shadow-sm">
           <span className="text-gray-500 dark:text-white/50 text-sm font-sans mb-2">Investimentos</span>
           <span className="text-3xl font-bold font-mono tracking-tight text-gray-900 dark:text-white">R$ 0,00</span>
         </div>
 
         {/* Card: Liquidez */}
-        <div className="flex flex-col bg-white dark:bg-[#121212] border border-gray-200 dark:border-white/5 rounded-2xl p-6">
+        <div className="flex flex-col bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/5 rounded-3xl p-6 shadow-sm">
           <span className="text-gray-500 dark:text-white/50 text-sm font-sans mb-2">Liquidez Imediata</span>
           <span className="text-3xl font-bold font-mono tracking-tight text-gray-900 dark:text-white">R$ 0,00</span>
         </div>
       </section>
 
       {/* Placeholder Chart / Activity Area */}
-      <section className="flex-1 min-h-[300px] bg-white dark:bg-[#121212] border border-gray-200 dark:border-white/5 rounded-2xl p-6 flex items-center justify-center">
-        <span className="text-gray-400 dark:text-white/30 font-sans text-sm">Aguardando sincronização de dados...</span>
+      <section className="flex-1 min-h-[300px] bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/5 rounded-3xl p-6 flex items-center justify-center shadow-sm">
+        <span className="text-gray-400 dark:text-white/30 font-sans text-sm">Aguardando sincronização de dados reais...</span>
       </section>
     </div>
   );

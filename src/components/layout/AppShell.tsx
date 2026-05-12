@@ -5,9 +5,11 @@ import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useState, useEffect, useRef } from "react";
+import { useTheme } from "next-themes";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { theme, setTheme } = useTheme();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
@@ -91,30 +93,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <div className="md:hidden flex items-center justify-between p-4 border-b border-gray-200 dark:border-white/5 bg-white/80 dark:bg-[#121212]/80 backdrop-blur-md sticky top-0 z-50">
           <Image src="/assets/logo/logo_sem_fundo.png" alt="Logo" width={24} height={24} className="object-contain" />
           <span className="font-sans font-semibold text-gray-900 dark:text-white/90">Kitsune Finance</span>
-          <div className="flex items-center gap-2 relative" ref={settingsRefMobile}>
-            <button 
-              onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-              className="text-gray-500 dark:text-white/50 hover:text-gray-900 dark:hover:text-white transition-colors duration-200 w-8 h-8 flex items-center justify-center"
-            >
-              <span className="material-symbols-outlined">settings</span>
-            </button>
+          <div className="flex items-center gap-2 relative">
             <button 
               onClick={() => setIsMobileMenuOpen(true)}
               className="text-gray-500 dark:text-white/50 hover:text-gray-900 dark:hover:text-white transition-colors duration-200"
             >
               <span className="material-symbols-outlined">menu</span>
             </button>
-
-            {/* Mobile Settings Menu */}
-            {isSettingsOpen && (
-              <div className="absolute top-12 right-0 w-48 bg-white dark:bg-[#121212] border border-gray-200 dark:border-white/5 rounded-2xl shadow-xl p-4 flex flex-col gap-4 z-50 animate-in fade-in zoom-in duration-200">
-                <h3 className="text-sm font-sans font-bold text-gray-900 dark:text-white mb-2">Configurações</h3>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-sans text-gray-500 dark:text-white/70">Tema</span>
-                  <ThemeToggle />
-                </div>
-              </div>
-            )}
           </div>
         </div>
         {children}
@@ -175,6 +160,23 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 </Link>
               );
             })}
+            
+            <div className="h-px bg-gray-200 dark:bg-white/10 w-full my-2"></div>
+            
+            <div 
+              className="flex items-center justify-between mt-2 cursor-pointer p-2 -mx-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            >
+              <div className="flex items-center gap-4 text-xl font-sans font-medium text-gray-500 dark:text-white/70">
+                <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 0" }}>
+                  settings
+                </span>
+                Tema
+              </div>
+              <div className="pointer-events-none">
+                <ThemeToggle />
+              </div>
+            </div>
           </div>
         </div>
       )}
