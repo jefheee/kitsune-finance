@@ -13,10 +13,12 @@ export default function AgentsPage() {
   const [isLoadingToken, setIsLoadingToken] = useState(false);
   const [connectToken, setConnectToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   const handleAddConnection = async () => {
     setIsLoadingToken(true);
     setError(null);
+    setSuccess(null);
     setConnectToken(null);
     
     try {
@@ -40,9 +42,22 @@ export default function AgentsPage() {
     }
   };
 
-  const handlePluggySuccess = (itemData: any) => {
+  const handlePluggySuccess = async (itemData: any) => {
     console.log("Pluggy onSuccess item:", itemData.item.id);
-    // TODO: save item.id to Supabase
+    try {
+      const res = await fetch("/api/pluggy/save-item", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ itemId: itemData.item.id }),
+      });
+      if (!res.ok) {
+        throw new Error("Falha ao salvar a conexão");
+      }
+      setConnectToken(null);
+      setSuccess("Banco conectado com sucesso!");
+    } catch (err: any) {
+      setError(err.message);
+    }
   };
 
   return (
@@ -85,12 +100,18 @@ export default function AgentsPage() {
           </div>
         )}
 
+        {success && (
+          <div className="text-sm font-sans text-green-600 bg-green-50 dark:bg-green-500/10 p-3 rounded-xl border border-green-200 dark:border-green-500/20">
+            {success}
+          </div>
+        )}
+
         {connectToken && (
           <div className="flex flex-col gap-2 mt-4 border-t border-gray-100 dark:border-white/5 pt-4">
             <h3 className="text-sm font-sans font-bold text-gray-900 dark:text-white mb-2">
               Conecte seu Banco:
             </h3>
-            <div className="w-full bg-gray-50 dark:bg-[#1A1A1A] rounded-2xl overflow-hidden" style={{ minHeight: '500px' }}>
+            <div className="w-full bg-gray-50 dark:bg-[#1A1A1A] rounded-2xl overflow-hidden max-w-4xl h-[600px] mx-auto flex flex-col relative">
               {typeof window !== 'undefined' && (
                 <PluggyConnect
                   connectToken={connectToken}

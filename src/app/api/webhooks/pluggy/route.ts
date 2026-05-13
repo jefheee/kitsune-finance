@@ -21,6 +21,14 @@ export async function POST(request: Request) {
         console.log(`[Webhook] Item Error: ${itemId}`);
         // TODO: Notificar o usuário que a conexão bancária falhou ou expirou
         break;
+      case 'transaction/created':
+        console.log(`[Webhook] Transaction Created: ${itemId}`);
+        // TODO: Fetch transaction details from Pluggy API using event.id and insert into Supabase transactions table with vector embeddings
+        break;
+      case 'transaction/updated':
+        console.log(`[Webhook] Transaction Updated: ${itemId}`);
+        // TODO: Fetch transaction details from Pluggy API using event.id and update Supabase transactions table
+        break;
       default:
         console.log(`[Webhook] Unhandled event: ${event}`);
     }

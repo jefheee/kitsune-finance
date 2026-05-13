@@ -80,15 +80,12 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-white dark:bg-[#0A0A0A] md:bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] md:bg-[size:24px_24px] md:p-6 relative overflow-hidden">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-white dark:bg-[#0A0A0A] md:bg-[url('/assets/background.jpg')] md:bg-cover md:bg-center md:p-6 relative overflow-hidden">
       {/* Background glow for aesthetic */}
       <div className="hidden md:block absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-kitsune/5 rounded-full blur-[100px] pointer-events-none"></div>
       
-      <div className="w-full h-full min-h-screen md:min-h-fit md:max-w-[440px] bg-white dark:bg-[#0A0A0A] md:bg-white/70 md:dark:bg-[#121212]/80 md:backdrop-blur-xl md:border border-gray-200 dark:border-white/5 md:rounded-3xl p-6 md:p-10 md:shadow-sm flex flex-col items-center justify-center relative z-10 md:my-8">
+      <div className="w-full h-full min-h-screen md:min-h-fit md:max-w-[440px] bg-white dark:bg-[#0A0A0A] md:bg-black/60 md:backdrop-blur-xl md:border border-white/10 md:rounded-3xl p-6 md:p-10 md:shadow-xl flex flex-col items-center justify-center relative z-10 md:my-8">
         
-        <div className="w-20 h-20 bg-gray-50 dark:bg-white/5 rounded-3xl flex items-center justify-center mb-8 shadow-sm border border-gray-100 dark:border-white/5">
-          <Image src="/assets/logo/logo_sem_fundo.png" alt="Logo" width={48} height={48} className="object-contain" />
-        </div>
         
         <h1 className="text-3xl font-bold font-sans text-gray-900 dark:text-white mb-3 text-center tracking-tight">
           Acesse sua Conta
