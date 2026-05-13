@@ -7,11 +7,14 @@ export default function DashboardPage() {
   const [assets, setAssets] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('Visão geral');
 
   // AI Insights State
   const [aiInsight, setAiInsight] = useState<{ text: string, updatedAt: string } | null>(null);
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
+
+  const TABS = ['Visão geral', 'Transações', 'Parcelamento', 'Assinaturas', 'Categorias', 'Cartões'];
 
   const supabase = createClient();
 
@@ -55,6 +58,32 @@ export default function DashboardPage() {
     return acc + bal;
   }, 0);
 
+  const creditCardBalance = assets.reduce((acc, curr) => {
+    if (curr.type === 'CREDIT') {
+      return acc + (Number(curr.balance) || 0);
+    }
+    return acc;
+  }, 0);
+
+  // Mês Corrente
+  const now = new Date();
+  const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  
+  let monthlyIncome = 0;
+  let monthlyExpense = 0;
+  
+  transactions.forEach(txn => {
+    // A data vem em yyyy-mm-dd
+    const [year, month, day] = txn.date.split('-');
+    const txnDate = new Date(Number(year), Number(month) - 1, Number(day));
+    
+    if (txnDate >= currentMonthStart) {
+      const amount = Number(txn.amount) || 0;
+      if (amount > 0) monthlyIncome += amount;
+      if (amount < 0) monthlyExpense += Math.abs(amount);
+    }
+  });
+
   const generateAiInsight = async () => {
     setIsGeneratingAi(true);
     setAiError(null);
@@ -91,18 +120,65 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-8 p-6 md:p-8 max-w-6xl mx-auto w-full">
-      <header className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold font-sans text-gray-900 dark:text-white tracking-tight">Dashboard</h1>
-        <p className="text-gray-500 dark:text-white/50 text-base font-sans">Sua visão financeira consolidada.</p>
+      <header className="flex flex-col gap-4">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-3xl font-bold font-sans text-gray-900 dark:text-white tracking-tight">Tudo pronto para entender suas finanças?</h1>
+          <p className="text-gray-500 dark:text-white/50 text-base font-sans">Sua visão financeira consolidada.</p>
+        </div>
+
+        {/* Horizontal Scrollable Tabs */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-6 px-6 md:mx-0 md:px-0">
+          {TABS.map((tab) => {
+            const isActive = activeTab === tab;
+            return (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`whitespace-nowrap px-4 py-2 rounded-full font-sans text-sm font-semibold transition-colors ${
+                  isActive 
+                    ? 'bg-gray-900 text-white dark:bg-white dark:text-black' 
+                    : 'bg-transparent text-gray-500 hover:text-gray-900 dark:text-white/50 dark:hover:text-white border border-gray-200 dark:border-white/10'
+                }`}
+              >
+                {tab}
+              </button>
+            );
+          })}
+        </div>
       </header>
 
-      {/* Visão Geral */}
-      <section className="bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/5 rounded-3xl p-8 shadow-sm flex flex-col gap-4">
-        <span className="text-gray-500 dark:text-white/50 text-sm font-sans uppercase tracking-wider font-semibold">Patrimônio Total</span>
-        <span className="text-5xl md:text-6xl font-bold font-mono tracking-tight text-gray-900 dark:text-white">
-          {formatCurrency(totalBalance)}
-        </span>
-      </section>
+      {activeTab === 'Visão geral' ? (
+        <>
+          {/* Visão Geral Cards */}
+          <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/5 rounded-3xl p-6 shadow-sm flex flex-col gap-2">
+              <span className="text-gray-500 dark:text-white/50 text-xs font-sans uppercase tracking-wider font-semibold">Patrimônio Total</span>
+              <span className="text-2xl md:text-3xl font-bold font-mono tracking-tight text-gray-900 dark:text-white">
+                {formatCurrency(totalBalance)}
+              </span>
+            </div>
+            
+            <div className="bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/5 rounded-3xl p-6 shadow-sm flex flex-col gap-2">
+              <span className="text-gray-500 dark:text-white/50 text-xs font-sans uppercase tracking-wider font-semibold">Receitas (Mês)</span>
+              <span className="text-2xl md:text-3xl font-bold font-mono tracking-tight text-green-500">
+                {formatCurrency(monthlyIncome)}
+              </span>
+            </div>
+
+            <div className="bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/5 rounded-3xl p-6 shadow-sm flex flex-col gap-2">
+              <span className="text-gray-500 dark:text-white/50 text-xs font-sans uppercase tracking-wider font-semibold">Despesas (Mês)</span>
+              <span className="text-2xl md:text-3xl font-bold font-mono tracking-tight text-red-500">
+                {formatCurrency(monthlyExpense)}
+              </span>
+            </div>
+
+            <div className="bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/5 rounded-3xl p-6 shadow-sm flex flex-col gap-2">
+              <span className="text-gray-500 dark:text-white/50 text-xs font-sans uppercase tracking-wider font-semibold">Faturas (Cartões)</span>
+              <span className="text-2xl md:text-3xl font-bold font-mono tracking-tight text-gray-900 dark:text-white">
+                {formatCurrency(creditCardBalance)}
+              </span>
+            </div>
+          </section>
 
       {/* Kitsune AI Insight */}
       <section className="flex flex-col gap-4">
@@ -235,6 +311,14 @@ export default function DashboardPage() {
           )}
         </div>
       </section>
+      </>
+      ) : (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <span className="material-symbols-outlined text-4xl text-gray-300 dark:text-white/20 mb-4">construction</span>
+          <h3 className="text-xl font-bold font-sans text-gray-900 dark:text-white">Aba em Construção</h3>
+          <p className="text-gray-500 dark:text-white/50 font-sans mt-2">Esta funcionalidade estará disponível em breve.</p>
+        </div>
+      )}
     </div>
   );
 }

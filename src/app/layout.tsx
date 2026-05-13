@@ -2,8 +2,6 @@ import type { Metadata, Viewport } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import AppShell from '@/components/layout/AppShell';
-import Image from 'next/image';
-
 const fontSans = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
@@ -41,11 +39,8 @@ export default function RootLayout({
       <head>
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
       </head>
-      <body>
-        <div className="fixed inset-0 z-[-1] h-full w-full">
-          <Image src="/assets/background.jpg" alt="bg" fill className="object-cover" priority />
-        </div>
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+      <body className="bg-white dark:bg-[#0A0A0A] text-gray-900 dark:text-white antialiased">
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
           <AppShell>{children}</AppShell>
         </ThemeProvider>
       </body>
