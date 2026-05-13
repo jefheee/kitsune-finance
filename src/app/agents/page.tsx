@@ -2,6 +2,12 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import dynamic from "next/dynamic";
+
+const PluggyConnect = dynamic(
+  () => import("react-pluggy-connect").then((mod) => mod.PluggyConnect),
+  { ssr: false }
+);
 
 export default function AgentsPage() {
   const [isLoadingToken, setIsLoadingToken] = useState(false);
@@ -32,6 +38,11 @@ export default function AgentsPage() {
     } finally {
       setIsLoadingToken(false);
     }
+  };
+
+  const handlePluggySuccess = (itemData: any) => {
+    console.log("Pluggy onSuccess item:", itemData.item.id);
+    // TODO: save item.id to Supabase
   };
 
   return (
@@ -75,14 +86,20 @@ export default function AgentsPage() {
         )}
 
         {connectToken && (
-          <div className="flex flex-col gap-2 mt-4">
-            <span className="text-sm font-sans font-bold text-green-600 dark:text-green-400 flex items-center gap-1">
-              <span className="material-symbols-outlined text-[16px]">check_circle</span>
-              Token gerado com sucesso! (Verifique o console)
-            </span>
-            <code className="text-xs font-mono bg-gray-50 dark:bg-[#1A1A1A] text-gray-500 dark:text-white/50 p-3 rounded-xl break-all border border-gray-200 dark:border-white/10">
-              {connectToken}
-            </code>
+          <div className="flex flex-col gap-2 mt-4 border-t border-gray-100 dark:border-white/5 pt-4">
+            <h3 className="text-sm font-sans font-bold text-gray-900 dark:text-white mb-2">
+              Conecte seu Banco:
+            </h3>
+            <div className="w-full bg-gray-50 dark:bg-[#1A1A1A] rounded-2xl overflow-hidden" style={{ minHeight: '500px' }}>
+              {typeof window !== 'undefined' && (
+                <PluggyConnect
+                  connectToken={connectToken}
+                  includeSandbox={true}
+                  onSuccess={handlePluggySuccess}
+                  onError={(error) => setError(error?.message || "Erro no widget Pluggy")}
+                />
+              )}
+            </div>
           </div>
         )}
       </div>

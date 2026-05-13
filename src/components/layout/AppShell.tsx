@@ -1,17 +1,26 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useState, useEffect, useRef } from "react";
 import { useTheme } from "next-themes";
+import { createClient } from "@/utils/supabase/client";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push('/login');
+    router.refresh();
+  };
   
   const settingsRefDesktop = useRef<HTMLDivElement>(null);
   const settingsRefMobile = useRef<HTMLDivElement>(null);
@@ -83,6 +92,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 <span className="text-sm font-sans text-gray-500 dark:text-white/70">Tema</span>
                 <ThemeToggle />
               </div>
+              <div className="h-px bg-gray-200 dark:bg-white/10 w-full my-1"></div>
+              <button 
+                onClick={handleLogout}
+                className="flex items-center gap-3 w-full p-2 -mx-2 rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors text-sm font-sans font-medium"
+              >
+                <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 0" }}>
+                  logout
+                </span>
+                Sair / Logout
+              </button>
             </div>
           )}
         </div>
@@ -188,6 +207,19 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               </span>
               Configurações
             </Link>
+
+            <button
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                handleLogout();
+              }}
+              className="flex items-center gap-4 text-xl font-sans font-medium text-red-500 hover:text-red-600 transition-colors duration-200 mt-2 p-2 -mx-2 rounded-xl hover:bg-red-50 dark:hover:bg-red-500/10"
+            >
+              <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 0" }}>
+                logout
+              </span>
+              Sair / Logout
+            </button>
           </div>
         </div>
       )}
