@@ -1,9 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
+import Image from "next/image";
 
 export default function DashboardPage() {
-  const [accounts, setAccounts] = useState<any[]>([]);
+  const [assets, setAssets] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -17,8 +18,14 @@ export default function DashboardPage() {
         return;
       }
 
-      const { data: accData } = await supabase.from('accounts').select('*').eq('user_id', user.id);
-      if (accData) setAccounts(accData);
+      const { data: accData } = await supabase.from('accounts').select('*, pluggy_connections(provider_name)').eq('user_id', user.id);
+      const { data: invData } = await supabase.from('investments').select('*, pluggy_connections(provider_name)').eq('user_id', user.id);
+      
+      const combinedAssets = [
+        ...(accData || []).map(a => ({ ...a, assetType: a.type === 'CREDIT' ? 'Cartão de Crédito' : 'Conta Bancária' })),
+        ...(invData || []).map(i => ({ ...i, assetType: 'Investimento' }))
+      ];
+      setAssets(combinedAssets);
 
       const { data: txnData } = await supabase.from('transactions').select('*').eq('user_id', user.id).order('date', { ascending: false }).limit(20);
       if (txnData) setTransactions(txnData);
@@ -28,7 +35,15 @@ export default function DashboardPage() {
     fetchData();
   }, []);
 
-  const totalBalance = accounts.reduce((acc, curr) => acc + Number(curr.balance), 0);
+  // Matemática Financeira Correta:
+  // Patrimônio Total = SUM(bank/investment) - SUM(credit)
+  const totalBalance = assets.reduce((acc, curr) => {
+    const bal = Number(curr.balance) || 0;
+    if (curr.type === 'CREDIT') {
+      return acc - bal;
+    }
+    return acc + bal;
+  }, 0);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -64,28 +79,34 @@ export default function DashboardPage() {
 
       {/* Ativos (Contas) */}
       <section className="flex flex-col gap-4">
-        <h2 className="text-xl font-bold font-sans text-gray-900 dark:text-white">Ativos</h2>
+        <h2 className="text-xl font-bold font-sans text-gray-900 dark:text-white">Ativos & Passivos</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {accounts.length > 0 ? (
-            accounts.map((acc) => (
-              <div key={acc.id} className="flex flex-col bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/5 rounded-2xl p-6 shadow-sm">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-sm font-sans text-gray-500 dark:text-white/50 font-medium">
-                    {acc.type === 'BANK' ? 'Conta Bancária' : acc.type === 'CREDIT' ? 'Cartão de Crédito' : 'Conta'}
-                  </span>
-                  <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center">
-                    <span className="material-symbols-outlined text-sm text-gray-500">account_balance</span>
+          {assets.length > 0 ? (
+            assets.map((asset) => {
+              const isCredit = asset.type === 'CREDIT';
+              const providerName = asset.pluggy_connections?.provider_name || 'Instituição';
+              return (
+                <div key={asset.id} className="flex flex-col bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/5 rounded-2xl p-6 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-sm font-sans text-gray-500 dark:text-white/50 font-medium">
+                      {asset.assetType} • {providerName}
+                    </span>
+                    <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center">
+                      <span className="material-symbols-outlined text-sm text-gray-500">
+                        {isCredit ? 'credit_card' : asset.assetType === 'Investimento' ? 'trending_up' : 'account_balance'}
+                      </span>
+                    </div>
                   </div>
+                  <h3 className="text-lg font-bold font-sans text-gray-900 dark:text-white mb-2">{asset.name}</h3>
+                  <span className={`text-2xl font-bold font-mono tracking-tight ${isCredit ? 'text-red-500' : 'text-gray-900 dark:text-white'}`}>
+                    {isCredit ? '-' : ''}{formatCurrency(Number(asset.balance))}
+                  </span>
                 </div>
-                <h3 className="text-lg font-bold font-sans text-gray-900 dark:text-white mb-2">{acc.name}</h3>
-                <span className="text-2xl font-bold font-mono tracking-tight text-gray-900 dark:text-white">
-                  {formatCurrency(Number(acc.balance))}
-                </span>
-              </div>
-            ))
+              );
+            })
           ) : (
             <div className="col-span-full p-6 text-center text-gray-500 font-sans bg-white dark:bg-[#121212] rounded-2xl border border-gray-100 dark:border-white/5">
-              Nenhuma conta conectada.
+              Nenhum dado financeiro sincronizado.
             </div>
           )}
         </div>
@@ -102,9 +123,9 @@ export default function DashboardPage() {
                 return (
                   <div key={txn.id} className="flex items-center justify-between p-4 md:p-6 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
                     <div className="flex items-center gap-4">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isPositive ? 'bg-green-500/10 text-green-500' : 'bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-white/50'}`}>
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isPositive ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
                         <span className="material-symbols-outlined text-lg">
-                          {isPositive ? 'arrow_downward' : 'arrow_upward'}
+                          {isPositive ? 'arrow_upward' : 'arrow_downward'}
                         </span>
                       </div>
                       <div className="flex flex-col">
@@ -112,8 +133,8 @@ export default function DashboardPage() {
                         <span className="font-sans text-xs text-gray-500 dark:text-white/40">{formatDate(txn.date)} • {txn.category || 'Outros'}</span>
                       </div>
                     </div>
-                    <span className={`font-mono font-bold ${isPositive ? 'text-green-600 dark:text-green-400' : 'text-gray-900 dark:text-white'}`}>
-                      {isPositive ? '+' : ''}{formatCurrency(Number(txn.amount))}
+                    <span className={`font-mono font-bold ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
+                      {isPositive ? '+' : '-'}{formatCurrency(Math.abs(Number(txn.amount)))}
                     </span>
                   </div>
                 );

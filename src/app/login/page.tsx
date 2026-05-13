@@ -80,9 +80,9 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen relative overflow-hidden">
+    <div className="flex flex-col items-center justify-center min-h-screen relative w-full overflow-x-hidden">
       {/* Overlay to make background very clean/subtle */}
-      <div className="absolute inset-0 bg-white/40 dark:bg-black/40 backdrop-blur-sm z-0 pointer-events-none"></div>
+      <div className="absolute inset-0 w-full h-full bg-white/40 dark:bg-black/40 backdrop-blur-sm z-0 pointer-events-none"></div>
 
       {/* Background glow for aesthetic */}
       <div className="hidden md:block absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-kitsune/5 rounded-full blur-[100px] pointer-events-none z-0"></div>

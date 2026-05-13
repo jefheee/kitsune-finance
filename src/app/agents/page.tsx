@@ -70,7 +70,10 @@ export default function AgentsPage() {
       const res = await fetch("/api/pluggy/save-item", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ itemId: itemData.item.id }),
+        body: JSON.stringify({ 
+          itemId: itemData.item.id,
+          providerName: itemData.item.connector?.name || "Instituição Conectada"
+        }),
       });
       if (!res.ok) {
         throw new Error("Falha ao salvar a conexão");

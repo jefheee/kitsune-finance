@@ -41,8 +41,8 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
       </head>
       <body>
+        <div className="fixed inset-0 z-[-1] bg-[url('/assets/background.jpg')] bg-cover bg-center bg-no-repeat" />
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
-          <div className="fixed inset-0 -z-50 bg-[url('/assets/background.jpg')] bg-cover bg-center" />
           <AppShell>{children}</AppShell>
         </ThemeProvider>
       </body>

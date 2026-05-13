@@ -11,7 +11,7 @@ export async function POST(request: Request) {
     }
 
     const payload = await request.json();
-    const { itemId } = payload;
+    const { itemId, providerName } = payload;
 
     if (!itemId) {
       return NextResponse.json({ error: 'Missing itemId' }, { status: 400 });
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
       .insert({
         user_id: user.id,
         item_id: itemId,
-        provider_name: 'pluggy',
+        provider_name: providerName || 'pluggy',
         status: 'CONNECTED',
       })
       .select('id')
