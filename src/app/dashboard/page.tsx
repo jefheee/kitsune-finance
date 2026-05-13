@@ -8,6 +8,11 @@ export default function DashboardPage() {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // AI Insights State
+  const [aiInsight, setAiInsight] = useState<{ text: string, updatedAt: string } | null>(null);
+  const [isGeneratingAi, setIsGeneratingAi] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+
   const supabase = createClient();
 
   useEffect(() => {
@@ -30,6 +35,11 @@ export default function DashboardPage() {
       const { data: txnData } = await supabase.from('transactions').select('*').eq('user_id', user.id).order('date', { ascending: false }).limit(20);
       if (txnData) setTransactions(txnData);
       
+      const { data: insightData } = await supabase.from('ai_insights').select('*').eq('user_id', user.id).single();
+      if (insightData) {
+        setAiInsight({ text: insightData.last_analysis_text, updatedAt: insightData.updated_at });
+      }
+
       setLoading(false);
     }
     fetchData();
@@ -44,6 +54,23 @@ export default function DashboardPage() {
     }
     return acc + bal;
   }, 0);
+
+  const generateAiInsight = async () => {
+    setIsGeneratingAi(true);
+    setAiError(null);
+    try {
+      const response = await fetch('/api/ai/generate-insight', { method: 'POST' });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Erro ao gerar análise');
+      if (data.success && data.data) {
+        setAiInsight({ text: data.data.last_analysis_text, updatedAt: data.data.updated_at });
+      }
+    } catch (err: any) {
+      setAiError(err.message);
+    } finally {
+      setIsGeneratingAi(false);
+    }
+  };
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -75,6 +102,67 @@ export default function DashboardPage() {
         <span className="text-5xl md:text-6xl font-bold font-mono tracking-tight text-gray-900 dark:text-white">
           {formatCurrency(totalBalance)}
         </span>
+      </section>
+
+      {/* Kitsune AI Insight */}
+      <section className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold font-sans text-gray-900 dark:text-white flex items-center gap-2">
+            <span className="material-symbols-outlined text-kitsune">auto_awesome</span>
+            Kitsune Insights
+          </h2>
+          <button 
+            onClick={generateAiInsight}
+            disabled={isGeneratingAi}
+            className="flex items-center gap-2 px-4 py-2 bg-kitsune/10 hover:bg-kitsune/20 text-kitsune rounded-full font-sans text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isGeneratingAi ? (
+              <>
+                <span className="material-symbols-outlined text-[18px] animate-spin">refresh</span>
+                Gerando...
+              </>
+            ) : (
+              <>
+                <span className="material-symbols-outlined text-[18px]">refresh</span>
+                Gerar Análise Atualizada
+              </>
+            )}
+          </button>
+        </div>
+
+        <div className="bg-white dark:bg-[#121212] border border-kitsune/20 dark:border-kitsune/20 rounded-3xl p-6 md:p-8 shadow-sm relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-1 h-full bg-kitsune"></div>
+          
+          {aiError && (
+            <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-xl text-sm font-medium border border-red-100">
+              {aiError}
+            </div>
+          )}
+
+          {isGeneratingAi ? (
+            <div className="flex flex-col gap-3 animate-pulse">
+              <div className="h-4 bg-gray-200 dark:bg-white/10 rounded w-3/4"></div>
+              <div className="h-4 bg-gray-200 dark:bg-white/10 rounded w-full"></div>
+              <div className="h-4 bg-gray-200 dark:bg-white/10 rounded w-5/6"></div>
+            </div>
+          ) : aiInsight ? (
+            <div className="flex flex-col gap-4">
+              <p className="text-gray-900 dark:text-white/90 font-sans leading-relaxed">
+                {aiInsight.text}
+              </p>
+              <div className="flex items-center gap-2 mt-2 pt-4 border-t border-gray-100 dark:border-white/5">
+                <span className="material-symbols-outlined text-[16px] text-gray-400">schedule</span>
+                <span className="text-xs text-gray-500 font-sans">
+                  Atualizado em: {new Date(aiInsight.updatedAt).toLocaleString('pt-BR')}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-6 text-gray-500 font-sans">
+              Nenhuma análise gerada ainda. Clique no botão acima para começar.
+            </div>
+          )}
+        </div>
       </section>
 
       {/* Ativos (Contas) */}
