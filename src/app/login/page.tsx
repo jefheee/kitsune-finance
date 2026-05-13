@@ -1,54 +1,202 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/client";
+import { getURL } from "@/utils/url";
 
 export default function LoginPage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  
+  const [isLoadingGoogle, setIsLoadingGoogle] = useState(false);
+  const [isLoadingApple, setIsLoadingApple] = useState(false);
+  const [isLoadingEmail, setIsLoadingEmail] = useState(false);
+  
+  const [error, setError] = useState<string | null>(null);
+
+  const supabase = createClient();
+
   const handleGoogleLogin = async () => {
-    const supabase = createClient();
-    await supabase.auth.signInWithOAuth({ 
-      provider: 'google', 
-      options: { 
-        redirectTo: `${window.location.origin}/auth/callback` 
-      } 
-    });
+    setIsLoadingGoogle(true);
+    setError(null);
+    try {
+      await supabase.auth.signInWithOAuth({ 
+        provider: 'google', 
+        options: { 
+          redirectTo: `${getURL()}/auth/callback` 
+        } 
+      });
+    } catch (err: any) {
+      setError(err.message || 'Erro ao conectar com Google');
+      setIsLoadingGoogle(false);
+    }
+  };
+
+  const handleAppleLogin = async () => {
+    setIsLoadingApple(true);
+    setError(null);
+    try {
+      await supabase.auth.signInWithOAuth({ 
+        provider: 'apple', 
+        options: { 
+          redirectTo: `${getURL()}/auth/callback` 
+        } 
+      });
+    } catch (err: any) {
+      setError(err.message || 'Erro ao conectar com Apple');
+      setIsLoadingApple(false);
+    }
+  };
+
+  const handleEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      setError("Preencha todos os campos.");
+      return;
+    }
+    
+    setIsLoadingEmail(true);
+    setError(null);
+    
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        setError("Credenciais inválidas. Tente novamente.");
+        setIsLoadingEmail(false);
+        return;
+      }
+      
+      // The middleware or an auth listener should redirect the user.
+      // Alternatively, we can force a redirect here:
+      window.location.href = "/dashboard";
+    } catch (err: any) {
+      setError(err.message || "Ocorreu um erro no login.");
+      setIsLoadingEmail(false);
+    }
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 dark:bg-[#0A0A0A] p-4 relative overflow-hidden">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 dark:bg-[#0A0A0A] p-6 relative overflow-hidden">
       {/* Background glow for aesthetic */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-kitsune/5 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-kitsune/5 rounded-full blur-[100px] pointer-events-none"></div>
       
-      <div className="w-full max-w-md bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/5 rounded-3xl p-8 shadow-sm flex flex-col items-center relative z-10">
-        <div className="w-16 h-16 bg-gray-50 dark:bg-white/5 rounded-2xl flex items-center justify-center mb-6 shadow-sm border border-gray-100 dark:border-white/5">
-          <Image src="/assets/logo/logo_sem_fundo.png" alt="Logo" width={40} height={40} className="object-contain" />
+      <div className="w-full max-w-[440px] bg-white dark:bg-[#121212] border border-gray-200 dark:border-white/5 rounded-3xl p-10 shadow-sm flex flex-col items-center relative z-10">
+        
+        <div className="w-20 h-20 bg-gray-50 dark:bg-white/5 rounded-3xl flex items-center justify-center mb-8 shadow-sm border border-gray-100 dark:border-white/5">
+          <Image src="/assets/logo/logo_sem_fundo.png" alt="Logo" width={48} height={48} className="object-contain" />
         </div>
         
-        <h1 className="text-2xl font-bold font-sans text-gray-900 dark:text-white mb-2 text-center tracking-tight">
-          Bem-vindo
+        <h1 className="text-3xl font-bold font-sans text-gray-900 dark:text-white mb-3 text-center tracking-tight">
+          Acesse sua Conta
         </h1>
-        <p className="text-sm font-sans text-gray-500 dark:text-white/50 text-center mb-8">
-          Acesse sua conta para visualizar seu patrimônio e interagir com a inteligência artificial.
+        <p className="text-base font-sans text-gray-500 dark:text-white/50 text-center mb-10">
+          Gerencie seu patrimônio e interaja com a inteligência artificial Kitsune.
         </p>
+        
+        {error && (
+          <div className="w-full bg-red-50 text-red-600 border border-red-200 rounded-xl p-4 mb-6 text-sm font-medium text-center">
+            {error}
+          </div>
+        )}
+
+        {/* Formulário Email / Senha */}
+        <form onSubmit={handleEmailLogin} className="flex flex-col gap-5 w-full mb-8">
+          <div className="flex flex-col gap-2">
+            <input 
+              type="email" 
+              placeholder="Seu e-mail" 
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={isLoadingEmail}
+              className="w-full h-14 bg-gray-50 dark:bg-[#1A1A1A] border border-gray-200 dark:border-white/10 rounded-2xl px-5 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/30 focus:outline-none focus:border-kitsune/50 transition-colors"
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <input 
+              type="password" 
+              placeholder="Sua senha" 
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={isLoadingEmail}
+              className="w-full h-14 bg-gray-50 dark:bg-[#1A1A1A] border border-gray-200 dark:border-white/10 rounded-2xl px-5 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/30 focus:outline-none focus:border-kitsune/50 transition-colors"
+            />
+          </div>
+          
+          <button 
+            type="submit" 
+            disabled={isLoadingEmail || isLoadingGoogle || isLoadingApple}
+            className="w-full h-14 flex items-center justify-center gap-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-2xl font-sans font-bold hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed mt-2"
+          >
+            {isLoadingEmail ? (
+              <span className="material-symbols-outlined animate-spin text-[20px]">refresh</span>
+            ) : (
+              "Entrar com E-mail"
+            )}
+          </button>
+        </form>
+
+        <div className="w-full flex items-center gap-4 mb-8 opacity-60">
+          <div className="flex-1 h-px bg-gray-300 dark:bg-white/20"></div>
+          <span className="text-xs font-medium text-gray-500 uppercase tracking-widest">ou</span>
+          <div className="flex-1 h-px bg-gray-300 dark:bg-white/20"></div>
+        </div>
         
         <div className="flex flex-col gap-4 w-full">
           {/* Google Button */}
-          <button onClick={handleGoogleLogin} className="w-full flex items-center justify-center gap-3 bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-white/10 rounded-3xl p-4 text-gray-900 dark:text-white font-sans font-medium hover:bg-gray-50 dark:hover:bg-white/5 transition-colors shadow-sm">
-            <span className="font-bold text-lg leading-none" style={{ background: 'linear-gradient(45deg, #4285F4, #34A853, #FBBC05, #EA4335)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>G</span>
-            Continuar com Google
+          <button 
+            onClick={handleGoogleLogin} 
+            disabled={isLoadingEmail || isLoadingGoogle || isLoadingApple}
+            className="w-full h-14 flex items-center justify-center gap-3 bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-white/10 rounded-2xl text-gray-900 dark:text-white font-sans font-medium hover:bg-gray-50 dark:hover:bg-white/5 transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
+          >
+            {isLoadingGoogle ? (
+              <>
+                <span className="material-symbols-outlined animate-spin text-[20px]">refresh</span>
+                Conectando...
+              </>
+            ) : (
+              <>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M22.56 12.25C22.56 11.47 22.49 10.72 22.36 10H12V14.26H17.92C17.67 15.63 16.86 16.8 15.65 17.61V20.34H19.22C21.31 18.42 22.56 15.6 22.56 12.25Z" fill="#4285F4"/>
+                  <path d="M12 23C14.97 23 17.46 22.02 19.22 20.34L15.65 17.61C14.7 18.25 13.44 18.63 12 18.63C9.23 18.63 6.88 16.76 6.04 14.25H2.36V17.1C4.14 20.63 7.78 23 12 23Z" fill="#34A853"/>
+                  <path d="M6.04 14.25C5.83 13.62 5.71 12.82 5.71 12C5.71 11.18 5.83 10.38 6.04 9.75V6.9H2.36C1.62 8.38 1.2 10.14 1.2 12C1.2 13.86 1.62 15.62 2.36 17.1L6.04 14.25Z" fill="#FBBC05"/>
+                  <path d="M12 5.38C13.62 5.38 15.06 5.94 16.2 7.03L19.3 3.93C17.45 2.21 14.97 1.2 12 1.2C7.78 1.2 4.14 3.57 2.36 6.9L6.04 9.75C6.88 7.24 9.23 5.38 12 5.38Z" fill="#EA4335"/>
+                </svg>
+                Continuar com Google
+              </>
+            )}
           </button>
           
           {/* Apple Button */}
-          <button className="w-full flex items-center justify-center gap-3 bg-gray-900 dark:bg-white border border-transparent rounded-3xl p-4 text-white dark:text-gray-900 font-sans font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm">
-            <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>apple</span>
-            Continuar com Apple
+          <button 
+            onClick={handleAppleLogin}
+            disabled={isLoadingEmail || isLoadingGoogle || isLoadingApple}
+            className="w-full h-14 flex items-center justify-center gap-3 bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-white/10 rounded-2xl text-gray-900 dark:text-white font-sans font-medium hover:bg-gray-50 dark:hover:bg-white/5 transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
+          >
+            {isLoadingApple ? (
+              <>
+                <span className="material-symbols-outlined animate-spin text-[20px]">refresh</span>
+                Conectando...
+              </>
+            ) : (
+              <>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="fill-current text-black dark:text-white">
+                  <path d="M16.48 10.74C16.44 8.79 18.06 7.82 18.13 7.78C17.22 6.45 15.79 6.24 15.28 6.22C14.07 6.1 12.89 6.94 12.26 6.94C11.64 6.94 10.66 6.24 9.64 6.26C8.36 6.28 7.16 6.96 6.5 8.1C5.16 10.42 6.16 13.84 7.46 15.72C8.1 16.63 8.84 17.65 9.8 17.62C10.74 17.58 11.1 17.01 12.24 17.01C13.38 17.01 13.7 17.62 14.68 17.6C15.68 17.58 16.32 16.65 16.94 15.74C17.68 14.66 17.98 13.62 18 13.56C17.98 13.55 16.52 13 16.48 10.74ZM14.16 4.36C14.68 3.73 15.02 2.86 14.92 2C14.18 2.03 13.26 2.5 12.72 3.12C12.24 3.66 11.84 4.56 11.96 5.4C12.78 5.46 13.64 4.98 14.16 4.36Z" />
+                </svg>
+                Continuar com Apple
+              </>
+            )}
           </button>
         </div>
         
-        <div className="mt-8 text-center">
-          <Link href="/dashboard" className="text-sm font-sans text-gray-400 dark:text-white/30 hover:text-gray-900 dark:hover:text-white transition-colors">
-            Voltar para o Dashboard
+        <div className="mt-10 text-center">
+          <Link href="/dashboard" className="text-sm font-sans font-medium text-gray-400 dark:text-white/30 hover:text-gray-900 dark:hover:text-white transition-colors underline decoration-transparent hover:decoration-current underline-offset-4">
+            Acessar como convidado
           </Link>
         </div>
       </div>
