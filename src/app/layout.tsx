@@ -16,7 +16,7 @@ const fontMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Kitsune Finance — Cyber-Noir Wealth Management',
+  title: 'Kitsune Finance',
   description: 'AI-driven wealth management in a clean, high-performance interface.',
 };
 
