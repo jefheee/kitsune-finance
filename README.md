@@ -1,6 +1,6 @@
 # **🦊 Kitsune Finance | Gestão Patrimonial Autônoma & Open Finance**
 
-<img width="1024" height="1024" alt="logo" src="https://github.com/user-attachments/assets/3f4777f4-2406-4218-aec5-91deca948acc" />
+<img width="2752" height="1536" alt="background" src="https://github.com/user-attachments/assets/d3ef5edc-2c17-4c85-9c56-cc6d3bb52488" />
 
 ---
 
