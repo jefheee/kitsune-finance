@@ -53,9 +53,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex h-screen w-full bg-gray-50 dark:bg-[#0A0A0A] overflow-hidden">
+    <div className="flex h-screen w-full bg-[url('/assets/background.jpg')] bg-cover bg-center bg-fixed overflow-hidden">
       {/* Desktop Sidebar (Minimalist) */}
-      <aside className="hidden md:flex flex-col w-20 border-r border-gray-200 dark:border-white/5 bg-white dark:bg-[#121212] pt-6 pb-4 items-center justify-between">
+      <aside className="hidden md:flex flex-col w-20 border-r border-white/10 bg-[#0A0A0A]/70 backdrop-blur-2xl pt-6 pb-4 items-center justify-between">
         <div className="flex flex-col items-center gap-8 w-full">
           <Link href="/dashboard" className="flex items-center justify-center p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 transition-colors">
             <Image src="/assets/logo/logo_sem_fundo.png" alt="Logo" width={32} height={32} className="object-contain" />
@@ -114,7 +114,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col h-full overflow-y-auto pb-20 md:pb-0 relative">
+      <main className="flex-1 flex flex-col h-full overflow-y-auto pb-20 md:pb-0 relative bg-white/80 dark:bg-black/40">
         <div className="md:hidden flex items-center justify-between p-4 border-b border-gray-200 dark:border-white/5 bg-white/80 dark:bg-[#121212]/80 backdrop-blur-md sticky top-0 z-50">
           <Image src="/assets/logo/logo_sem_fundo.png" alt="Logo" width={24} height={24} className="object-contain" />
           <span className="font-sans font-semibold text-gray-900 dark:text-white/90">Kitsune Finance</span>
@@ -131,7 +131,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </main>
 
       {/* Mobile Bottom Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 w-full h-16 bg-white/90 dark:bg-[#121212]/90 backdrop-blur-xl border-t border-gray-200 dark:border-white/5 flex items-center justify-around z-50 pb-safe">
+      <nav className="md:hidden fixed bottom-0 left-0 w-full h-16 bg-[#0A0A0A]/70 backdrop-blur-2xl border-t border-white/10 flex items-center justify-around z-50 pb-safe">
         {navItems.map((item) => {
           const isActive = pathname.startsWith(item.path);
           return (
