@@ -81,6 +81,34 @@ export async function POST(request: Request) {
       }
     }
 
+    // 3. Fetch investments
+    try {
+      const invResponse = await pluggyClient.fetchInvestments(itemId);
+      const investments = invResponse.results;
+      
+      if (investments.length > 0) {
+        const investmentsToInsert = investments.map(inv => ({
+          user_id: user.id,
+          connection_id: connectionId,
+          pluggy_investment_id: inv.id,
+          name: inv.name,
+          type: inv.type,
+          balance: inv.balance,
+          currency: inv.currencyCode || 'BRL',
+        }));
+
+        const { error: invError } = await supabase
+          .from('investments')
+          .upsert(investmentsToInsert, { onConflict: 'pluggy_investment_id' });
+
+        if (invError) {
+          console.error('Investment Insert Error:', invError);
+        }
+      }
+    } catch (invFetchError) {
+      console.error(`Failed to fetch investments for item ${itemId}:`, invFetchError);
+    }
+
     return NextResponse.json({ 
       success: true, 
       accountsSynced: accounts.length,
