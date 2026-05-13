@@ -90,12 +90,6 @@ export default function SignupPage() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen relative w-full overflow-x-hidden">
-      {/* Overlay to make background very clean/subtle */}
-      <div className="absolute inset-0 w-full h-full bg-white/40 dark:bg-black/40 backdrop-blur-sm z-0 pointer-events-none"></div>
-
-      {/* Background glow for aesthetic */}
-      <div className="hidden md:block absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-kitsune/5 rounded-full blur-[100px] pointer-events-none z-0"></div>
-      
       <div className="w-full h-full min-h-screen md:min-h-fit md:max-w-[440px] bg-white dark:bg-[#121212] border border-gray-200 dark:border-white/5 md:rounded-3xl p-6 md:p-10 shadow-xl flex flex-col items-center justify-center relative z-10 md:my-8">
         
         

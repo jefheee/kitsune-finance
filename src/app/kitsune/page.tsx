@@ -50,7 +50,7 @@ export default function KitsuneAIPage() {
   };
 
   return (
-    <div className="flex flex-col h-full absolute inset-0">
+    <div className="flex flex-col h-dvh w-full">
       <header className="flex items-center p-6 border-b border-gray-100 dark:border-white/5 bg-gray-50/80 dark:bg-[#0A0A0A]/80 backdrop-blur-md z-10 shrink-0 shadow-sm">
         <h1 className="text-xl font-bold font-sans text-kitsune flex items-center gap-2">
           <span className="material-symbols-outlined">auto_awesome</span>
@@ -59,7 +59,7 @@ export default function KitsuneAIPage() {
       </header>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6 pb-24 md:pb-6">
+      <div className="flex-1 overflow-y-auto w-full p-6 flex flex-col gap-6">
         {messages.map((msg, idx) => (
           <div key={idx} className={`flex items-start gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
             {msg.role === 'assistant' && (
@@ -94,7 +94,7 @@ export default function KitsuneAIPage() {
       </div>
 
       {/* Input Area */}
-      <div className="p-4 border-t border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-[#0A0A0A] shrink-0 sticky bottom-0 md:relative md:bottom-auto md:pb-4 pb-20 z-20">
+      <div className="w-full shrink-0 border-t border-gray-100 dark:border-white/5 bg-white/80 dark:bg-[#0A0A0A]/80 backdrop-blur pb-safe sticky bottom-0 z-20 p-4">
         <form 
           onSubmit={handleSubmit}
           className={`flex items-center gap-2 bg-white dark:bg-[#121212] border border-gray-200 dark:border-white/10 rounded-full p-2 pl-4 transition-colors shadow-sm ${isLoading ? 'opacity-70' : 'focus-within:border-kitsune/50'}`}
