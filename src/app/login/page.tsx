@@ -4,8 +4,6 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/client";
-import { getURL } from "@/utils/url";
-
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -25,7 +23,7 @@ export default function LoginPage() {
       await supabase.auth.signInWithOAuth({ 
         provider: 'google', 
         options: { 
-          redirectTo: `${getURL()}/auth/callback` 
+          redirectTo: `${window.location.origin}/auth/callback` 
         } 
       });
     } catch (err: any) {
@@ -41,7 +39,7 @@ export default function LoginPage() {
       await supabase.auth.signInWithOAuth({ 
         provider: 'apple', 
         options: { 
-          redirectTo: `${getURL()}/auth/callback` 
+          redirectTo: `${window.location.origin}/auth/callback` 
         } 
       });
     } catch (err: any) {
@@ -82,11 +80,11 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-white dark:bg-[#0A0A0A] md:bg-gray-50 md:dark:bg-[#0A0A0A] md:p-6 relative overflow-hidden">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-white dark:bg-[#0A0A0A] md:bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] md:bg-[size:24px_24px] md:p-6 relative overflow-hidden">
       {/* Background glow for aesthetic */}
       <div className="hidden md:block absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-kitsune/5 rounded-full blur-[100px] pointer-events-none"></div>
       
-      <div className="w-full h-full min-h-screen md:min-h-fit md:max-w-[440px] bg-white dark:bg-[#0A0A0A] md:dark:bg-[#121212] md:border border-gray-200 dark:border-white/5 md:rounded-3xl p-6 md:p-10 md:shadow-sm flex flex-col items-center justify-center relative z-10 md:my-8">
+      <div className="w-full h-full min-h-screen md:min-h-fit md:max-w-[440px] bg-white dark:bg-[#0A0A0A] md:bg-white/70 md:dark:bg-[#121212]/80 md:backdrop-blur-xl md:border border-gray-200 dark:border-white/5 md:rounded-3xl p-6 md:p-10 md:shadow-sm flex flex-col items-center justify-center relative z-10 md:my-8">
         
         <div className="w-20 h-20 bg-gray-50 dark:bg-white/5 rounded-3xl flex items-center justify-center mb-8 shadow-sm border border-gray-100 dark:border-white/5">
           <Image src="/assets/logo/logo_sem_fundo.png" alt="Logo" width={48} height={48} className="object-contain" />
@@ -131,7 +129,7 @@ export default function LoginPage() {
           <button 
             type="submit" 
             disabled={isLoadingEmail || isLoadingGoogle || isLoadingApple}
-            className="w-full h-14 flex items-center justify-center gap-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-2xl font-sans font-bold hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed mt-2"
+            className="w-full h-14 flex items-center justify-center gap-3 bg-[#FF7A00] hover:bg-[#E56E00] text-white rounded-2xl font-sans font-bold transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed mt-2"
           >
             {isLoadingEmail ? (
               <span className="material-symbols-outlined animate-spin text-[20px]">refresh</span>
@@ -185,8 +183,8 @@ export default function LoginPage() {
               </>
             ) : (
               <>
-                <svg viewBox="0 0 24 24" className="w-5 h-5 shrink-0 fill-current text-black dark:text-white" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M16.48 10.74C16.44 8.79 18.06 7.82 18.13 7.78C17.22 6.45 15.79 6.24 15.28 6.22C14.07 6.1 12.89 6.94 12.26 6.94C11.64 6.94 10.66 6.24 9.64 6.26C8.36 6.28 7.16 6.96 6.5 8.1C5.16 10.42 6.16 13.84 7.46 15.72C8.1 16.63 8.84 17.65 9.8 17.62C10.74 17.58 11.1 17.01 12.24 17.01C13.38 17.01 13.7 17.62 14.68 17.6C15.68 17.58 16.32 16.65 16.94 15.74C17.68 14.66 17.98 13.62 18 13.56C17.98 13.55 16.52 13 16.48 10.74ZM14.16 4.36C14.68 3.73 15.02 2.86 14.92 2C14.18 2.03 13.26 2.5 12.72 3.12C12.24 3.66 11.84 4.56 11.96 5.4C12.78 5.46 13.64 4.98 14.16 4.36Z" />
+                <svg viewBox="0 0 384 512" className="w-5 h-5 shrink-0 fill-current text-black dark:text-white" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/>
                 </svg>
                 Continuar com Apple
               </>
