@@ -1,7 +1,20 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { createClient } from "@/utils/supabase/client";
 
 export default function LoginPage() {
+  const handleGoogleLogin = async () => {
+    const supabase = createClient();
+    await supabase.auth.signInWithOAuth({ 
+      provider: 'google', 
+      options: { 
+        redirectTo: `${window.location.origin}/auth/callback` 
+      } 
+    });
+  };
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 dark:bg-[#0A0A0A] p-4 relative overflow-hidden">
       {/* Background glow for aesthetic */}
@@ -21,13 +34,13 @@ export default function LoginPage() {
         
         <div className="flex flex-col gap-4 w-full">
           {/* Google Button */}
-          <button className="w-full flex items-center justify-center gap-3 bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-white/10 rounded-2xl p-4 text-gray-900 dark:text-white font-sans font-medium hover:bg-gray-50 dark:hover:bg-white/5 transition-colors shadow-sm">
+          <button onClick={handleGoogleLogin} className="w-full flex items-center justify-center gap-3 bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-white/10 rounded-3xl p-4 text-gray-900 dark:text-white font-sans font-medium hover:bg-gray-50 dark:hover:bg-white/5 transition-colors shadow-sm">
             <span className="font-bold text-lg leading-none" style={{ background: 'linear-gradient(45deg, #4285F4, #34A853, #FBBC05, #EA4335)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>G</span>
             Continuar com Google
           </button>
           
           {/* Apple Button */}
-          <button className="w-full flex items-center justify-center gap-3 bg-gray-900 dark:bg-white border border-transparent rounded-2xl p-4 text-white dark:text-gray-900 font-sans font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm">
+          <button className="w-full flex items-center justify-center gap-3 bg-gray-900 dark:bg-white border border-transparent rounded-3xl p-4 text-white dark:text-gray-900 font-sans font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm">
             <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>apple</span>
             Continuar com Apple
           </button>

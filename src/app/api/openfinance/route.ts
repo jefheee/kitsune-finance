@@ -2,14 +2,14 @@ import { NextResponse } from 'next/server';
 
 /**
  * Kitsune Finance — Open Finance API Route
- * Skeleton for Belvo SDK integration.
+ * Skeleton for Pluggy SDK integration.
  * 
  * Future: Replace mock data with:
- *   import Belvo from 'belvo';
- *   const client = new Belvo(process.env.BELVO_SECRET_ID!, process.env.BELVO_SECRET_PASSWORD!, process.env.BELVO_ENV!);
+ *   import { PluggyClient } from 'pluggy-sdk';
+ *   const client = new PluggyClient({ clientId: process.env.PLUGGY_CLIENT_ID!, clientSecret: process.env.PLUGGY_CLIENT_SECRET! });
  */
 
-const BELVO_FREE_TIER_LINK_LIMIT = 25;
+const PLUGGY_FREE_TIER_LINK_LIMIT = 25;
 
 // ── Mock Data ──
 const MOCK_ACCOUNTS = [
@@ -98,9 +98,9 @@ export async function GET() {
   try {
     // Tier check (Free tier limit: 25 links)
     const activeLinks = 12;
-    if (activeLinks >= BELVO_FREE_TIER_LINK_LIMIT) {
+    if (activeLinks >= PLUGGY_FREE_TIER_LINK_LIMIT) {
       return NextResponse.json(
-        { error: 'Belvo free tier link limit reached.' },
+        { error: 'Pluggy free tier link limit reached.' },
         { status: 403 }
       );
     }

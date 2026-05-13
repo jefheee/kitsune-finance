@@ -2,7 +2,7 @@ import { z } from 'zod/v4';
 
 /**
  * Kitsune Finance — Zod Schemas
- * Rigorous typing for Open Finance (Belvo SDK) data models.
+ * Rigorous typing for Open Finance (Pluggy SDK) data models.
  * All financial values use number (cents-safe operations handled upstream).
  */
 
@@ -56,7 +56,7 @@ export const AccountSchema = z.object({
   last_accessed_at: z.iso.datetime().optional(),
 });
 
-// ── Investment Schema (Belvo-compatible) ──
+// ── Investment Schema (Pluggy-compatible) ──
 export const InvestmentSchema = z.object({
   id: z.string().min(1),
   name: z.string(),

@@ -78,6 +78,19 @@ export default function KitsuneAIPage() {
             </div>
           </div>
         ))}
+        {isLoading && (
+          <div className="flex items-start gap-4">
+            <div className="w-10 h-10 rounded-full bg-kitsune/10 flex items-center justify-center shrink-0 shadow-sm">
+              <span className="material-symbols-outlined text-kitsune text-[20px] animate-pulse">auto_awesome</span>
+            </div>
+            <div className={`border rounded-3xl p-4 max-w-[85%] md:max-w-[70%] shadow-sm bg-white dark:bg-[#121212] border-gray-100 dark:border-white/5 rounded-tl-none flex items-center gap-2`}>
+              <div className="w-2 h-2 rounded-full bg-kitsune/60 animate-bounce"></div>
+              <div className="w-2 h-2 rounded-full bg-kitsune/60 animate-bounce" style={{ animationDelay: '150ms' }}></div>
+              <div className="w-2 h-2 rounded-full bg-kitsune/60 animate-bounce" style={{ animationDelay: '300ms' }}></div>
+              <span className="text-sm font-sans text-gray-500 dark:text-white/50 ml-2">Kitsune está pensando...</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Input Area */}

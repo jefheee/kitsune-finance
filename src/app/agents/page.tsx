@@ -9,7 +9,7 @@ export default function AgentsPage() {
           Conexões Bancárias
         </h1>
         <p className="text-gray-500 dark:text-white/50 text-sm font-sans">
-          Conecte suas contas reais via Open Finance (Belvo Development) para habilitar o motor da IA.
+          Conecte suas contas reais via Open Finance (Pluggy Development) para habilitar o motor da IA.
         </p>
       </header>
 
@@ -32,7 +32,7 @@ export default function AgentsPage() {
           
           <div className="mt-auto pt-4 border-t border-gray-100 dark:border-white/5">
             <button className="text-sm font-sans font-medium text-[#8A05BE] hover:text-[#8A05BE]/80 transition-colors flex items-center gap-1">
-              Conectar via Belvo
+              Conectar via Pluggy
               <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
             </button>
           </div>
@@ -56,7 +56,7 @@ export default function AgentsPage() {
           
           <div className="mt-auto pt-4 border-t border-gray-100 dark:border-white/5">
             <button className="text-sm font-sans font-medium text-[#EC7000] hover:text-[#EC7000]/80 transition-colors flex items-center gap-1">
-              Conectar via Belvo
+              Conectar via Pluggy
               <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
             </button>
           </div>

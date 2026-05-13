@@ -9,7 +9,7 @@ import { useTheme } from "next-themes";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, resolvedTheme } = useTheme();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
@@ -169,7 +169,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             >
               <div className="flex items-center gap-4 text-xl font-sans font-medium text-gray-500 dark:text-white/70">
                 <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 0" }}>
-                  settings
+                  dark_mode
                 </span>
                 Tema
               </div>
@@ -177,6 +177,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 <ThemeToggle />
               </div>
             </div>
+
+            <Link
+              href="/settings"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center gap-4 text-xl font-sans font-medium text-gray-500 dark:text-white/70 hover:text-gray-900 dark:hover:text-white transition-colors duration-200 mt-2 p-2 -mx-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5"
+            >
+              <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 0" }}>
+                settings
+              </span>
+              Configurações
+            </Link>
           </div>
         </div>
       )}
