@@ -6,7 +6,8 @@ import Link from "next/link";
 import { createClient } from "@/utils/supabase/client";
 import { getURL } from "@/utils/url";
 
-export default function LoginPage() {
+export default function SignupPage() {
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   
@@ -50,9 +51,9 @@ export default function LoginPage() {
     }
   };
 
-  const handleEmailLogin = async (e: React.FormEvent) => {
+  const handleEmailSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
+    if (!fullName || !email || !password) {
       setError("Preencha todos os campos.");
       return;
     }
@@ -61,22 +62,26 @@ export default function LoginPage() {
     setError(null);
     
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: {
+            full_name: fullName,
+          }
+        }
       });
 
       if (error) {
-        setError("Credenciais inválidas. Tente novamente.");
+        setError(error.message || "Erro ao criar conta. Tente novamente.");
         setIsLoadingEmail(false);
         return;
       }
       
-      // The middleware or an auth listener should redirect the user.
-      // Alternatively, we can force a redirect here:
+      // Navigate to dashboard or prompt to check email if confirm email is enabled
       window.location.href = "/dashboard";
     } catch (err: any) {
-      setError(err.message || "Ocorreu um erro no login.");
+      setError(err.message || "Ocorreu um erro inesperado.");
       setIsLoadingEmail(false);
     }
   };
@@ -86,17 +91,17 @@ export default function LoginPage() {
       {/* Background glow for aesthetic */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-kitsune/5 rounded-full blur-[100px] pointer-events-none"></div>
       
-      <div className="w-full max-w-[440px] bg-white dark:bg-[#121212] border border-gray-200 dark:border-white/5 rounded-3xl p-10 shadow-sm flex flex-col items-center relative z-10">
+      <div className="w-full max-w-[440px] bg-white dark:bg-[#121212] border border-gray-200 dark:border-white/5 rounded-3xl p-10 shadow-sm flex flex-col items-center relative z-10 my-8">
         
-        <div className="w-20 h-20 bg-gray-50 dark:bg-white/5 rounded-3xl flex items-center justify-center mb-8 shadow-sm border border-gray-100 dark:border-white/5">
+        <div className="w-20 h-20 bg-gray-50 dark:bg-white/5 rounded-3xl flex items-center justify-center mb-8 shadow-sm border border-gray-100 dark:border-white/5 shrink-0">
           <Image src="/assets/logo/logo_sem_fundo.png" alt="Logo" width={48} height={48} className="object-contain" />
         </div>
         
         <h1 className="text-3xl font-bold font-sans text-gray-900 dark:text-white mb-3 text-center tracking-tight">
-          Acesse sua Conta
+          Crie sua Conta
         </h1>
         <p className="text-base font-sans text-gray-500 dark:text-white/50 text-center mb-10">
-          Gerencie seu patrimônio e interaja com a inteligência artificial Kitsune.
+          Junte-se a nós e gerencie seu patrimônio com a Kitsune AI.
         </p>
         
         {error && (
@@ -106,7 +111,17 @@ export default function LoginPage() {
         )}
 
         {/* Formulário Email / Senha */}
-        <form onSubmit={handleEmailLogin} className="flex flex-col gap-5 w-full mb-8">
+        <form onSubmit={handleEmailSignup} className="flex flex-col gap-5 w-full mb-8">
+          <div className="flex flex-col gap-2">
+            <input 
+              type="text" 
+              placeholder="Nome Completo" 
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              disabled={isLoadingEmail}
+              className="w-full h-14 bg-gray-50 dark:bg-[#1A1A1A] border border-gray-200 dark:border-white/10 rounded-2xl px-5 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/30 focus:outline-none focus:border-kitsune/50 transition-colors"
+            />
+          </div>
           <div className="flex flex-col gap-2">
             <input 
               type="email" 
@@ -120,7 +135,7 @@ export default function LoginPage() {
           <div className="flex flex-col gap-2">
             <input 
               type="password" 
-              placeholder="Sua senha" 
+              placeholder="Crie uma senha" 
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={isLoadingEmail}
@@ -131,12 +146,12 @@ export default function LoginPage() {
           <button 
             type="submit" 
             disabled={isLoadingEmail || isLoadingGoogle || isLoadingApple}
-            className="w-full h-14 flex items-center justify-center gap-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-2xl font-sans font-bold hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed mt-2"
+            className="w-full h-14 flex items-center justify-center gap-3 bg-kitsune text-white rounded-2xl font-sans font-bold hover:bg-kitsune/90 transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed mt-2"
           >
             {isLoadingEmail ? (
               <span className="material-symbols-outlined animate-spin text-[20px]">refresh</span>
             ) : (
-              "Entrar com E-mail"
+              "Criar Conta"
             )}
           </button>
         </form>
@@ -167,7 +182,7 @@ export default function LoginPage() {
                   <path d="M6.04 14.25C5.83 13.62 5.71 12.82 5.71 12C5.71 11.18 5.83 10.38 6.04 9.75V6.9H2.36C1.62 8.38 1.2 10.14 1.2 12C1.2 13.86 1.62 15.62 2.36 17.1L6.04 14.25Z" fill="#FBBC05"/>
                   <path d="M12 5.38C13.62 5.38 15.06 5.94 16.2 7.03L19.3 3.93C17.45 2.21 14.97 1.2 12 1.2C7.78 1.2 4.14 3.57 2.36 6.9L6.04 9.75C6.88 7.24 9.23 5.38 12 5.38Z" fill="#EA4335"/>
                 </svg>
-                Continuar com Google
+                Cadastrar com Google
               </>
             )}
           </button>
@@ -188,15 +203,15 @@ export default function LoginPage() {
                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 shrink-0 fill-current text-black dark:text-white">
                   <path d="M16.48 10.74C16.44 8.79 18.06 7.82 18.13 7.78C17.22 6.45 15.79 6.24 15.28 6.22C14.07 6.1 12.89 6.94 12.26 6.94C11.64 6.94 10.66 6.24 9.64 6.26C8.36 6.28 7.16 6.96 6.5 8.1C5.16 10.42 6.16 13.84 7.46 15.72C8.1 16.63 8.84 17.65 9.8 17.62C10.74 17.58 11.1 17.01 12.24 17.01C13.38 17.01 13.7 17.62 14.68 17.6C15.68 17.58 16.32 16.65 16.94 15.74C17.68 14.66 17.98 13.62 18 13.56C17.98 13.55 16.52 13 16.48 10.74ZM14.16 4.36C14.68 3.73 15.02 2.86 14.92 2C14.18 2.03 13.26 2.5 12.72 3.12C12.24 3.66 11.84 4.56 11.96 5.4C12.78 5.46 13.64 4.98 14.16 4.36Z" />
                 </svg>
-                Continuar com Apple
+                Cadastrar com Apple
               </>
             )}
           </button>
         </div>
         
         <div className="mt-10 text-center">
-          <Link href="/signup" className="text-sm font-sans font-medium text-gray-400 dark:text-white/50 hover:text-gray-900 dark:hover:text-white transition-colors">
-            Não tem uma conta? <strong className="font-bold">Cadastre-se</strong>
+          <Link href="/login" className="text-sm font-sans font-medium text-gray-400 dark:text-white/50 hover:text-gray-900 dark:hover:text-white transition-colors">
+            Já tem uma conta? <strong className="font-bold">Entrar</strong>
           </Link>
         </div>
       </div>
