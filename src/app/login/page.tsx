@@ -161,7 +161,7 @@ export default function LoginPage() {
               </>
             ) : (
               <>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 shrink-0">
                   <path d="M22.56 12.25C22.56 11.47 22.49 10.72 22.36 10H12V14.26H17.92C17.67 15.63 16.86 16.8 15.65 17.61V20.34H19.22C21.31 18.42 22.56 15.6 22.56 12.25Z" fill="#4285F4"/>
                   <path d="M12 23C14.97 23 17.46 22.02 19.22 20.34L15.65 17.61C14.7 18.25 13.44 18.63 12 18.63C9.23 18.63 6.88 16.76 6.04 14.25H2.36V17.1C4.14 20.63 7.78 23 12 23Z" fill="#34A853"/>
                   <path d="M6.04 14.25C5.83 13.62 5.71 12.82 5.71 12C5.71 11.18 5.83 10.38 6.04 9.75V6.9H2.36C1.62 8.38 1.2 10.14 1.2 12C1.2 13.86 1.62 15.62 2.36 17.1L6.04 14.25Z" fill="#FBBC05"/>
@@ -185,7 +185,7 @@ export default function LoginPage() {
               </>
             ) : (
               <>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="fill-current text-black dark:text-white">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 shrink-0 fill-current text-black dark:text-white">
                   <path d="M16.48 10.74C16.44 8.79 18.06 7.82 18.13 7.78C17.22 6.45 15.79 6.24 15.28 6.22C14.07 6.1 12.89 6.94 12.26 6.94C11.64 6.94 10.66 6.24 9.64 6.26C8.36 6.28 7.16 6.96 6.5 8.1C5.16 10.42 6.16 13.84 7.46 15.72C8.1 16.63 8.84 17.65 9.8 17.62C10.74 17.58 11.1 17.01 12.24 17.01C13.38 17.01 13.7 17.62 14.68 17.6C15.68 17.58 16.32 16.65 16.94 15.74C17.68 14.66 17.98 13.62 18 13.56C17.98 13.55 16.52 13 16.48 10.74ZM14.16 4.36C14.68 3.73 15.02 2.86 14.92 2C14.18 2.03 13.26 2.5 12.72 3.12C12.24 3.66 11.84 4.56 11.96 5.4C12.78 5.46 13.64 4.98 14.16 4.36Z" />
                 </svg>
                 Continuar com Apple
@@ -195,8 +195,8 @@ export default function LoginPage() {
         </div>
         
         <div className="mt-10 text-center">
-          <Link href="/dashboard" className="text-sm font-sans font-medium text-gray-400 dark:text-white/30 hover:text-gray-900 dark:hover:text-white transition-colors underline decoration-transparent hover:decoration-current underline-offset-4">
-            Acessar como convidado
+          <Link href="/signup" className="text-sm font-sans font-medium text-gray-400 dark:text-white/50 hover:text-gray-900 dark:hover:text-white transition-colors">
+            Não tem uma conta? <strong className="font-bold">Cadastre-se</strong>
           </Link>
         </div>
       </div>
