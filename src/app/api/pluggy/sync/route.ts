@@ -62,7 +62,7 @@ export async function POST(request: Request) {
             pluggy_transaction_id: tx.id,
             description: tx.description,
             amount: tx.amount,
-            date: tx.date ? tx.date.split('T')[0] : new Date().toISOString().split('T')[0],
+            date: tx.date ? new Date(tx.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
             category: tx.category || 'Outros',
           }));
 
