@@ -46,6 +46,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     { path: "/agents", icon: "hub", label: "Agents" },
   ];
 
+  const isPublicRoute = pathname === '/login' || pathname === '/signup';
+
+  if (isPublicRoute) {
+    return <>{children}</>;
+  }
+
   return (
     <div className="flex h-screen w-full bg-gray-50 dark:bg-[#0A0A0A] overflow-hidden">
       {/* Desktop Sidebar (Minimalist) */}

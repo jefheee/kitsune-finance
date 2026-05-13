@@ -87,11 +87,11 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 dark:bg-[#0A0A0A] p-6 relative overflow-hidden">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-white dark:bg-[#0A0A0A] md:bg-gray-50 md:dark:bg-[#0A0A0A] md:p-6 relative overflow-hidden">
       {/* Background glow for aesthetic */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-kitsune/5 rounded-full blur-[100px] pointer-events-none"></div>
+      <div className="hidden md:block absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-kitsune/5 rounded-full blur-[100px] pointer-events-none"></div>
       
-      <div className="w-full max-w-[440px] bg-white dark:bg-[#121212] border border-gray-200 dark:border-white/5 rounded-3xl p-10 shadow-sm flex flex-col items-center relative z-10 my-8">
+      <div className="w-full h-full min-h-screen md:min-h-fit md:max-w-[440px] bg-white dark:bg-[#0A0A0A] md:dark:bg-[#121212] md:border border-gray-200 dark:border-white/5 md:rounded-3xl p-6 md:p-10 md:shadow-sm flex flex-col items-center justify-center relative z-10 md:my-8">
         
         <div className="w-20 h-20 bg-gray-50 dark:bg-white/5 rounded-3xl flex items-center justify-center mb-8 shadow-sm border border-gray-100 dark:border-white/5 shrink-0">
           <Image src="/assets/logo/logo_sem_fundo.png" alt="Logo" width={48} height={48} className="object-contain" />
@@ -167,7 +167,7 @@ export default function SignupPage() {
           <button 
             onClick={handleGoogleLogin} 
             disabled={isLoadingEmail || isLoadingGoogle || isLoadingApple}
-            className="w-full h-14 flex items-center justify-center gap-3 bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-white/10 rounded-2xl text-gray-900 dark:text-white font-sans font-medium hover:bg-gray-50 dark:hover:bg-white/5 transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
+            className="w-full h-14 flex items-center justify-center gap-3 bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-white/10 rounded-2xl text-gray-900 dark:text-white text-sm font-sans font-medium hover:bg-gray-50 dark:hover:bg-white/5 transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
           >
             {isLoadingGoogle ? (
               <>
@@ -176,7 +176,7 @@ export default function SignupPage() {
               </>
             ) : (
               <>
-                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 shrink-0">
+                <svg viewBox="0 0 24 24" className="w-5 h-5 shrink-0" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M22.56 12.25C22.56 11.47 22.49 10.72 22.36 10H12V14.26H17.92C17.67 15.63 16.86 16.8 15.65 17.61V20.34H19.22C21.31 18.42 22.56 15.6 22.56 12.25Z" fill="#4285F4"/>
                   <path d="M12 23C14.97 23 17.46 22.02 19.22 20.34L15.65 17.61C14.7 18.25 13.44 18.63 12 18.63C9.23 18.63 6.88 16.76 6.04 14.25H2.36V17.1C4.14 20.63 7.78 23 12 23Z" fill="#34A853"/>
                   <path d="M6.04 14.25C5.83 13.62 5.71 12.82 5.71 12C5.71 11.18 5.83 10.38 6.04 9.75V6.9H2.36C1.62 8.38 1.2 10.14 1.2 12C1.2 13.86 1.62 15.62 2.36 17.1L6.04 14.25Z" fill="#FBBC05"/>
@@ -191,7 +191,7 @@ export default function SignupPage() {
           <button 
             onClick={handleAppleLogin}
             disabled={isLoadingEmail || isLoadingGoogle || isLoadingApple}
-            className="w-full h-14 flex items-center justify-center gap-3 bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-white/10 rounded-2xl text-gray-900 dark:text-white font-sans font-medium hover:bg-gray-50 dark:hover:bg-white/5 transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
+            className="w-full h-14 flex items-center justify-center gap-3 bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-white/10 rounded-2xl text-gray-900 dark:text-white text-sm font-sans font-medium hover:bg-gray-50 dark:hover:bg-white/5 transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
           >
             {isLoadingApple ? (
               <>
@@ -200,7 +200,7 @@ export default function SignupPage() {
               </>
             ) : (
               <>
-                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 shrink-0 fill-current text-black dark:text-white">
+                <svg viewBox="0 0 24 24" className="w-5 h-5 shrink-0 fill-current text-black dark:text-white" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M16.48 10.74C16.44 8.79 18.06 7.82 18.13 7.78C17.22 6.45 15.79 6.24 15.28 6.22C14.07 6.1 12.89 6.94 12.26 6.94C11.64 6.94 10.66 6.24 9.64 6.26C8.36 6.28 7.16 6.96 6.5 8.1C5.16 10.42 6.16 13.84 7.46 15.72C8.1 16.63 8.84 17.65 9.8 17.62C10.74 17.58 11.1 17.01 12.24 17.01C13.38 17.01 13.7 17.62 14.68 17.6C15.68 17.58 16.32 16.65 16.94 15.74C17.68 14.66 17.98 13.62 18 13.56C17.98 13.55 16.52 13 16.48 10.74ZM14.16 4.36C14.68 3.73 15.02 2.86 14.92 2C14.18 2.03 13.26 2.5 12.72 3.12C12.24 3.66 11.84 4.56 11.96 5.4C12.78 5.46 13.64 4.98 14.16 4.36Z" />
                 </svg>
                 Cadastrar com Apple
