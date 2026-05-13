@@ -91,7 +91,7 @@ export async function POST(req: Request) {
       if (rpcError) throw rpcError;
 
       // 3. Lógica TypeScript: Somatórias, filtros rigorosos
-      const totalAmount = matchedTransactions?.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0;
+      const totalAmount = matchedTransactions?.reduce((acc: number, curr: any) => acc + Number(curr.amount), 0) || 0;
       
       contextData = {
         transactions: matchedTransactions,
