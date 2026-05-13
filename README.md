@@ -2,6 +2,8 @@
 
 <img width="1024" height="1024" alt="logo" src="https://github.com/user-attachments/assets/3f4777f4-2406-4218-aec5-91deca948acc" />
 
+---
+
 O **Kitsune Finance** não é apenas um agregador de contas. É um aplicativo *mobile-first* de gestão patrimonial e inteligência financeira profunda, alimentado por Open Finance e orquestrado por uma arquitetura avançada de Inteligência Artificial (MSLR).
 
 Desenvolvido com foco em alta fidelidade visual (dual-theme Light), performance PWA e segurança absoluta (RLS) para atuar como o *Family Office* digital do meu núcleo familiar.
