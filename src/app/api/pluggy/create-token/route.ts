@@ -29,6 +29,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    if (!process.env.PLUGGY_CLIENT_ID || !process.env.PLUGGY_CLIENT_SECRET) {
+      return NextResponse.json({ error: 'As chaves da Pluggy não foram configuradas no ambiente do servidor' }, { status: 500 });
+    }
+
     const pluggyClient = new PluggyClient({
       clientId: process.env.PLUGGY_CLIENT_ID!,
       clientSecret: process.env.PLUGGY_CLIENT_SECRET!,
