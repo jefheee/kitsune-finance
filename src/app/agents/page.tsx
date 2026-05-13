@@ -75,8 +75,19 @@ export default function AgentsPage() {
       if (!res.ok) {
         throw new Error("Falha ao salvar a conexão");
       }
+      const saveData = await res.json();
+
+      if (saveData.connectionId) {
+        // Sincroniza dados da conta (Accounts e Transactions)
+        await fetch("/api/pluggy/sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ connectionId: saveData.connectionId, itemId: itemData.item.id }),
+        });
+      }
+
       setConnectToken(null);
-      setSuccess("Banco conectado com sucesso!");
+      setSuccess("Banco conectado e dados sincronizados com sucesso!");
       fetchConnections();
     } catch (err: any) {
       setError(err.message);

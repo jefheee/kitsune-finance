@@ -42,6 +42,7 @@ export default function RootLayout({
       </head>
       <body>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+          <div className="fixed inset-0 -z-50 bg-[url('/assets/background.jpg')] bg-cover bg-center" />
           <AppShell>{children}</AppShell>
         </ThemeProvider>
       </body>

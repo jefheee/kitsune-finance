@@ -17,20 +17,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing itemId' }, { status: 400 });
     }
 
-    const { error: insertError } = await supabase
+    const { data: insertedConnection, error: insertError } = await supabase
       .from('pluggy_connections')
       .insert({
         user_id: user.id,
         item_id: itemId,
         provider_name: 'pluggy',
         status: 'CONNECTED',
-      });
+      })
+      .select('id')
+      .single();
 
     if (insertError) {
       return NextResponse.json({ error: insertError.message }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true }, { status: 200 });
+    return NextResponse.json({ success: true, connectionId: insertedConnection.id }, { status: 200 });
   } catch (error: any) {
     console.error('[Pluggy Save Item Error]', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

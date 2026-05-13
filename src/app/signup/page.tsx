@@ -89,9 +89,9 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-white dark:bg-[#0A0A0A] md:bg-[url('/assets/background.jpg')] md:bg-cover md:bg-center md:p-6 relative overflow-hidden">
+    <div className="flex flex-col items-center justify-center min-h-screen relative overflow-hidden">
       {/* Overlay to make background very clean/subtle */}
-      <div className="absolute inset-0 bg-white/85 dark:bg-black/85 backdrop-blur-md z-0 pointer-events-none"></div>
+      <div className="absolute inset-0 bg-white/40 dark:bg-black/40 backdrop-blur-sm z-0 pointer-events-none"></div>
 
       {/* Background glow for aesthetic */}
       <div className="hidden md:block absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-kitsune/5 rounded-full blur-[100px] pointer-events-none z-0"></div>
