@@ -1,7 +1,5 @@
 # **🦊 Kitsune Finance | Gestão Patrimonial Autônoma & Open Finance**
 
-<img width="2752" height="1536" alt="background" src="https://github.com/user-attachments/assets/d3ef5edc-2c17-4c85-9c56-cc6d3bb52488" />
-
 O **Kitsune Finance** não é apenas um agregador de contas. É um aplicativo *mobile-first* de gestão patrimonial e inteligência financeira profunda, alimentado por Open Finance e orquestrado por uma arquitetura avançada de Inteligência Artificial (MSLR).
 
 Desenvolvido com foco em alta fidelidade visual (dual-theme Light), performance PWA e segurança absoluta (RLS) para atuar como o *Family Office* digital do meu núcleo familiar.
