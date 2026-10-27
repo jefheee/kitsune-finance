@@ -1,68 +1,69 @@
-# **🦊 Kitsune Finance | Gestão Patrimonial Autônoma & Open Finance**
+# **🦊 Kitsune Finance | Autonomous Wealth Management & Open Finance**
 
-O **Kitsune Finance** não é apenas um agregador de contas. É um aplicativo *mobile-first* de gestão patrimonial e inteligência financeira profunda, alimentado por Open Finance e orquestrado por uma arquitetura avançada de Inteligência Artificial (MSLR).
+**Kitsune Finance** is not just an account aggregator. It is a *mobile-first* wealth management and deep financial intelligence application, powered by Open Finance and orchestrated by an advanced Artificial Intelligence architecture (MSLR).
 
-Desenvolvido com foco em alta fidelidade visual (dual-theme Light), performance PWA e segurança absoluta (RLS) para atuar como o *Family Office* digital do meu núcleo familiar.
+Developed with a focus on high visual fidelity (dual-theme Light/Dark), PWA performance, and absolute security (RLS) to act as the digital *Family Office* for my family core.
 
-## **📖 O Desafio e a Estratégia (Zero-Cost Open Finance)**
+## **📖 The Challenge and Strategy (Zero-Cost Open Finance)**
 
-Aplicações B2C de Open Finance costumam esbarrar na barreira intransponível dos custos (APIs como Belvo ou Pluggy cobram mensalidades corporativas astronômicas de \+R$2.500).
+B2C Open Finance applications usually hit the insurmountable barrier of costs (APIs like Belvo or Pluggy charge astronomical corporate monthly fees of +R$2,500).
 
-**O Pivot Estratégico:** Para viabilizar este projeto para um grupo fechado (Family & Friends), a arquitetura foi desenhada em torno do SDK da **Pluggy** utilizando chaves de desenvolvedor *Personal*. A aplicação atua como um hub centralizado: a família conecta seus bancos de forma simples e vitalícia, enquanto o servidor consolida tudo gratuitamente. Custo de infraestrutura bancária: **R$ 0,00**.
+**The Strategic Pivot:** To make this project viable for a closed group (Family & Friends), the architecture was designed around the **Pluggy** SDK using *Personal* developer keys. The application acts as a centralized hub: the family connects their banks simply and for a lifetime, while the server consolidates everything for free. Banking infrastructure cost: **R$ 0.00**.
 
-## **🧠 Arquitetura de IA: O Motor MSLR (Multi-Step Logical Reasoning)**
+## **🧠 AI Architecture: The MSLR Engine (Multi-Step Logical Reasoning)**
 
-LLMs (como GPT-4 ou Gemini) são excelentes com linguagem, mas **péssimos em matemática exata**. Para criar um assistente financeiro que não "alucina" números, o cérebro da Kitsune foi fracionado:
+LLMs (like GPT-4 or Gemini) are excellent with language, but **terrible at exact math**. To create a financial assistant that doesn't "hallucinate" numbers, Kitsune's brain was fractionated:
 
-1. **Groq (O Roteador):** Uma inferência ultrarrápida classifica a intenção do usuário (ex: *intent: QUERY\_TRANSACTIONS*) e extrai parâmetros numéricos/datas em milissegundos.  
-2. **Alfândega TS \+ Supabase RAG:** O TypeScript intercepta a rota. Ele usa pgvector para buscar transações similares via *Cosine Similarity* diretamente no banco de dados e resolve toda a matemática e consolidação em código puro.  
-3. **Gemini (A Persona):** A IA de visão e empatia recebe o JSON imutável (já calculado) e o traduz para uma linguagem natural, astuta e elegante para o usuário.
+1. **Groq (The Router):** Ultra-fast inference classifies the user's intent (e.g., *intent: QUERY_TRANSACTIONS*) and extracts numerical/date parameters in milliseconds.
+2. **TS Customs + Supabase RAG:** TypeScript intercepts the route. It uses pgvector to search for similar transactions via *Cosine Similarity* directly in the database and solves all the math and consolidation in pure code.
+3. **Gemini (The Persona):** The vision and empathy AI receives the immutable JSON (already calculated) and translates it into natural, astute, and elegant language for the user.
 
-## **💻 Stack Tecnológica**
+## **💻 Tech Stack**
 
-* **Core:** Next.js 16 (App Router) \+ TypeScript (Strict)  
-* **Styling:** Tailwind CSS v4 (Sintaxe @theme nativa) \+ next-themes (Light/Dark mode)  
-* **Tipografia Otimizada:** Inter (UI/UX) e JetBrains Mono (exclusiva para matrizes matemáticas e saldos).  
-* **Backend & Auth:** Supabase (PostgreSQL \+ Auth \+ SSR Cookies)  
-* **Busca Semântica:** Extensão pgvector (Vector 1536\)  
+* **Core:** Next.js 16 (App Router) + TypeScript (Strict)
+* **Styling:** Tailwind CSS v4 (Native @theme syntax) + next-themes (Light/Dark mode)
+* **Optimized Typography:** Inter (UI/UX) and JetBrains Mono (exclusive for mathematical matrices and balances).
+* **Backend & Auth:** Supabase (PostgreSQL + Auth + SSR Cookies)
+* **Semantic Search:** pgvector extension (Vector 1536)
 * **Open Finance:** Pluggy SDK
 
-## **🛡️ Desafios Técnicos Resolvidos**
+## **🛡️ Technical Challenges Solved**
 
-1. **Cross-Tenant Data Leakage (Vazamento de Dados):** Como IAs podem sofrer injeção de prompt, a segurança não poderia estar na camada de aplicação. A função de *match\_transactions* no banco foi blindada com **Row Level Security (RLS)** nativo (WHERE user\_id \= auth.uid()). É fisicamente impossível a IA acessar dados do *Usuário B* enquanto atende o *Usuário A*.  
-2. **Hydration Mismatch em Temas Dinâmicos:** A transição da paleta *Cyber-Noir* (Escuro) para a interface *Clean/Airy* (Claro) no Server-Side Rendering causava flashes na tela. Resolvido com a orquestração do \<ThemeProvider\> injetado em um AppShell assíncrono.  
-3. **UX Mobile-First:** Implementação de *Click-outside listeners* e interceptação de formulários para garantir que o input do chatbot não seja engolido pelos teclados nativos do iOS/Android (utilizando espaçamento pb-safe).
+1. **Cross-Tenant Data Leakage:** Since AIs can suffer from prompt injection, security could not be on the application layer. The *match_transactions* function in the database was shielded with native **Row Level Security (RLS)** (WHERE user_id = auth.uid()). It is physically impossible for the AI to access *User B*'s data while serving *User A*.
+2. **Hydration Mismatch in Dynamic Themes:** The transition from the *Cyber-Noir* (Dark) palette to the *Clean/Airy* (Light) interface in Server-Side Rendering caused screen flashes. Solved by orchestrating the <ThemeProvider> injected into an asynchronous AppShell.
+3. **Mobile-First UX:** Implementation of *Click-outside listeners* and form interception to ensure that the chatbot input is not swallowed by native iOS/Android keyboards (using pb-safe spacing).
 
-## **🚀 Como rodar localmente**
+## **🚀 How to run locally**
 
-1. **Clone o repositório:**  
-   git clone \[https://github.com/jefheee/kitsune-finance.git\](https://github.com/jefheee/kitsune-finance.git)  
-   cd kitsune-finance
+1. **Clone the repository:**
+git clone [https://github.com/jefheee/kitsune-finance.git](https://github.com/jefheee/kitsune-finance.git)
+cd kitsune-finance
+2. **Install dependencies:**
+npm install
+3. **Configure Environment Variables (.env.local):**
+# Supabase
 
-2. **Instale as dependências:**  
-   npm install
 
-3. **Configure as Variáveis de Ambiente (.env.local):**  
-   \# Supabase  
-   NEXT\_PUBLIC\_SUPABASE\_URL=seu\_url  
-   NEXT\_PUBLIC\_SUPABASE\_ANON\_KEY=sua\_key
+NEXT_PUBLIC_SUPABASE_URL=your_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_key
+# AI Engines
 
-   \# AI Engines  
-   GEMINI\_API\_KEY=sua\_key  
-   GROQ\_API\_KEY=sua\_key
 
-   \# Pluggy Open Finance  
-   PLUGGY\_CLIENT\_ID=sua\_key  
-   PLUGGY\_CLIENT\_SECRET=sua\_key
+GEMINI_API_KEY=your_key
+GROQ_API_KEY=your_key
+# Pluggy Open Finance
 
-4. **Inicie o servidor:**  
-   npm run dev
+
+PLUGGY_CLIENT_ID=your_key
+PLUGGY_CLIENT_SECRET=your_key
+4. **Start the server:**
+npm run dev
 
 ## **🔮 Roadmap**
 
-* \[x\] Identidade visual Dual-Theme (Pierre Finance inspired).  
-* \[x\] Infraestrutura Supabase \+ RLS \+ pgvector ativada.  
-* \[x\] Rota de Chat protegida com simulação estrutural MSLR.  
-* \[ \] **Auth:** Finalizar fluxo de callback do Google OAuth2.  
-* \[ \] **Pluggy Connect:** Embutir o widget de conexão bancária na tela de "Agentes".  
-* \[ \] **Ingestão Vetorial:** Criar CRON job para atualizar e vetorizar transações diárias.
+* [x] Dual-Theme visual identity (Pierre Finance inspired).
+* [x] Supabase + RLS + pgvector infrastructure activated.
+* [x] Protected Chat route with MSLR structural simulation.
+* [ ] **Auth:** Finalize Google OAuth2 callback flow.
+* [ ] **Pluggy Connect:** Embed the bank connection widget on the "Agents" screen.
+* [ ] **Vector Ingestion:** Create a CRON job to update and vectorize daily transactions.
