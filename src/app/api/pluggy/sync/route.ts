@@ -16,35 +16,22 @@ export async function POST(request: Request) {
 
     const payload = await request.json();
     const { itemId, providerName } = payload;
-    let { familyMemberId } = payload;
+    let familyMemberId: string | null = payload.familyMemberId || null;
 
-    if (!itemId) {
+    if (!itemId || typeof itemId !== 'string') {
       return NextResponse.json({ error: 'itemId é obrigatório' }, { status: 400 });
     }
 
-    // Se o familyMemberId não foi fornecido, associa ao primeiro membro da família do usuário
-    if (!familyMemberId) {
+    if (familyMemberId) {
       const { data: member } = await supabase
         .from('family_members')
         .select('id')
+        .eq('id', familyMemberId)
         .eq('user_id', user.id)
-        .order('created_at', { ascending: true })
-        .limit(1)
         .maybeSingle();
 
-      if (member) {
-        familyMemberId = member.id;
-      } else {
-        const { data: newMember } = await supabase
-          .from('family_members')
-          .insert({
-            user_id: user.id,
-            name: user.user_metadata?.full_name || 'Titular',
-            role: 'Titular',
-          })
-          .select('id')
-          .single();
-        familyMemberId = newMember?.id;
+      if (!member) {
+        familyMemberId = null;
       }
     }
 
@@ -63,6 +50,7 @@ export async function POST(request: Request) {
       success: true,
       accountsSynced: result.accountsSynced,
       transactionsSynced: result.transactionsSynced,
+      institutionName: result.institutionName,
     });
   } catch (error: any) {
     console.error('[Pluggy Sync Route Error]', error);

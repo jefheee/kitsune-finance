@@ -14,43 +14,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    let familyMemberId: string | undefined;
+    let familyMemberId: string | null = null;
+    let itemId: string | undefined;
+
     try {
       const body = await request.json();
-      familyMemberId = body.familyMemberId;
+      if (body.familyMemberId) {
+        familyMemberId = body.familyMemberId;
+      }
+      if (body.itemId) {
+        itemId = body.itemId;
+      }
     } catch {
-      // Body vazio é aceitável, buscaremos o membro padrão
+      // Body vazio é válido (conexão individual padrão vinculada diretamente ao user.id)
     }
 
-    // Se não fornecido, busca ou cria o membro familiar principal
-    if (!familyMemberId) {
-      let { data: defaultMember } = await supabase
-        .from('family_members')
-        .select('id')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: true })
-        .limit(1)
-        .maybeSingle();
-
-      if (!defaultMember) {
-        const { data: newMember, error: createError } = await supabase
-          .from('family_members')
-          .insert({
-            user_id: user.id,
-            name: user.user_metadata?.full_name || 'Titular',
-            role: 'Titular',
-          })
-          .select('id')
-          .single();
-
-        if (createError) {
-          throw new Error(`Erro ao criar membro padrão: ${createError.message}`);
-        }
-        defaultMember = newMember;
-      }
-      familyMemberId = defaultMember?.id;
-    } else {
-      // Valida se o familyMemberId pertence ao usuário autenticado
+    // Se um familyMemberId opcional foi informado, valida que pertence estritamente ao user.id logado
+    if (familyMemberId) {
       const { data: memberCheck, error: memberCheckError } = await supabase
         .from('family_members')
         .select('id')
@@ -66,16 +46,17 @@ export async function POST(request: Request) {
       }
     }
 
-    // Gera o Connect Token configurado para o proxy "Meu Pluggy" (connectorId: 200)
-    // mapeando clientUserId para o UUID do membro familiar (Regra 2)
+    // Garante que o clientUserId enviado à Pluggy seja SEMPRE o user.id (auth.uid()) do usuário logado
     const { accessToken } = await pluggyClient.createConnectToken({
-      clientUserId: familyMemberId,
+      clientUserId: user.id,
       connectorId: 200,
+      itemId,
     });
 
     return NextResponse.json({
       connectToken: accessToken,
-      accessToken, // Mantém compatibilidade com ambos os formatos
+      accessToken,
+      userId: user.id,
       familyMemberId,
     });
   } catch (error: any) {

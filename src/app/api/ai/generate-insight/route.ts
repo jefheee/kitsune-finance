@@ -1,116 +1,157 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
+import { generateWithGeminiPool } from '@/utils/ai/gemini';
 
 export async function POST(req: Request) {
   try {
     const supabase = await createClient();
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
-    if (!session) {
+    if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const userId = session.user.id;
+    let preferredModel = 'gemini-3.8-flash';
+    let familyMemberId: string | null = null;
+    try {
+      const body = await req.json();
+      if (body?.model) preferredModel = body.model;
+      if (body?.familyMemberId && body.familyMemberId !== 'all') {
+        familyMemberId = body.familyMemberId;
+      }
+    } catch {
+      // Body opcional
+    }
 
-    // 1. Coletar dados do usuário para a análise
-    const { data: bankAccounts } = await supabase.from('bank_accounts').select('balance, type').eq('user_id', userId);
-    const { data: legacyAccounts } = (!bankAccounts || bankAccounts.length === 0) 
-      ? await supabase.from('accounts').select('balance, type').eq('user_id', userId)
-      : { data: [] };
-    const accounts = (bankAccounts && bankAccounts.length > 0) ? bankAccounts : legacyAccounts;
-    const { data: transactions } = await supabase.from('transactions').select('*').eq('user_id', userId).order('date', { ascending: false });
-    
-    // Matemática básica
-    const totalBalance = (accounts || []).reduce((acc, curr) => {
+    const userId = user.id;
+
+    let accountsQuery = supabase
+      .from('bank_accounts')
+      .select('balance, type, bank_name, family_member_id')
+      .eq('user_id', userId);
+
+    if (familyMemberId) {
+      accountsQuery = accountsQuery.eq('family_member_id', familyMemberId);
+    }
+
+    const { data: bankAccounts } = await accountsQuery;
+
+    let txQuery = supabase
+      .from('transactions')
+      .select('description, amount, type, category, date, executed_at')
+      .eq('user_id', userId)
+      .order('executed_at', { ascending: false })
+      .limit(120);
+
+    if (familyMemberId) {
+      txQuery = txQuery.eq('family_member_id', familyMemberId);
+    }
+
+    const { data: transactions } = await txQuery;
+
+    const totalBalance = (bankAccounts || []).reduce((acc, curr) => {
       const bal = Number(curr.balance) || 0;
-      return curr.type === 'CREDIT' ? acc - bal : acc + bal;
+      return curr.type === 'CREDIT' || curr.type === 'CREDIT_CARD' ? acc - bal : acc + bal;
+    }, 0);
+
+    const creditDebt = (bankAccounts || []).reduce((acc, curr) => {
+      const bal = Number(curr.balance) || 0;
+      return curr.type === 'CREDIT' || curr.type === 'CREDIT_CARD' ? acc + bal : acc;
     }, 0);
 
     const now = new Date();
     const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    
+
     let monthlyIncome = 0;
     let monthlyExpense = 0;
+    const categoryTotals: Record<string, number> = {};
     const expenses: any[] = [];
-    
-    (transactions || []).forEach(txn => {
-      const [year, month, day] = txn.date.split('-');
-      const txnDate = new Date(Number(year), Number(month) - 1, Number(day));
+
+    (transactions || []).forEach((txn) => {
+      const rawDate = txn.executed_at || txn.date;
+      const txnDate = rawDate ? new Date(rawDate) : new Date();
+      const amount = Number(txn.amount) || 0;
+      const isCredit = txn.type === 'CREDIT' || amount > 0;
+
       if (txnDate >= currentMonthStart) {
-        const amount = Number(txn.amount) || 0;
-        if (amount > 0) {
-          monthlyIncome += amount;
-        } else if (amount < 0) {
-          monthlyExpense += Math.abs(amount);
+        if (isCredit) {
+          monthlyIncome += Math.abs(amount);
+        } else {
+          const absVal = Math.abs(amount);
+          monthlyExpense += absVal;
           expenses.push(txn);
+          const cat = txn.category || 'Outros';
+          categoryTotals[cat] = (categoryTotals[cat] || 0) + absVal;
         }
       }
     });
 
-    const top3Expenses = expenses.sort((a, b) => Math.abs(Number(b.amount)) - Math.abs(Number(a.amount))).slice(0, 3);
-    const top3ExpensesText = top3Expenses.map(e => `${e.description}: R$ ${Math.abs(Number(e.amount)).toFixed(2)}`).join(', ');
+    const top3Expenses = expenses
+      .sort((a, b) => Math.abs(Number(b.amount)) - Math.abs(Number(a.amount)))
+      .slice(0, 4)
+      .map((e) => `${e.description} (R$ ${Math.abs(Number(e.amount)).toFixed(2)})`)
+      .join(', ');
 
-    const userData = {
-      saldoTotal: `R$ ${totalBalance.toFixed(2)}`,
-      receitasMes: `R$ ${monthlyIncome.toFixed(2)}`,
-      despesasMes: `R$ ${monthlyExpense.toFixed(2)}`,
-      principaisDespesas: top3ExpensesText || 'Nenhuma despesa registrada este mês.'
-    };
+    const topCategories = Object.entries(categoryTotals)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 4)
+      .map(([cat, val]) => `${cat}: R$ ${val.toFixed(2)}`)
+      .join(', ');
 
-    // 2. Chamar LLM
-    const prompt = `Você é um assessor financeiro de elite (Family Office) de um aplicativo chamado Kitsune Finance. Com base nestes dados do usuário:
-- Saldo Total: ${userData.saldoTotal}
-- Receitas do Mês: ${userData.receitasMes}
-- Despesas do Mês: ${userData.despesasMes}
-- Principais Despesas: ${userData.principaisDespesas}
+    const systemInstruction = `Você é a Kitsune AI, estrategista patrimonial pessoal e Private Wealth Advisor do Kitsune Finance.
+Sua missão é entregar diagnósticos financeiros claros, objetivos, elegantes e acionáveis em português do Brasil.`;
 
-Faça uma análise de no máximo 3 parágrafos. Seja analítico, não use jargões complexos, aponte onde o dinheiro está indo e dê uma recomendação prática. Responda em Markdown.`;
+    const prompt = `Analise os dados patrimoniais reais do usuário autenticado:
+- Patrimônio Líquido Consolidado: R$ ${totalBalance.toFixed(2)}
+- Faturas de Cartão de Crédito Atuais: R$ ${creditDebt.toFixed(2)}
+- Receitas no Mês Atual: R$ ${monthlyIncome.toFixed(2)}
+- Despesas no Mês Atual: R$ ${monthlyExpense.toFixed(2)}
+- Principais Categorias de Gasto: ${topCategories || 'Sem gastos categorizados no mês atual'}
+- Maiores Despesas Recentes: ${top3Expenses || 'Nenhuma despesa registrada neste mês'}
+- Quantidade de Contas/Cartões Conectados: ${(bankAccounts || []).length}
 
-    const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'llama3-8b-8192',
-        messages: [{ role: 'user', content: prompt }]
-      })
+Elabore um diagnóstico executivo em no máximo 3 parágrafos curtos (usando formatação limpa):
+1. Visão de liquidez e balanço entre entradas, saídas e exposição em cartão de crédito.
+2. Padrão de consumo observado nas maiores despesas/categorias.
+3. Uma recomendação prática e imediata para otimização patrimonial.`;
+
+    const aiResult = await generateWithGeminiPool({
+      systemInstruction,
+      prompt,
+      preferredModel,
+      temperature: 0.3,
     });
 
-    if (!groqResponse.ok) {
-      const err = await groqResponse.text();
-      console.error('Groq error:', err);
-      return NextResponse.json({ error: 'Erro ao conectar com a inteligência artificial' }, { status: 500 });
-    }
-
-    const groqData = await groqResponse.json();
-    const analysisText = groqData.choices?.[0]?.message?.content;
-
-    if (!analysisText) {
-      return NextResponse.json({ error: 'Resposta vazia da IA' }, { status: 500 });
-    }
-
-    // 3. Salvar no Supabase (Upsert usando user_id)
     const { data: insightData, error } = await supabase
       .from('ai_insights')
-      .upsert({ 
-        user_id: userId, 
-        last_analysis_text: analysisText,
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'user_id' })
+      .upsert(
+        {
+          user_id: userId,
+          last_analysis_text: aiResult.text,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id' }
+      )
       .select()
       .single();
 
     if (error) {
-      console.error('Error saving insight:', error);
       throw error;
     }
 
-    return NextResponse.json({ success: true, data: insightData });
-
+    return NextResponse.json({
+      success: true,
+      data: insightData,
+      modelUsed: aiResult.modelUsed,
+    });
   } catch (error: any) {
     console.error('Insight API Error:', error);
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json(
+      { error: error.message || 'Internal Server Error' },
+      { status: 500 }
+    );
   }
 }
