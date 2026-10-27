@@ -1,122 +1,74 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
-import { PluggyClient } from 'pluggy-sdk';
+import { syncItemAccountsAndTransactions } from '@/utils/pluggy/sync';
 
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { connectionId, itemId } = await request.json();
+    const payload = await request.json();
+    const { itemId, providerName } = payload;
+    let { familyMemberId } = payload;
 
-    if (!connectionId || !itemId) {
-      return NextResponse.json({ error: 'Missing parameters' }, { status: 400 });
+    if (!itemId) {
+      return NextResponse.json({ error: 'itemId é obrigatório' }, { status: 400 });
     }
 
-    const pluggyClient = new PluggyClient({
-      clientId: process.env.PLUGGY_CLIENT_ID || '',
-      clientSecret: process.env.PLUGGY_CLIENT_SECRET || '',
+    // Se o familyMemberId não foi fornecido, associa ao primeiro membro da família do usuário
+    if (!familyMemberId) {
+      const { data: member } = await supabase
+        .from('family_members')
+        .select('id')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (member) {
+        familyMemberId = member.id;
+      } else {
+        const { data: newMember } = await supabase
+          .from('family_members')
+          .insert({
+            user_id: user.id,
+            name: user.user_metadata?.full_name || 'Titular',
+            role: 'Titular',
+          })
+          .select('id')
+          .single();
+        familyMemberId = newMember?.id;
+      }
+    }
+
+    const result = await syncItemAccountsAndTransactions(supabase, {
+      itemId,
+      userId: user.id,
+      familyMemberId,
+      providerName,
     });
 
-    // 1. Fetch accounts
-    const accountsResponse = await pluggyClient.fetchAccounts(itemId);
-    const accounts = accountsResponse.results;
-
-    let totalTransactions = 0;
-
-    // 2. Iterate accounts and insert/upsert
-    for (const acc of accounts) {
-      // Upsert account
-      const { data: insertedAcc, error: accError } = await supabase
-        .from('accounts')
-        .upsert({
-          user_id: user.id,
-          connection_id: connectionId,
-          pluggy_account_id: acc.id,
-          name: acc.name,
-          type: acc.type,
-          balance: acc.balance,
-          currency: acc.currencyCode,
-        }, { onConflict: 'pluggy_account_id' })
-        .select('id')
-        .single();
-      
-      if (accError || !insertedAcc) {
-        console.error('Account Insert Error:', accError);
-        continue;
-      }
-
-      // Fetch transactions for this account
-      try {
-        const txResponse = await pluggyClient.fetchTransactions(acc.id);
-        const transactions = txResponse.results;
-
-        if (transactions.length > 0) {
-          const transactionsToInsert = transactions.map(tx => ({
-            user_id: user.id,
-            account_id: insertedAcc.id,
-            pluggy_transaction_id: tx.id,
-            description: tx.description,
-            amount: tx.amount,
-            date: tx.date ? new Date(tx.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-            category: tx.category || 'Outros',
-          }));
-
-          const { error: txError } = await supabase
-            .from('transactions')
-            .upsert(transactionsToInsert, { onConflict: 'pluggy_transaction_id' });
-
-          if (txError) {
-            console.error('Transaction Insert Error:', txError);
-          } else {
-            totalTransactions += transactionsToInsert.length;
-          }
-        }
-      } catch (txFetchError) {
-        console.error(`Failed to fetch transactions for account ${acc.id}:`, txFetchError);
-      }
+    if (!result.success) {
+      return NextResponse.json({ error: result.error }, { status: 500 });
     }
 
-    // 3. Fetch investments
-    try {
-      const invResponse = await pluggyClient.fetchInvestments(itemId);
-      const investments = invResponse.results;
-      
-      if (investments.length > 0) {
-        const investmentsToInsert = investments.map(inv => ({
-          user_id: user.id,
-          connection_id: connectionId,
-          pluggy_investment_id: inv.id,
-          name: inv.name,
-          type: inv.type,
-          balance: inv.balance,
-          currency: inv.currencyCode || 'BRL',
-        }));
-
-        const { error: invError } = await supabase
-          .from('investments')
-          .upsert(investmentsToInsert, { onConflict: 'pluggy_investment_id' });
-
-        if (invError) {
-          console.error('Investment Insert Error:', invError);
-        }
-      }
-    } catch (invFetchError) {
-      console.error(`Failed to fetch investments for item ${itemId}:`, invFetchError);
-    }
-
-    return NextResponse.json({ 
-      success: true, 
-      accountsSynced: accounts.length,
-      transactionsSynced: totalTransactions
-    }, { status: 200 });
-
+    return NextResponse.json({
+      success: true,
+      accountsSynced: result.accountsSynced,
+      transactionsSynced: result.transactionsSynced,
+    });
   } catch (error: any) {
-    console.error('[Pluggy Sync Error]', error);
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+    console.error('[Pluggy Sync Route Error]', error);
+    return NextResponse.json(
+      { error: error.message || 'Internal Server Error' },
+      { status: 500 }
+    );
   }
 }

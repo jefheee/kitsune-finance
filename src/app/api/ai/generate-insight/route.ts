@@ -13,7 +13,11 @@ export async function POST(req: Request) {
     const userId = session.user.id;
 
     // 1. Coletar dados do usuário para a análise
-    const { data: accounts } = await supabase.from('accounts').select('balance, type').eq('user_id', userId);
+    const { data: bankAccounts } = await supabase.from('bank_accounts').select('balance, type').eq('user_id', userId);
+    const { data: legacyAccounts } = (!bankAccounts || bankAccounts.length === 0) 
+      ? await supabase.from('accounts').select('balance, type').eq('user_id', userId)
+      : { data: [] };
+    const accounts = (bankAccounts && bankAccounts.length > 0) ? bankAccounts : legacyAccounts;
     const { data: transactions } = await supabase.from('transactions').select('*').eq('user_id', userId).order('date', { ascending: false });
     
     // Matemática básica
