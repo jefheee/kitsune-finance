@@ -110,3 +110,33 @@ export type Account = z.infer<typeof AccountSchema>;
 export type Investment = z.infer<typeof InvestmentSchema>;
 export type Portfolio = z.infer<typeof PortfolioSchema>;
 export type AIInsight = z.infer<typeof AIInsightSchema>;
+
+
+// ── Family Member Schema ──
+export const FamilyMemberSchema = z.object({
+  id: z.string().uuid(),
+  user_id: z.string().uuid(),
+  name: z.string().min(1),
+  role: z.string().default('Membro'),
+  avatar_url: z.string().url().optional().nullable(),
+  created_at: z.iso.datetime().optional(),
+  updated_at: z.iso.datetime().optional(),
+});
+
+// ── Bank Account Schema (Family Relational Model) ──
+export const BankAccountSchema = z.object({
+  id: z.string().uuid(),
+  family_member_id: z.string().uuid(),
+  user_id: z.string().uuid(),
+  item_id: z.string(),
+  pluggy_account_id: z.string().optional().nullable(),
+  bank_name: z.string(),
+  type: z.string(),
+  balance: z.number(),
+  currency: CurrencyCode,
+  created_at: z.iso.datetime().optional(),
+  updated_at: z.iso.datetime().optional(),
+});
+
+export type FamilyMember = z.infer<typeof FamilyMemberSchema>;
+export type BankAccount = z.infer<typeof BankAccountSchema>;
