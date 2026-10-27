@@ -14,7 +14,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    let preferredModel = 'gemini-3.8-flash';
+    let preferredModel = 'gemini-3.5-flash-lite';
     let familyMemberId: string | null = null;
     try {
       const body = await req.json();

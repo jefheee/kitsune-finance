@@ -10,7 +10,7 @@ import { createClient } from "@/utils/supabase/client";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { theme, setTheme, resolvedTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const router = useRouter();
@@ -18,22 +18,20 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const handleLogout = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push('/login');
+    router.push("/login");
     router.refresh();
   };
-  
+
   const settingsRefDesktop = useRef<HTMLDivElement>(null);
-  const settingsRefMobile = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      const isOutsideDesktop = settingsRefDesktop.current && !settingsRefDesktop.current.contains(event.target as Node);
-      const isOutsideMobile = settingsRefMobile.current && !settingsRefMobile.current.contains(event.target as Node);
-      
-      if (isSettingsOpen) {
-        if ((!settingsRefDesktop.current || isOutsideDesktop) && (!settingsRefMobile.current || isOutsideMobile)) {
-          setIsSettingsOpen(false);
-        }
+      if (
+        isSettingsOpen &&
+        settingsRefDesktop.current &&
+        !settingsRefDesktop.current.contains(event.target as Node)
+      ) {
+        setIsSettingsOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -43,37 +41,53 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const navItems = [
     { path: "/dashboard", icon: "monitoring", label: "Dashboard" },
     { path: "/kitsune", icon: "auto_awesome", label: "Kitsune AI" },
-    { path: "/agents", icon: "hub", label: "Agents" },
+    { path: "/agents", icon: "hub", label: "Conexões" },
   ];
 
-  const isPublicRoute = pathname === '/login' || pathname === '/signup';
+  const isPublicRoute = pathname === "/login" || pathname === "/signup";
 
   if (isPublicRoute) {
     return <>{children}</>;
   }
 
   return (
-    <div className="flex h-screen w-full bg-gray-50 dark:bg-[#0A0A0A] overflow-hidden">
-      {/* Desktop Sidebar (Minimalist) */}
-      <aside className="hidden md:flex flex-col w-20 border-r border-gray-200 dark:border-white/5 bg-white dark:bg-[#121212] pt-6 pb-4 items-center justify-between relative z-40">
+    <div className="flex h-dvh w-full bg-[#09090b] overflow-hidden">
+      {/* Desktop Sidebar (>= 768px): Escura e retraída */}
+      <aside className="hidden md:flex flex-col w-20 border-r border-zinc-800/80 bg-[#0c0c0e] pt-6 pb-4 items-center justify-between relative z-40 shrink-0">
         <div className="flex flex-col items-center gap-8 w-full">
-          <Link href="/dashboard" className="flex items-center justify-center p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 transition-colors">
-            <Image src="/assets/logo/logo_sem_fundo.png" alt="Logo" width={32} height={32} className="object-contain" />
+          <Link
+            href="/dashboard"
+            className="flex items-center justify-center p-2 rounded-full hover:bg-white/5 transition-colors"
+          >
+            <Image
+              src="/assets/logo/logo_sem_fundo.png"
+              alt="Logo"
+              width={32}
+              height={32}
+              className="object-contain"
+            />
           </Link>
 
-          <nav className="flex flex-col items-center gap-4 w-full px-2">
+          <nav className="flex flex-col items-center gap-3 w-full px-2.5">
             {navItems.map((item) => {
               const isActive = pathname.startsWith(item.path);
               return (
                 <Link
                   key={item.path}
                   href={item.path}
-                  className={`flex items-center justify-center w-full h-12 rounded-xl transition-all duration-300 ${
-                    isActive ? "text-kitsune bg-kitsune/10" : "text-gray-500 dark:text-white/50 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
+                  className={`flex items-center justify-center w-full h-12 rounded-2xl transition-all duration-200 ${
+                    isActive
+                      ? "text-kitsune bg-kitsune/12 border border-kitsune/25 shadow-sm"
+                      : "text-zinc-500 hover:text-zinc-100 hover:bg-zinc-800/50"
                   }`}
                   title={item.label}
                 >
-                  <span className="material-symbols-outlined" style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}>
+                  <span
+                    className="material-symbols-outlined"
+                    style={{
+                      fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0",
+                    }}
+                  >
                     {item.icon}
                   </span>
                 </Link>
@@ -81,32 +95,36 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             })}
           </nav>
         </div>
-        
-        <div className="flex flex-col items-center justify-center w-full gap-2 relative" ref={settingsRefDesktop}>
-          <button 
+
+        <div
+          className="flex flex-col items-center justify-center w-full gap-2 relative"
+          ref={settingsRefDesktop}
+        >
+          <button
             onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-            className="text-gray-500 dark:text-white/50 hover:text-gray-900 dark:hover:text-white transition-colors duration-200 w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-white/5"
+            className="text-zinc-500 hover:text-zinc-100 transition-colors duration-200 w-10 h-10 flex items-center justify-center rounded-full hover:bg-zinc-800/60 cursor-pointer"
           >
             <span className="material-symbols-outlined">settings</span>
           </button>
-          
-          {/* Desktop Settings Menu */}
+
           {isSettingsOpen && (
-            <div className="absolute bottom-12 left-16 w-48 bg-white dark:bg-[#121212] border border-gray-200 dark:border-white/5 rounded-2xl shadow-xl p-4 flex flex-col gap-4 z-[60] animate-in fade-in zoom-in duration-200 pointer-events-auto">
-              <h3 className="text-sm font-sans font-bold text-gray-900 dark:text-white mb-2">Configurações</h3>
+            <div className="absolute bottom-12 left-16 w-52 bg-zinc-900/95 border border-zinc-800 rounded-2xl shadow-2xl backdrop-blur-xl p-4 flex flex-col gap-3 z-[60] animate-in fade-in zoom-in-95 duration-150">
+              <h3 className="text-xs font-sans font-bold uppercase tracking-wider text-zinc-400">
+                Preferências
+              </h3>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-sans text-gray-500 dark:text-white/70">Tema</span>
+                <span className="text-xs font-sans text-zinc-300">Tema</span>
                 <ThemeToggle />
               </div>
-              <div className="h-px bg-gray-200 dark:bg-white/10 w-full my-1"></div>
-              <button 
+              <div className="h-px bg-zinc-800 w-full my-0.5" />
+              <button
                 onClick={handleLogout}
-                className="flex items-center gap-3 w-full p-2 -mx-2 rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors text-sm font-sans font-medium"
+                className="flex items-center gap-2.5 w-full p-2 -mx-1 rounded-xl text-red-400 hover:bg-red-500/10 transition-colors text-xs font-sans font-semibold cursor-pointer"
               >
-                <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 0" }}>
+                <span className="material-symbols-outlined text-[18px]">
                   logout
                 </span>
-                Sair / Logout
+                Sair da Conta
               </button>
             </div>
           )}
@@ -114,114 +132,109 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col h-full overflow-y-auto pb-20 md:pb-0 relative bg-gray-50 dark:bg-[#0A0A0A]">
-        <div className="md:hidden flex items-center justify-between p-4 border-b border-gray-200 dark:border-white/5 bg-white/80 dark:bg-[#121212]/80 backdrop-blur-md sticky top-0 z-50">
-          <Image src="/assets/logo/logo_sem_fundo.png" alt="Logo" width={24} height={24} className="object-contain" />
-          <span className="font-sans font-semibold text-gray-900 dark:text-white/90">Kitsune Finance</span>
-          <div className="flex items-center gap-2 relative">
-            <button 
-              onClick={() => setIsMobileMenuOpen(true)}
-              className="text-gray-500 dark:text-white/50 hover:text-gray-900 dark:hover:text-white transition-colors duration-200"
-            >
-              <span className="material-symbols-outlined">menu</span>
-            </button>
+      <main className="flex-1 flex flex-col h-full overflow-y-auto pb-20 md:pb-0 relative bg-[#09090b]">
+        {/* Mobile Header Compacto */}
+        <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-zinc-800/80 bg-[#09090b]/90 backdrop-blur-md sticky top-0 z-40 pt-safe">
+          <div className="flex items-center gap-2.5">
+            <Image
+              src="/assets/logo/logo_sem_fundo.png"
+              alt="Logo"
+              width={24}
+              height={24}
+              className="object-contain"
+            />
+            <span className="font-sans font-bold text-sm text-zinc-100 tracking-tight">
+              Kitsune Finance
+            </span>
           </div>
+          <button
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="text-zinc-400 hover:text-white transition-colors p-1 cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-[22px]">
+              more_vert
+            </span>
+          </button>
         </div>
         {children}
       </main>
 
-      {/* Mobile Bottom Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 w-full h-16 bg-white/90 dark:bg-[#121212]/90 backdrop-blur-xl border-t border-gray-200 dark:border-white/5 flex items-center justify-around z-50 pb-safe">
+      {/* Mobile Floating Bottom Navigation (< 768px) */}
+      <nav className="md:hidden fixed bottom-3 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-sm h-14 bg-zinc-900/95 backdrop-blur-xl border border-zinc-800 rounded-2xl shadow-2xl flex items-center justify-around px-2 z-50 pb-safe">
         {navItems.map((item) => {
           const isActive = pathname.startsWith(item.path);
           return (
             <Link
               key={item.path}
               href={item.path}
-              className={`flex flex-col items-center justify-center w-full h-full gap-1 transition-colors duration-200 ${
-                isActive ? "text-kitsune" : "text-gray-500 dark:text-white/50 hover:text-gray-900 dark:hover:text-white"
+              className={`flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl transition-all duration-200 ${
+                isActive
+                  ? "bg-amber-500/15 text-amber-400 font-semibold"
+                  : "text-zinc-400 hover:text-zinc-100"
               }`}
             >
-              <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}>
+              <span
+                className="material-symbols-outlined text-[20px]"
+                style={{
+                  fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0",
+                }}
+              >
                 {item.icon}
               </span>
-              <span className="text-[10px] font-sans font-medium">{item.label}</span>
+              <span className="text-xs font-sans">{item.label}</span>
             </Link>
           );
         })}
       </nav>
 
-      {/* Mobile Fullscreen Menu Drawer */}
+      {/* Mobile Settings Sheet */}
       {isMobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 bg-white/95 dark:bg-[#0A0A0A]/95 backdrop-blur-lg z-[100] flex flex-col animate-in fade-in duration-300">
-          <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-white/5">
-            <div className="flex items-center gap-2">
-              <Image src="/assets/logo/logo_sem_fundo.png" alt="Logo" width={24} height={24} className="object-contain" />
-              <span className="font-sans font-semibold text-gray-900 dark:text-white">Navegação</span>
+        <div className="md:hidden fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex flex-col justify-end animate-in fade-in duration-200">
+          <div className="bg-zinc-900 border-t border-zinc-800 rounded-t-3xl p-6 flex flex-col gap-5 pb-safe">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Image
+                  src="/assets/logo/logo_sem_fundo.png"
+                  alt="Logo"
+                  width={22}
+                  height={22}
+                  className="object-contain"
+                />
+                <span className="font-sans font-bold text-sm text-white">
+                  Menu & Conta
+                </span>
+              </div>
+              <button
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="text-zinc-400 hover:text-white p-1"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
             </div>
-            <button 
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="text-gray-500 dark:text-white/50 hover:text-gray-900 dark:hover:text-white transition-colors duration-200"
+
+            <div
+              className="flex items-center justify-between p-3.5 rounded-2xl bg-zinc-950/70 border border-zinc-800 cursor-pointer"
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             >
-              <span className="material-symbols-outlined">close</span>
-            </button>
-          </div>
-          <div className="flex flex-col p-6 gap-6">
-            {navItems.map((item) => {
-              const isActive = pathname.startsWith(item.path);
-              return (
-                <Link
-                  key={item.path}
-                  href={item.path}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className={`flex items-center gap-4 text-xl font-sans font-medium transition-colors duration-200 ${
-                    isActive ? "text-kitsune" : "text-gray-500 dark:text-white/70 hover:text-gray-900 dark:hover:text-white"
-                  }`}
-                >
-                  <span className="material-symbols-outlined" style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}>
-                    {item.icon}
-                  </span>
-                  {item.label}
-                </Link>
-              );
-            })}
-            
-            <div className="h-px bg-gray-200 dark:bg-white/10 w-full my-2"></div>
-            
-            <div 
-              className="flex items-center justify-between mt-2 cursor-pointer p-2 -mx-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            >
-              <div className="flex items-center gap-4 text-xl font-sans font-medium text-gray-500 dark:text-white/70">
-                <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 0" }}>
+              <div className="flex items-center gap-3 text-sm font-sans font-medium text-zinc-200">
+                <span className="material-symbols-outlined text-[20px] text-amber-400">
                   dark_mode
                 </span>
-                Tema
+                Alternar Tema
               </div>
               <div className="pointer-events-none">
                 <ThemeToggle />
               </div>
             </div>
 
-            <Link
-              href="/settings"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="flex items-center gap-4 text-xl font-sans font-medium text-gray-500 dark:text-white/70 hover:text-gray-900 dark:hover:text-white transition-colors duration-200 mt-2 p-2 -mx-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5"
-            >
-              <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 0" }}>
-                settings
-              </span>
-              Configurações
-            </Link>
-
             <button
               onClick={() => {
                 setIsMobileMenuOpen(false);
                 handleLogout();
               }}
-              className="flex items-center gap-4 text-xl font-sans font-medium text-red-500 hover:text-red-600 transition-colors duration-200 mt-2 p-2 -mx-2 rounded-xl hover:bg-red-50 dark:hover:bg-red-500/10"
+              className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-sans font-bold"
             >
-              <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 0" }}>
+              <span className="material-symbols-outlined text-[18px]">
                 logout
               </span>
               Sair / Logout

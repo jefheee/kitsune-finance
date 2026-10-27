@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
-import { generateWithGeminiPool, KITSUNE_GEMINI_MODELS } from '@/utils/ai/gemini';
+import { generateWithGeminiPool, KITSUNE_AI_MODELS } from '@/utils/ai/gemini';
+import { generateWithGroq } from '@/utils/ai/groq';
 
 export async function GET() {
   return NextResponse.json({
-    models: KITSUNE_GEMINI_MODELS,
+    models: KITSUNE_AI_MODELS,
   });
 }
 
@@ -22,9 +23,15 @@ export async function POST(req: Request) {
 
     const body = await req.json();
     const userMessage = typeof body?.message === 'string' ? body.message.trim() : '';
-    const preferredModel = typeof body?.model === 'string' ? body.model : 'gemini-3.8-flash';
+    const preferredModel = typeof body?.model === 'string' ? body.model : 'gemini-3.5-flash-lite';
+    const reasoningLevel =
+      body?.reasoningLevel === 'fast' || body?.reasoningLevel === 'deep'
+        ? body.reasoningLevel
+        : 'standard';
     const scopeMemberId =
-      typeof body?.familyMemberId === 'string' && body.familyMemberId !== 'all' && body.familyMemberId !== 'personal'
+      typeof body?.familyMemberId === 'string' &&
+      body.familyMemberId !== 'all' &&
+      body.familyMemberId !== 'personal'
         ? body.familyMemberId
         : null;
     const rawHistory = Array.isArray(body?.history) ? body.history : [];
@@ -51,7 +58,7 @@ export async function POST(req: Request) {
       transactionsQuery = transactionsQuery.eq('family_member_id', scopeMemberId);
     }
 
-    const [{ data: accounts }, { data: transactions }, { data: familyMembers }] =
+    const [{ data: accounts }, { data: transactions }, { data: familyMembers }, { data: profile }] =
       await Promise.all([
         accountsQuery,
         transactionsQuery,
@@ -60,6 +67,11 @@ export async function POST(req: Request) {
           .select('id, name, role')
           .eq('user_id', user.id)
           .order('created_at', { ascending: true }),
+        supabase
+          .from('users_profile')
+          .select('display_name, full_name, financial_goal, monthly_income')
+          .eq('id', user.id)
+          .maybeSingle(),
       ]);
 
     const safeAccounts = accounts || [];
@@ -89,6 +101,8 @@ export async function POST(req: Request) {
 
     const now = new Date();
     const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
     let monthlyInflow = 0;
     let monthlyOutflow = 0;
     const categoryBreakdown: Record<string, number> = {};
@@ -113,6 +127,19 @@ export async function POST(req: Request) {
       }
     });
 
+    const last7DaysTransactions = safeTransactions
+      .filter((tx) => {
+        const rawDate = tx.executed_at || tx.date;
+        const d = rawDate ? new Date(rawDate) : new Date(0);
+        return d >= sevenDaysAgo;
+      })
+      .map((tx) => ({
+        data: (tx.executed_at || tx.date || '').toString().split('T')[0],
+        descricao: tx.description,
+        valor: Number(tx.amount),
+        categoria: tx.category || 'Outros',
+      }));
+
     const recentTransactionsDigest = safeTransactions.slice(0, 35).map((tx) => ({
       data: (tx.executed_at || tx.date || '').toString().split('T')[0],
       descricao: tx.description,
@@ -123,11 +150,23 @@ export async function POST(req: Request) {
       membro: tx.family_member_id ? memberMap.get(tx.family_member_id) || 'Titular' : 'Pessoal',
     }));
 
+    const userDisplayName =
+      profile?.display_name ||
+      profile?.full_name ||
+      user.user_metadata?.full_name ||
+      user.email ||
+      'Titular';
+
     const financialContext = {
-      usuario: user.user_metadata?.full_name || user.email || 'Titular',
-      escopoAnalise: scopeMemberId
-        ? memberMap.get(scopeMemberId) || 'Membro selecionado'
-        : 'Patrimônio Pessoal do Usuário',
+      usuario: userDisplayName,
+      objetivoFinanceiro: profile?.financial_goal || 'Gestão patrimonial e controle inteligente',
+      rendaMensalDeclaradaBRL: profile?.monthly_income ? Number(profile.monthly_income) : undefined,
+      escopoAnalise:
+        body?.familyMemberId === 'all'
+          ? 'Consolidado Familiar / Compartilhado'
+          : scopeMemberId
+          ? memberMap.get(scopeMemberId) || 'Membro selecionado'
+          : 'Patrimônio Pessoal do Usuário',
       resumoPatrimonial: {
         patrimonioLiquidoBRL: Number(netWorth.toFixed(2)),
         saldoEmContaBRL: Number(liquidBalance.toFixed(2)),
@@ -146,14 +185,22 @@ export async function POST(req: Request) {
       gastosPorCategoriaRecentes: Object.entries(categoryBreakdown)
         .sort((a, b) => b[1] - a[1])
         .map(([categoria, total]) => ({ categoria, totalBRL: Number(total.toFixed(2)) })),
+      extratoUltimos7Dias: last7DaysTransactions,
       ultimasTransacoes: recentTransactionsDigest,
     };
 
-    const systemInstruction = `Você é a Kitsune AI, uma estrategista financeira pessoal de elite (Private Family Office & Wealth Advisor) integrada ao Kitsune Finance.
+    const reasoningDirective =
+      reasoningLevel === 'fast'
+        ? 'Seja extremamente concisa, direta ao ponto e responda em poucos tópicos rápidos.'
+        : reasoningLevel === 'deep'
+        ? 'Realize uma análise profunda, estruturada com tabelas Markdown quando útil, cruzando liquidez, categorias e projeções.'
+        : 'Responda de forma analítica, bem estruturada em Markdown (usando **negrito**, listas e tabelas quando apropriado).';
+
+    const systemInstruction = `Você é a Kitsune AI, estrategista financeira pessoal de elite (Private Family Office & Wealth Advisor) integrada ao Kitsune Finance.
 Diretrizes obrigatórias:
-1. Você tem acesso EXCLUSIVO aos dados financeiros reais do usuário logado fornecidos no JSON de contexto abaixo. Nunca invente transações ou saldos que não estejam no contexto.
-2. Responda sempre em português do Brasil com clareza, precisão numérica (formate valores em R$ X.XXX,XX) e recomendações práticas.
-3. Use formatação clara (tópicos, destaques) para facilitar a leitura rápida.
+1. Utilize EXCLUSIVAMENTE os dados financeiros reais do usuário logado fornecidos no JSON abaixo. Nunca invente transações ou saldos.
+2. Responda sempre em português do Brasil com precisão numérica (formate valores em R$ X.XXX,XX).
+3. ${reasoningDirective}
 
 CONTEXTO FINANCEIRO ATUALIZADO DO USUÁRIO:
 ${JSON.stringify(financialContext, null, 2)}`;
@@ -166,18 +213,40 @@ ${JSON.stringify(financialContext, null, 2)}`;
         content: m.content,
       }));
 
+    const temperature = reasoningLevel === 'fast' ? 0.2 : reasoningLevel === 'deep' ? 0.4 : 0.35;
+
+    // Roteamento explícito: modelos Llama -> Groq API; modelos Gemini -> Gemini Pool (com failover automático)
+    if (preferredModel.startsWith('llama-')) {
+      const groqRes = await generateWithGroq({
+        systemInstruction,
+        prompt: userMessage,
+        history: sanitizedHistory,
+        preferredModel,
+        temperature,
+      });
+
+      return NextResponse.json({
+        message: groqRes.text,
+        modelUsed: groqRes.modelUsed,
+        provider: 'groq',
+        summarySnapshot: financialContext.resumoPatrimonial,
+      });
+    }
+
     const aiResponse = await generateWithGeminiPool({
       systemInstruction,
       prompt: userMessage,
       history: sanitizedHistory,
       preferredModel,
-      temperature: 0.35,
+      reasoningLevel,
+      temperature,
     });
 
     return NextResponse.json({
       message: aiResponse.text,
       modelUsed: aiResponse.modelUsed,
       keyPoolIndex: aiResponse.keyIndexUsed,
+      provider: aiResponse.modelUsed.startsWith('llama-') ? 'groq' : 'gemini',
       summarySnapshot: financialContext.resumoPatrimonial,
     });
   } catch (error: any) {
