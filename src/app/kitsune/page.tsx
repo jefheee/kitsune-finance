@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useMemo, useRef, useEffect } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import StreamingMarkdown from "@/components/StreamingMarkdown";
 import Spinner from "@/components/Spinner";
 import { useFinanceData } from "@/context/FinanceDataContext";
 import { KITSUNE_AI_MODELS } from "@/utils/ai/gemini";
@@ -77,15 +77,34 @@ export default function KitsuneAIPage() {
   const [isReasoningSubmenuOpen, setIsReasoningSubmenuOpen] = useState(false);
   const [isScopeOpen, setIsScopeOpen] = useState(false);
 
+  const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
+  const isAtBottomRef = useRef<boolean>(true);
+
   const attachRef = useRef<HTMLDivElement>(null);
   const modelRef = useRef<HTMLDivElement>(null);
   const scopeRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Monitora se o usuário está ou não no limite inferior do chat
+  const handleScroll = useCallback(() => {
+    const el = messagesContainerRef.current;
+    if (!el) return;
+    const threshold = 70; // 70px de margem de tolerância
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    isAtBottomRef.current = distanceFromBottom <= threshold;
+  }, []);
+
+  const scrollToBottomSmooth = useCallback((force = false) => {
+    if (force || isAtBottomRef.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, []);
+
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chatMessages, isLoading]);
+    scrollToBottomSmooth(true);
+  }, [chatMessages.length, isLoading, scrollToBottomSmooth]);
 
   // Auto-resize do textarea
   useEffect(() => {
@@ -228,10 +247,12 @@ export default function KitsuneAIPage() {
         return;
       }
 
+      const newAiId = `ai-${Date.now()}`;
+      setStreamingMessageId(newAiId);
       setChatMessages((prev) => [
         ...prev,
         {
-          id: `ai-${Date.now()}`,
+          id: newAiId,
           role: "assistant",
           content: data.message,
           timestamp: new Date().toISOString(),
@@ -369,64 +390,84 @@ export default function KitsuneAIPage() {
         </div>
       </header>
 
-      {/* Área de Mensagens com Renderização Markdown Rica */}
-      <div className="flex-1 overflow-y-auto w-full px-4 md:px-8 py-6 flex flex-col gap-5 max-w-4xl mx-auto">
-        {chatMessages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`flex items-start gap-3.5 ${
-              msg.role === "user" ? "flex-row-reverse" : ""
-            }`}
-          >
-            {msg.role === "assistant" && (
-              <div className="w-8 h-8 rounded-2xl bg-kitsune/12 border border-kitsune/25 flex items-center justify-center shrink-0 mt-0.5">
-                <span className="material-symbols-outlined text-kitsune text-[17px]">
-                  auto_awesome
-                </span>
-              </div>
-            )}
-
-            <div
-              className={`border rounded-3xl px-4 py-3.5 md:px-5 md:py-4 max-w-[90%] md:max-w-[82%] shadow-sm flex flex-col gap-2 ${
-                msg.role === "user"
-                  ? "bg-kitsune text-white border-kitsune rounded-tr-sm"
-                  : "bg-zinc-900/90 border-zinc-800/90 rounded-tl-sm text-zinc-100"
+      {/* Área de Mensagens com Renderização Markdown Rica e Animações Fluidas */}
+      <div
+        ref={messagesContainerRef}
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto w-full px-4 md:px-8 py-6 flex flex-col gap-5 max-w-4xl mx-auto scroll-smooth"
+      >
+        <AnimatePresence initial={false}>
+          {chatMessages.map((msg) => (
+            <motion.div
+              key={msg.id}
+              initial={{ opacity: 0, y: 14, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+              className={`flex items-start gap-3.5 ${
+                msg.role === "user" ? "flex-row-reverse" : ""
               }`}
             >
-              {msg.role === "assistant" ? (
-                <div className="kitsune-markdown prose prose-invert max-w-none text-sm font-sans leading-relaxed">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {msg.content}
-                  </ReactMarkdown>
-                </div>
-              ) : (
-                <div className="font-sans text-sm leading-relaxed whitespace-pre-line">
-                  {msg.content}
+              {msg.role === "assistant" && (
+                <div className="w-8 h-8 rounded-2xl bg-kitsune/12 border border-kitsune/25 flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
+                  <span className="material-symbols-outlined text-kitsune text-[17px]">
+                    auto_awesome
+                  </span>
                 </div>
               )}
 
-              {msg.role === "assistant" && msg.modelUsed && (
-                <div className="flex items-center justify-between pt-2 border-t border-zinc-800/80 text-[10px] font-sans text-zinc-500">
-                  <span className="flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[12px] text-amber-400">
-                      memory
+              <div
+                className={`border rounded-3xl px-4 py-3.5 md:px-5 md:py-4 max-w-[90%] md:max-w-[84%] shadow-md flex flex-col gap-2 transition-shadow ${
+                  msg.role === "user"
+                    ? "bg-kitsune text-white border-kitsune rounded-tr-sm"
+                    : "bg-zinc-900/90 border-zinc-800/90 rounded-tl-sm text-zinc-100 backdrop-blur-sm"
+                }`}
+              >
+                {msg.role === "assistant" ? (
+                  <StreamingMarkdown
+                    content={msg.content}
+                    isNew={msg.id === streamingMessageId}
+                    onUpdate={() => scrollToBottomSmooth(false)}
+                    onComplete={() => {
+                      if (msg.id === streamingMessageId) {
+                        setStreamingMessageId(null);
+                        scrollToBottomSmooth(false);
+                      }
+                    }}
+                  />
+                ) : (
+                  <div className="font-sans text-sm leading-relaxed whitespace-pre-line">
+                    {msg.content}
+                  </div>
+                )}
+
+                {msg.role === "assistant" && msg.modelUsed && (
+                  <div className="flex items-center justify-between pt-2 border-t border-zinc-800/80 text-[10px] font-sans text-zinc-500">
+                    <span className="flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[12px] text-amber-400">
+                        memory
+                      </span>
+                      {msg.modelUsed}
                     </span>
-                    {msg.modelUsed}
-                  </span>
-                  <span>
-                    {new Date(msg.timestamp).toLocaleTimeString("pt-BR", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
+                    <span>
+                      {new Date(msg.timestamp).toLocaleTimeString("pt-BR", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
 
         {isLoading && (
-          <div className="flex items-start gap-3.5">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            className="flex items-start gap-3.5"
+          >
             <div className="w-8 h-8 rounded-2xl bg-kitsune/12 border border-kitsune/25 flex items-center justify-center shrink-0">
               <span className="material-symbols-outlined text-kitsune text-[17px] animate-pulse">
                 auto_awesome
@@ -446,7 +487,7 @@ export default function KitsuneAIPage() {
                 Kitsune está analisando ({currentModelInfo.shortTitle})...
               </span>
             </div>
-          </div>
+          </motion.div>
         )}
 
         <div ref={messagesEndRef} />
