@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/client";
@@ -18,6 +18,23 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
 
   const supabase = createClient();
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const desc = params.get("error_description");
+      const err = params.get("error");
+      if (desc) {
+        if (desc.includes("Unable to exchange external code")) {
+          setError("Erro na troca de código com o Google: a chave secreta (Client Secret) do Google OAuth precisa ser atualizada no Supabase.");
+        } else {
+          setError(decodeURIComponent(desc.replace(/\+/g, " ")));
+        }
+      } else if (err === "true" || (err && err !== "server_error")) {
+        setError("Não foi possível autenticar. Tente novamente.");
+      }
+    }
+  }, []);
 
   const handleGoogleLogin = async () => {
     setIsLoadingGoogle(true);

@@ -7,6 +7,11 @@ export async function GET(request: Request) {
   const code = searchParams.get('code')
   const next = searchParams.get('next') ?? '/dashboard'
 
+  const authError = searchParams.get('error_description') || searchParams.get('error')
+  if (authError) {
+    return NextResponse.redirect(`${origin}/login?error_description=${encodeURIComponent(authError)}`)
+  }
+
   if (code) {
     const cookieStore = await cookies()
     const supabase = createServerClient(
@@ -43,6 +48,8 @@ export async function GET(request: Request) {
       } else {
         return NextResponse.redirect(`${origin}${next}`)
       }
+    } else {
+      return NextResponse.redirect(`${origin}/login?error_description=${encodeURIComponent(error.message)}`)
     }
   }
 
