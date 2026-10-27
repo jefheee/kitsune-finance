@@ -28,6 +28,7 @@ export const viewport: Viewport = {
 };
 
 import { ThemeProvider } from '@/components/theme-provider';
+import { FinanceDataProvider } from '@/context/FinanceDataContext';
 
 export default function RootLayout({
   children,
@@ -43,7 +44,9 @@ export default function RootLayout({
       </head>
       <body className="bg-white dark:bg-[#0A0A0A] text-gray-900 dark:text-white antialiased" suppressHydrationWarning>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
-          <AppShell>{children}</AppShell>
+          <FinanceDataProvider>
+            <AppShell>{children}</AppShell>
+          </FinanceDataProvider>
         </ThemeProvider>
       </body>
     </html>

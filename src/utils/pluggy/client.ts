@@ -8,7 +8,10 @@ export interface PluggyAccount {
   balance: number;
   currencyCode: string;
   itemId: string;
-  number?: string;
+  bankData?: {
+    transferNumber?: string;
+    closingBalance?: number;
+  };
 }
 
 export interface PluggyTransaction {
@@ -55,7 +58,6 @@ class PluggyService {
    */
   async getApiKey(): Promise<string> {
     const now = Date.now();
-    // Reutiliza o token se ainda tiver mais de 5 minutos de validade (2 horas = 7200s)
     if (this.cachedApiKey && now < this.tokenExpiresAt - 5 * 60 * 1000) {
       return this.cachedApiKey;
     }
@@ -85,29 +87,31 @@ class PluggyService {
     }
 
     this.cachedApiKey = data.apiKey;
-    // O token expira em 2 horas
     this.tokenExpiresAt = now + 2 * 60 * 60 * 1000;
     return this.cachedApiKey!;
   }
 
   /**
    * Gera um connectToken para inicialização do widget no frontend
-   * com clientUserId vinculado ao membro familiar e conector Meu Pluggy (id: 200).
+   * vinculando clientUserId estritamente ao user.id autenticado.
    */
-  async createConnectToken(params?: {
-    clientUserId?: string;
+  async createConnectToken(params: {
+    clientUserId: string;
     connectorId?: number;
+    itemId?: string;
   }): Promise<{ accessToken: string }> {
     const apiKey = await this.getApiKey();
 
     const body: Record<string, any> = {
+      clientUserId: params.clientUserId,
       options: {
-        connectorId: params?.connectorId ?? 200,
+        clientUserId: params.clientUserId,
+        connectorId: params.connectorId ?? 200,
       },
     };
 
-    if (params?.clientUserId) {
-      body.clientUserId = params.clientUserId;
+    if (params.itemId) {
+      body.itemId = params.itemId;
     }
 
     const response = await fetch(`${this.baseUrl}/connect_token`, {
@@ -130,8 +134,8 @@ class PluggyService {
   }
 
   /**
-   * Coleta as contas bancárias e cartões diretamente pelo itemId
-   * Rota: GET https://api.pluggy.ai/accounts?itemId={id}
+   * Coleta e higieniza as contas bancárias e cartões diretamente pelo itemId
+   * Descarta dados sensíveis cadastrais (CPF, endereço, telefone, owner).
    */
   async fetchAccounts(itemId: string): Promise<PluggyAccount[]> {
     const apiKey = await this.getApiKey();
@@ -150,12 +154,23 @@ class PluggyService {
     }
 
     const data = await response.json();
-    return (data.results || []) as PluggyAccount[];
+    const rawResults: any[] = data.results || [];
+
+    // Higiene de dados: extrai apenas campos financeiros normalizados, descartando owner/taxNumber/CPF
+    return rawResults.map((acc) => ({
+      id: String(acc.id),
+      type: String(acc.type || 'BANK'),
+      subtype: acc.subtype ? String(acc.subtype) : undefined,
+      name: String(acc.name || acc.marketingName || 'Conta Bancária'),
+      balance: Number(acc.balance) || 0,
+      currencyCode: String(acc.currencyCode || 'BRL'),
+      itemId: String(acc.itemId || itemId),
+    }));
   }
 
   /**
-   * Coleta transações diretamente pela rota da Pluggy com accountId
-   * Rota: GET https://api.pluggy.ai/transactions?accountId={id}
+   * Coleta e higieniza transações diretamente pela rota da Pluggy com accountId
+   * Descarta payloads cadastrais (CPF/CNPJ de pagador/recebedor, localização física, etc.).
    */
   async fetchTransactions(accountId: string): Promise<PluggyTransaction[]> {
     const apiKey = await this.getApiKey();
@@ -174,7 +189,46 @@ class PluggyService {
     }
 
     const data = await response.json();
-    return (data.results || []) as PluggyTransaction[];
+    const rawResults: any[] = data.results || [];
+
+    // Higiene de dados: persiste estritamente dados financeiros normalizados
+    return rawResults.map((tx) => ({
+      id: String(tx.id),
+      description: String(tx.description || tx.descriptionRaw || 'Transação'),
+      descriptionRaw: tx.descriptionRaw ? String(tx.descriptionRaw) : undefined,
+      currencyCode: String(tx.currencyCode || 'BRL'),
+      amount: Number(tx.amount) || 0,
+      date: String(tx.date),
+      category: tx.category ? String(tx.category) : 'Outros',
+      type: tx.type ? String(tx.type) : undefined,
+      accountId: String(tx.accountId || accountId),
+      providerCode: tx.providerCode ? String(tx.providerCode) : undefined,
+      status: tx.status ? String(tx.status) : undefined,
+    }));
+  }
+
+  /**
+   * Remove um Item diretamente na API da Pluggy:
+   * DELETE https://api.pluggy.ai/items/{id}
+   */
+  async deleteItem(itemId: string): Promise<{ deleted: boolean; status: number }> {
+    const apiKey = await this.getApiKey();
+
+    const response = await fetch(`${this.baseUrl}/items/${encodeURIComponent(itemId)}`, {
+      method: 'DELETE',
+      headers: {
+        'X-API-KEY': apiKey,
+      },
+      cache: 'no-store',
+    });
+
+    // 200, 204 ou 404 (já removido no provedor) são considerados limpos
+    if (response.ok || response.status === 404) {
+      return { deleted: true, status: response.status };
+    }
+
+    const errorText = await response.text();
+    throw new Error(`Erro ao deletar item ${itemId} na Pluggy: ${response.status} - ${errorText}`);
   }
 
   /**
@@ -202,7 +256,7 @@ class PluggyService {
 export const pluggyClient = new PluggyService();
 
 /**
- * Idempotency Hash Generator (Regra 6):
+ * Idempotency Hash Generator:
  * Hash SHA-256 combinando accountId + externalTransactionId/fitid + amount + date
  */
 export function generateTransactionIdempotencyHash(

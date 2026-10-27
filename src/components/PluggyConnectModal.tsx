@@ -4,7 +4,6 @@ import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import Spinner from '@/components/Spinner';
 
-// Carregamento dinâmico do widget PluggyConnect desativando SSR
 const PluggyConnect = dynamic(
   () => import('react-pluggy-connect').then((mod) => mod.PluggyConnect),
   { ssr: false }
@@ -14,7 +13,7 @@ export interface FamilyMember {
   id: string;
   name: string;
   role: string;
-  avatar_url?: string;
+  avatar_url?: string | null;
 }
 
 interface PluggyConnectModalProps {
@@ -22,7 +21,7 @@ interface PluggyConnectModalProps {
   onClose: () => void;
   familyMembers: FamilyMember[];
   onMemberCreated?: (newMember: FamilyMember) => void;
-  onConnectionSuccess: (result: { itemId: string; familyMemberId: string }) => void;
+  onConnectionSuccess: (result: { itemId: string; familyMemberId: string | null }) => void;
 }
 
 export default function PluggyConnectModal({
@@ -32,15 +31,15 @@ export default function PluggyConnectModal({
   onMemberCreated,
   onConnectionSuccess,
 }: PluggyConnectModalProps) {
-  const [selectedMemberId, setSelectedMemberId] = useState<string>(
-    familyMembers[0]?.id || ''
-  );
+  // Por padrão, '' vincula diretamente à conta individual do usuário autenticado (sem exigir membro familiar)
+  const [selectedMemberId, setSelectedMemberId] = useState<string>('');
   const [connectToken, setConnectToken] = useState<string | null>(null);
   const [isLoadingToken, setIsLoadingToken] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Estado para cadastro rápido de novo membro
+  // Estado opcional para vincular a um membro familiar
+  const [showFamilySelect, setShowFamilySelect] = useState(false);
   const [isAddingMember, setIsAddingMember] = useState(false);
   const [newMemberName, setNewMemberName] = useState('');
   const [newMemberRole, setNewMemberRole] = useState('Cônjuge');
@@ -48,7 +47,7 @@ export default function PluggyConnectModal({
 
   if (!isOpen) return null;
 
-  const currentMemberId = selectedMemberId || familyMembers[0]?.id || '';
+  const effectiveFamilyMemberId = showFamilySelect && selectedMemberId ? selectedMemberId : null;
 
   const handleCreateMember = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,6 +67,7 @@ export default function PluggyConnectModal({
       if (data.member) {
         if (onMemberCreated) onMemberCreated(data.member);
         setSelectedMemberId(data.member.id);
+        setShowFamilySelect(true);
         setIsAddingMember(false);
         setNewMemberName('');
       }
@@ -79,11 +79,6 @@ export default function PluggyConnectModal({
   };
 
   const handleStartConnection = async () => {
-    if (!currentMemberId) {
-      setError('Por favor, selecione ou adicione um membro da família.');
-      return;
-    }
-
     setIsLoadingToken(true);
     setError(null);
 
@@ -91,7 +86,9 @@ export default function PluggyConnectModal({
       const res = await fetch('/api/pluggy/connect-token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ familyMemberId: currentMemberId }),
+        body: JSON.stringify({
+          familyMemberId: effectiveFamilyMemberId,
+        }),
       });
 
       const data = await res.json();
@@ -114,7 +111,7 @@ export default function PluggyConnectModal({
 
   const handleWidgetSuccess = async (data: { item: any }) => {
     const itemId = data?.item?.id;
-    const providerName = data?.item?.connector?.name || 'Meu Pluggy';
+    const providerName = data?.item?.connector?.name || 'Instituição Conectada';
 
     if (!itemId) {
       setError('Item ID não recebido da Pluggy.');
@@ -128,7 +125,7 @@ export default function PluggyConnectModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           itemId,
-          familyMemberId: currentMemberId,
+          familyMemberId: effectiveFamilyMemberId,
           providerName,
         }),
       });
@@ -140,7 +137,7 @@ export default function PluggyConnectModal({
 
       onConnectionSuccess({
         itemId,
-        familyMemberId: currentMemberId,
+        familyMemberId: effectiveFamilyMemberId,
       });
 
       setConnectToken(null);
@@ -163,10 +160,10 @@ export default function PluggyConnectModal({
             </div>
             <div>
               <h3 className="text-xl font-bold font-sans text-gray-900 dark:text-white">
-                Conectar Nova Instituição
+                Conectar Instituição Bancária
               </h3>
               <p className="text-xs text-gray-500 dark:text-white/50 font-sans">
-                Proxy Meu Pluggy (conector 200 - sem necessidade de CNPJ)
+                Open Finance Brasil • Vinculado com isolamento total à sua conta
               </p>
             </div>
           </div>
@@ -175,7 +172,7 @@ export default function PluggyConnectModal({
               setConnectToken(null);
               onClose();
             }}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors"
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors cursor-pointer"
           >
             <span className="material-symbols-outlined">close</span>
           </button>
@@ -187,7 +184,6 @@ export default function PluggyConnectModal({
           </div>
         )}
 
-        {/* Sincronização em andamento */}
         {isSyncing && (
           <div className="flex flex-col items-center justify-center py-8 gap-3">
             <Spinner size={32} className="text-kitsune" />
@@ -195,26 +191,60 @@ export default function PluggyConnectModal({
               Sincronizando contas e lançamentos...
             </p>
             <p className="text-xs text-gray-500 font-sans text-center">
-              Processando idempotência SHA-256 e gravando no painel familiar.
+              Processando idempotência SHA-256 e descartando dados cadastrais sensíveis.
             </p>
           </div>
         )}
 
-        {/* Formulário de Seleção do Membro */}
         {!isSyncing && (
           <div className="flex flex-col gap-5">
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-sans font-semibold text-gray-700 dark:text-gray-300">
-                A qual membro da família pertence esta conta?
-              </label>
+            {/* Escopo Padrão: Conta Pessoal do Usuário Logado */}
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-sans font-bold uppercase tracking-wider text-gray-400 dark:text-white/40">
+                  Titularidade da Conexão
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowFamilySelect((prev) => !prev)}
+                  className="text-xs font-sans font-semibold text-kitsune hover:underline cursor-pointer flex items-center gap-1"
+                >
+                  <span className="material-symbols-outlined text-[15px]">
+                    {showFamilySelect ? 'person' : 'group_add'}
+                  </span>
+                  {showFamilySelect
+                    ? 'Usar apenas minha conta pessoal'
+                    : 'Vincular a membro familiar (opcional)'}
+                </button>
+              </div>
 
-              {!isAddingMember ? (
-                <div className="flex flex-col gap-3">
+              {!showFamilySelect ? (
+                <div className="p-3.5 bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/10 rounded-2xl flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <span className="material-symbols-outlined text-kitsune text-lg">verified_user</span>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-sans font-semibold text-gray-900 dark:text-white">
+                        Patrimônio Pessoal (Conta Principal)
+                      </span>
+                      <span className="text-[11px] font-sans text-gray-500 dark:text-white/50">
+                        Vinculada diretamente ao seu ID de usuário autenticado
+                      </span>
+                    </div>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-full text-[10px] font-sans font-bold bg-kitsune/10 text-kitsune">
+                    Padrão
+                  </span>
+                </div>
+              ) : !isAddingMember ? (
+                <div className="flex flex-col gap-2.5">
                   <select
-                    value={currentMemberId}
+                    value={selectedMemberId}
                     onChange={(e) => setSelectedMemberId(e.target.value)}
                     className="w-full p-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl font-sans text-sm text-gray-900 dark:text-white focus:outline-none focus:border-kitsune transition-colors"
                   >
+                    <option value="" className="dark:bg-[#1a1a1a]">
+                      Minha Conta Pessoal (Sem vínculo familiar)
+                    </option>
                     {familyMembers.map((member) => (
                       <option key={member.id} value={member.id} className="dark:bg-[#1a1a1a]">
                         {member.name} ({member.role || 'Membro'})
@@ -225,10 +255,10 @@ export default function PluggyConnectModal({
                   <button
                     type="button"
                     onClick={() => setIsAddingMember(true)}
-                    className="text-xs font-sans font-medium text-kitsune hover:underline self-start flex items-center gap-1"
+                    className="text-xs font-sans font-medium text-kitsune hover:underline self-start flex items-center gap-1 cursor-pointer"
                   >
                     <span className="material-symbols-outlined text-[16px]">person_add</span>
-                    Cadastrar novo membro familiar
+                    Adicionar novo membro ao espaço compartilhado
                   </button>
                 </div>
               ) : (
@@ -237,12 +267,12 @@ export default function PluggyConnectModal({
                   className="p-4 bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/10 rounded-2xl flex flex-col gap-3"
                 >
                   <span className="text-xs font-semibold text-gray-800 dark:text-gray-200 font-sans">
-                    Novo Membro Familiar
+                    Novo Membro Familiar (Opcional)
                   </span>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <input
                       type="text"
-                      placeholder="Nome completo ou apelido"
+                      placeholder="Nome ou apelido"
                       value={newMemberName}
                       onChange={(e) => setNewMemberName(e.target.value)}
                       required
@@ -253,25 +283,25 @@ export default function PluggyConnectModal({
                       onChange={(e) => setNewMemberRole(e.target.value)}
                       className="p-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-xs font-sans text-gray-900 dark:text-white focus:outline-none focus:border-kitsune"
                     >
-                      <option value="Titular" className="dark:bg-[#1a1a1a]">Titular</option>
                       <option value="Cônjuge" className="dark:bg-[#1a1a1a]">Cônjuge</option>
+                      <option value="Sócio(a)" className="dark:bg-[#1a1a1a]">Sócio(a)</option>
                       <option value="Filho(a)" className="dark:bg-[#1a1a1a]">Filho(a)</option>
                       <option value="Dependente" className="dark:bg-[#1a1a1a]">Dependente</option>
-                      <option value="Outro" className="dark:bg-[#1a1a1a]">Outro</option>
+                      <option value="Familiar" className="dark:bg-[#1a1a1a]">Familiar</option>
                     </select>
                   </div>
                   <div className="flex items-center justify-end gap-2 mt-1">
                     <button
                       type="button"
                       onClick={() => setIsAddingMember(false)}
-                      className="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-white font-sans"
+                      className="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-white font-sans cursor-pointer"
                     >
                       Cancelar
                     </button>
                     <button
                       type="submit"
                       disabled={isSavingMember || !newMemberName.trim()}
-                      className="px-4 py-1.5 bg-kitsune text-white rounded-xl text-xs font-sans font-semibold disabled:opacity-50"
+                      className="px-4 py-1.5 bg-kitsune text-white rounded-xl text-xs font-sans font-semibold disabled:opacity-50 cursor-pointer"
                     >
                       {isSavingMember ? 'Salvando...' : 'Salvar Membro'}
                     </button>
@@ -280,20 +310,19 @@ export default function PluggyConnectModal({
               )}
             </div>
 
-            {/* Explicação do Conector */}
+            {/* Aviso de Blindagem e Higiene de Dados */}
             <div className="p-4 bg-orange-500/5 border border-orange-500/10 rounded-2xl flex items-start gap-3">
-              <span className="material-symbols-outlined text-kitsune text-xl mt-0.5">verified_user</span>
+              <span className="material-symbols-outlined text-kitsune text-xl mt-0.5">shield_lock</span>
               <div className="flex flex-col gap-1">
                 <span className="text-xs font-semibold text-gray-900 dark:text-white font-sans">
-                  Modo Meu Pluggy Ativo
+                  Privacidade & Blindagem RLS Ativa
                 </span>
                 <span className="text-[11px] text-gray-500 dark:text-white/60 font-sans leading-relaxed">
-                  Permite agregação segura e real de contas sem burocracia bancária corporativa. Dados sensíveis (CPF, endereços) são descartados na origem.
+                  Seus dados financeiros pertencem exclusivamente ao seu usuário autenticado. Dados cadastrais (CPF, endereço, telefone) são descartados automaticamente.
                 </span>
               </div>
             </div>
 
-            {/* Ação de Início */}
             <button
               onClick={handleStartConnection}
               disabled={isLoadingToken || isSyncing}
@@ -314,7 +343,6 @@ export default function PluggyConnectModal({
           </div>
         )}
 
-        {/* Instância do Widget Pluggy Connect */}
         {connectToken && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80">
             <PluggyConnect

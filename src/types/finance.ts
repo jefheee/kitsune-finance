@@ -123,10 +123,10 @@ export const FamilyMemberSchema = z.object({
   updated_at: z.iso.datetime().optional(),
 });
 
-// ── Bank Account Schema (Family Relational Model) ──
+// ── Bank Account Schema (Multi-Tenant User-Owned Model) ──
 export const BankAccountSchema = z.object({
   id: z.string().uuid(),
-  family_member_id: z.string().uuid(),
+  family_member_id: z.string().uuid().nullable().optional(),
   user_id: z.string().uuid(),
   item_id: z.string(),
   pluggy_account_id: z.string().optional().nullable(),

@@ -5,7 +5,25 @@ export interface SyncResult {
   success: boolean;
   accountsSynced: number;
   transactionsSynced: number;
+  institutionName?: string;
   error?: string;
+}
+
+function normalizeInstitutionName(rawName?: string): string {
+  if (!rawName) return 'Instituição Conectada';
+  const lower = rawName.toLowerCase();
+  if (lower.includes('nu pagamentos') || lower.includes('nubank')) return 'Nubank';
+  if (lower.includes('itau') || lower.includes('itaú')) return 'Itaú Unibanco';
+  if (lower.includes('bradesco')) return 'Bradesco';
+  if (lower.includes('santander')) return 'Santander';
+  if (lower.includes('banco inter') || lower === 'inter') return 'Banco Inter';
+  if (lower.includes('c6 bank') || lower.includes('c6')) return 'C6 Bank';
+  if (lower.includes('btg')) return 'BTG Pactual';
+  if (lower.includes('xp ')) return 'XP Investimentos';
+  if (lower.includes('caixa')) return 'Caixa Econômica';
+  if (lower.includes('banco do brasil')) return 'Banco do Brasil';
+  if (lower === 'pluggy' || lower === 'meu pluggy') return 'Meu Pluggy';
+  return rawName;
 }
 
 export async function syncItemAccountsAndTransactions(
@@ -13,37 +31,49 @@ export async function syncItemAccountsAndTransactions(
   params: {
     itemId: string;
     userId: string;
-    familyMemberId: string;
+    familyMemberId?: string | null;
     providerName?: string;
   }
 ): Promise<SyncResult> {
-  const { itemId, userId, familyMemberId, providerName } = params;
+  const { itemId, userId, familyMemberId = null, providerName } = params;
 
   try {
-    // 1. Atualizar ou registrar a conexão no Supabase
-    await supabase.from('pluggy_connections').upsert(
-      {
-        user_id: userId,
-        family_member_id: familyMemberId,
-        item_id: itemId,
-        provider_name: providerName || 'Meu Pluggy',
-        status: 'CONNECTED',
-      },
-      { onConflict: 'item_id' }
-    );
-
-    // 2. Coletar contas diretamente da rota de produtos da Pluggy
+    // 1. Coletar contas diretamente da rota de produtos da Pluggy (higienizadas)
     const accounts = await pluggyClient.fetchAccounts(itemId);
+
+    // Determina o nome real da instituição a partir das contas retornadas
+    const primaryBankAccount = accounts.find((a) => a.type === 'BANK') || accounts[0];
+    const resolvedProviderName =
+      providerName &&
+      providerName.toLowerCase() !== 'pluggy' &&
+      providerName.toLowerCase() !== 'meu pluggy' &&
+      providerName.toLowerCase() !== 'instituição conectada'
+        ? normalizeInstitutionName(providerName)
+        : normalizeInstitutionName(primaryBankAccount?.name || providerName);
+
+    // 2. Registrar/atualizar a conexão no Supabase via RPC seguro (valida user_id e deduplica)
+    const { error: connRpcError } = await supabase.rpc('upsert_pluggy_connection_sync', {
+      p_user_id: userId,
+      p_family_member_id: familyMemberId || null,
+      p_item_id: itemId,
+      p_provider_name: resolvedProviderName,
+      p_status: 'CONNECTED',
+    });
+
+    if (connRpcError) {
+      console.error(`[Sync] Erro ao registrar conexão ${itemId}:`, connRpcError);
+    }
+
     let totalTransactions = 0;
 
     for (const acc of accounts) {
-      // 3. Upsert da conta na tabela bank_accounts via RPC seguro (SECURITY DEFINER)
+      // 3. Upsert da conta na tabela bank_accounts via RPC seguro (com deduplicação de item)
       const { data: dbAccountId, error: accError } = await supabase.rpc('sync_pluggy_account', {
-        p_family_member_id: familyMemberId,
+        p_family_member_id: familyMemberId || null,
         p_user_id: userId,
         p_item_id: itemId,
         p_pluggy_account_id: acc.id,
-        p_bank_name: acc.name || providerName || 'Conta Bancária',
+        p_bank_name: acc.name || resolvedProviderName,
         p_type: acc.type || 'BANK',
         p_balance: Number(acc.balance) || 0,
         p_currency: acc.currencyCode || 'BRL',
@@ -54,7 +84,7 @@ export async function syncItemAccountsAndTransactions(
         continue;
       }
 
-      // 4. Coletar transações diretamente da rota da Pluggy com accountId
+      // 4. Coletar transações higienizadas diretamente da rota da Pluggy com accountId
       try {
         const transactions = await pluggyClient.fetchTransactions(acc.id);
 
@@ -67,7 +97,6 @@ export async function syncItemAccountsAndTransactions(
             ? new Date(tx.date).toISOString()
             : new Date().toISOString();
 
-          // Idempotência SHA-256 (Regra 6)
           const idempotencyHash = generateTransactionIdempotencyHash(
             acc.id,
             extId,
@@ -77,11 +106,10 @@ export async function syncItemAccountsAndTransactions(
 
           const txType = tx.type === 'CREDIT' || Number(tx.amount) > 0 ? 'CREDIT' : 'DEBIT';
 
-          // Higiene e Privacidade de Dados (Regra 5):
-          // Não armazena CPF, telefones ou endereços; apenas lançamentos financeiros.
+          // Higiene e Privacidade de Dados: persiste apenas dados financeiros normalizados
           const { error: txError } = await supabase.rpc('upsert_pluggy_transaction', {
             p_account_id: dbAccountId,
-            p_family_member_id: familyMemberId,
+            p_family_member_id: familyMemberId || null,
             p_user_id: userId,
             p_pluggy_tx_id: tx.id,
             p_idempotency_hash: idempotencyHash,
@@ -108,6 +136,7 @@ export async function syncItemAccountsAndTransactions(
       success: true,
       accountsSynced: accounts.length,
       transactionsSynced: totalTransactions,
+      institutionName: resolvedProviderName,
     };
   } catch (error: any) {
     console.error(`[Sync] Erro geral na sincronização do item ${itemId}:`, error);
