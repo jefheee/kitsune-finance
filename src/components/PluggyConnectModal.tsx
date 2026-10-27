@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import Spinner from '@/components/Spinner';
+import CustomDropdown from '@/components/ui/CustomDropdown';
 
 const PluggyConnect = dynamic(
   () => import('react-pluggy-connect').then((mod) => mod.PluggyConnect),
@@ -237,20 +238,23 @@ export default function PluggyConnectModal({
                 </div>
               ) : !isAddingMember ? (
                 <div className="flex flex-col gap-2.5">
-                  <select
+                  <CustomDropdown
                     value={selectedMemberId}
-                    onChange={(e) => setSelectedMemberId(e.target.value)}
-                    className="w-full p-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl font-sans text-sm text-gray-900 dark:text-white focus:outline-none focus:border-kitsune transition-colors"
-                  >
-                    <option value="" className="dark:bg-[#1a1a1a]">
-                      Minha Conta Pessoal (Sem vínculo familiar)
-                    </option>
-                    {familyMembers.map((member) => (
-                      <option key={member.id} value={member.id} className="dark:bg-[#1a1a1a]">
-                        {member.name} ({member.role || 'Membro'})
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(val) => setSelectedMemberId(val)}
+                    options={[
+                      {
+                        value: '',
+                        label: 'Minha Conta Pessoal (Sem vínculo familiar)',
+                        description: 'Vinculada diretamente ao seu usuário',
+                        icon: 'person',
+                      },
+                      ...familyMembers.map((member) => ({
+                        value: member.id,
+                        label: `${member.name} (${member.role || 'Membro'})`,
+                        icon: 'group',
+                      })),
+                    ]}
+                  />
 
                   <button
                     type="button"
@@ -276,19 +280,19 @@ export default function PluggyConnectModal({
                       value={newMemberName}
                       onChange={(e) => setNewMemberName(e.target.value)}
                       required
-                      className="p-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-xs font-sans text-gray-900 dark:text-white focus:outline-none focus:border-kitsune"
+                      className="p-2.5 bg-zinc-900/90 border border-zinc-800 rounded-xl text-xs font-sans text-zinc-100 focus:outline-none focus:border-kitsune"
                     />
-                    <select
+                    <CustomDropdown
                       value={newMemberRole}
-                      onChange={(e) => setNewMemberRole(e.target.value)}
-                      className="p-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-xs font-sans text-gray-900 dark:text-white focus:outline-none focus:border-kitsune"
-                    >
-                      <option value="Cônjuge" className="dark:bg-[#1a1a1a]">Cônjuge</option>
-                      <option value="Sócio(a)" className="dark:bg-[#1a1a1a]">Sócio(a)</option>
-                      <option value="Filho(a)" className="dark:bg-[#1a1a1a]">Filho(a)</option>
-                      <option value="Dependente" className="dark:bg-[#1a1a1a]">Dependente</option>
-                      <option value="Familiar" className="dark:bg-[#1a1a1a]">Familiar</option>
-                    </select>
+                      onChange={(val) => setNewMemberRole(val)}
+                      options={[
+                        { value: 'Cônjuge', label: 'Cônjuge' },
+                        { value: 'Sócio(a)', label: 'Sócio(a)' },
+                        { value: 'Filho(a)', label: 'Filho(a)' },
+                        { value: 'Dependente', label: 'Dependente' },
+                        { value: 'Familiar', label: 'Familiar' },
+                      ]}
+                    />
                   </div>
                   <div className="flex items-center justify-end gap-2 mt-1">
                     <button

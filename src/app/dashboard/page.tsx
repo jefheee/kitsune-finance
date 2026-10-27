@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import Spinner from "@/components/Spinner";
 import PluggyConnectModal from "@/components/PluggyConnectModal";
+import CustomDropdown from "@/components/ui/CustomDropdown";
 import { useFinanceData } from "@/context/FinanceDataContext";
 
 export default function DashboardPage() {
@@ -868,19 +869,19 @@ export default function DashboardPage() {
                     value={newMemberName}
                     onChange={(e) => setNewMemberName(e.target.value)}
                     required
-                    className="p-3 bg-white dark:bg-[#121212] border border-gray-200 dark:border-white/10 rounded-xl text-xs font-sans text-gray-900 dark:text-white focus:outline-none focus:border-kitsune"
+                    className="p-3 bg-zinc-900/90 border border-zinc-800 rounded-xl text-xs font-sans text-zinc-100 focus:outline-none focus:border-kitsune"
                   />
-                  <select
+                  <CustomDropdown
                     value={newMemberRole}
-                    onChange={(e) => setNewMemberRole(e.target.value)}
-                    className="p-3 bg-white dark:bg-[#121212] border border-gray-200 dark:border-white/10 rounded-xl text-xs font-sans text-gray-900 dark:text-white focus:outline-none focus:border-kitsune"
-                  >
-                    <option value="Titular">Titular</option>
-                    <option value="Cônjuge">Cônjuge</option>
-                    <option value="Sócio(a)">Sócio(a)</option>
-                    <option value="Filho(a)">Filho(a)</option>
-                    <option value="Dependente">Dependente</option>
-                  </select>
+                    onChange={(val) => setNewMemberRole(val)}
+                    options={[
+                      { value: "Titular", label: "Titular" },
+                      { value: "Cônjuge", label: "Cônjuge" },
+                      { value: "Sócio(a)", label: "Sócio(a)" },
+                      { value: "Filho(a)", label: "Filho(a)" },
+                      { value: "Dependente", label: "Dependente" },
+                    ]}
+                  />
                 </div>
                 <button
                   type="submit"

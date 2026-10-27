@@ -2,6 +2,11 @@ import type { Metadata, Viewport } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import AppShell from '@/components/layout/AppShell';
+import { ThemeProvider } from '@/components/theme-provider';
+import { FinanceDataProvider } from '@/context/FinanceDataContext';
+import ServiceWorkerRegistrar from '@/components/ServiceWorkerRegistrar';
+import OnboardingModal from '@/components/OnboardingModal';
+
 const fontSans = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
@@ -17,6 +22,16 @@ const fontMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: 'Kitsune Finance',
   description: 'AI-driven wealth management in a clean, high-performance interface.',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Kitsune',
+  },
+  icons: {
+    icon: '/assets/logo/logo_sem_fundo.png',
+    apple: '/assets/logo/logo.png',
+  },
 };
 
 export const viewport: Viewport = {
@@ -24,11 +39,9 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: '#0A0A0A',
+  viewportFit: 'cover',
+  themeColor: '#09090b',
 };
-
-import { ThemeProvider } from '@/components/theme-provider';
-import { FinanceDataProvider } from '@/context/FinanceDataContext';
 
 export default function RootLayout({
   children,
@@ -40,11 +53,18 @@ export default function RootLayout({
       <head>
         <meta name="darkreader-lock" />
         <meta name="color-scheme" content="dark light" />
-        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <link rel="manifest" href="/manifest.json" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+          rel="stylesheet"
+        />
       </head>
-      <body className="bg-white dark:bg-[#0A0A0A] text-gray-900 dark:text-white antialiased" suppressHydrationWarning>
+      <body className="bg-[#09090b] text-zinc-100 antialiased" suppressHydrationWarning>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
           <FinanceDataProvider>
+            <ServiceWorkerRegistrar />
+            <OnboardingModal />
             <AppShell>{children}</AppShell>
           </FinanceDataProvider>
         </ThemeProvider>

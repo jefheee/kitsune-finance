@@ -1,95 +1,115 @@
-/**
- * Kitsune AI — Multi-Key Rotation & Multi-Model Gemini Engine
- * Implements random key selection with automatic anti-rate-limit failover
- * across the Gemini 4 / Gemini 3.8 / Gemini 3.5 model family.
- */
+import { generateWithGroq } from './groq';
 
 export interface GeminiModelInfo {
   id: string;
+  shortTitle: string;
   name: string;
-  badge: string;
-  description: string;
-  tier: 'flagship' | 'fast' | 'lite' | 'agent';
+  subtitle: string;
+  provider: 'gemini' | 'groq';
+  tier: 'flagship' | 'fast' | 'lite' | 'groq';
 }
 
-export const KITSUNE_GEMINI_MODELS: GeminiModelInfo[] = [
+export const KITSUNE_AI_MODELS: GeminiModelInfo[] = [
   {
-    id: 'gemini-3.8-flash',
-    name: 'Gemini 3.8 Flash',
-    badge: 'Recomendado • Agentes',
-    description: 'Nosso modelo Flash mais inteligente para fluxos autônomos e análise financeira.',
-    tier: 'fast',
+    id: 'gemini-3.5-flash-lite',
+    shortTitle: '3.5 Flash Lite',
+    name: 'Gemini 3.5 Flash-Lite',
+    subtitle: 'Respostas mais rápidas',
+    provider: 'gemini',
+    tier: 'lite',
   },
   {
-    id: 'gemini-4-argon',
-    name: 'Gemini 4 Argon',
-    badge: 'Flagship • Raciocínio 1M',
-    description: 'Modelo flagship de raciocínio profundo com janela de contexto unificada de 1M tokens.',
-    tier: 'flagship',
+    id: 'gemini-3.8-flash',
+    shortTitle: '3.8 Flash',
+    name: 'Gemini 3.8 Flash',
+    subtitle: 'Ajuda para tudo',
+    provider: 'gemini',
+    tier: 'fast',
   },
   {
     id: 'gemini-3.6-flash',
+    shortTitle: '3.6 Flash',
     name: 'Gemini 3.6 Flash',
-    badge: 'Estável • Multimodal',
-    description: 'Equilíbrio ideal entre velocidade e capacidade analítica para tarefas do dia a dia.',
+    subtitle: 'Equilíbrio multimodal estável',
+    provider: 'gemini',
     tier: 'fast',
   },
   {
-    id: 'gemini-3.5-flash-lite',
-    name: 'Gemini 3.5 Flash-Lite',
-    badge: 'Ultra Rápido',
-    description: 'Modelo de altíssima velocidade e baixa latência para respostas instantâneas.',
-    tier: 'lite',
+    id: 'gemini-3.1-pro-preview',
+    shortTitle: '3.1 Pro',
+    name: 'Gemini 3.1 Pro',
+    subtitle: 'Raciocínio avançado',
+    provider: 'gemini',
+    tier: 'flagship',
   },
   {
-    id: 'gemini-3.1-flash-lite',
-    name: 'Gemini 3.1 Flash-Lite',
-    badge: 'Eficiência',
-    description: 'Performance de fronteira com custo reduzido e resposta imediata.',
-    tier: 'lite',
+    id: 'gemini-4-argon',
+    shortTitle: '4 Argon',
+    name: 'Gemini 4 Argon',
+    subtitle: 'Tarefas complexas',
+    provider: 'gemini',
+    tier: 'flagship',
+  },
+  {
+    id: 'llama-3.3-70b-versatile',
+    shortTitle: 'Llama 3.3 70B',
+    name: 'Llama 3.3 70B (Groq)',
+    subtitle: 'Groq — Ultra Rápido',
+    provider: 'groq',
+    tier: 'groq',
+  },
+  {
+    id: 'llama-3.1-8b-instant',
+    shortTitle: 'Llama 3.1 8B',
+    name: 'Llama 3.1 8B (Groq)',
+    subtitle: 'Groq — Econômico',
+    provider: 'groq',
+    tier: 'groq',
   },
 ];
 
-// Cooldown tracker in memory for keys that hit 429/quota errors (key -> timestamp until available)
-const keyCooldowns = new Map<string, number>();
+// Compatibilidade com imports existentes
+export const KITSUNE_GEMINI_MODELS = KITSUNE_AI_MODELS;
+
+// Cooldown por par (key + model) para não bloquear a chave inteira quando apenas um modelo específico tiver limite
+const keyModelCooldowns = new Map<string, number>();
+const invalidKeys = new Set<string>();
+
+function shuffleArray<T>(items: T[]): T[] {
+  const arr = [...items];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
 
 /**
- * Collects and deduplicates all configured Gemini API keys from environment variables,
- * returning them in randomized order with non-cooled-down keys prioritized first.
+ * Valida e retorna as chaves do Google AI Studio em rotação.
+ * Prioriza chaves Standard (AIzaSy...) de baixa latência e inclui Auth Keys (AQ.Ab8RN6...) válidas,
+ * descartando qualquer string malformada.
  */
 export function getRotatedGeminiKeys(): string[] {
   const poolRaw = process.env.GEMINI_API_KEYS || '';
   const singleRaw = process.env.GEMINI_API_KEY || '';
 
-  const allKeys = Array.from(
+  const rawCandidates = Array.from(
     new Set(
       [...poolRaw.split(','), singleRaw]
         .map((k) => k.trim().replace(/^["']|["']$/g, ''))
-        .filter((k) => k.length > 10)
+        .filter((k) => k.length > 20 && !invalidKeys.has(k))
     )
   );
 
-  // Fisher-Yates shuffle for random load balancing
-  for (let i = allKeys.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [allKeys[i], allKeys[j]] = [allKeys[j], allKeys[i]];
-  }
+  // Valida prefixo oficial do Google AI Studio (AIzaSy para Standard Keys ou AQ. para Auth Keys)
+  const standardKeys = shuffleArray(
+    rawCandidates.filter((k) => k.startsWith('AIzaSy'))
+  );
+  const authKeys = shuffleArray(
+    rawCandidates.filter((k) => k.startsWith('AQ.'))
+  );
 
-  const now = Date.now();
-  const activeKeys: string[] = [];
-  const cooledDownKeys: string[] = [];
-
-  for (const key of allKeys) {
-    const cooldownUntil = keyCooldowns.get(key) || 0;
-    if (now >= cooldownUntil) {
-      activeKeys.push(key);
-    } else {
-      cooledDownKeys.push(key);
-    }
-  }
-
-  // Try active keys first, then cooled-down keys as last resort
-  return [...activeKeys, ...cooledDownKeys];
+  return [...standardKeys, ...authKeys];
 }
 
 export interface GenerateKitsuneResponseOptions {
@@ -97,6 +117,7 @@ export interface GenerateKitsuneResponseOptions {
   prompt: string;
   history?: { role: 'user' | 'model'; content: string }[];
   preferredModel?: string;
+  reasoningLevel?: 'fast' | 'standard' | 'deep';
   temperature?: number;
 }
 
@@ -113,21 +134,38 @@ export async function generateWithGeminiPool(
     systemInstruction,
     prompt,
     history = [],
-    preferredModel = 'gemini-3.8-flash',
+    preferredModel = 'gemini-3.5-flash-lite',
     temperature = 0.35,
   } = options;
 
+  // Se o modelo selecionado for da Groq (Llama), roteia diretamente para o serviço Groq
+  if (preferredModel.startsWith('llama-')) {
+    const groqRes = await generateWithGroq({
+      systemInstruction,
+      prompt,
+      history,
+      preferredModel,
+      temperature,
+    });
+    return {
+      text: groqRes.text,
+      modelUsed: groqRes.modelUsed,
+      keyIndexUsed: 0,
+    };
+  }
+
   const keys = getRotatedGeminiKeys();
 
-  // Ordered fallback chain of models to guarantee availability
+  // Cadeia de modelos estáveis da Geração 3 + fallback oficial
+  // Nota: se um modelo flagship (ex: gemini-4-argon ou gemini-3.1-pro-preview) retornar 429 (quota 0 no free tier)
+  // ou se gemini-3.8-flash retornar 503 (alta demanda), faz failover imediato para gemini-3.5-flash-lite / gemini-3.6-flash / gemini-3.1-flash-lite!
   const modelChain = Array.from(
     new Set([
       preferredModel,
-      'gemini-3.8-flash',
-      'gemini-4-argon',
-      'gemini-3.6-flash',
       'gemini-3.5-flash-lite',
+      'gemini-3.6-flash',
       'gemini-3.1-flash-lite',
+      'gemini-3.8-flash',
       'gemini-2.5-flash',
     ])
   );
@@ -144,20 +182,29 @@ export async function generateWithGeminiPool(
   ];
 
   let lastError = '';
+  const now = Date.now();
 
-  // Iterate over rotated keys and model fallback chain
-  for (let kIdx = 0; kIdx < keys.length; kIdx++) {
-    const apiKey = keys[kIdx];
+  for (const model of modelChain) {
+    for (let kIdx = 0; kIdx < keys.length; kIdx++) {
+      const apiKey = keys[kIdx];
+      const cooldownKey = `${apiKey}:${model}`;
+      const cooldownUntil = keyModelCooldowns.get(cooldownKey) || 0;
 
-    for (const model of modelChain) {
+      if (now < cooldownUntil) {
+        continue;
+      }
+
       try {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
           model
-        )}:generateContent?key=${encodeURIComponent(apiKey)}`;
+        )}:generateContent`;
 
         const response = await fetch(url, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'x-goog-api-key': apiKey,
+          },
           body: JSON.stringify({
             systemInstruction: {
               parts: [{ text: systemInstruction }],
@@ -169,26 +216,38 @@ export async function generateWithGeminiPool(
             },
           }),
           cache: 'no-store',
+          signal: AbortSignal.timeout(8500),
         });
 
-        if (response.status === 429 || response.status === 403 || response.status === 401) {
-          // Put this key on a 60s cooldown and immediately break to try the next key
-          keyCooldowns.set(apiKey, Date.now() + 60_000);
-          lastError = `Key #${kIdx + 1} rate-limited or unauthorized (${response.status})`;
+        if (response.status === 429) {
+          const errText = await response.text();
+          // Se o modelo tem limit: 0 no plano gratuito, coloca esse modelo em cooldown de 2 min nesta chave e tenta a próxima chave/modelo
+          keyModelCooldowns.set(cooldownKey, Date.now() + 120_000);
+          lastError = `${model} quota exceeded (429)`;
+          // Se a mensagem indicar quota zero do modelo (e não rate limit momentâneo da chave), pula direto para o próximo modelo estável
+          if (errText.includes('check your plan and billing details')) {
+            break;
+          }
+          continue;
+        }
+
+        if (response.status === 503 || response.status === 500) {
+          lastError = `${model} high demand (${response.status})`;
+          // Se o modelo está com pico de demanda (503), passa imediatamente para o próximo modelo da cadeia
           break;
         }
 
-        if (response.status === 404 || response.status === 400) {
-          const errBody = await response.text();
-          // If key itself is invalid (API_KEY_INVALID), switch to next key immediately
-          if (errBody.includes('API_KEY_INVALID') || errBody.includes('API key not valid')) {
-            keyCooldowns.set(apiKey, Date.now() + 300_000);
-            lastError = `Key #${kIdx + 1} invalid format`;
-            break;
+        if (response.status === 400 || response.status === 401 || response.status === 403 || response.status === 404) {
+          const errText = await response.text();
+          if (errText.includes('API_KEY_INVALID') || errText.includes('API key not valid')) {
+            invalidKeys.add(apiKey);
+            lastError = `Key #${kIdx + 1} invalid`;
+            continue;
           }
-          // Otherwise model endpoint might not be enabled on this key/tier; try next model in chain
-          lastError = `Model ${model} unavailable (${response.status})`;
-          continue;
+          // Modelo indisponível para a conta (ex: 404 em gemini-2.5-flash para contas novas)
+          keyModelCooldowns.set(cooldownKey, Date.now() + 300_000);
+          lastError = `${model} unavailable (${response.status})`;
+          break;
         }
 
         if (!response.ok) {
@@ -210,49 +269,25 @@ export async function generateWithGeminiPool(
           };
         }
       } catch (err: any) {
-        lastError = err?.message || 'Network error calling Gemini API';
+        lastError = err?.message || 'Timeout/network error calling Gemini API';
+        // Em caso de timeout no modelo atual, tenta o próximo modelo mais rápido
+        break;
       }
     }
   }
 
-  // Fallback to Groq if all Gemini keys/models are temporarily exhausted
-  if (process.env.GROQ_API_KEY) {
-    try {
-      const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
-          messages: [
-            { role: 'system', content: systemInstruction },
-            ...history.map((h) => ({
-              role: h.role === 'model' ? ('assistant' as const) : ('user' as const),
-              content: h.content,
-            })),
-            { role: 'user', content: prompt },
-          ],
-          temperature,
-        }),
-      });
+  // Fallback final para Groq caso todas as chaves/modelos Gemini estejam ocupados
+  const groqFallback = await generateWithGroq({
+    systemInstruction,
+    prompt,
+    history,
+    preferredModel: 'llama-3.3-70b-versatile',
+    temperature,
+  });
 
-      if (groqRes.ok) {
-        const groqData = await groqRes.json();
-        const text = groqData?.choices?.[0]?.message?.content?.trim();
-        if (text) {
-          return {
-            text,
-            modelUsed: `${preferredModel} (Failover)`,
-            keyIndexUsed: 0,
-          };
-        }
-      }
-    } catch {
-      // Ignore fallback error
-    }
-  }
-
-  throw new Error(`Não foi possível obter resposta do pool de IA (${lastError}).`);
+  return {
+    text: groqFallback.text,
+    modelUsed: groqFallback.modelUsed,
+    keyIndexUsed: 0,
+  };
 }
