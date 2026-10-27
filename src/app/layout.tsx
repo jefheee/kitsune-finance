@@ -37,9 +37,11 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className={`${fontSans.variable} ${fontMono.variable}`} suppressHydrationWarning>
       <head>
+        <meta name="darkreader-lock" />
+        <meta name="color-scheme" content="dark light" />
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
       </head>
-      <body className="bg-white dark:bg-[#0A0A0A] text-gray-900 dark:text-white antialiased">
+      <body className="bg-white dark:bg-[#0A0A0A] text-gray-900 dark:text-white antialiased" suppressHydrationWarning>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
           <AppShell>{children}</AppShell>
         </ThemeProvider>
