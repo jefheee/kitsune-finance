@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import { createClient } from "@/utils/supabase/client";
+import Spinner from "@/components/Spinner";
 
 const PluggyConnect = dynamic(
   () => import("react-pluggy-connect").then((mod) => mod.PluggyConnect),
@@ -123,11 +124,11 @@ export default function AgentsPage() {
             className="h-12 px-6 flex items-center justify-center gap-2 bg-kitsune text-white rounded-xl font-sans font-bold hover:bg-kitsune/90 transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
           >
             {isLoadingToken ? (
-              <span className="material-symbols-outlined animate-spin text-[20px]">refresh</span>
+              <Spinner size={20} className="text-white" />
             ) : (
               <span className="material-symbols-outlined text-[20px]">add_link</span>
             )}
-            {isLoadingToken ? "Gerando Token..." : "Adicionar Conexão Bancária"}
+            <span>{isLoadingToken ? "Gerando Token..." : "Adicionar Conexão Bancária"}</span>
           </button>
         </div>
 

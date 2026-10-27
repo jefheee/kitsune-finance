@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Spinner from "@/components/Spinner";
 
 interface Message {
   role: 'user' | 'assistant';
@@ -113,7 +114,7 @@ export default function KitsuneAIPage() {
             className="w-10 h-10 rounded-full bg-kitsune text-white flex items-center justify-center hover:bg-kitsune/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shrink-0"
           >
             {isLoading ? (
-              <span className="material-symbols-outlined text-[20px] animate-spin">refresh</span>
+              <Spinner size={18} className="text-white" />
             ) : (
               <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>arrow_upward</span>
             )}

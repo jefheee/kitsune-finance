@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import Image from "next/image";
+import Spinner from "@/components/Spinner";
 
 export default function DashboardPage() {
   const [assets, setAssets] = useState<any[]>([]);
@@ -194,13 +195,13 @@ export default function DashboardPage() {
           >
             {isGeneratingAi ? (
               <>
-                <span className="material-symbols-outlined text-[18px] animate-spin">refresh</span>
-                Gerando...
+                <Spinner size={16} className="text-kitsune" />
+                <span>Gerando...</span>
               </>
             ) : (
               <>
                 <span className="material-symbols-outlined text-[18px]">refresh</span>
-                Gerar Análise Atualizada
+                <span>Gerar Análise Atualizada</span>
               </>
             )}
           </button>
