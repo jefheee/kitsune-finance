@@ -95,9 +95,12 @@ export default function KitsuneAIPage() {
   const [isScopeOpen, setIsScopeOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
-  // Microfone (Entrada de Voz)
+  // Microfone (Entrada de Voz - Suporte universal para Chrome, Edge, Zen e Firefox)
   const [isListening, setIsListening] = useState(false);
+  const [isTranscribingAudio, setIsTranscribingAudio] = useState(false);
   const recognitionRef = useRef<any>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
   // Sessões de Chat (Histórico Persistente)
   const [savedSessions, setSavedSessions] = useState<ChatSession[]>([]);
@@ -153,7 +156,6 @@ export default function KitsuneAIPage() {
     }
   }, [chatMessages]);
 
-  // Monitora se o usuário está ou não no limite inferior do chat
   const handleScroll = useCallback(() => {
     const el = messagesContainerRef.current;
     if (!el) return;
@@ -177,7 +179,7 @@ export default function KitsuneAIPage() {
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, 140)}px`;
+    el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
   }, [input]);
 
   // Fechar popovers ao clicar fora
@@ -199,47 +201,41 @@ export default function KitsuneAIPage() {
     return () => document.removeEventListener("mousedown", handleOutside);
   }, []);
 
-  const currentModelInfo = useMemo(
-    () =>
-      KITSUNE_AI_MODELS.find((m) => m.id === selectedAiModel) ||
-      KITSUNE_AI_MODELS[0],
-    [selectedAiModel]
-  );
-
-  // Métricas em tempo real do contexto do usuário logado
-  const metrics = useMemo(() => {
-    const scopedAccounts =
-      selectedScope === "personal"
-        ? accounts.filter((a) => !a.family_member_id)
-        : selectedScope === "all"
-        ? accounts
-        : accounts.filter((a) => a.family_member_id === selectedScope);
-
+  // Dados financeiros resumidos para injeção rápida
+  const financialSummary = useMemo(() => {
     const effectiveAccounts =
-      scopedAccounts.length > 0 ? scopedAccounts : accounts;
-
-    const scopedTx =
-      selectedScope === "personal" || selectedScope === "all"
-        ? transactions
-        : transactions.filter((t) => t.family_member_id === selectedScope);
+      selectedScope === "all"
+        ? accounts
+        : selectedScope === "personal"
+        ? accounts.filter((a) => !a.family_member_id)
+        : accounts.filter((a) => a.family_member_id === selectedScope);
 
     let liquid = 0;
     let credit = 0;
-    effectiveAccounts.forEach((a) => {
-      const bal = Number(a.balance) || 0;
-      if (a.type === "CREDIT" || a.type === "CREDIT_CARD") credit += bal;
-      else liquid += bal;
+    effectiveAccounts.forEach((acc) => {
+      const val = Number(acc.balance) || 0;
+      if (acc.type === "CREDIT" || acc.type === "CREDIT_CARD") {
+        credit += val;
+      } else {
+        liquid += val;
+      }
     });
 
     const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    let monthOut = 0;
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
+    const scopedTx =
+      selectedScope === "all"
+        ? transactions
+        : selectedScope === "personal"
+        ? transactions.filter((t) => !t.family_member_id)
+        : transactions.filter((t) => t.family_member_id === selectedScope);
+
+    let monthOut = 0;
     scopedTx.forEach((tx) => {
-      const d = new Date(tx.executed_at || tx.date || now);
+      const d = tx.executed_at || tx.date ? new Date(tx.executed_at || tx.date) : null;
       const amt = Number(tx.amount) || 0;
-      const isCredit = tx.type === "CREDIT" || amt > 0;
-      if (d >= monthStart && !isCredit) {
+      if (d && d >= currentMonthStart && amt < 0) {
         monthOut += Math.abs(amt);
       }
     });
@@ -260,55 +256,132 @@ export default function KitsuneAIPage() {
       currency: "BRL",
     }).format(val);
 
-  // Microfone: Web Speech API
-  const toggleVoiceRecognition = () => {
+  // Microfone Universal: Suporta Chrome/Edge (Web Speech) e Zen/Firefox (MediaRecorder + Whisper)
+  const toggleVoiceRecognition = async () => {
     if (typeof window === "undefined") return;
 
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
-    if (!SpeechRecognition) {
-      alert("Seu navegador não suporta reconhecimento de voz direto. Experimente usar o Google Chrome ou Edge.");
-      return;
+    // Cenário 1: Navegadores com Web Speech nativo (Chrome, Edge, Safari recente)
+    if (SpeechRecognition) {
+      if (isListening) {
+        recognitionRef.current?.stop();
+        setIsListening(false);
+        return;
+      }
+
+      try {
+        const recognition = new SpeechRecognition();
+        recognition.lang = "pt-BR";
+        recognition.continuous = false;
+        recognition.interimResults = true;
+
+        recognition.onstart = () => {
+          setIsListening(true);
+        };
+
+        recognition.onresult = (event: any) => {
+          const transcript = Array.from(event.results)
+            .map((result: any) => result[0].transcript)
+            .join("");
+          setInput(transcript);
+        };
+
+        recognition.onerror = () => {
+          setIsListening(false);
+        };
+
+        recognition.onend = () => {
+          setIsListening(false);
+        };
+
+        recognitionRef.current = recognition;
+        recognition.start();
+        return;
+      } catch (err) {
+        console.error("Erro no reconhecimento de voz:", err);
+        setIsListening(false);
+      }
     }
 
+    // Cenário 2: Zen Browser, Firefox e outros que não possuem Web Speech API nativa
     if (isListening) {
-      recognitionRef.current?.stop();
+      // Parar gravação e transcrever
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+        mediaRecorderRef.current.stop();
+      }
       setIsListening(false);
       return;
     }
 
     try {
-      const recognition = new SpeechRecognition();
-      recognition.lang = "pt-BR";
-      recognition.continuous = false;
-      recognition.interimResults = true;
+      if (!navigator?.mediaDevices?.getUserMedia) {
+        alert("Seu navegador bloqueou o acesso ao microfone.");
+        return;
+      }
 
-      recognition.onstart = () => {
-        setIsListening(true);
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioChunksRef.current = [];
+
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
       };
 
-      recognition.onresult = (event: any) => {
-        const transcript = Array.from(event.results)
-          .map((result: any) => result[0].transcript)
-          .join("");
-        setInput(transcript);
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach((track) => track.stop());
+        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+
+        if (audioBlob.size < 1000) {
+          return; // Áudio muito curto
+        }
+
+        setIsTranscribingAudio(true);
+        try {
+          const formData = new FormData();
+          formData.append("file", audioBlob, "audio.webm");
+
+          const res = await fetch("/api/ai/transcribe", {
+            method: "POST",
+            body: formData,
+          });
+
+          const data = await res.json();
+          if (res.ok && data.text) {
+            setInput((prev) => {
+              const trimmed = prev.trim();
+              return trimmed ? `${trimmed} ${data.text}` : data.text;
+            });
+          }
+        } catch (transcribeErr) {
+          console.error("Erro ao transcrever via Whisper:", transcribeErr);
+        } finally {
+          setIsTranscribingAudio(false);
+        }
       };
 
-      recognition.onerror = () => {
-        setIsListening(false);
-      };
-
-      recognition.onend = () => {
-        setIsListening(false);
-      };
-
-      recognitionRef.current = recognition;
-      recognition.start();
-    } catch (err) {
-      console.error("Erro ao iniciar microfone:", err);
+      mediaRecorder.start();
+      setIsListening(true);
+    } catch (micErr: any) {
+      console.error("Permissão de microfone negada:", micErr);
+      alert("Por favor, permita o acesso ao microfone no seu navegador.");
       setIsListening(false);
     }
+  };
+
+  // Sugestões de Perguntas: Injeta no campo do usuário sem disparar sozinho
+  const handleSelectSuggestedPrompt = (query: string) => {
+    setInput((prev) => {
+      const trimmed = prev.trim();
+      if (!trimmed) return query;
+      return `${trimmed}\n\n${query}`;
+    });
+    textareaRef.current?.focus();
   };
 
   const sendMessage = async (customPrompt?: string) => {
@@ -316,11 +389,9 @@ export default function KitsuneAIPage() {
     const trimmed = rawText.trim();
     const currentAttachments = [...attachedContexts];
 
-    // Se o usuário não digitou texto e não tem anexo, não envia
     if (!trimmed && currentAttachments.length === 0) return;
     if (isLoading) return;
 
-    // Constrói o texto visível da mensagem do usuário
     let displayMessage = trimmed;
     if (!displayMessage && currentAttachments.length > 0) {
       displayMessage = currentAttachments
@@ -329,25 +400,25 @@ export default function KitsuneAIPage() {
         .join(" + ");
     }
 
-    const userMsgObj = {
+    const userMsg = {
       id: `user-${Date.now()}`,
       role: "user" as const,
       content: displayMessage,
       timestamp: new Date().toISOString(),
     };
 
-    const previousHistory = chatMessages.map((m) => ({
-      role: m.role,
-      content: m.content,
-    }));
-
-    setChatMessages((prev) => [...prev, userMsgObj]);
+    setChatMessages((prev) => [...prev, userMsg]);
     setInput("");
     setAttachedContexts([]);
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/chat", {
+      const historyPayload = chatMessages.slice(-8).map((m) => ({
+        role: m.role === "assistant" ? "model" : "user",
+        content: m.content,
+      }));
+
+      const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -356,52 +427,36 @@ export default function KitsuneAIPage() {
           model: selectedAiModel,
           reasoningLevel,
           familyMemberId: selectedScope,
-          history: previousHistory,
+          history: historyPayload,
         }),
       });
 
-      const data = await response.json();
+      const data = await res.json();
 
-      if (!response.ok) {
-        const errorText =
-          response.status === 401
-            ? "Sua sessão expirou. Faça login novamente para consultar a Kitsune AI."
-            : data.error || "Não foi possível processar a resposta no momento.";
-
-        setChatMessages((prev) => [
-          ...prev,
-          {
-            id: `err-${Date.now()}`,
-            role: "assistant",
-            content: errorText,
-            timestamp: new Date().toISOString(),
-          },
-        ]);
-        return;
+      if (!res.ok) {
+        throw new Error(data.error || "Erro na resposta da Kitsune AI");
       }
 
-      const newAiId = `ai-${Date.now()}`;
-      setStreamingMessageId(newAiId);
-      setChatMessages((prev) => [
-        ...prev,
-        {
-          id: newAiId,
-          role: "assistant",
-          content: data.message,
-          timestamp: new Date().toISOString(),
-          modelUsed: data.modelUsed || selectedAiModel,
-        },
-      ]);
-    } catch {
-      setChatMessages((prev) => [
-        ...prev,
-        {
-          id: `err-${Date.now()}`,
-          role: "assistant",
-          content: "Falha de conexão ao comunicar com a consultora Kitsune AI.",
-          timestamp: new Date().toISOString(),
-        },
-      ]);
+      const assistantMsgId = `assistant-${Date.now()}`;
+      setStreamingMessageId(assistantMsgId);
+
+      const assistantMsg = {
+        id: assistantMsgId,
+        role: "assistant" as const,
+        content: data.message,
+        timestamp: new Date().toISOString(),
+        modelUsed: data.modelUsed,
+      };
+
+      setChatMessages((prev) => [...prev, assistantMsg]);
+    } catch (err: any) {
+      const errorMsg = {
+        id: `err-${Date.now()}`,
+        role: "assistant" as const,
+        content: `Desculpe, ocorreu uma instabilidade: ${err.message}. Por favor, tente novamente.`,
+        timestamp: new Date().toISOString(),
+      };
+      setChatMessages((prev) => [...prev, errorMsg]);
     } finally {
       setIsLoading(false);
     }
@@ -419,196 +474,212 @@ export default function KitsuneAIPage() {
     }
   };
 
-  const handleStartNewChat = () => {
+  const handleNewConversation = () => {
     currentSessionIdRef.current = `session-${Date.now()}`;
-    setAttachedContexts([]);
-    setInput("");
     setChatMessages([
       {
         id: `welcome-${Date.now()}`,
         role: "assistant",
-        content: `Olá, **${
-          userProfile?.display_name || userProfile?.full_name || "Investidor"
-        }**! Sou sua consultora financeira dedicada. Suas contas e cartões estão sincronizados com segurança bancária. Como posso te orientar hoje?`,
+        content:
+          "Olá! Como posso ajudar você a otimizar seus gastos, auditar contas ou simular metas hoje?",
         timestamp: new Date().toISOString(),
         modelUsed: selectedAiModel,
       },
     ]);
+    setAttachedContexts([]);
+    setInput("");
   };
 
-  const handleLoadSession = (session: ChatSession) => {
-    currentSessionIdRef.current = session.id;
-    setChatMessages(session.messages);
-    setIsHistoryOpen(false);
-  };
+  const handleExportMarkdown = () => {
+    const lines = [
+      `# Relatório de Consultoria Financeira - Kitsune IA`,
+      `Data: ${new Date().toLocaleDateString("pt-BR")} às ${new Date().toLocaleTimeString("pt-BR")}`,
+      `Usuário: ${userProfile?.display_name || user?.email || "Titular"}`,
+      `Patrimônio Líquido: ${formatCurrency(financialSummary.netWorth)}`,
+      `Fatura Cartões: ${formatCurrency(financialSummary.credit)}`,
+      `\n---\n`,
+      ...chatMessages.map(
+        (m) =>
+          `### ${m.role === "assistant" ? "Kitsune IA" : "Você"} (${new Date(m.timestamp).toLocaleTimeString("pt-BR")}):\n${m.content}\n`
+      ),
+    ];
 
-  const handleDeleteSession = (sessionId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const updated = savedSessions.filter((s) => s.id !== sessionId);
-    setSavedSessions(updated);
-    localStorage.setItem("kitsune_saved_sessions_v2", JSON.stringify(updated));
-  };
-
-  // Exportar conversa para arquivo Markdown
-  const handleExportConversation = () => {
-    const title = `Relatorio_Kitsune_Finance_${new Date().toISOString().slice(0, 10)}.md`;
-    let content = `# Relatório de Consultoria Financeira - Kitsune IA\n`;
-    content += `Data: ${new Date().toLocaleDateString("pt-BR")} às ${new Date().toLocaleTimeString("pt-BR")}\n`;
-    content += `Usuário: ${userProfile?.full_name || user?.email || "Titular"}\n`;
-    content += `Patrimônio Líquido: ${formatCurrency(metrics.netWorth)} | Em Conta: ${formatCurrency(metrics.liquid)} | Cartões: ${formatCurrency(metrics.credit)}\n\n`;
-    content += `---\n\n`;
-
-    chatMessages.forEach((m) => {
-      const sender = m.role === "assistant" ? "Kitsune IA" : "Você";
-      content += `### ${sender} (${new Date(m.timestamp).toLocaleTimeString("pt-BR")})\n\n${m.content}\n\n`;
-    });
-
-    const blob = new Blob([content], { type: "text/markdown;charset=utf-8" });
+    const blob = new Blob([lines.join("\n")], { type: "text/markdown;charset=utf-8" });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = title;
-    link.click();
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `kitsune-consultoria-${new Date().toISOString().split("T")[0]}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
 
-  const userDisplayName =
-    userProfile?.display_name ||
-    userProfile?.full_name ||
-    user?.user_metadata?.full_name ||
-    user?.email?.split("@")[0] ||
-    "Investidor";
+  const currentModelObj =
+    KITSUNE_AI_MODELS.find((m) => m.id === selectedAiModel) ||
+    KITSUNE_AI_MODELS.find((m) => m.id === "auto") ||
+    KITSUNE_AI_MODELS[0];
 
-  const scopeBadgeLabel = useMemo(() => {
-    if (selectedScope === "personal") return "Meu Patrimônio";
-    if (selectedScope === "all") return "Familiar / Compartilhado";
-    const found = familyMembers.find((m) => m.id === selectedScope);
-    return found ? found.name : "Meu Patrimônio";
-  }, [selectedScope, familyMembers]);
+  const scopeBadgeLabel =
+    selectedScope === "personal"
+      ? "Meu Patrimônio"
+      : selectedScope === "all"
+      ? "Consolidado Familiar"
+      : familyMembers.find((m) => m.id === selectedScope)?.name || "Membro";
 
   return (
-    <div className="flex flex-col h-full w-full bg-[#0F141C] text-[#F8FAFC]">
-      {/* Header Human-Centric com Warm Obsidian Intelligence */}
-      <header className="flex flex-col gap-3 px-4 md:px-8 py-3.5 border-b border-[#263042] bg-[#0F141C]/95 backdrop-blur-xl z-20 shrink-0">
-        <div className="flex items-center justify-between gap-3 max-w-5xl mx-auto w-full">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#FF6B00]/15 border border-[#FF6B00]/30 flex items-center justify-center text-[#FF6B00] shadow-[0_0_20px_-4px_rgba(255,107,0,0.3)]">
-              <span className="material-symbols-outlined text-[22px]">
-                auto_awesome
-              </span>
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-base md:text-lg font-bold text-[#F8FAFC] tracking-tight">
-                  Kitsune IA
-                </h1>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
-                  Open Finance Conectado
-                </span>
-              </div>
-              <p className="text-[11px] text-[#94A3B8]">
-                Consultora de {userDisplayName} • {metrics.accCount} conta(s) • Criptografia Bancária Ativa
-              </p>
-            </div>
+    <div className="flex flex-col h-[calc(100dvh-3.5rem)] md:h-dvh w-full max-w-full overflow-hidden bg-slate-50 dark:bg-[#0B0E14] text-slate-900 dark:text-[#F8FAFC] font-sans">
+      {/* Top Header */}
+      <header className="px-3 md:px-8 py-2.5 md:py-3.5 border-b border-slate-200 dark:border-[#262E3D] bg-white/95 dark:bg-[#0E121A]/95 backdrop-blur-md flex items-center justify-between gap-3 shrink-0 z-30">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-8 h-8 md:w-9 md:h-9 rounded-xl bg-[#FF8216]/10 border border-[#FF8216]/25 flex items-center justify-center text-[#FF8216] shrink-0">
+            <span className="material-symbols-outlined text-lg md:text-xl">auto_awesome</span>
           </div>
 
-          {/* Ações Rápidas do Topo: Histórico de Chats, Exportar Relatório e Nova Conversa */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setIsHistoryOpen(true)}
-              title="Ver conversas anteriores"
-              className="px-3 py-1.5 rounded-xl bg-[#141A24] hover:bg-[#1C2331] border border-[#263042] text-xs font-medium text-[#F8FAFC] transition-colors cursor-pointer flex items-center gap-1.5"
-            >
-              <span className="material-symbols-outlined text-[16px] text-[#94A3B8]">
-                history
+          <div className="flex flex-col min-w-0">
+            <div className="flex items-center gap-2">
+              <h1 className="text-sm md:text-base font-extrabold text-slate-900 dark:text-white truncate">
+                Kitsune IA
+              </h1>
+              <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Open Finance Conectado
               </span>
-              <span className="hidden sm:inline">Histórico</span>
-            </button>
-
-            <button
-              onClick={handleExportConversation}
-              title="Baixar resumo da consultoria"
-              className="px-3 py-1.5 rounded-xl bg-[#141A24] hover:bg-[#1C2331] border border-[#263042] text-xs font-medium text-[#F8FAFC] transition-colors cursor-pointer flex items-center gap-1.5"
-            >
-              <span className="material-symbols-outlined text-[16px] text-[#FF6B00]">
-                download
-              </span>
-              <span className="hidden sm:inline">Relatório</span>
-            </button>
-
-            <button
-              onClick={handleStartNewChat}
-              title="Iniciar nova conversa do zero"
-              className="px-3 py-1.5 rounded-xl bg-[#FF6B00] hover:bg-[#FF7D1A] active:bg-[#E05E00] text-white font-bold text-xs transition-all shadow-[0_2px_12px_rgba(255,107,0,0.3)] cursor-pointer flex items-center gap-1.5"
-            >
-              <span className="material-symbols-outlined text-[16px]">
-                add_comment
-              </span>
-              <span>Nova Conversa</span>
-            </button>
+            </div>
+            <p className="text-[11px] text-slate-500 dark:text-[#94A3B8] truncate hidden sm:block">
+              Consultoria Patrimonial Pessoal • Dados criptografados e somente-leitura
+            </p>
           </div>
         </div>
 
-        {/* Resumo Financeiro Compacto (Tabular Numeral) */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 max-w-5xl mx-auto w-full">
-          <div className="px-3 py-1.5 rounded-xl bg-[#141A24] border border-[#263042] flex items-center justify-between">
-            <span className="text-[11px] text-[#94A3B8]">Patrimônio Líquido</span>
-            <span className="text-xs font-bold text-[#F8FAFC] tabular-nums">
-              {formatCurrency(metrics.netWorth)}
-            </span>
-          </div>
-          <div className="px-3 py-1.5 rounded-xl bg-[#141A24] border border-[#263042] flex items-center justify-between">
-            <span className="text-[11px] text-[#94A3B8]">Livre em Conta</span>
-            <span className="text-xs font-bold text-[#10B981] tabular-nums">
-              {formatCurrency(metrics.liquid)}
-            </span>
-          </div>
-          <div className="px-3 py-1.5 rounded-xl bg-[#141A24] border border-[#263042] flex items-center justify-between">
-            <span className="text-[11px] text-[#94A3B8]">Saídas no Mês</span>
-            <span className="text-xs font-bold text-[#EF4444] tabular-nums">
-              {formatCurrency(metrics.monthOut)}
-            </span>
-          </div>
-          <div className="px-3 py-1.5 rounded-xl bg-[#141A24] border border-[#263042] flex items-center justify-between">
-            <span className="text-[11px] text-[#94A3B8]">Fatura de Cartão</span>
-            <span className="text-xs font-bold text-[#FF6B00] tabular-nums">
-              {formatCurrency(metrics.credit)}
-            </span>
-          </div>
+        {/* Ações Superiores */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          <button
+            onClick={() => setIsHistoryOpen(true)}
+            className="h-8 px-2.5 rounded-xl border border-slate-200 dark:border-[#262E3D] hover:bg-slate-100 dark:hover:bg-[#161B26] text-xs font-semibold text-slate-700 dark:text-[#F8FAFC] flex items-center gap-1.5 transition-colors cursor-pointer"
+            title="Ver sessões anteriores"
+          >
+            <span className="material-symbols-outlined text-[16px]">history</span>
+            <span className="hidden sm:inline">Histórico</span>
+          </button>
+
+          <button
+            onClick={handleExportMarkdown}
+            className="h-8 px-2.5 rounded-xl border border-slate-200 dark:border-[#262E3D] hover:bg-slate-100 dark:hover:bg-[#161B26] text-xs font-semibold text-slate-700 dark:text-[#F8FAFC] flex items-center gap-1.5 transition-colors cursor-pointer"
+            title="Exportar conversa em Markdown"
+          >
+            <span className="material-symbols-outlined text-[16px] text-[#FF8216]">download</span>
+            <span className="hidden sm:inline">Relatório</span>
+          </button>
+
+          <button
+            onClick={handleNewConversation}
+            className="h-8 px-3 rounded-xl bg-[#FF8216] hover:bg-[#FFA047] active:bg-[#E66E08] text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+          >
+            <span className="material-symbols-outlined text-[16px]">add</span>
+            <span className="hidden sm:inline">Nova Conversa</span>
+          </button>
         </div>
       </header>
 
-      {/* Área de Mensagens com Renderização Markdown e Scroll Suave */}
+      {/* Histórico Drawer Lateral */}
+      <AnimatePresence>
+        {isHistoryOpen && (
+          <div className="fixed inset-0 z-50 flex justify-end">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsHistoryOpen(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 220 }}
+              className="relative w-full max-w-xs md:max-w-sm h-full bg-white dark:bg-[#12161F] border-l border-slate-200 dark:border-[#262E3D] p-5 flex flex-col gap-4 z-10 shadow-2xl"
+            >
+              <div className="flex items-center justify-between border-b border-slate-200 dark:border-[#262E3D] pb-3">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[#FF8216]">history</span>
+                  <h3 className="font-bold text-sm text-slate-900 dark:text-white">
+                    Histórico de Conversas
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setIsHistoryOpen(false)}
+                  className="text-slate-400 hover:text-slate-900 dark:hover:text-white p-1 rounded-lg cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[20px]">close</span>
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto flex flex-col gap-2">
+                {savedSessions.length === 0 ? (
+                  <p className="text-xs text-slate-400 p-4 text-center">
+                    Nenhuma conversa anterior salva neste navegador.
+                  </p>
+                ) : (
+                  savedSessions.map((session) => (
+                    <button
+                      key={session.id}
+                      onClick={() => {
+                        currentSessionIdRef.current = session.id;
+                        setChatMessages(session.messages);
+                        setIsHistoryOpen(false);
+                      }}
+                      className="p-3 rounded-xl border border-slate-200 dark:border-[#262E3D] hover:border-[#FF8216]/50 bg-slate-50 dark:bg-[#0E121A] text-left flex flex-col gap-1 transition-colors cursor-pointer"
+                    >
+                      <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
+                        {session.title}
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        {new Date(session.createdAt).toLocaleDateString("pt-BR", {
+                          day: "2-digit",
+                          month: "short",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    </button>
+                  ))
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Área Central de Mensagens */}
       <div
         ref={messagesContainerRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto w-full px-4 md:px-8 py-6 flex flex-col gap-5 max-w-4xl mx-auto scroll-smooth"
+        className="flex-1 overflow-y-auto px-3 py-4 md:px-8 md:py-6 flex flex-col gap-4 max-w-4xl mx-auto w-full"
       >
         <AnimatePresence initial={false}>
           {chatMessages.map((msg) => (
             <motion.div
               key={msg.id}
-              initial={{ opacity: 0, y: 14, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-              className={`flex items-start gap-3.5 ${
-                msg.role === "user" ? "flex-row-reverse" : ""
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`flex items-start gap-2.5 ${
+                msg.role === "user" ? "justify-end" : "justify-start"
               }`}
             >
               {msg.role === "assistant" && (
-                <div className="w-9 h-9 rounded-2xl bg-[#FF6B00]/15 border border-[#FF6B00]/30 flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
-                  <span className="material-symbols-outlined text-[#FF6B00] text-[18px]">
+                <div className="w-8 h-8 rounded-xl bg-[#FF8216]/10 border border-[#FF8216]/25 flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
+                  <span className="material-symbols-outlined text-[#FF8216] text-[18px]">
                     auto_awesome
                   </span>
                 </div>
               )}
 
               <div
-                className={`border rounded-3xl px-4 py-3.5 md:px-5 md:py-4 max-w-[90%] md:max-w-[84%] shadow-lg flex flex-col gap-2 transition-shadow ${
+                className={`border rounded-2xl px-4 py-3 md:px-5 md:py-3.5 max-w-[92%] sm:max-w-[85%] shadow-sm flex flex-col gap-2 ${
                   msg.role === "user"
-                    ? "bg-[#FF6B00] text-white border-[#FF6B00] rounded-tr-sm"
-                    : "bg-[#141A24] border-[#263042] rounded-tl-sm text-[#F8FAFC] backdrop-blur-sm"
+                    ? "bg-[#FF8216] text-white border-[#FF8216] rounded-tr-sm"
+                    : "bg-white dark:bg-[#12161F] border-slate-200 dark:border-[#262E3D] rounded-tl-sm text-slate-900 dark:text-[#F8FAFC]"
                 }`}
               >
                 {msg.role === "assistant" ? (
@@ -630,20 +701,20 @@ export default function KitsuneAIPage() {
                 )}
 
                 {msg.role === "assistant" && msg.modelUsed && (
-                  <div className="flex items-center justify-between pt-2 border-t border-[#263042] text-[11px] text-[#94A3B8]">
-                    <span className="flex items-center gap-1.5">
-                      <span className="material-symbols-outlined text-[13px] text-[#FF6B00]">
-                        memory
+                  <div className="flex items-center justify-between pt-1.5 border-t border-slate-100 dark:border-white/5 text-[11px] text-slate-400 dark:text-[#94A3B8]">
+                    <span className="flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[13px] text-[#FF8216]">
+                        bolt
                       </span>
                       {msg.modelUsed === "gemini-3.5-flash-lite"
-                        ? "⚡ 3.5 Flash Lite (Resposta Rápida)"
+                        ? "3.5 Flash Lite"
                         : msg.modelUsed === "gemini-3.8-flash"
-                        ? "✨ 3.8 Flash (Análise Estruturada)"
+                        ? "3.8 Flash"
                         : msg.modelUsed === "gemini-4-argon"
-                        ? "🧠 4 Argon (Raciocínio Profundo)"
+                        ? "4 Argon"
                         : msg.modelUsed}
                     </span>
-                    <span className="text-[10px] text-[#94A3B8]/70">
+                    <span className="text-[10px]">
                       {new Date(msg.timestamp).toLocaleTimeString("pt-BR", {
                         hour: "2-digit",
                         minute: "2-digit",
@@ -656,32 +727,46 @@ export default function KitsuneAIPage() {
           ))}
         </AnimatePresence>
 
+        {/* Indicador de Digitação Elegante (Zero Ícones Gigantes) */}
         {isLoading && (
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-center gap-3.5"
+            className="flex items-start gap-2.5 max-w-[85%]"
           >
-            <div className="w-9 h-9 rounded-2xl bg-[#FF6B00]/15 border border-[#FF6B00]/30 flex items-center justify-center shrink-0">
-              <span className="material-symbols-outlined text-[#FF6B00] text-[18px]">
+            <div className="w-8 h-8 rounded-xl bg-[#FF8216]/10 border border-[#FF8216]/25 flex items-center justify-center shrink-0">
+              <span className="material-symbols-outlined text-[#FF8216] text-[18px]">
                 auto_awesome
               </span>
             </div>
-            <div className="p-4 rounded-3xl rounded-tl-sm bg-[#141A24] border border-[#263042] text-xs text-[#94A3B8] flex items-center gap-2.5 shadow-sm">
-              <Spinner size="sm" />
-              <span>Consultando seu patrimônio e formulando recomendações...</span>
+            <div className="px-4 py-3 rounded-2xl rounded-tl-sm bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] text-xs text-slate-600 dark:text-[#94A3B8] flex items-center gap-3 shadow-sm">
+              <div className="flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#FF8216] animate-bounce" style={{ animationDelay: "0ms" }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-[#FF8216] animate-bounce" style={{ animationDelay: "150ms" }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-[#FF8216] animate-bounce" style={{ animationDelay: "300ms" }} />
+              </div>
+              <span className="font-medium text-slate-700 dark:text-slate-300">
+                Kitsune IA está analisando seu patrimônio...
+              </span>
             </div>
           </motion.div>
+        )}
+
+        {isTranscribingAudio && (
+          <div className="flex items-center gap-2 p-2.5 rounded-xl bg-[#FF8216]/10 border border-[#FF8216]/25 text-xs text-[#FF8216] font-semibold self-center">
+            <Spinner size={14} className="text-[#FF8216]" />
+            <span>Processando áudio com Whisper...</span>
+          </div>
         )}
 
         <div ref={messagesEndRef} className="h-2 shrink-0" />
       </div>
 
-      {/* Pílulas de Perguntas Sugeridas (Estilo Stitch) */}
-      <div className="px-4 md:px-8 max-w-4xl mx-auto w-full pb-2">
+      {/* Pílulas de Perguntas Sugeridas (Injetam no Input sem Enviar Direto) */}
+      <div className="px-3 md:px-8 max-w-4xl mx-auto w-full pb-2">
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-          <span className="text-[11px] text-[#94A3B8] font-bold uppercase tracking-wider shrink-0 flex items-center gap-1">
-            <span className="material-symbols-outlined text-sm text-[#FF6B00]">
+          <span className="text-[11px] text-slate-500 dark:text-[#94A3B8] font-bold uppercase tracking-wider shrink-0 flex items-center gap-1">
+            <span className="material-symbols-outlined text-sm text-[#FF8216]">
               lightbulb
             </span>
             Sugestões:
@@ -691,8 +776,8 @@ export default function KitsuneAIPage() {
               key={idx}
               type="button"
               disabled={isLoading}
-              onClick={() => sendMessage(item.query)}
-              className="px-3.5 py-1.5 rounded-full bg-[#141A24] hover:bg-[#1C2331] hover:border-[#FF6B00]/40 border border-[#263042] text-[#F8FAFC] text-xs font-medium transition-colors whitespace-nowrap cursor-pointer active:scale-95"
+              onClick={() => handleSelectSuggestedPrompt(item.query)}
+              className="px-3.5 py-1.5 rounded-full bg-white dark:bg-[#12161F] hover:bg-slate-100 dark:hover:bg-[#1A202C] border border-slate-200 dark:border-[#262E3D] hover:border-[#FF8216]/50 text-slate-700 dark:text-[#F8FAFC] text-xs font-medium transition-colors whitespace-nowrap cursor-pointer active:scale-95 shadow-xs"
             >
               {item.label}
             </button>
@@ -700,17 +785,17 @@ export default function KitsuneAIPage() {
         </div>
       </div>
 
-      {/* Caixa de Entrada Inferior com Anexos Visuais, Microfone e Seletor */}
-      <div className="p-3 md:p-4 bg-[#0F141C] border-t border-[#263042] z-20 shrink-0">
+      {/* Caixa de Entrada Inferior */}
+      <div className="p-3 md:p-4 bg-white dark:bg-[#0B0E14] border-t border-slate-200 dark:border-[#262E3D] z-20 shrink-0">
         <form
           onSubmit={handleSubmit}
-          className="max-w-4xl mx-auto bg-[#141A24] border border-[#263042] focus-within:border-[#FF6B00]/60 rounded-3xl p-2.5 md:p-3 shadow-2xl backdrop-blur-xl flex flex-col gap-2 transition-colors"
+          className="max-w-4xl mx-auto bg-slate-50 dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] focus-within:border-[#FF8216] rounded-2xl p-2.5 md:p-3 shadow-md flex flex-col gap-2 transition-colors"
         >
-          {/* Badges dos Blocos de Contexto Anexados */}
+          {/* Badges de Contexto Anexados */}
           {attachedContexts.length > 0 && (
-            <div className="flex items-center gap-1.5 flex-wrap px-1 pt-1">
-              <span className="text-[10px] uppercase font-bold text-[#FF6B00] tracking-wider pl-1">
-                Contexto Anexado:
+            <div className="flex items-center gap-1.5 flex-wrap px-1 pt-0.5">
+              <span className="text-[10px] uppercase font-bold text-[#FF8216] tracking-wider pl-1">
+                Contexto:
               </span>
               {attachedContexts.map((ctxId) => {
                 const item = CONTEXT_ATTACHMENTS.find((c) => c.id === ctxId);
@@ -718,9 +803,9 @@ export default function KitsuneAIPage() {
                 return (
                   <span
                     key={item.id}
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FF6B00]/15 border border-[#FF6B00]/40 text-xs text-[#FF6B00] font-semibold animate-in fade-in"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#FF8216]/12 border border-[#FF8216]/30 text-xs text-[#FF8216] font-semibold"
                   >
-                    <span className="material-symbols-outlined text-[15px]">
+                    <span className="material-symbols-outlined text-[14px]">
                       {item.icon}
                     </span>
                     <span>{item.label}</span>
@@ -731,10 +816,10 @@ export default function KitsuneAIPage() {
                           prev.filter((id) => id !== ctxId)
                         )
                       }
-                      className="hover:text-white transition-colors cursor-pointer ml-1"
+                      className="hover:opacity-75 transition-opacity cursor-pointer ml-1"
                       title="Remover anexo"
                     >
-                      <span className="material-symbols-outlined text-[14px]">
+                      <span className="material-symbols-outlined text-[13px]">
                         close
                       </span>
                     </button>
@@ -744,7 +829,7 @@ export default function KitsuneAIPage() {
             </div>
           )}
 
-          {/* Campo de Texto Auto-Resize */}
+          {/* Campo de Texto */}
           <textarea
             ref={textareaRef}
             rows={1}
@@ -754,18 +839,18 @@ export default function KitsuneAIPage() {
             disabled={isLoading}
             placeholder={
               isListening
-                ? "Ouvindo sua dúvida... (pode falar)"
+                ? "Gravando sua dúvida... Fale e clique no microfone para enviar"
                 : attachedContexts.length > 0
-                ? "Digite sua pergunta com esse contexto (ou aperte Enter para enviar)..."
-                : "Pergunte à Kitsune IA sobre seu saldo, faturas, gastos ou investimentos..."
+                ? "Digite sua pergunta com esse contexto anexado..."
+                : "Pergunte à Kitsune IA sobre seu saldo, faturas ou despesas..."
             }
-            className="w-full px-2.5 py-1.5 bg-transparent border-none outline-none resize-none text-[#F8FAFC] text-sm placeholder:text-[#94A3B8]/60 max-h-36 overflow-y-auto"
+            className="w-full px-2 py-1 bg-transparent border-none outline-none resize-none text-slate-900 dark:text-[#F8FAFC] text-sm placeholder:text-slate-400 dark:placeholder:text-[#94A3B8]/60 max-h-32 overflow-y-auto"
           />
 
-          {/* Linha Inferior da Caixa: [+] Anexar Contexto | Escopo | Microfone | Seletor de Modelo | Enviar */}
-          <div className="flex items-center justify-between gap-2 pt-1 border-t border-[#263042]/50">
+          {/* Barra de Ações: [+] Anexar | Escopo | Microfone | Modelo | Enviar */}
+          <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-200/60 dark:border-[#262E3D]/60">
             <div className="flex items-center gap-1.5 flex-wrap">
-              {/* 1. Botão + (Menu de Anexar Contexto) */}
+              {/* Botão [+] Anexar Contexto */}
               <div ref={attachRef} className="relative">
                 <button
                   type="button"
@@ -775,10 +860,10 @@ export default function KitsuneAIPage() {
                     setIsScopeOpen(false);
                   }}
                   title="Anexar bloco de contexto financeiro"
-                  className={`w-8 h-8 rounded-full flex items-center justify-center border transition-all cursor-pointer ${
+                  className={`w-8 h-8 rounded-xl flex items-center justify-center border transition-all cursor-pointer ${
                     isAttachOpen || attachedContexts.length > 0
-                      ? "bg-[#FF6B00]/20 border-[#FF6B00]/50 text-[#FF6B00]"
-                      : "bg-[#1C2331] hover:bg-[#252A33] border-[#263042] text-[#94A3B8]"
+                      ? "bg-[#FF8216]/20 border-[#FF8216]/50 text-[#FF8216]"
+                      : "bg-white dark:bg-[#1A202C] hover:bg-slate-100 dark:hover:bg-[#222A3A] border-slate-200 dark:border-[#262E3D] text-slate-600 dark:text-[#94A3B8]"
                   }`}
                 >
                   <span className="material-symbols-outlined text-[18px]">
@@ -787,9 +872,9 @@ export default function KitsuneAIPage() {
                 </button>
 
                 {isAttachOpen && (
-                  <div className="absolute bottom-full left-0 mb-2.5 w-72 bg-[#141A24] border border-[#263042] rounded-2xl shadow-2xl backdrop-blur-xl p-2 flex flex-col gap-1 z-50 animate-in fade-in zoom-in-95 duration-150">
-                    <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
-                      Anexar Bloco de Contexto
+                  <div className="absolute bottom-full left-0 mb-2.5 w-72 bg-white dark:bg-[#141A24] border border-slate-200 dark:border-[#262E3D] rounded-2xl shadow-xl p-2 flex flex-col gap-1 z-50">
+                    <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      Anexar ao Prompt
                     </div>
                     {CONTEXT_ATTACHMENTS.map((item) => {
                       const isAttached = attachedContexts.includes(item.id);
@@ -805,33 +890,33 @@ export default function KitsuneAIPage() {
                             );
                             setIsAttachOpen(false);
                           }}
-                          className={`w-full px-3 py-2.5 rounded-xl text-left transition-colors flex items-start gap-2.5 cursor-pointer ${
+                          className={`w-full px-3 py-2 rounded-xl text-left transition-colors flex items-start gap-2.5 cursor-pointer ${
                             isAttached
-                              ? "bg-[#FF6B00]/15 text-[#FF6B00]"
-                              : "hover:bg-[#1C2331] text-[#F8FAFC]"
+                              ? "bg-[#FF8216]/15 text-[#FF8216]"
+                              : "hover:bg-slate-100 dark:hover:bg-[#1C2331] text-slate-800 dark:text-slate-100"
                           }`}
                         >
                           <div
                             className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
                               isAttached
-                                ? "bg-[#FF6B00] text-white"
-                                : "bg-[#FF6B00]/15 text-[#FF6B00]"
+                                ? "bg-[#FF8216] text-white"
+                                : "bg-[#FF8216]/15 text-[#FF8216]"
                             }`}
                           >
                             <span className="material-symbols-outlined text-[16px]">
                               {item.icon}
                             </span>
                           </div>
-                          <div className="flex flex-col flex-1">
-                            <span className="text-xs font-semibold">
+                          <div className="flex flex-col flex-1 min-w-0">
+                            <span className="text-xs font-semibold truncate">
                               {item.label}
                             </span>
-                            <span className="text-[11px] text-[#94A3B8] leading-tight mt-0.5">
+                            <span className="text-[11px] text-slate-500 dark:text-[#94A3B8] leading-tight">
                               {item.description}
                             </span>
                           </div>
                           {isAttached && (
-                            <span className="material-symbols-outlined text-[16px] text-[#FF6B00]">
+                            <span className="material-symbols-outlined text-[16px] text-[#FF8216]">
                               check
                             </span>
                           )}
@@ -842,7 +927,7 @@ export default function KitsuneAIPage() {
                 )}
               </div>
 
-              {/* 2. Seletor de Escopo (Meu Patrimônio vs Familiar) */}
+              {/* Seletor de Escopo */}
               <div ref={scopeRef} className="relative">
                 <button
                   type="button"
@@ -851,97 +936,70 @@ export default function KitsuneAIPage() {
                     setIsAttachOpen(false);
                     setIsModelOpen(false);
                   }}
-                  className="h-8 px-3 rounded-full bg-[#1C2331] hover:bg-[#252A33] border border-[#263042] text-xs font-medium text-[#F8FAFC] flex items-center gap-1.5 transition-colors cursor-pointer"
+                  className="h-8 px-2.5 rounded-xl bg-white dark:bg-[#1A202C] hover:bg-slate-100 dark:hover:bg-[#222A3A] border border-slate-200 dark:border-[#262E3D] text-xs font-medium text-slate-700 dark:text-[#F8FAFC] flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
-                  <span className="material-symbols-outlined text-[15px] text-[#FF6B00]">
+                  <span className="material-symbols-outlined text-[15px] text-[#FF8216]">
                     {selectedScope === "personal" ? "person" : "groups"}
                   </span>
-                  <span className="max-w-[130px] truncate">
+                  <span className="max-w-[110px] truncate text-[11px]">
                     {scopeBadgeLabel}
-                  </span>
-                  <span className="material-symbols-outlined text-[15px] text-[#94A3B8]">
-                    expand_more
                   </span>
                 </button>
 
                 {isScopeOpen && (
-                  <div className="absolute bottom-full left-0 mb-2.5 w-60 bg-[#141A24] border border-[#263042] rounded-2xl shadow-2xl backdrop-blur-xl p-1.5 flex flex-col gap-0.5 z-50 animate-in fade-in zoom-in-95 duration-150">
-                    <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
-                      Escopo da Análise
-                    </div>
+                  <div className="absolute bottom-full left-0 mb-2.5 w-56 bg-white dark:bg-[#141A24] border border-slate-200 dark:border-[#262E3D] rounded-2xl shadow-xl p-1.5 flex flex-col gap-0.5 z-50">
                     <button
                       type="button"
                       onClick={() => {
                         setSelectedScope("personal");
                         setIsScopeOpen(false);
                       }}
-                      className={`w-full px-3 py-2 rounded-xl text-left flex items-center justify-between cursor-pointer transition-colors ${
+                      className={`w-full px-3 py-2 rounded-xl text-left text-xs cursor-pointer ${
                         selectedScope === "personal"
-                          ? "bg-[#FF6B00]/15 text-[#FF6B00] font-semibold"
-                          : "text-[#F8FAFC] hover:bg-[#1C2331]"
+                          ? "bg-[#FF8216]/15 text-[#FF8216] font-semibold"
+                          : "text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#1C2331]"
                       }`}
                     >
-                      <div className="flex flex-col">
-                        <span className="text-xs">Meu Patrimônio</span>
-                        <span className="text-[11px] text-[#94A3B8] font-normal">
-                          Visão individual isolada
-                        </span>
-                      </div>
-                      {selectedScope === "personal" && (
-                        <span className="material-symbols-outlined text-[16px] text-[#FF6B00]">
-                          check
-                        </span>
-                      )}
+                      Meu Patrimônio Pessoal
                     </button>
-
                     <button
                       type="button"
                       onClick={() => {
                         setSelectedScope("all");
                         setIsScopeOpen(false);
                       }}
-                      className={`w-full px-3 py-2 rounded-xl text-left flex items-center justify-between cursor-pointer transition-colors ${
+                      className={`w-full px-3 py-2 rounded-xl text-left text-xs cursor-pointer ${
                         selectedScope === "all"
-                          ? "bg-[#FF6B00]/15 text-[#FF6B00] font-semibold"
-                          : "text-[#F8FAFC] hover:bg-[#1C2331]"
+                          ? "bg-[#FF8216]/15 text-[#FF8216] font-semibold"
+                          : "text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#1C2331]"
                       }`}
                     >
-                      <div className="flex flex-col">
-                        <span className="text-xs">Familiar / Compartilhado</span>
-                        <span className="text-[11px] text-[#94A3B8] font-normal">
-                          Consolidado de todos os membros
-                        </span>
-                      </div>
-                      {selectedScope === "all" && (
-                        <span className="material-symbols-outlined text-[16px] text-[#FF6B00]">
-                          check
-                        </span>
-                      )}
+                      Consolidado Familiar
                     </button>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Lado Direito: Microfone + Seletor de Modelo + Botão de Envio */}
-            <div className="flex items-center gap-2">
-              {/* 3. Botão de Microfone (Transcrição por Voz) */}
+            {/* Microfone + Seletor de Modelo + Enviar */}
+            <div className="flex items-center gap-1.5">
+              {/* Microfone */}
               <button
                 type="button"
                 onClick={toggleVoiceRecognition}
-                title={isListening ? "Parar de ouvir" : "Falar por voz"}
-                className={`w-8 h-8 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+                title={isListening ? "Parar gravação" : "Falar mensagem por voz"}
+                className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
                   isListening
-                    ? "bg-[#FF6B00] text-white animate-pulse shadow-[0_0_16px_rgba(255,107,0,0.6)]"
-                    : "bg-[#1C2331] hover:bg-[#252A33] border border-[#263042] text-[#94A3B8] hover:text-[#FF6B00]"
+                    ? "bg-red-500 text-white animate-pulse"
+                    : "bg-white dark:bg-[#1A202C] hover:bg-slate-100 dark:hover:bg-[#222A3A] border border-slate-200 dark:border-[#262E3D] text-slate-600 dark:text-[#94A3B8] hover:text-[#FF8216]"
                 }`}
               >
                 <span className="material-symbols-outlined text-[18px]">
-                  {isListening ? "graphic_eq" : "mic"}
+                  {isListening ? "mic_off" : "mic"}
                 </span>
               </button>
 
-              {/* 4. Seletor de Modelo de IA (Incluindo Automático) */}
+              {/* Seletor de Modelo */}
               <div ref={modelRef} className="relative">
                 <button
                   type="button"
@@ -950,82 +1008,55 @@ export default function KitsuneAIPage() {
                     setIsAttachOpen(false);
                     setIsScopeOpen(false);
                   }}
-                  className="h-8 px-3 rounded-full bg-[#1C2331] hover:bg-[#252A33] border border-[#263042] text-xs font-semibold text-[#F8FAFC] flex items-center gap-1.5 transition-colors cursor-pointer"
+                  className="h-8 px-2.5 rounded-xl bg-white dark:bg-[#1A202C] hover:bg-slate-100 dark:hover:bg-[#222A3A] border border-slate-200 dark:border-[#262E3D] text-xs font-medium text-slate-700 dark:text-[#F8FAFC] flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
-                  <span>{currentModelInfo.shortTitle}</span>
-                  <span className="material-symbols-outlined text-[15px] text-[#94A3B8]">
+                  <span className="text-[11px] font-semibold text-[#FF8216] truncate max-w-[90px] sm:max-w-none">
+                    {currentModelObj.name}
+                  </span>
+                  <span className="material-symbols-outlined text-[14px] text-slate-400">
                     expand_more
                   </span>
                 </button>
 
                 {isModelOpen && (
-                  <div className="absolute bottom-full right-0 mb-2.5 w-68 bg-[#141A24] border border-[#263042] rounded-2xl shadow-2xl backdrop-blur-xl p-1.5 flex flex-col gap-0.5 z-50 animate-in fade-in zoom-in-95 duration-150">
-                    <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
-                      Modelo Inteligente
+                  <div className="absolute bottom-full right-0 mb-2.5 w-64 bg-white dark:bg-[#141A24] border border-slate-200 dark:border-[#262E3D] rounded-2xl shadow-xl p-2 flex flex-col gap-1 z-50">
+                    <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      Modelo do Assistente
                     </div>
-                    {KITSUNE_AI_MODELS.map((model) => {
-                      const isSelected = selectedAiModel === model.id;
-                      return (
-                        <button
-                          key={model.id}
-                          type="button"
-                          onClick={() => {
-                            setSelectedAiModel(model.id);
-                            setIsModelOpen(false);
-                          }}
-                          className={`w-full px-3 py-2 rounded-xl text-left flex items-center justify-between cursor-pointer transition-colors ${
-                            isSelected
-                              ? "bg-[#FF6B00]/15 text-[#FF6B00] font-semibold"
-                              : "text-[#F8FAFC] hover:bg-[#1C2331]"
-                          }`}
-                        >
-                          <div className="flex flex-col">
-                            <span className="text-xs">{model.shortTitle}</span>
-                            <span className="text-[10px] text-[#94A3B8] leading-tight">
-                              {model.subtitle}
-                            </span>
-                          </div>
-                          {isSelected && (
-                            <span className="material-symbols-outlined text-[16px] text-[#FF6B00]">
-                              check
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
-
-                    <div className="h-px bg-[#263042] w-full my-1" />
-
-                    {/* Nível de Raciocínio */}
-                    <div className="px-3 py-1 flex items-center justify-between text-xs text-[#94A3B8]">
-                      <span>Raciocínio:</span>
-                      <div className="flex items-center gap-1">
-                        {REASONING_LEVELS.map((lvl) => (
-                          <button
-                            key={lvl.id}
-                            type="button"
-                            onClick={() => setReasoningLevel(lvl.id)}
-                            className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-colors ${
-                              reasoningLevel === lvl.id
-                                ? "bg-[#FF6B00] text-white"
-                                : "bg-[#1C2331] text-[#94A3B8] hover:text-[#F8FAFC]"
-                            }`}
-                          >
-                            {lvl.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                    {KITSUNE_AI_MODELS.map((m) => (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedAiModel(m.id);
+                          setIsModelOpen(false);
+                        }}
+                        className={`w-full p-2 rounded-xl text-left flex items-start justify-between cursor-pointer ${
+                          selectedAiModel === m.id
+                            ? "bg-[#FF8216]/15 text-[#FF8216] font-semibold"
+                            : "hover:bg-slate-100 dark:hover:bg-[#1C2331] text-slate-800 dark:text-slate-200"
+                        }`}
+                      >
+                        <div className="flex flex-col">
+                          <span className="text-xs">{m.name}</span>
+                          <span className="text-[10px] text-slate-400">{m.subtitle}</span>
+                        </div>
+                        {selectedAiModel === m.id && (
+                          <span className="material-symbols-outlined text-[15px] text-[#FF8216]">
+                            check
+                          </span>
+                        )}
+                      </button>
+                    ))}
                   </div>
                 )}
               </div>
 
-              {/* 5. Botão de Envio Proeminente */}
+              {/* Botão de Envio */}
               <button
                 type="submit"
                 disabled={isLoading || (!input.trim() && attachedContexts.length === 0)}
-                className="w-8 h-8 rounded-full bg-[#FF6B00] hover:bg-[#FF7D1A] active:bg-[#E05E00] text-white flex items-center justify-center transition-all shadow-[0_2px_10px_rgba(255,107,0,0.35)] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                title="Enviar mensagem"
+                className="w-8 h-8 rounded-xl bg-[#FF8216] hover:bg-[#FFA047] active:bg-[#E66E08] text-white flex items-center justify-center transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-sm"
               >
                 <span className="material-symbols-outlined text-[18px]">
                   arrow_upward
@@ -1035,86 +1066,6 @@ export default function KitsuneAIPage() {
           </div>
         </form>
       </div>
-
-      {/* Drawer Lateral: Histórico de Conversas Salvas */}
-      {isHistoryOpen && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex justify-end animate-in fade-in duration-200">
-          <div className="w-full max-w-sm h-full bg-[#141A24] border-l border-[#263042] p-5 flex flex-col justify-between shadow-2xl">
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center justify-between border-b border-[#263042] pb-3">
-                <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[#FF6B00] text-xl">
-                    history
-                  </span>
-                  <h3 className="font-bold text-sm text-[#F8FAFC]">
-                    Histórico de Conversas
-                  </h3>
-                </div>
-                <button
-                  onClick={() => setIsHistoryOpen(false)}
-                  className="p-1 rounded-lg text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#1C2331]"
-                >
-                  <span className="material-symbols-outlined text-lg">close</span>
-                </button>
-              </div>
-
-              <button
-                onClick={() => {
-                  handleStartNewChat();
-                  setIsHistoryOpen(false);
-                }}
-                className="w-full py-2.5 px-3 rounded-xl bg-[#FF6B00] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-[#FF6B00]/25"
-              >
-                <span className="material-symbols-outlined text-[16px]">
-                  add
-                </span>
-                Nova Conversa
-              </button>
-
-              <div className="flex flex-col gap-2 overflow-y-auto max-h-[70vh] pt-2">
-                {savedSessions.length === 0 ? (
-                  <p className="text-xs text-[#94A3B8] text-center py-8">
-                    Nenhuma conversa anterior salva neste navegador.
-                  </p>
-                ) : (
-                  savedSessions.map((session) => (
-                    <div
-                      key={session.id}
-                      onClick={() => handleLoadSession(session)}
-                      className="p-3 rounded-xl bg-[#0F141C] border border-[#263042] hover:border-[#FF6B00]/40 flex items-center justify-between gap-2 cursor-pointer transition-colors group"
-                    >
-                      <div className="flex flex-col gap-0.5 overflow-hidden">
-                        <span className="text-xs font-semibold text-[#F8FAFC] truncate">
-                          {session.title}
-                        </span>
-                        <span className="text-[10px] text-[#94A3B8]">
-                          {new Date(session.createdAt).toLocaleDateString("pt-BR")}{" "}
-                          • {session.messages.length} mensagens
-                        </span>
-                      </div>
-                      <button
-                        onClick={(e) => handleDeleteSession(session.id, e)}
-                        title="Excluir conversa"
-                        className="opacity-0 group-hover:opacity-100 p-1 text-[#94A3B8] hover:text-[#EF4444] transition-all"
-                      >
-                        <span className="material-symbols-outlined text-[16px]">
-                          delete
-                        </span>
-                      </button>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-
-            <div className="pt-4 border-t border-[#263042]">
-              <p className="text-[11px] text-[#94A3B8] text-center">
-                Conversas salvas localmente com criptografia de sessão.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
