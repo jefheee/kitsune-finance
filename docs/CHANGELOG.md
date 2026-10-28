@@ -4,6 +4,18 @@ Todas as alterações notáveis no projeto Kitsune Finance são registradas de f
 
 ---
 
+## [2026-10-28] - Landing Page Stitch, Untitled UI QR Code, Painel IA Executivo, Audio Visualizer & Pierre Suite
+- **Arquivos Afetados:** `src/app/page.tsx`, `src/components/landing/LandingQrCode.tsx`, `src/components/AiDiagnosticPanel.tsx`, `src/app/kitsune/page.tsx`, `src/app/api/ai/generate-insight/route.ts`, `src/app/api/ai/anomalies/route.ts`, `src/components/AnomalyAlertCard.tsx`, `src/app/api/export/spreadsheet/route.ts`, `src/components/finance/SpendingHeatmap.tsx`, `src/components/finance/SubscriptionsTracker.tsx`, `src/components/finance/InstallmentsTracker.tsx`, `src/components/AppsModal.tsx`, `src/app/dashboard/page.tsx`, `src/components/layout/AppShell.tsx`, `docs/PROJECT_STATE.md`, `docs/CHANGELOG.md`.
+- **Objetivo:**
+  - Implementação completa da Landing Page oficial (`/`) fiel ao Stitch com iPhone 16 Pro mockup, cards de agentes (Albert, Sherlock, Megamen, Rita, Julius), FAQ interativo e QR Code oficial Untitled UI apontando para o site.
+  - Refatoração do Diagnóstico IA no Dashboard em Painel Executivo com 3 metric cards dinâmicos, resumo de 2 linhas, ações imediatas e relatório expansível sem markdown bruto.
+  - Upgrade do microfone no chat com live audio waveform (Web Audio API AnalyserNode) e status responsivo, eliminando o ícone vermelho cortado.
+  - Implementação de toda a suíte do Pierre Finance: Mapa de Calor de gastos diários, Rastreador de Parcelamentos com barra de quitação, e Auditoria de Assinaturas com projeção anual.
+  - Geração automática de planilhas (`/api/export/spreadsheet`) para Excel / Google Sheets em 1 clique.
+  - Motor de anomalias preventivas em segundo plano (`/api/ai/anomalies`) com card de alerta do Agente Albert na Dashboard.
+
+---
+
 ## [2026-10-27] - Refinamento Impeccable: Laranja Oficial #FF8216, Tema Claro/Escuro, Voz Universal & Mobile
 - **Arquivos Afetados:** `globals.css`, `layout.tsx`, `AppShell.tsx`, `dashboard/page.tsx`, `kitsune/page.tsx`, `agents/page.tsx`, `profile/page.tsx`, `settings/page.tsx`, `Spinner.tsx`, `template.tsx`, `loading.tsx`, `api/ai/transcribe/route.ts`, `api/ai/generate-insight/route.ts`, `PluggyConnectModal.tsx`, `docs/PROJECT_STATE.md`, `docs/CHANGELOG.md`.
 - **Objetivo:** 

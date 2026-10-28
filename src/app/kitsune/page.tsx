@@ -95,12 +95,17 @@ export default function KitsuneAIPage() {
   const [isScopeOpen, setIsScopeOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
-  // Microfone (Entrada de Voz - Suporte universal para Chrome, Edge, Zen e Firefox)
+  // Microfone (Entrada de Voz com Análise Responsiva e Visualizador de Ondas Sonoras)
   const [isListening, setIsListening] = useState(false);
   const [isTranscribingAudio, setIsTranscribingAudio] = useState(false);
+  const [audioLevels, setAudioLevels] = useState<number[]>([0.2, 0.4, 0.7, 0.4, 0.3]);
   const recognitionRef = useRef<any>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const animFrameRef = useRef<number | null>(null);
+  const audioStreamRef = useRef<MediaStream | null>(null);
 
   // Sessões de Chat (Histórico Persistente)
   const [savedSessions, setSavedSessions] = useState<ChatSession[]>([]);
@@ -256,22 +261,92 @@ export default function KitsuneAIPage() {
       currency: "BRL",
     }).format(val);
 
+  // Visualizador de Ondas Sonoras em Tempo Real (Web Audio API)
+  const startAudioVisualizer = (stream: MediaStream) => {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      audioContextRef.current = ctx;
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 64;
+      analyserRef.current = analyser;
+
+      const source = ctx.createMediaStreamSource(stream);
+      source.connect(analyser);
+
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+
+      const renderFrame = () => {
+        if (!analyserRef.current) return;
+        analyserRef.current.getByteFrequencyData(dataArray);
+
+        // Amostra 5 faixas espectrais com bounce suave
+        const l1 = Math.max(0.2, (dataArray[1] || 0) / 255);
+        const l2 = Math.max(0.35, (dataArray[3] || 0) / 255);
+        const l3 = Math.max(0.5, (dataArray[5] || 0) / 255);
+        const l4 = Math.max(0.35, (dataArray[7] || 0) / 255);
+        const l5 = Math.max(0.2, (dataArray[9] || 0) / 255);
+
+        setAudioLevels([l1, l2, l3, l4, l5]);
+        animFrameRef.current = requestAnimationFrame(renderFrame);
+      };
+
+      renderFrame();
+    } catch (e) {
+      console.warn("Visualizador de áudio não inicializado", e);
+    }
+  };
+
+  const stopAudioVisualizer = () => {
+    if (animFrameRef.current) {
+      cancelAnimationFrame(animFrameRef.current);
+      animFrameRef.current = null;
+    }
+    if (audioContextRef.current) {
+      audioContextRef.current.close().catch(() => {});
+      audioContextRef.current = null;
+    }
+    if (audioStreamRef.current) {
+      audioStreamRef.current.getTracks().forEach((track) => track.stop());
+      audioStreamRef.current = null;
+    }
+    setAudioLevels([0.2, 0.4, 0.7, 0.4, 0.3]);
+  };
+
   // Microfone Universal: Suporta Chrome/Edge (Web Speech) e Zen/Firefox (MediaRecorder + Whisper)
   const toggleVoiceRecognition = async () => {
     if (typeof window === "undefined") return;
 
-    const SpeechRecognition =
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (isListening) {
+      // Parar qualquer gravação ativa
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+        mediaRecorderRef.current.stop();
+      }
+      stopAudioVisualizer();
+      setIsListening(false);
+      return;
+    }
 
-    // Cenário 1: Navegadores com Web Speech nativo (Chrome, Edge, Safari recente)
-    if (SpeechRecognition) {
-      if (isListening) {
-        recognitionRef.current?.stop();
-        setIsListening(false);
+    try {
+      if (!navigator?.mediaDevices?.getUserMedia) {
+        alert("Seu navegador bloqueou o acesso ao microfone.");
         return;
       }
 
-      try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioStreamRef.current = stream;
+      startAudioVisualizer(stream);
+
+      const SpeechRecognition =
+        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+      // Cenário 1: Navegadores com Web Speech nativo
+      if (SpeechRecognition) {
         const recognition = new SpeechRecognition();
         recognition.lang = "pt-BR";
         recognition.continuous = false;
@@ -289,41 +364,23 @@ export default function KitsuneAIPage() {
         };
 
         recognition.onerror = () => {
+          stopAudioVisualizer();
           setIsListening(false);
         };
 
         recognition.onend = () => {
+          stopAudioVisualizer();
           setIsListening(false);
         };
 
         recognitionRef.current = recognition;
         recognition.start();
-        return;
-      } catch (err) {
-        console.error("Erro no reconhecimento de voz:", err);
-        setIsListening(false);
-      }
-    }
-
-    // Cenário 2: Zen Browser, Firefox e outros que não possuem Web Speech API nativa
-    if (isListening) {
-      // Parar gravação e transcrever
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
-        mediaRecorderRef.current.stop();
-      }
-      setIsListening(false);
-      return;
-    }
-
-    try {
-      if (!navigator?.mediaDevices?.getUserMedia) {
-        alert("Seu navegador bloqueou o acesso ao microfone.");
+        setIsListening(true);
         return;
       }
 
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Cenário 2: Zen Browser, Firefox e outros (Grava e envia pro Whisper)
       audioChunksRef.current = [];
-
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
 
@@ -334,7 +391,7 @@ export default function KitsuneAIPage() {
       };
 
       mediaRecorder.onstop = async () => {
-        stream.getTracks().forEach((track) => track.stop());
+        stopAudioVisualizer();
         const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
 
         if (audioBlob.size < 1000) {
@@ -370,6 +427,7 @@ export default function KitsuneAIPage() {
     } catch (micErr: any) {
       console.error("Permissão de microfone negada:", micErr);
       alert("Por favor, permita o acesso ao microfone no seu navegador.");
+      stopAudioVisualizer();
       setIsListening(false);
     }
   };
@@ -829,6 +887,41 @@ export default function KitsuneAIPage() {
             </div>
           )}
 
+          {/* Banner de Feedback em Tempo Real da Gravação de Voz */}
+          {isListening && (
+            <div className="flex items-center justify-between gap-3 px-3.5 py-2 mb-2 rounded-xl bg-[#FF8216]/10 border border-[#FF8216]/30 text-[#FF8216] transition-all">
+              <div className="flex items-center gap-2.5">
+                {/* 5 Barras de Equalizador Dinâmico com Web Audio API */}
+                <div className="flex items-end gap-1 h-5 px-0.5">
+                  {audioLevels.map((lvl, idx) => (
+                    <span
+                      key={idx}
+                      style={{ height: `${Math.max(4, Math.round(lvl * 20))}px` }}
+                      className="w-1 bg-[#FF8216] rounded-full transition-all duration-75"
+                    />
+                  ))}
+                </div>
+                <span className="text-xs font-semibold">
+                  Ouvindo... Fale normalmente sua dúvida
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={toggleVoiceRecognition}
+                className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-[#FF8216] hover:bg-[#FFA047] text-white shadow-xs transition-colors cursor-pointer"
+              >
+                Parar
+              </button>
+            </div>
+          )}
+
+          {isTranscribingAudio && (
+            <div className="flex items-center gap-2 px-3 py-1.5 mb-2 rounded-xl bg-slate-100 dark:bg-[#1E2533] border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 text-xs">
+              <Spinner size={13} className="text-[#FF8216]" />
+              <span>Transcrevendo áudio com IA Whisper...</span>
+            </div>
+          )}
+
           {/* Campo de Texto */}
           <textarea
             ref={textareaRef}
@@ -839,7 +932,7 @@ export default function KitsuneAIPage() {
             disabled={isLoading}
             placeholder={
               isListening
-                ? "Gravando sua dúvida... Fale e clique no microfone para enviar"
+                ? "Ouvindo sua voz... Fale agora."
                 : attachedContexts.length > 0
                 ? "Digite sua pergunta com esse contexto anexado..."
                 : "Pergunte à Kitsune IA sobre seu saldo, faturas ou despesas..."
@@ -990,12 +1083,12 @@ export default function KitsuneAIPage() {
                 title={isListening ? "Parar gravação" : "Falar mensagem por voz"}
                 className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
                   isListening
-                    ? "bg-red-500 text-white animate-pulse"
+                    ? "bg-[#FF8216] text-white shadow-sm ring-2 ring-[#FF8216]/40 scale-105"
                     : "bg-white dark:bg-[#1A202C] hover:bg-slate-100 dark:hover:bg-[#222A3A] border border-slate-200 dark:border-[#262E3D] text-slate-600 dark:text-[#94A3B8] hover:text-[#FF8216]"
                 }`}
               >
                 <span className="material-symbols-outlined text-[18px]">
-                  {isListening ? "mic_off" : "mic"}
+                  {isListening ? "graphic_eq" : "mic"}
                 </span>
               </button>
 
