@@ -28,6 +28,7 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState("Visão Geral");
   const [selectedMemberId, setSelectedMemberId] = useState<string>("all");
   const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
+  const [connectForMemberId, setConnectForMemberId] = useState<string | null>(null);
 
   // Estado de geração de insight IA
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
@@ -35,8 +36,10 @@ export default function DashboardPage() {
 
   // Estado para adicionar membro na aba Visão Compartilhada/Familiar
   const [newMemberName, setNewMemberName] = useState("");
+  const [newMemberEmail, setNewMemberEmail] = useState("");
   const [newMemberRole, setNewMemberRole] = useState("Cônjuge");
   const [isCreatingMember, setIsCreatingMember] = useState(false);
+  const [copiedMemberId, setCopiedMemberId] = useState<string | null>(null);
 
   const TABS = [
     "Visão Geral",
@@ -86,7 +89,7 @@ export default function DashboardPage() {
     filteredAccounts.forEach((curr) => {
       const bal = Number(curr.balance) || 0;
       if (curr.type === "CREDIT" || curr.type === "CREDIT_CARD") {
-        credit += bal;
+        credit += Math.abs(bal);
       } else {
         liquid += bal;
       }
@@ -136,29 +139,29 @@ export default function DashboardPage() {
     };
   }, [filteredAccounts, filteredTransactions]);
 
-  // Cálculo Determinístico do Kitsune Score de Saúde Financeira (0 - 1000)
+  // Cálculo Determinístico do Kitsune Score de Saúde Financeira
   const kitsuneScore = useMemo(() => {
-    if (accounts.length === 0) return { score: 500, label: "Aguardando Conexões", color: "text-[#94A3B8]" };
-    let score = 500;
+    if (accounts.length === 0) return { score: 500, label: "Aguardando Conexões", color: "text-slate-400" };
+    let score = 550;
 
-    // 1. Cobertura de Cartão com Liquidez
-    if (liquidBalance > creditCardBalance * 1.5) score += 200;
-    else if (liquidBalance >= creditCardBalance) score += 100;
-    else score -= 150;
+    // Cobertura da fatura com liquidez disponível
+    if (liquidBalance > creditCardBalance * 1.5) score += 180;
+    else if (liquidBalance >= creditCardBalance) score += 90;
+    else score -= 140;
 
-    // 2. Balanço Mensal
+    // Balanço do mês
     const netMonthly = monthlyIncome - monthlyExpense;
-    if (netMonthly > 0) score += 180;
-    else if (monthlyExpense > 0) score -= 120;
+    if (netMonthly > 0) score += 160;
+    else if (monthlyExpense > 0) score -= 100;
 
-    // 3. Diversificação / Contas
-    if (accounts.length >= 2) score += 70;
+    // Diversificação
+    if (accounts.length >= 2) score += 60;
 
-    const finalScore = Math.max(300, Math.min(980, score));
-    if (finalScore >= 800) return { score: finalScore, label: "Excelente", color: "text-[#10B981]" };
-    if (finalScore >= 650) return { score: finalScore, label: "Saudável", color: "text-[#10B981]" };
-    if (finalScore >= 500) return { score: finalScore, label: "Atenção Necessária", color: "text-[#FF6B00]" };
-    return { score: finalScore, label: "Risco de Liquidez", color: "text-[#EF4444]" };
+    const finalScore = Math.max(300, Math.min(990, score));
+    if (finalScore >= 800) return { score: finalScore, label: "Excelente", color: "text-emerald-500" };
+    if (finalScore >= 650) return { score: finalScore, label: "Saudável", color: "text-emerald-500" };
+    if (finalScore >= 500) return { score: finalScore, label: "Equilibrado", color: "text-[#FF8216]" };
+    return { score: finalScore, label: "Atenção Necessária", color: "text-red-500" };
   }, [accounts.length, liquidBalance, creditCardBalance, monthlyIncome, monthlyExpense]);
 
   // Pré-computação automática de IA em background se não houver insight salvo
@@ -202,12 +205,16 @@ export default function DashboardPage() {
       const response = await fetch("/api/family-members", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newMemberName.trim(), role: newMemberRole }),
+        body: JSON.stringify({
+          name: newMemberName.trim(),
+          role: newMemberRole,
+        }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Falha ao criar membro");
       addFamilyMemberLocal(data.member);
       setNewMemberName("");
+      setNewMemberEmail("");
       setIsFamilyModeEnabled(true);
     } catch (err: any) {
       alert(err.message);
@@ -226,6 +233,14 @@ export default function DashboardPage() {
     } catch (err: any) {
       alert(err.message);
     }
+  };
+
+  const handleCopyInviteLink = (memberId: string) => {
+    if (typeof window === "undefined") return;
+    const url = `${window.location.origin}/agents?memberId=${memberId}`;
+    navigator.clipboard.writeText(url);
+    setCopiedMemberId(memberId);
+    setTimeout(() => setCopiedMemberId(null), 3000);
   };
 
   const formatCurrency = (value: number) => {
@@ -253,23 +268,15 @@ export default function DashboardPage() {
     user?.email?.split("@")[0] ||
     "Investidor";
 
-  const scopeLabel = !isFamilyModeEnabled
-    ? `Patrimônio Pessoal • ${userDisplayName}`
-    : selectedMemberId === "all"
-    ? "Consolidado Compartilhado"
-    : selectedMemberId === "personal"
-    ? `Individual (${userDisplayName})`
-    : memberMap.get(selectedMemberId)?.name || "Membro";
-
   if (isInitialLoading && accounts.length === 0 && transactions.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] p-12 bg-[#0F141C]">
-        <div className="w-12 h-12 rounded-2xl bg-[#141A24] border border-[#263042] flex items-center justify-center animate-pulse">
-          <span className="material-symbols-outlined text-2xl text-[#FF6B00]">
+      <div className="flex flex-col items-center justify-center min-h-[60vh] p-8">
+        <div className="w-10 h-10 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] flex items-center justify-center animate-pulse">
+          <span className="material-symbols-outlined text-xl text-[#FF8216]">
             auto_awesome
           </span>
         </div>
-        <span className="text-xs text-[#94A3B8] font-medium mt-3">
+        <span className="text-xs text-slate-500 dark:text-[#94A3B8] font-medium mt-3">
           Sincronizando patrimônio com segurança...
         </span>
       </div>
@@ -277,52 +284,54 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="flex flex-col gap-8 p-6 md:p-8 max-w-6xl mx-auto w-full bg-[#0F141C] text-[#F8FAFC]">
-      {/* Header Principal: Warm Obsidian & Human-Centric */}
-      <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-2">
-        <div className="flex flex-col gap-2">
-          <div className="inline-flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-[#141A24] border border-[#263042] w-fit">
-            <span className="w-2 h-2 rounded-full bg-[#10B981]" />
-            <span className="text-xs text-[#10B981] font-semibold tracking-normal">
-              Proteção Bancária Ativa • Criptografia de ponta a ponta
+    <div className="flex flex-col gap-6 md:gap-8 p-4 md:p-8 max-w-6xl mx-auto w-full font-sans">
+      {/* Header Principal */}
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
+        <div className="flex flex-col gap-1.5">
+          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 w-fit">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">
+              Ambiente Blindado • Leitura Somente-Leitura
             </span>
           </div>
 
-          <h1 className="text-2xl md:text-3xl font-extrabold text-[#F8FAFC] tracking-tight">
-            Olá, {userDisplayName}!{" "}
-            <span className="text-[#FF6B00] font-normal">Aqui está seu resumo financeiro de hoje.</span>
+          <h1 className="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-[#F8FAFC] tracking-tight">
+            Olá, {userDisplayName}!
           </h1>
 
-          <p className="text-sm text-[#94A3B8] max-w-2xl leading-relaxed">
-            Acompanhe de forma simples e transparente suas contas, metas e o fechamento do seu mês, sem termos complicados.
+          <p className="text-xs md:text-sm text-slate-500 dark:text-[#94A3B8] max-w-xl leading-relaxed">
+            Acompanhe suas contas, faturas e fluxo de caixa consolidado em tempo real.
           </p>
         </div>
 
-        {/* Top Action Cluster */}
-        <div className="flex items-center gap-3 shrink-0 self-start lg:self-auto">
+        {/* Ações Superiores */}
+        <div className="flex items-center gap-2.5 shrink-0 self-stretch sm:self-auto">
           <button
             onClick={() => revalidate(true)}
             title="Atualizar dados bancários agora"
-            className="h-11 px-4 rounded-xl bg-[#141A24] hover:bg-[#1C2331] border border-[#263042] text-xs font-semibold text-[#F8FAFC] flex items-center gap-2 transition-all cursor-pointer shadow-sm"
+            className="flex-1 sm:flex-initial h-10 px-3.5 rounded-xl bg-white dark:bg-[#12161F] hover:bg-slate-100 dark:hover:bg-[#1A202C] border border-slate-200 dark:border-[#262E3D] text-xs font-semibold text-slate-700 dark:text-[#F8FAFC] flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs"
           >
-            <span className={`material-symbols-outlined text-[18px] text-[#10B981] ${isRevalidating ? "animate-spin" : ""}`}>
+            <span className={`material-symbols-outlined text-[17px] text-emerald-500 ${isRevalidating ? "animate-spin" : ""}`}>
               sync
             </span>
-            <span className="hidden sm:inline">Atualizar Tudo</span>
+            <span>Atualizar</span>
           </button>
 
           <button
-            onClick={() => setIsConnectModalOpen(true)}
-            className="h-11 px-5 rounded-xl bg-[#FF6B00] hover:bg-[#FF7D1A] active:bg-[#E05E00] text-white font-bold text-xs flex items-center gap-2 shadow-[0_4px_16px_rgba(255,107,0,0.35)] transition-all cursor-pointer"
+            onClick={() => {
+              setConnectForMemberId(null);
+              setIsConnectModalOpen(true);
+            }}
+            className="flex-1 sm:flex-initial h-10 px-4 rounded-xl bg-[#FF8216] hover:bg-[#FFA047] active:bg-[#E66E08] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
           >
-            <span className="material-symbols-outlined text-[18px]">add_link</span>
-            <span>Conectar Nova Conta</span>
+            <span className="material-symbols-outlined text-[17px]">add_link</span>
+            <span>Conectar Conta</span>
           </button>
         </div>
       </header>
 
-      {/* Abas de Navegação Rápida (Estilo Stitch) */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none -mx-6 px-6 md:mx-0 md:px-0">
+      {/* Abas de Navegação */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none -mx-4 px-4 md:mx-0 md:px-0">
         {TABS.map((tab) => {
           const isActive = activeTab === tab;
           const isFamilyTab = tab === "Visão Familiar";
@@ -330,12 +339,12 @@ export default function DashboardPage() {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`whitespace-nowrap px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+              className={`whitespace-nowrap px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
                 isActive
-                  ? "bg-[#FF6B00] text-white shadow-md shadow-[#FF6B00]/25"
+                  ? "bg-[#FF8216] text-white shadow-xs"
                   : isFamilyTab
-                  ? "bg-[#141A24] text-[#FF6B00] hover:bg-[#1C2331] border border-[#FF6B00]/30"
-                  : "bg-[#141A24] text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#1C2331] border border-[#263042]"
+                  ? "bg-white dark:bg-[#12161F] text-[#FF8216] hover:bg-slate-50 dark:hover:bg-[#1A202C] border border-[#FF8216]/30"
+                  : "bg-white dark:bg-[#12161F] text-slate-600 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-[#F8FAFC] hover:bg-slate-50 dark:hover:bg-[#1A202C] border border-slate-200 dark:border-[#262E3D]"
               }`}
             >
               {isFamilyTab && (
@@ -349,360 +358,315 @@ export default function DashboardPage() {
 
       {activeTab === "Visão Geral" ? (
         <>
-          {/* Key Metrics Row (4 Cards de Alto Contraste Stitch) */}
-          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Card 1: Patrimônio Líquido */}
-            <div className="p-6 rounded-2xl bg-[#141A24] border border-[#263042] flex flex-col justify-between gap-3 shadow-md relative overflow-hidden group">
+          {/* Key Metrics: 4 Cards Responsivos */}
+          <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+            {/* Card 1: Patrimônio Total */}
+            <div className="p-4 md:p-5 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] flex flex-col justify-between gap-2 shadow-xs">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[#94A3B8]">
-                  Patrimônio Total Líquido
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  Patrimônio Líquido
                 </span>
-                <div className="w-9 h-9 rounded-xl bg-[#1C2331] flex items-center justify-center text-[#FF6B00]">
-                  <span className="material-symbols-outlined text-lg">account_balance</span>
+                <div className="w-7 h-7 rounded-lg bg-[#FF8216]/10 flex items-center justify-center text-[#FF8216]">
+                  <span className="material-symbols-outlined text-[16px]">account_balance</span>
                 </div>
               </div>
               <div>
-                <span className="text-2xl md:text-3xl font-extrabold text-[#F8FAFC] tabular-nums tracking-tight">
+                <span className="text-lg md:text-2xl font-extrabold text-slate-900 dark:text-[#F8FAFC] tabular-nums tracking-tight block">
                   {formatCurrency(totalBalance)}
                 </span>
-                <p className="text-xs text-[#10B981] font-semibold mt-1 flex items-center gap-1">
-                  <span className="material-symbols-outlined text-sm">verified</span>
-                  Disponível em conta: {formatCurrency(liquidBalance)}
+                <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold mt-0.5 truncate">
+                  Disponível: {formatCurrency(liquidBalance)}
                 </p>
               </div>
-              <div className="pt-2 border-t border-[#263042]/70 flex items-center justify-between text-[11px] text-[#94A3B8]">
-                <span>Descontadas faturas em aberto</span>
-                <span className="text-[#10B981] font-semibold">Balanço Positivo</span>
+              <div className="pt-2 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-[10px] text-slate-400">
+                <span>Faturas descontadas</span>
+                <span className={totalBalance >= 0 ? "text-emerald-500 font-bold" : "text-red-500 font-bold"}>
+                  {totalBalance >= 0 ? "Positivo" : "Negativo"}
+                </span>
               </div>
             </div>
 
             {/* Card 2: Entradas Deste Mês */}
-            <div className="p-6 rounded-2xl bg-[#141A24] border border-[#263042] flex flex-col justify-between gap-3 shadow-md relative overflow-hidden group">
+            <div className="p-4 md:p-5 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] flex flex-col justify-between gap-2 shadow-xs">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[#94A3B8]">
-                  Entradas Deste Mês
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  Entradas do Mês
                 </span>
-                <div className="w-9 h-9 rounded-xl bg-[#10B981]/15 flex items-center justify-center text-[#10B981]">
-                  <span className="material-symbols-outlined text-lg">trending_up</span>
+                <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                  <span className="material-symbols-outlined text-[16px]">trending_up</span>
                 </div>
               </div>
               <div>
-                <span className="text-2xl md:text-3xl font-extrabold text-[#10B981] tabular-nums tracking-tight">
+                <span className="text-lg md:text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums tracking-tight block">
                   {formatCurrency(monthlyIncome)}
                 </span>
-                <p className="text-xs text-[#94A3B8] mt-1 flex items-center gap-1">
-                  <span className="material-symbols-outlined text-sm text-[#10B981]">check_circle</span>
-                  Recebimentos e créditos registrados
+                <p className="text-[11px] text-slate-400 mt-0.5 truncate">
+                  Créditos registrados
                 </p>
               </div>
-              <div className="pt-2 border-t border-[#263042]/70 flex items-center justify-between text-[11px] text-[#94A3B8]">
+              <div className="pt-2 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-[10px] text-slate-400">
                 <span>Fluxo de Caixa</span>
-                <span className="text-[#F8FAFC] font-semibold">Entradas Confirmadas</span>
+                <span className="text-slate-700 dark:text-slate-200 font-semibold">Confirmado</span>
               </div>
             </div>
 
             {/* Card 3: Gastos Deste Mês */}
-            <div className="p-6 rounded-2xl bg-[#141A24] border border-[#263042] flex flex-col justify-between gap-3 shadow-md relative overflow-hidden group">
+            <div className="p-4 md:p-5 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] flex flex-col justify-between gap-2 shadow-xs">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[#94A3B8]">
-                  Gastos Deste Mês
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  Saídas do Mês
                 </span>
-                <div className="w-9 h-9 rounded-xl bg-[#EF4444]/15 flex items-center justify-center text-[#EF4444]">
-                  <span className="material-symbols-outlined text-lg">shopping_bag</span>
+                <div className="w-7 h-7 rounded-lg bg-red-500/10 flex items-center justify-center text-red-500">
+                  <span className="material-symbols-outlined text-[16px]">shopping_bag</span>
                 </div>
               </div>
               <div>
-                <span className="text-2xl md:text-3xl font-extrabold text-[#EF4444] tabular-nums tracking-tight">
+                <span className="text-lg md:text-2xl font-extrabold text-red-600 dark:text-red-400 tabular-nums tracking-tight block">
                   {formatCurrency(monthlyExpense)}
                 </span>
-                <p className="text-xs text-[#94A3B8] mt-1 flex items-center gap-1">
-                  <span className="material-symbols-outlined text-sm text-[#FF6B00]">pie_chart</span>
-                  {categorySummary[0] ? `Maior peso: ${categorySummary[0].name}` : "Gastos controlados"}
+                <p className="text-[11px] text-slate-400 mt-0.5 truncate">
+                  {categorySummary[0] ? `Top: ${categorySummary[0].name}` : "Despesas do período"}
                 </p>
               </div>
-              <div className="pt-2 border-t border-[#263042]/70 flex items-center justify-between text-[11px] text-[#94A3B8]">
+              <div className="pt-2 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-[10px] text-slate-400">
                 <span>Margem de Sobra</span>
-                <span className="text-[#10B981] font-semibold">
+                <span className="text-emerald-500 font-bold tabular-nums">
                   {formatCurrency(Math.max(0, monthlyIncome - monthlyExpense))}
                 </span>
               </div>
             </div>
 
             {/* Card 4: Faturas de Cartão */}
-            <div className="p-6 rounded-2xl bg-[#141A24] border border-[#263042] flex flex-col justify-between gap-3 shadow-md relative overflow-hidden group">
+            <div className="p-4 md:p-5 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] flex flex-col justify-between gap-2 shadow-xs">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[#94A3B8]">
-                  Fatura Atual do Cartão
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  Faturas em Aberto
                 </span>
-                <div className="w-9 h-9 rounded-xl bg-[#1C2331] flex items-center justify-center text-[#FF6B00]">
-                  <span className="material-symbols-outlined text-lg">credit_card</span>
+                <div className="w-7 h-7 rounded-lg bg-[#FF8216]/10 flex items-center justify-center text-[#FF8216]">
+                  <span className="material-symbols-outlined text-[16px]">credit_card</span>
                 </div>
               </div>
               <div>
-                <span className="text-2xl md:text-3xl font-extrabold text-[#FF6B00] tabular-nums tracking-tight">
+                <span className="text-lg md:text-2xl font-extrabold text-[#FF8216] tabular-nums tracking-tight block">
                   {formatCurrency(creditCardBalance)}
                 </span>
-                <p className="text-xs text-[#94A3B8] mt-1 flex items-center gap-1">
-                  <span className="material-symbols-outlined text-sm text-[#FF6B00]">schedule</span>
-                  {liquidBalance >= creditCardBalance ? "Saldo em conta cobre 100%" : "Atenção: liquidez menor que a fatura"}
+                <p className="text-[11px] text-slate-400 mt-0.5 truncate">
+                  {liquidBalance >= creditCardBalance ? "Coberto pelo saldo" : "Atenção à liquidez"}
                 </p>
               </div>
-              <div className="pt-2 border-t border-[#263042]/70 flex items-center justify-between text-[11px] text-[#94A3B8]">
+              <div className="pt-2 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-[10px] text-slate-400">
                 <span>Status da Fatura</span>
-                <span className="text-[#FF6B00] font-semibold">Em Aberto</span>
+                <span className="text-[#FF8216] font-semibold">Em Aberto</span>
               </div>
             </div>
           </section>
 
-          {/* Kitsune Health Score & Atmospheric Advisory Panel (Stitch) */}
-          <section className="p-6 md:p-8 rounded-3xl bg-gradient-to-br from-[#FF6B00]/15 via-[#141A24] to-[#090E16] border border-[#FF6B00]/30 shadow-xl relative overflow-hidden">
-            {/* Ambient Back Glow */}
-            <div className="absolute -left-16 -bottom-16 w-72 h-72 bg-[#FF6B00]/10 rounded-full blur-3xl pointer-events-none" />
-
-            <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-              <div className="flex items-start gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-[#FF6B00] flex items-center justify-center text-white shrink-0 shadow-[0_4px_20px_rgba(255,107,0,0.4)]">
-                  <span className="material-symbols-outlined text-3xl">psychology</span>
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <h2 className="text-lg md:text-xl font-bold text-[#F8FAFC]">
-                      Diagnóstico & Conselho da Kitsune IA
-                    </h2>
-                    <span className="px-2.5 py-0.5 rounded-full bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30 text-xs font-bold">
-                      Score de Saúde: {kitsuneScore.score} • {kitsuneScore.label}
-                    </span>
-                  </div>
-
-                  {isGeneratingAi ? (
-                    <div className="flex items-center gap-3 py-2 text-xs text-[#94A3B8] animate-pulse">
-                      <Spinner size={16} />
-                      <span>A Kitsune IA está analisando seus lançamentos e preparando recomendações...</span>
-                    </div>
-                  ) : aiInsight ? (
-                    <p className="text-sm md:text-base text-[#94A3B8] leading-relaxed max-w-3xl whitespace-pre-line font-normal">
-                      {aiInsight.text}
-                    </p>
-                  ) : (
-                    <p className="text-sm text-[#94A3B8]">
-                      Seus dados financeiros estão prontos para análise consultiva. Clique ao lado para gerar seu diagnóstico personalizado.
-                    </p>
-                  )}
-
-                  <div className="flex items-center gap-4 text-xs text-[#94A3B8] pt-1">
-                    <span className="flex items-center gap-1.5">
-                      <span className="material-symbols-outlined text-sm text-[#10B981]">verified</span>
-                      Gerado com base em seus hábitos recentes
-                    </span>
-                    {aiInsight && (
-                      <>
-                        <span>•</span>
-                        <span>Atualizado em {new Date(aiInsight.updatedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
-                      </>
-                    )}
-                  </div>
-                </div>
+          {/* Painel Consultivo da Kitsune AI (Sóbrio, Sem Glows, 100% Dinâmico) */}
+          <section className="p-5 md:p-6 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
+            <div className="flex items-start gap-3.5 flex-1 min-w-0">
+              <div className="w-11 h-11 rounded-xl bg-[#FF8216]/10 text-[#FF8216] border border-[#FF8216]/20 flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-2xl">psychology</span>
               </div>
 
-              {/* Ações Rápidas da Consultora */}
-              <div className="flex flex-col sm:flex-row lg:flex-col gap-3 shrink-0 w-full lg:w-auto">
-                <Link
-                  href="/kitsune"
-                  className="h-11 px-6 rounded-xl bg-[#FF6B00] hover:bg-[#FF7D1A] active:bg-[#E05E00] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-[0_4px_16px_rgba(255,107,0,0.35)] transition-all cursor-pointer"
-                >
-                  <span className="material-symbols-outlined text-[18px]">chat_bubble</span>
-                  Conversar com a Kitsune
-                </Link>
-
-                <button
-                  onClick={generateAiInsight}
-                  disabled={isGeneratingAi}
-                  className="h-11 px-5 rounded-xl bg-[#1C2331] hover:bg-[#252A33] border border-[#263042] text-xs font-semibold text-[#F8FAFC] flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
-                >
-                  <span className="material-symbols-outlined text-[18px] text-[#FF6B00]">
-                    refresh
+              <div className="flex flex-col gap-1.5 flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="text-sm md:text-base font-bold text-slate-900 dark:text-[#F8FAFC]">
+                    Diagnóstico da Kitsune IA
+                  </h2>
+                  <span className={`px-2 py-0.5 rounded-full bg-slate-100 dark:bg-[#1A202C] text-xs font-bold ${kitsuneScore.color}`}>
+                    Score: {kitsuneScore.score} • {kitsuneScore.label}
                   </span>
-                  Atualizar Diagnóstico
-                </button>
+                </div>
+
+                {isGeneratingAi ? (
+                  <div className="flex items-center gap-2 py-1 text-xs text-slate-500 dark:text-[#94A3B8]">
+                    <Spinner size={14} className="text-[#FF8216]" />
+                    <span>A Kitsune IA está analisando seu patrimônio...</span>
+                  </div>
+                ) : aiInsight ? (
+                  <p className="text-xs md:text-sm text-slate-600 dark:text-[#94A3B8] leading-relaxed whitespace-pre-line font-normal">
+                    {aiInsight.text}
+                  </p>
+                ) : (
+                  <p className="text-xs md:text-sm text-slate-600 dark:text-[#94A3B8] leading-relaxed">
+                    Seu patrimônio consolidado está em <strong className="text-slate-800 dark:text-slate-200">{formatCurrency(totalBalance)}</strong> com <strong className="text-emerald-500">{formatCurrency(liquidBalance)}</strong> disponível em conta e <strong className="text-[#FF8216]">{formatCurrency(creditCardBalance)}</strong> em faturas abertas. Clique ao lado para gerar sua análise consultiva.
+                  </p>
+                )}
+
+                <div className="flex items-center gap-2 text-[10px] text-slate-400 pt-0.5">
+                  <span className="flex items-center gap-1">
+                    <span className="material-symbols-outlined text-xs text-emerald-500">verified</span>
+                    Baseado em dados reais do Open Finance
+                  </span>
+                  {aiInsight && (
+                    <>
+                      <span>•</span>
+                      <span>Atualizado às {new Date(aiInsight.updatedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
+                    </>
+                  )}
+                </div>
               </div>
+            </div>
+
+            {/* Ações da Consultora */}
+            <div className="flex flex-row md:flex-col gap-2 shrink-0 w-full md:w-auto">
+              <Link
+                href="/kitsune"
+                className="flex-1 md:flex-initial h-10 px-4 rounded-xl bg-[#FF8216] hover:bg-[#FFA047] active:bg-[#E66E08] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[16px]">chat</span>
+                <span>Conversar</span>
+              </Link>
+
+              <button
+                onClick={generateAiInsight}
+                disabled={isGeneratingAi}
+                className="flex-1 md:flex-initial h-10 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-[#1A202C] dark:hover:bg-[#222A3A] border border-slate-200 dark:border-[#262E3D] text-xs font-semibold text-slate-800 dark:text-[#F8FAFC] flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined text-[16px] text-[#FF8216]">refresh</span>
+                <span>Atualizar</span>
+              </button>
             </div>
           </section>
 
-          {/* Two Column Layout: Connected Accounts + Recent Transactions */}
-          <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            {/* Left Column: Minhas Contas e Cartões (5 cols) */}
-            <div className="lg:col-span-5 flex flex-col gap-4">
+          {/* Grid de 2 Colunas: Contas Conectadas + Lançamentos Recentes */}
+          <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* Coluna Esquerda: Minhas Contas & Cartões (5 cols) */}
+            <div className="lg:col-span-5 flex flex-col gap-3">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-xl text-[#FF6B00]">
+                <div className="flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-lg text-[#FF8216]">
                     account_balance_wallet
                   </span>
-                  <h2 className="text-base font-bold text-[#F8FAFC]">
+                  <h2 className="text-sm font-bold text-slate-900 dark:text-[#F8FAFC]">
                     Minhas Contas & Cartões
                   </h2>
                 </div>
-                <span className="text-xs text-[#94A3B8] bg-[#141A24] border border-[#263042] px-2.5 py-1 rounded-lg">
+                <span className="text-[11px] text-slate-500 dark:text-[#94A3B8] bg-slate-100 dark:bg-[#1A202C] border border-slate-200 dark:border-[#262E3D] px-2 py-0.5 rounded-md">
                   {filteredAccounts.length} Ativa(s)
                 </span>
               </div>
 
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-2.5">
                 {filteredAccounts.length > 0 ? (
                   filteredAccounts.map((account) => {
-                    const isCredit =
-                      account.type === "CREDIT" || account.type === "CREDIT_CARD";
+                    const isCredit = account.type === "CREDIT" || account.type === "CREDIT_CARD";
                     return (
                       <div
                         key={account.id}
-                        className="p-5 rounded-2xl bg-[#141A24] border border-[#263042] hover:border-[#FF6B00]/40 transition-all flex flex-col gap-3 shadow-sm"
+                        className="p-3.5 rounded-xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] flex items-center justify-between hover:border-[#FF8216]/40 transition-colors shadow-xs"
                       >
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-[#1C2331] flex items-center justify-center text-[#FF6B00]">
-                              <span className="material-symbols-outlined text-xl">
-                                {isCredit ? "credit_card" : "account_balance"}
-                              </span>
-                            </div>
-                            <div>
-                              <h3 className="text-sm font-bold text-[#F8FAFC]">
-                                {account.bank_name || account.name || "Instituição"}
-                              </h3>
-                              <p className="text-[11px] text-[#94A3B8]">
-                                {isCredit ? "Cartão de Crédito" : "Conta Corrente / Digital"}
-                              </p>
-                            </div>
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-[#1A202C] flex items-center justify-center text-slate-700 dark:text-slate-300 shrink-0">
+                            <span className="material-symbols-outlined text-[18px]">
+                              {isCredit ? "credit_card" : "account_balance"}
+                            </span>
                           </div>
-
-                          <span
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                              isCredit
-                                ? "bg-[#FF6B00]/15 text-[#FF6B00]"
-                                : "bg-[#10B981]/15 text-[#10B981]"
-                            }`}
-                          >
-                            <span
-                              className={`w-1.5 h-1.5 rounded-full ${
-                                isCredit ? "bg-[#FF6B00]" : "bg-[#10B981]"
-                              }`}
-                            />
-                            {isCredit ? "Fatura Aberta" : "Seguro & Ativo"}
-                          </span>
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-xs font-bold text-slate-900 dark:text-[#F8FAFC] truncate">
+                              {account.bank_name || "Conta Bancária"}
+                            </span>
+                            <span className="text-[11px] text-slate-400">
+                              {isCredit ? "Cartão de Crédito" : "Conta Corrente"}
+                            </span>
+                          </div>
                         </div>
 
-                        <div className="p-3 rounded-xl bg-[#0F141C] border border-[#263042]/70 flex items-center justify-between">
-                          <span className="text-xs text-[#94A3B8]">
-                            {isCredit ? "Fatura Atual:" : "Saldo Disponível:"}
-                          </span>
+                        <div className="flex flex-col items-end shrink-0 pl-2">
                           <span
-                            className={`text-base font-extrabold tabular-nums ${
-                              isCredit ? "text-[#FF6B00]" : "text-[#10B981]"
+                            className={`text-xs md:text-sm font-extrabold tabular-nums ${
+                              isCredit ? "text-[#FF8216]" : "text-slate-900 dark:text-white"
                             }`}
                           >
                             {formatCurrency(Number(account.balance) || 0)}
+                          </span>
+                          <span className="text-[10px] text-slate-400">
+                            {isCredit ? "Fatura atual" : "Saldo livre"}
                           </span>
                         </div>
                       </div>
                     );
                   })
                 ) : (
-                  <div className="p-8 text-center bg-[#141A24] rounded-2xl border border-[#263042] flex flex-col items-center justify-center gap-3">
-                    <span className="material-symbols-outlined text-3xl text-[#94A3B8]">
-                      account_balance
-                    </span>
-                    <p className="text-xs font-semibold text-[#F8FAFC]">
-                      Nenhuma instituição bancária conectada.
-                    </p>
-                    <button
-                      onClick={() => setIsConnectModalOpen(true)}
-                      className="px-4 py-2 bg-[#FF6B00] text-white rounded-xl text-xs font-bold shadow-md cursor-pointer"
+                  <div className="p-6 text-center bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] rounded-xl flex flex-col items-center gap-2">
+                    <p className="text-xs text-slate-400">Nenhuma conta conectada neste escopo.</p>
+                    <Link
+                      href="/agents"
+                      className="text-xs font-bold text-[#FF8216] hover:underline"
                     >
-                      Conectar Banco
-                    </button>
+                      Conectar banco no Open Finance
+                    </Link>
                   </div>
                 )}
               </div>
-
-              {/* Caixa de Garantia Bancária Bacen */}
-              <div className="p-4 rounded-xl bg-[#141A24] border border-[#263042] flex items-center gap-3 text-xs text-[#94A3B8]">
-                <span className="material-symbols-outlined text-xl text-[#10B981] shrink-0">
-                  shield
-                </span>
-                <p>
-                  Protegido pelos protocolos do <strong className="text-[#F8FAFC]">Banco Central do Brasil</strong>. Nenhuma senha bancária é armazenada.
-                </p>
-              </div>
             </div>
 
-            {/* Right Column: Movimentações Recentes (7 cols) */}
-            <div className="lg:col-span-7 flex flex-col gap-4">
+            {/* Coluna Direita: Lançamentos Recentes (7 cols) */}
+            <div className="lg:col-span-7 flex flex-col gap-3">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-xl text-[#FF6B00]">
+                <div className="flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-lg text-[#FF8216]">
                     receipt_long
                   </span>
-                  <h2 className="text-base font-bold text-[#F8FAFC]">
+                  <h2 className="text-sm font-bold text-slate-900 dark:text-[#F8FAFC]">
                     Movimentações Recentes
                   </h2>
                 </div>
                 <button
                   onClick={() => setActiveTab("Extrato & Transações")}
-                  className="text-xs text-[#FF6B00] font-semibold hover:underline flex items-center gap-1 cursor-pointer"
+                  className="text-xs font-bold text-[#FF8216] hover:underline cursor-pointer flex items-center gap-0.5"
                 >
-                  Ver extrato completo
-                  <span className="material-symbols-outlined text-[15px]">
-                    chevron_right
-                  </span>
+                  Ver extrato
+                  <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
                 </button>
               </div>
 
-              <div className="flex flex-col bg-[#141A24] border border-[#263042] rounded-2xl shadow-sm overflow-hidden divide-y divide-[#263042]/70">
-                {filteredTransactions.length > 0 ? (
-                  filteredTransactions.slice(0, 15).map((txn) => {
-                    const isCredit = txn.type === "CREDIT" || Number(txn.amount) > 0;
+              <div className="flex flex-col gap-2">
+                {filteredTransactions.slice(0, 7).length > 0 ? (
+                  filteredTransactions.slice(0, 7).map((txn) => {
+                    const amt = Number(txn.amount) || 0;
+                    const isCredit = txn.type === "CREDIT" || amt > 0;
                     return (
                       <div
                         key={txn.id}
-                        className="flex items-center justify-between p-4 hover:bg-[#1C2331]/50 transition-colors"
+                        className="p-3 rounded-xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] flex items-center justify-between gap-3 shadow-xs"
                       >
-                        <div className="flex items-center gap-3.5">
+                        <div className="flex items-center gap-2.5 min-w-0">
                           <div
-                            className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                            className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
                               isCredit
-                                ? "bg-[#10B981]/15 text-[#10B981]"
-                                : "bg-[#EF4444]/15 text-[#EF4444]"
+                                ? "bg-emerald-500/10 text-emerald-500"
+                                : "bg-slate-100 dark:bg-[#1A202C] text-slate-500 dark:text-slate-400"
                             }`}
                           >
-                            <span className="material-symbols-outlined text-base">
-                              {isCredit ? "payments" : "shopping_cart"}
+                            <span className="material-symbols-outlined text-[16px]">
+                              {isCredit ? "arrow_downward" : "arrow_upward"}
                             </span>
                           </div>
-                          <div className="flex flex-col">
-                            <span className="text-xs md:text-sm font-semibold text-[#F8FAFC] line-clamp-1">
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
                               {txn.description}
                             </span>
-                            <div className="flex items-center gap-2 text-[11px] text-[#94A3B8] mt-0.5">
-                              <span>{formatDate(txn.executed_at || txn.date)}</span>
-                              <span>•</span>
-                              <span>{txn.category || "Outros"}</span>
-                            </div>
+                            <span className="text-[10px] text-slate-400">
+                              {formatDate(txn.executed_at || txn.date)} • {txn.category || "Geral"}
+                            </span>
                           </div>
                         </div>
 
                         <span
-                          className={`text-sm font-bold tabular-nums shrink-0 pl-3 ${
-                            isCredit ? "text-[#10B981]" : "text-[#EF4444]"
+                          className={`text-xs md:text-sm font-bold tabular-nums shrink-0 ${
+                            isCredit ? "text-emerald-500" : "text-slate-800 dark:text-slate-200"
                           }`}
                         >
-                          {isCredit ? "+ " : "- "}
-                          {formatCurrency(Math.abs(Number(txn.amount)))}
+                          {isCredit ? "+" : "-"}
+                          {formatCurrency(Math.abs(amt))}
                         </span>
                       </div>
                     );
                   })
                 ) : (
-                  <div className="p-8 text-center text-xs text-[#94A3B8]">
-                    Nenhuma transação sincronizada ainda.
+                  <div className="p-6 text-center bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] rounded-xl text-xs text-slate-400">
+                    Nenhuma transação registrada no período.
                   </div>
                 )}
               </div>
@@ -710,53 +674,34 @@ export default function DashboardPage() {
           </section>
         </>
       ) : activeTab === "Extrato & Transações" ? (
-        <section className="flex flex-col gap-4">
+        /* Aba Extrato */
+        <section className="bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] rounded-2xl p-4 md:p-6 shadow-xs flex flex-col gap-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold text-[#F8FAFC]">
-              Histórico Completo de Transações ({filteredTransactions.length})
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+              Extrato Consolidado ({filteredTransactions.length} lançamentos)
             </h2>
-            <span className="text-xs text-[#94A3B8]">{scopeLabel}</span>
           </div>
 
-          <div className="flex flex-col bg-[#141A24] border border-[#263042] rounded-2xl shadow-sm overflow-hidden divide-y divide-[#263042]/70">
-            {filteredTransactions.map((txn) => {
-              const isCredit = txn.type === "CREDIT" || Number(txn.amount) > 0;
+          <div className="flex flex-col divide-y divide-slate-100 dark:divide-white/5">
+            {filteredTransactions.slice(0, 30).map((txn) => {
+              const amt = Number(txn.amount) || 0;
+              const isCredit = txn.type === "CREDIT" || amt > 0;
               return (
-                <div
-                  key={txn.id}
-                  className="flex items-center justify-between p-4 hover:bg-[#1C2331]/50 transition-colors"
-                >
-                  <div className="flex items-center gap-3.5">
-                    <div
-                      className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                        isCredit
-                          ? "bg-[#10B981]/15 text-[#10B981]"
-                          : "bg-[#EF4444]/15 text-[#EF4444]"
-                      }`}
-                    >
-                      <span className="material-symbols-outlined text-base">
-                        {isCredit ? "arrow_upward" : "arrow_downward"}
-                      </span>
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-sm font-semibold text-[#F8FAFC]">
-                        {txn.description}
-                      </span>
-                      <div className="flex items-center gap-2 text-xs text-[#94A3B8] mt-0.5">
-                        <span>{formatDate(txn.executed_at || txn.date)}</span>
-                        <span>•</span>
-                        <span>{txn.category || "Outros"}</span>
-                      </div>
-                    </div>
+                <div key={txn.id} className="py-2.5 flex items-center justify-between text-xs">
+                  <div className="flex flex-col">
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">
+                      {txn.description}
+                    </span>
+                    <span className="text-[10px] text-slate-400">
+                      {formatDate(txn.executed_at || txn.date)} • {txn.category || "Outros"}
+                    </span>
                   </div>
-
                   <span
-                    className={`text-sm font-bold tabular-nums shrink-0 pl-3 ${
-                      isCredit ? "text-[#10B981]" : "text-[#EF4444]"
+                    className={`font-bold tabular-nums ${
+                      isCredit ? "text-emerald-500" : "text-slate-800 dark:text-slate-200"
                     }`}
                   >
-                    {isCredit ? "+ " : "- "}
-                    {formatCurrency(Math.abs(Number(txn.amount)))}
+                    {isCredit ? "+" : "-"} {formatCurrency(Math.abs(amt))}
                   </span>
                 </div>
               );
@@ -764,193 +709,235 @@ export default function DashboardPage() {
           </div>
         </section>
       ) : activeTab === "Cartões de Crédito" ? (
-        <section className="flex flex-col gap-4">
-          <h2 className="text-base font-bold text-[#F8FAFC]">
-            Meus Cartões de Crédito
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredAccounts.filter((a) => a.type === "CREDIT" || a.type === "CREDIT_CARD")
-              .length > 0 ? (
-              filteredAccounts
-                .filter((a) => a.type === "CREDIT" || a.type === "CREDIT_CARD")
-                .map((card) => (
-                  <div
-                    key={card.id}
-                    className="bg-[#141A24] border border-[#263042] rounded-3xl p-6 text-white shadow-xl flex flex-col justify-between h-48 relative overflow-hidden"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-sm tracking-wide text-[#F8FAFC]">
-                        {card.bank_name || card.name}
-                      </span>
-                      <span className="material-symbols-outlined text-[#FF6B00] text-xl">
-                        contactless
-                      </span>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <span className="text-xs text-[#94A3B8]">Fatura Atual</span>
-                      <span className="text-2xl font-extrabold tabular-nums tracking-tight text-[#FF6B00]">
-                        {formatCurrency(Number(card.balance) || 0)}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between pt-2 border-t border-[#263042] text-xs text-[#94A3B8]">
-                      <span>{userDisplayName}</span>
-                      <span>{card.currency || "BRL"}</span>
-                    </div>
+        /* Aba Cartões */
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {filteredAccounts
+            .filter((a) => a.type === "CREDIT" || a.type === "CREDIT_CARD")
+            .map((card) => (
+              <div
+                key={card.id}
+                className="p-5 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] shadow-xs flex flex-col justify-between gap-3"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[#FF8216]">credit_card</span>
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                      {card.bank_name}
+                    </h3>
                   </div>
-                ))
-            ) : (
-              <div className="col-span-full p-8 text-center bg-[#141A24] rounded-2xl border border-[#263042] text-xs text-[#94A3B8]">
-                Nenhum cartão de crédito registrado no momento.
-              </div>
-            )}
-          </div>
-        </section>
-      ) : activeTab === "Categorias de Gastos" ? (
-        <section className="flex flex-col gap-4">
-          <h2 className="text-base font-bold text-[#F8FAFC]">
-            Despesas por Categoria (Mês Atual)
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {categorySummary.length > 0 ? (
-              categorySummary.map((cat) => (
-                <div
-                  key={cat.name}
-                  className="bg-[#141A24] border border-[#263042] rounded-2xl p-5 flex items-center justify-between"
-                >
-                  <div className="flex flex-col gap-1">
-                    <span className="font-bold text-sm text-[#F8FAFC]">
-                      {cat.name}
-                    </span>
-                    <span className="text-xs text-[#94A3B8]">
-                      {cat.count} {cat.count === 1 ? "lançamento" : "lançamentos"}
-                    </span>
-                  </div>
-                  <span className="text-sm font-extrabold tabular-nums text-[#EF4444]">
-                    {formatCurrency(cat.total)}
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#FF8216]/10 text-[#FF8216]">
+                    Fatura Aberta
                   </span>
                 </div>
-              ))
-            ) : (
-              <div className="col-span-full p-8 text-center bg-[#141A24] rounded-2xl border border-[#263042] text-xs text-[#94A3B8]">
-                Nenhuma despesa categorizada até o momento.
+                <div>
+                  <span className="text-xs text-slate-400">Valor Atual da Fatura</span>
+                  <div className="text-2xl font-extrabold text-[#FF8216] tabular-nums mt-0.5">
+                    {formatCurrency(Number(card.balance) || 0)}
+                  </div>
+                </div>
               </div>
-            )}
+            ))}
+        </section>
+      ) : activeTab === "Categorias de Gastos" ? (
+        /* Aba Categorias */
+        <section className="bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] rounded-2xl p-4 md:p-6 shadow-xs flex flex-col gap-3">
+          <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+            Distribuição de Gastos do Mês
+          </h2>
+          <div className="flex flex-col gap-2 pt-2">
+            {categorySummary.map((cat) => (
+              <div
+                key={cat.name}
+                className="p-3 rounded-xl bg-slate-50 dark:bg-[#0E121A] flex items-center justify-between text-xs"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[16px] text-[#FF8216]">
+                    category
+                  </span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">
+                    {cat.name}
+                  </span>
+                  <span className="text-[10px] text-slate-400">({cat.count} lançamentos)</span>
+                </div>
+                <span className="font-bold text-slate-900 dark:text-white tabular-nums">
+                  {formatCurrency(cat.total)}
+                </span>
+              </div>
+            ))}
           </div>
         </section>
       ) : (
-        /* Aba: Visão Familiar */
+        /* Aba: Visão Compartilhada / Agregação Familiar Completa */
         <section className="flex flex-col gap-6">
-          <div className="bg-[#141A24] border border-[#263042] rounded-3xl p-6 md:p-8 flex flex-col gap-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#263042] pb-6">
+          <div className="bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] rounded-2xl p-5 md:p-6 flex flex-col gap-5 shadow-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-white/5 pb-4">
               <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[#FF6B00]">
-                    diversity_3
-                  </span>
-                  <h2 className="text-lg font-bold text-[#F8FAFC]">
-                    Visão Compartilhada / Agregação Familiar
+                  <span className="material-symbols-outlined text-[#FF8216]">diversity_3</span>
+                  <h2 className="text-base font-bold text-slate-900 dark:text-[#F8FAFC]">
+                    Agregação Familiar & Compartilhamento
                   </h2>
                 </div>
-                <p className="text-xs text-[#94A3B8] max-w-2xl leading-relaxed">
-                  Por padrão, o Kitsune Finance opera de forma 100% individual. Ative este modo opcional caso queira organizar contas conjuntas ou de dependentes no seu workspace.
+                <p className="text-xs text-slate-500 dark:text-[#94A3B8] max-w-2xl leading-relaxed">
+                  Conecte contas de dependentes ou parceiros ao seu workspace. Cada membro pode vincular seus próprios bancos via Open Finance de forma isolada.
                 </p>
               </div>
 
               <button
                 onClick={() => setIsFamilyModeEnabled(!isFamilyModeEnabled)}
-                className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 flex items-center gap-2 ${
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 flex items-center gap-1.5 ${
                   isFamilyModeEnabled
-                    ? "bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30"
-                    : "bg-[#FF6B00] text-white shadow-md shadow-[#FF6B00]/20"
+                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                    : "bg-[#FF8216] text-white shadow-xs"
                 }`}
               >
                 <span className="material-symbols-outlined text-[16px]">
                   {isFamilyModeEnabled ? "check_circle" : "toggle_on"}
                 </span>
-                {isFamilyModeEnabled
-                  ? "Visão Compartilhada Ativa"
-                  : "Ativar Visão Compartilhada"}
+                {isFamilyModeEnabled ? "Visão Familiar Ativa" : "Ativar Modo Familiar"}
               </button>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              {/* Formulário de Adicionar Membro */}
               <form
                 onSubmit={handleAddFamilyMember}
-                className="p-5 bg-[#0F141C] border border-[#263042] rounded-2xl flex flex-col gap-4"
+                className="lg:col-span-5 p-4 rounded-xl bg-slate-50 dark:bg-[#0E121A] border border-slate-200 dark:border-[#262E3D] flex flex-col gap-3.5"
               >
-                <h3 className="text-xs font-bold text-[#F8FAFC] flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[#FF6B00] text-[18px]">
-                    person_add
+                <div className="flex flex-col gap-0.5">
+                  <h3 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-[#FF8216] text-[17px]">
+                      person_add
+                    </span>
+                    Adicionar Membro da Família
+                  </h3>
+                  <span className="text-[11px] text-slate-400">
+                    Crie o perfil e envie o convite para conectar contas bancárias.
                   </span>
-                  Adicionar Membro ao Workspace
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                </div>
+
+                <div className="flex flex-col gap-2">
                   <input
                     type="text"
-                    placeholder="Nome do membro (ex: Ana)"
+                    placeholder="Nome do membro (ex: Mariana)"
                     value={newMemberName}
                     onChange={(e) => setNewMemberName(e.target.value)}
                     required
-                    className="p-3 bg-[#141A24] border border-[#263042] rounded-xl text-xs text-[#F8FAFC] focus:outline-none focus:border-[#FF6B00]"
+                    className="p-2.5 bg-white dark:bg-[#141A24] border border-slate-200 dark:border-[#262E3D] rounded-xl text-xs text-slate-900 dark:text-[#F8FAFC] focus:outline-none focus:border-[#FF8216]"
                   />
+
                   <CustomDropdown
                     value={newMemberRole}
                     onChange={(val) => setNewMemberRole(val)}
                     options={[
-                      { value: "Titular", label: "Titular" },
-                      { value: "Cônjuge", label: "Cônjuge" },
+                      { value: "Cônjuge", label: "Cônjuge / Parceiro(a)" },
+                      { value: "Filho(a)", label: "Filho(a) / Dependente" },
                       { value: "Sócio(a)", label: "Sócio(a)" },
-                      { value: "Filho(a)", label: "Filho(a)" },
-                      { value: "Dependente", label: "Dependente" },
+                      { value: "Outro", label: "Outro Membro" },
                     ]}
                   />
                 </div>
+
                 <button
                   type="submit"
                   disabled={isCreatingMember || !newMemberName.trim()}
-                  className="self-start px-5 py-2.5 bg-[#FF6B00] hover:bg-[#FF7D1A] text-white rounded-xl text-xs font-bold disabled:opacity-50 cursor-pointer"
+                  className="h-10 px-4 bg-[#FF8216] hover:bg-[#FFA047] text-white rounded-xl text-xs font-bold disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1.5"
                 >
-                  {isCreatingMember ? "Adicionando..." : "Adicionar Membro"}
+                  {isCreatingMember ? (
+                    <Spinner size={14} className="text-white" />
+                  ) : (
+                    <span className="material-symbols-outlined text-[16px]">add</span>
+                  )}
+                  <span>Adicionar Membro</span>
                 </button>
               </form>
 
-              <div className="flex flex-col gap-3">
-                <h3 className="text-xs font-bold text-[#F8FAFC]">
-                  Membros Cadastrados ({familyMembers.length})
-                </h3>
+              {/* Lista de Membros e Suas Conexões */}
+              <div className="lg:col-span-7 flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-bold text-slate-900 dark:text-white">
+                    Membros Cadastrados ({familyMembers.length})
+                  </h3>
+                  <span className="text-[11px] text-slate-400">
+                    Clique para vincular bancos ou compartilhar link
+                  </span>
+                </div>
+
                 {familyMembers.length > 0 ? (
-                  <div className="flex flex-col gap-2">
-                    {familyMembers.map((m) => (
-                      <div
-                        key={m.id}
-                        className="flex items-center justify-between p-3.5 bg-[#0F141C] border border-[#263042] rounded-2xl"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-[#FF6B00]/15 text-[#FF6B00] flex items-center justify-center">
-                            <span className="material-symbols-outlined text-sm">person</span>
+                  <div className="flex flex-col gap-2.5">
+                    {familyMembers.map((m) => {
+                      const memberAccounts = accounts.filter((a) => a.family_member_id === m.id);
+                      return (
+                        <div
+                          key={m.id}
+                          className="p-3.5 bg-slate-50 dark:bg-[#0E121A] border border-slate-200 dark:border-[#262E3D] rounded-xl flex flex-col gap-2.5"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-8 h-8 rounded-full bg-[#FF8216]/10 text-[#FF8216] flex items-center justify-center font-bold text-xs">
+                                {m.name.slice(0, 2).toUpperCase()}
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-xs font-bold text-slate-900 dark:text-[#F8FAFC]">
+                                  {m.name}
+                                </span>
+                                <span className="text-[11px] text-slate-400">
+                                  {m.role || "Membro"} • {memberAccounts.length} conta(s) vinculada(s)
+                                </span>
+                              </div>
+                            </div>
+
+                            <button
+                              onClick={() => handleDeleteFamilyMember(m.id)}
+                              className="text-slate-400 hover:text-red-500 transition-colors p-1 cursor-pointer"
+                              title="Remover membro"
+                            >
+                              <span className="material-symbols-outlined text-[16px]">delete</span>
+                            </button>
                           </div>
-                          <div className="flex flex-col">
-                            <span className="text-xs font-semibold text-[#F8FAFC]">
-                              {m.name}
-                            </span>
-                            <span className="text-[11px] text-[#94A3B8]">
-                              {m.role || "Membro"}
-                            </span>
+
+                          {/* Contas do Membro */}
+                          {memberAccounts.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5 pt-1">
+                              {memberAccounts.map((acc) => (
+                                <span
+                                  key={acc.id}
+                                  className="text-[10px] px-2 py-0.5 rounded-md bg-white dark:bg-[#161B26] border border-slate-200 dark:border-white/5 font-semibold text-slate-700 dark:text-slate-300"
+                                >
+                                  {acc.bank_name} ({formatCurrency(Number(acc.balance) || 0)})
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Ações de Conexão do Membro */}
+                          <div className="pt-2 border-t border-slate-200/60 dark:border-white/5 flex items-center gap-2">
+                            <button
+                              onClick={() => {
+                                setConnectForMemberId(m.id);
+                                setIsConnectModalOpen(true);
+                              }}
+                              className="h-8 px-2.5 rounded-lg bg-[#FF8216]/10 hover:bg-[#FF8216]/20 text-[#FF8216] text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                            >
+                              <span className="material-symbols-outlined text-[14px]">add_link</span>
+                              <span>Conectar Banco via Open Finance</span>
+                            </button>
+
+                            <button
+                              onClick={() => handleCopyInviteLink(m.id)}
+                              className="h-8 px-2.5 rounded-lg bg-white dark:bg-[#141A24] hover:bg-slate-100 dark:hover:bg-[#1A202C] border border-slate-200 dark:border-[#262E3D] text-[11px] font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1 transition-colors cursor-pointer"
+                            >
+                              <span className="material-symbols-outlined text-[14px]">link</span>
+                              <span>{copiedMemberId === m.id ? "Link Copiado!" : "Copiar Link"}</span>
+                            </button>
                           </div>
                         </div>
-
-                        <button
-                          onClick={() => handleDeleteFamilyMember(m.id)}
-                          className="text-[#94A3B8] hover:text-[#EF4444] transition-colors p-1.5 cursor-pointer"
-                        >
-                          <span className="material-symbols-outlined text-[18px]">delete</span>
-                        </button>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
-                  <p className="text-xs text-[#94A3B8]">
-                    Nenhum membro adicional cadastrado. Suas contas estão vinculadas diretamente ao seu usuário.
+                  <p className="text-xs text-slate-400 p-4 rounded-xl bg-slate-50 dark:bg-[#0E121A] text-center border border-slate-200 dark:border-[#262E3D]">
+                    Nenhum membro adicional cadastrado. Adicione seu cônjuge ou dependentes para consolidar o patrimônio da família.
                   </p>
                 )}
               </div>
@@ -959,11 +946,15 @@ export default function DashboardPage() {
         </section>
       )}
 
-      {/* Modal de Conexão Open Finance */}
+      {/* Modal de Conexão Open Finance com suporte a Membro da Família */}
       <PluggyConnectModal
         isOpen={isConnectModalOpen}
-        onClose={() => setIsConnectModalOpen(false)}
+        onClose={() => {
+          setIsConnectModalOpen(false);
+          setConnectForMemberId(null);
+        }}
         familyMembers={familyMembers}
+        initialMemberId={connectForMemberId}
         onMemberCreated={(newMember) => {
           addFamilyMemberLocal(newMember);
         }}

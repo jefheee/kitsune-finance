@@ -4,6 +4,20 @@ Todas as alterações notáveis no projeto Kitsune Finance são registradas de f
 
 ---
 
+## [2026-10-27] - Refinamento Impeccable: Laranja Oficial #FF8216, Tema Claro/Escuro, Voz Universal & Mobile
+- **Arquivos Afetados:** `globals.css`, `layout.tsx`, `AppShell.tsx`, `dashboard/page.tsx`, `kitsune/page.tsx`, `agents/page.tsx`, `profile/page.tsx`, `settings/page.tsx`, `Spinner.tsx`, `template.tsx`, `loading.tsx`, `api/ai/transcribe/route.ts`, `api/ai/generate-insight/route.ts`, `PluggyConnectModal.tsx`, `docs/PROJECT_STATE.md`, `docs/CHANGELOG.md`.
+- **Objetivo:** 
+  - Unificação da cor primária oficial para `#FF8216` da logo em todo o CSS, ícones, botões e acentos.
+  - Correção completa do tema claro (legibilidade de alto contraste e sem classes conflitantes no `body`).
+  - Remoção de todos os degradês excessivos, neon glows e textos fixos/mockups do Stitch no Dashboard.
+  - Reestruturação da barra lateral: remoção do ícone duplicado de perfil e fixação exclusiva no avatar inferior.
+  - Implementação de entrada de voz universal no chat via Whisper (`/api/ai/transcribe`) com compatibilidade para Zen Browser, Firefox e Chrome.
+  - Ajuste nas sugestões de prompt para preenchimento de input com retenção de contextos anexados.
+  - Eliminação do spinner gigante no chat em favor de indicador de digitação discreto e refinado.
+  - Criação da página completa de Configurações (`/settings`) e reformulação mobile responsiva em todas as 22 rotas.
+
+---
+
 ## [2026-10-27] - Redesign Open Finance Warm Obsidian, Otimização de Tokens & FAQ de Segurança
 - **Arquivos Afetados:** `src/app/agents/page.tsx`, `src/app/api/chat/route.ts`, `src/context/FinanceDataContext.tsx`, `docs/PROJECT_STATE.md`, `docs/CHANGELOG.md`.
 - **Objetivo:** 

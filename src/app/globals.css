@@ -3,14 +3,14 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  --color-kitsune: #FF6B00; /* Laranja Chama Kitsune (Stitch Primary) */
-  --color-kitsune-hover: #FF7D1A;
-  --color-kitsune-active: #E05E00;
-  --color-surface-lowest: #090E16;
-  --color-surface-base: #0F141C;
-  --color-surface-card: #141A24;
-  --color-surface-elevated: #1C2331;
-  --color-border-subtle: #263042;
+  --color-kitsune: #FF8216; /* Laranja Oficial Kitsune Finance */
+  --color-kitsune-hover: #FFA047;
+  --color-kitsune-active: #E66E08;
+  --color-surface-lowest: #05070A;
+  --color-surface-base: #0B0E14;
+  --color-surface-card: #12161F;
+  --color-surface-elevated: #1A202C;
+  --color-border-subtle: #262E3D;
   --color-success-mint: #10B981;
   --color-danger-crimson: #EF4444;
   --font-sans: var(--font-plus-jakarta), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -24,22 +24,24 @@
   --sar: env(safe-area-inset-right, 0px);
 }
 
+/* Suporte de alto contraste para Tema Claro e Tema Escuro */
 body {
-  background-color: #0F141C;
-  color: #F8FAFC;
+  background-color: #F8FAFC;
+  color: #0F172A;
   overflow-x: hidden;
   padding-top: var(--sat);
   padding-left: var(--sal);
   padding-right: var(--sar);
   font-family: var(--font-sans);
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .dark body {
-  background-color: #0F141C;
+  background-color: #0B0E14;
   color: #F8FAFC;
 }
 
-/* Tabular Numerals para alinhamento vertical exato de moedas (Untitled UI & Stitch) */
+/* Tabular Numerals para alinhamento vertical exato de moedas */
 .tabular-nums {
   font-variant-numeric: tabular-nums;
 }
@@ -52,9 +54,9 @@ body {
   padding-bottom: max(env(safe-area-inset-bottom, 0px), 8px);
 }
 
-/* Estilização limpa e premium para Markdown no balão da Kitsune AI (inspirada em Gemini e ChatGPT) */
+/* Estilização limpa e premium para Markdown no balão da Kitsune AI */
 .kitsune-markdown {
-  color: #e4e4e7;
+  color: inherit;
   font-size: 0.9375rem; /* 15px */
   line-height: 1.7;
 }
@@ -68,20 +70,23 @@ body {
 }
 
 .kitsune-markdown strong {
-  color: #ffffff;
   font-weight: 700;
+  color: inherit;
+}
+
+.dark .kitsune-markdown strong {
+  color: #ffffff;
 }
 
 .kitsune-markdown em {
-  color: #cbd5e1;
   font-style: italic;
+  opacity: 0.9;
 }
 
 /* Títulos com hierarquia visual clara e tamanhos escalonados */
 .kitsune-markdown h1 {
   font-size: 1.35rem;
   font-weight: 800;
-  color: #ffffff;
   margin-top: 1.5rem;
   margin-bottom: 0.75rem;
   letter-spacing: -0.02em;
@@ -90,7 +95,6 @@ body {
 .kitsune-markdown h2 {
   font-size: 1.15rem;
   font-weight: 700;
-  color: #ffffff;
   margin-top: 1.4rem;
   margin-bottom: 0.65rem;
   letter-spacing: -0.015em;
@@ -99,7 +103,6 @@ body {
 .kitsune-markdown h3 {
   font-size: 1.025rem;
   font-weight: 700;
-  color: #f4f4f5;
   margin-top: 1.25rem;
   margin-bottom: 0.5rem;
 }
@@ -107,7 +110,6 @@ body {
 .kitsune-markdown h4 {
   font-size: 0.9375rem;
   font-weight: 600;
-  color: #d4d4d8;
   margin-top: 1rem;
   margin-bottom: 0.4rem;
 }
@@ -131,23 +133,19 @@ body {
 
 .kitsune-markdown li {
   line-height: 1.65;
-  color: #e4e4e7;
 }
 
-.kitsune-markdown li::marker {
-  color: #a1a1aa;
-}
-
-/* Separadores Horizontais (---): generosamente espaçados, suaves e nunca grudados no texto */
+/* Separadores Horizontais (---) */
 .kitsune-markdown hr {
   border: none;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12), transparent);
+  background: currentColor;
+  opacity: 0.15;
   margin-top: 1.75rem;
   margin-bottom: 1.75rem;
 }
 
-/* Tabelas estilo SaaS corporativo / Gemini */
+/* Tabelas estilo SaaS corporativo */
 .kitsune-markdown table {
   width: 100%;
   border-collapse: separate;
@@ -156,38 +154,37 @@ body {
   font-size: 0.84rem;
   overflow: hidden;
   border-radius: 0.75rem;
+  border: 1px solid rgba(140, 150, 165, 0.2);
+}
+
+.dark .kitsune-markdown table {
   border: 1px solid rgba(255, 255, 255, 0.1);
-  background-color: rgba(24, 24, 27, 0.6);
+  background-color: rgba(18, 22, 31, 0.6);
 }
 
 .kitsune-markdown th {
-  background-color: rgba(255, 255, 255, 0.05);
-  color: #facc15; /* Destaque suave */
+  background-color: rgba(255, 130, 22, 0.08);
+  color: #FF8216;
   font-weight: 600;
   text-align: left;
   padding: 0.7rem 0.9rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(140, 150, 165, 0.15);
 }
 
 .kitsune-markdown td {
   padding: 0.65rem 0.9rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  color: #e4e4e7;
+  border-bottom: 1px solid rgba(140, 150, 165, 0.1);
 }
 
 .kitsune-markdown tr:last-child td {
   border-bottom: none;
 }
 
-.kitsune-markdown tr:hover td {
-  background-color: rgba(255, 255, 255, 0.02);
-}
-
 /* Blocos de Código Inline e Fenced Code */
 .kitsune-markdown code:not(pre code) {
   font-family: var(--font-jetbrains-mono), monospace;
-  background-color: rgba(255, 255, 255, 0.08);
-  color: #fdba74;
+  background-color: rgba(255, 130, 22, 0.1);
+  color: #FF8216;
   padding: 0.2rem 0.4rem;
   border-radius: 0.375rem;
   font-size: 0.85em;
@@ -196,7 +193,7 @@ body {
 .kitsune-markdown pre {
   margin: 1.2rem 0;
   border-radius: 0.875rem;
-  background-color: #121215;
+  background-color: #0B0E14;
   border: 1px solid rgba(255, 255, 255, 0.1);
   overflow-x: auto;
   padding: 1rem;
@@ -206,17 +203,17 @@ body {
   font-family: var(--font-jetbrains-mono), monospace;
   font-size: 0.825rem;
   line-height: 1.6;
-  color: #e4e4e7;
+  color: #F8FAFC;
   background: transparent;
   padding: 0;
 }
 
 /* Citações / Blockquotes */
 .kitsune-markdown blockquote {
-  border-left: 3px solid #ff7a00;
+  border-left: 3px solid #FF8216;
   margin: 1rem 0;
   padding-left: 1rem;
-  color: #a1a1aa;
+  opacity: 0.85;
   font-style: italic;
 }
 
@@ -229,9 +226,9 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #27272a;
+  background: rgba(150, 160, 180, 0.25);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #FF7A00;
+  background: #FF8216;
 }

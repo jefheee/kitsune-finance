@@ -166,7 +166,7 @@ export default function LoginPage() {
           <button 
             type="submit" 
             disabled={isLoadingEmail || isLoadingGoogle || isLoadingApple}
-            className="w-full h-14 flex items-center justify-center gap-3 bg-[#FF7A00] hover:bg-[#E56E00] text-white rounded-2xl font-sans font-bold transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed mt-2"
+            className="w-full h-14 flex items-center justify-center gap-3 bg-[#FF8216] hover:bg-[#FFA047] active:bg-[#E66E08] text-white rounded-2xl font-sans font-bold transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed mt-2"
           >
             {isLoadingEmail ? (
               <div className="flex items-center gap-2">

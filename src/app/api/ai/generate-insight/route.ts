@@ -52,15 +52,19 @@ export async function POST(req: Request) {
 
     const { data: transactions } = await txQuery;
 
-    const totalBalance = (bankAccounts || []).reduce((acc, curr) => {
-      const bal = Number(curr.balance) || 0;
-      return curr.type === 'CREDIT' || curr.type === 'CREDIT_CARD' ? acc - bal : acc + bal;
-    }, 0);
+    let liquidBalance = 0;
+    let creditDebt = 0;
 
-    const creditDebt = (bankAccounts || []).reduce((acc, curr) => {
-      const bal = Number(curr.balance) || 0;
-      return curr.type === 'CREDIT' || curr.type === 'CREDIT_CARD' ? acc + bal : acc;
-    }, 0);
+    (bankAccounts || []).forEach((acc) => {
+      const bal = Number(acc.balance) || 0;
+      if (acc.type === 'CREDIT' || acc.type === 'CREDIT_CARD') {
+        creditDebt += Math.abs(bal);
+      } else {
+        liquidBalance += bal;
+      }
+    });
+
+    const totalBalance = liquidBalance - creditDebt;
 
     const now = new Date();
     const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -102,10 +106,14 @@ export async function POST(req: Request) {
       .join(', ');
 
     const systemInstruction = `Você é a Kitsune AI, estrategista patrimonial pessoal e Private Wealth Advisor do Kitsune Finance.
-Sua missão é entregar diagnósticos financeiros claros, objetivos, elegantes e acionáveis em português do Brasil.`;
+Sua missão é entregar diagnósticos financeiros claros, objetivos, elegantes e acionáveis em português do Brasil.
+Diretrizes:
+- Baseie-se ESTRITAMENTE nos números numéricos fornecidos no prompt. Nunca invente ou altere valores de saldo ou patrimônio.
+- Se o patrimônio líquido for positivo, não diga que é negativo. Formate valores como R$ X.XXX,XX.`;
 
     const prompt = `Analise os dados patrimoniais reais do usuário autenticado:
 - Patrimônio Líquido Consolidado: R$ ${totalBalance.toFixed(2)}
+- Saldo Disponível em Conta: R$ ${liquidBalance.toFixed(2)}
 - Faturas de Cartão de Crédito Atuais: R$ ${creditDebt.toFixed(2)}
 - Receitas no Mês Atual: R$ ${monthlyIncome.toFixed(2)}
 - Despesas no Mês Atual: R$ ${monthlyExpense.toFixed(2)}
@@ -114,7 +122,7 @@ Sua missão é entregar diagnósticos financeiros claros, objetivos, elegantes e
 - Quantidade de Contas/Cartões Conectados: ${(bankAccounts || []).length}
 
 Elabore um diagnóstico executivo em no máximo 3 parágrafos curtos (usando formatação limpa):
-1. Visão de liquidez e balanço entre entradas, saídas e exposição em cartão de crédito.
+1. Visão de liquidez real e balanço entre entradas, saídas e faturas abertas.
 2. Padrão de consumo observado nas maiores despesas/categorias.
 3. Uma recomendação prática e imediata para otimização patrimonial.`;
 

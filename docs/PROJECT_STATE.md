@@ -46,3 +46,9 @@
 - [x] Conexões Bancárias Open Finance com Security Assurance Banner, Quick Bank Grid e FAQ (`/agents`)
 - [x] Otimização de Tokens no Chat AI (formato compacto de alta densidade ~85% de economia)
 - [x] Roteamento Automático de Modelos de IA ativado por padrão (`auto`)
+- [x] Unificação da cor oficial `#FF8216` da logo em todo o projeto
+- [x] Suporte universal a temas Claro e Escuro de alto contraste
+- [x] Transcrição de voz universal compatível com Zen Browser, Firefox e Chrome via Whisper (`/api/ai/transcribe`)
+- [x] Painel de Configurações do Sistema e Preferências (`/settings`)
+- [x] Eliminação de textos estáticos/fictícios e substituição por lógica 100% dinâmica baseada em dados reais
+- [x] Responsividade mobile refinada com touch targets de 44px e padding de navegação seguro

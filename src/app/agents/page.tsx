@@ -11,27 +11,6 @@ const PluggyConnect = dynamic(
   { ssr: false }
 );
 
-interface BankTile {
-  id: string;
-  name: string;
-  shortName: string;
-  badge?: string;
-  color: string;
-  bgGradient: string;
-  iconName: string;
-}
-
-const POPULAR_BANKS: BankTile[] = [
-  { id: "nubank", name: "Nubank", shortName: "Nu", badge: "Mais Popular", color: "#8A05BE", bgGradient: "from-purple-900/20 to-purple-800/10", iconName: "credit_card" },
-  { id: "itau", name: "Itaú Unibanco", shortName: "Itaú", color: "#EC7000", bgGradient: "from-orange-950/20 to-amber-900/10", iconName: "account_balance" },
-  { id: "bradesco", name: "Bradesco", shortName: "Bradesco", color: "#CC092F", bgGradient: "from-red-950/20 to-rose-900/10", iconName: "account_balance" },
-  { id: "bb", name: "Banco do Brasil", shortName: "BB", color: "#0038A8", bgGradient: "from-blue-950/20 to-sky-900/10", iconName: "account_balance" },
-  { id: "santander", name: "Santander", shortName: "Santander", color: "#EC0000", bgGradient: "from-red-950/20 to-orange-900/10", iconName: "account_balance" },
-  { id: "inter", name: "Banco Inter", shortName: "Inter", badge: "0 Tarifas", color: "#FF7A00", bgGradient: "from-amber-950/20 to-orange-900/10", iconName: "bolt" },
-  { id: "c6", name: "C6 Bank", shortName: "C6", color: "#2E2E2E", bgGradient: "from-neutral-800/20 to-neutral-700/10", iconName: "credit_card" },
-  { id: "btg", name: "BTG Pactual", shortName: "BTG", badge: "Investimentos", color: "#001E62", bgGradient: "from-blue-950/20 to-indigo-900/10", iconName: "trending_up" },
-];
-
 const SECURITY_FAQS = [
   {
     question: "A Kitsune Finance pode realizar transferências ou movimentar meu dinheiro?",
@@ -72,7 +51,6 @@ export default function AgentsPage() {
   const [syncingItemId, setSyncingItemId] = useState<string | null>(null);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
 
-  // Agrupa contas por item_id para exibir o nome real da instituição (ex: Nubank) e quantidade de produtos vinculados
   const accountsByItem = useMemo(() => {
     const map = new Map<string, any[]>();
     accounts.forEach((acc) => {
@@ -244,26 +222,24 @@ export default function AgentsPage() {
   const totalProducts = accounts.length;
 
   return (
-    <div className="flex flex-col gap-8 p-6 md:p-8 max-w-6xl mx-auto w-full font-sans">
-      {/* Header com Design Warm Obsidian */}
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-gray-100 dark:border-[#263042]">
-        <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-6 md:gap-8 p-4 md:p-8 max-w-6xl mx-auto w-full font-sans">
+      {/* Header */}
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-[#262E3D]">
+        <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-[#FF6B00]/10 text-[#FF6B00] border border-[#FF6B00]/20">
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-[#FF8216]/10 text-[#FF8216] border border-[#FF8216]/20">
               Open Finance Brasil
             </span>
-            <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-500">
+            <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               Regulado pelo Bacen
             </span>
           </div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight flex items-center gap-3">
-            <span className="w-10 h-10 rounded-2xl bg-[#FF6B00]/10 flex items-center justify-center text-[#FF6B00] border border-[#FF6B00]/20">
-              <span className="material-symbols-outlined text-2xl">account_balance</span>
-            </span>
+          <h1 className="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
+            <span className="material-symbols-outlined text-[#FF8216] text-2xl">account_balance</span>
             Conexões Bancárias
           </h1>
-          <p className="text-sm text-gray-500 dark:text-white/60 max-w-2xl">
+          <p className="text-xs md:text-sm text-slate-500 dark:text-[#94A3B8] max-w-2xl">
             Sincronização automática e leitura regulamentada pelo Banco Central. Seus saldos e extratos consolidados com segurança e privacidade total.
           </p>
         </div>
@@ -271,33 +247,33 @@ export default function AgentsPage() {
         <button
           onClick={handleAddConnection}
           disabled={isLoadingToken}
-          className="h-12 px-6 flex items-center justify-center gap-2.5 bg-gradient-to-r from-[#FF6B00] to-[#E05300] hover:from-[#FF7A1A] hover:to-[#FF6B00] text-white rounded-2xl font-bold text-sm transition-all shadow-lg shadow-[#FF6B00]/20 active:scale-95 disabled:opacity-70 cursor-pointer self-start md:self-auto shrink-0"
+          className="h-11 px-5 flex items-center justify-center gap-2 bg-[#FF8216] hover:bg-[#FFA047] active:bg-[#E66E08] text-white rounded-xl font-bold text-xs transition-all shadow-sm disabled:opacity-70 cursor-pointer self-stretch sm:self-auto shrink-0"
         >
           {isLoadingToken ? (
-            <Spinner size={18} className="text-white" />
+            <Spinner size={16} className="text-white" />
           ) : (
-            <span className="material-symbols-outlined text-[20px]">add_link</span>
+            <span className="material-symbols-outlined text-[18px]">add_link</span>
           )}
           <span>{isLoadingToken ? "Iniciando Open Finance..." : "Conectar Nova Instituição"}</span>
         </button>
       </header>
 
-      {/* Alertas de Notificação */}
+      {/* Alertas */}
       <AnimatePresence>
         {error && (
           <motion.div
-            initial={{ opacity: 0, y: -6 }}
+            initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="text-sm text-red-500 bg-red-500/10 p-4 rounded-2xl border border-red-500/20 flex items-center justify-between"
+            className="text-xs text-red-600 dark:text-red-400 bg-red-500/10 p-3.5 rounded-xl border border-red-500/20 flex items-center justify-between"
           >
-            <div className="flex items-center gap-2.5">
-              <span className="material-symbols-outlined text-red-500">error</span>
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-[18px]">error</span>
               <span>{error}</span>
             </div>
             <button
               onClick={() => setError(null)}
-              className="text-xs font-bold text-red-500 hover:underline ml-4 cursor-pointer"
+              className="text-xs font-bold hover:underline cursor-pointer"
             >
               Fechar
             </button>
@@ -306,18 +282,18 @@ export default function AgentsPage() {
 
         {success && (
           <motion.div
-            initial={{ opacity: 0, y: -6 }}
+            initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="text-sm text-emerald-400 bg-emerald-500/10 p-4 rounded-2xl border border-emerald-500/20 flex items-center justify-between"
+            className="text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 p-3.5 rounded-xl border border-emerald-500/20 flex items-center justify-between"
           >
-            <div className="flex items-center gap-2.5">
-              <span className="material-symbols-outlined text-emerald-400">check_circle</span>
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-[18px]">check_circle</span>
               <span>{success}</span>
             </div>
             <button
               onClick={() => setSuccess(null)}
-              className="text-xs font-bold text-emerald-400 hover:underline ml-4 cursor-pointer"
+              className="text-xs font-bold hover:underline cursor-pointer"
             >
               Fechar
             </button>
@@ -328,7 +304,7 @@ export default function AgentsPage() {
       {/* Widget Modal Pluggy Connect */}
       {connectToken && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="relative w-full max-w-lg bg-white dark:bg-[#141A24] rounded-3xl overflow-hidden shadow-2xl border border-gray-100 dark:border-[#263042]">
+          <div className="relative w-full max-w-lg bg-white dark:bg-[#12161F] rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-[#262E3D]">
             <PluggyConnect
               connectToken={connectToken}
               selectedConnectorId={200}
@@ -345,123 +321,119 @@ export default function AgentsPage() {
         </div>
       )}
 
-      {/* Security Assurance Banner (3 Pilares de Confiança) */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-4 p-5 rounded-3xl bg-gradient-to-r from-gray-50 via-white to-gray-50 dark:from-[#141A24] dark:via-[#171F2C] dark:to-[#141A24] border border-gray-100 dark:border-[#263042]">
-        <div className="flex items-start gap-3.5">
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0 border border-emerald-500/20">
-            <span className="material-symbols-outlined text-[20px]">lock</span>
+      {/* Security Assurance Banner (Sóbrio, Sem Glows) */}
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 md:p-5 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] shadow-xs">
+        <div className="flex items-start gap-3">
+          <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20">
+            <span className="material-symbols-outlined text-[18px]">lock</span>
           </div>
-          <div className="flex flex-col gap-0.5">
-            <h4 className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">
+          <div className="flex flex-col">
+            <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
               100% Somente-Leitura
             </h4>
-            <p className="text-[12px] text-gray-500 dark:text-white/60 leading-relaxed">
+            <p className="text-[11px] text-slate-500 dark:text-[#94A3B8] leading-relaxed mt-0.5">
               Apenas leitura de saldos e extratos. Nenhuma transação ou pagamento é permitido pelo sistema.
             </p>
           </div>
         </div>
 
-        <div className="flex items-start gap-3.5 border-t md:border-t-0 md:border-l border-gray-100 dark:border-white/5 pt-3 md:pt-0 md:pl-4">
-          <div className="w-10 h-10 rounded-xl bg-[#FF6B00]/10 text-[#FF6B00] flex items-center justify-center shrink-0 border border-[#FF6B00]/20">
-            <span className="material-symbols-outlined text-[20px]">verified_user</span>
+        <div className="flex items-start gap-3 border-t md:border-t-0 md:border-l border-slate-100 dark:border-white/5 pt-3 md:pt-0 md:pl-4">
+          <div className="w-9 h-9 rounded-xl bg-[#FF8216]/10 text-[#FF8216] flex items-center justify-center shrink-0 border border-[#FF8216]/20">
+            <span className="material-symbols-outlined text-[18px]">verified_user</span>
           </div>
-          <div className="flex flex-col gap-0.5">
-            <h4 className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">
+          <div className="flex flex-col">
+            <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
               Regulação Bacen
             </h4>
-            <p className="text-[12px] text-gray-500 dark:text-white/60 leading-relaxed">
-              Operamos via Open Finance oficial do Banco Central (Resolução BCB nº 1/2020) com consentimento revogável.
+            <p className="text-[11px] text-slate-500 dark:text-[#94A3B8] leading-relaxed mt-0.5">
+              Protocolo oficial do Open Finance Brasil (Resolução BCB nº 1/2020) com consentimento revogável.
             </p>
           </div>
         </div>
 
-        <div className="flex items-start gap-3.5 border-t md:border-t-0 md:border-l border-gray-100 dark:border-white/5 pt-3 md:pt-0 md:pl-4">
-          <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center shrink-0 border border-blue-500/20">
-            <span className="material-symbols-outlined text-[20px]">shield</span>
+        <div className="flex items-start gap-3 border-t md:border-t-0 md:border-l border-slate-100 dark:border-white/5 pt-3 md:pt-0 md:pl-4">
+          <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-[#1A202C] text-slate-600 dark:text-[#94A3B8] flex items-center justify-center shrink-0 border border-slate-200 dark:border-white/5">
+            <span className="material-symbols-outlined text-[18px]">shield</span>
           </div>
-          <div className="flex flex-col gap-0.5">
-            <h4 className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">
-              Criptografia de Ponta
+          <div className="flex flex-col">
+            <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+              Criptografia TLS 1.3
             </h4>
-            <p className="text-[12px] text-gray-500 dark:text-white/60 leading-relaxed">
-              Tráfego TLS 1.3 blindado e isolamento estrito de dados. Suas senhas nunca passam por nossos servidores.
+            <p className="text-[11px] text-slate-500 dark:text-[#94A3B8] leading-relaxed mt-0.5">
+              Tráfego blindado e isolamento estrito de dados. Suas credenciais bancárias nunca passam pelos nossos servidores.
             </p>
           </div>
         </div>
       </section>
 
-      {/* KPI Metrics Bar */}
-      <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="p-5 rounded-2xl bg-white dark:bg-[#141A24] border border-gray-100 dark:border-[#263042] flex items-center justify-between">
+      {/* Métricas Rápidas */}
+      <section className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div className="p-4 rounded-xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] flex items-center justify-between">
           <div>
-            <span className="text-xs font-bold text-gray-400 dark:text-white/50 uppercase tracking-wider">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
               Instituições Ativas
             </span>
-            <div className="text-2xl font-extrabold text-gray-900 dark:text-white mt-1 tabular-nums">
+            <div className="text-xl font-extrabold text-slate-900 dark:text-white mt-0.5 tabular-nums">
               {connections.length}
             </div>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-white/5 flex items-center justify-center text-gray-600 dark:text-white/70">
-            <span className="material-symbols-outlined">hub</span>
+          <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-[#1A202C] flex items-center justify-center text-slate-600 dark:text-[#94A3B8]">
+            <span className="material-symbols-outlined text-[18px]">hub</span>
           </div>
         </div>
 
-        <div className="p-5 rounded-2xl bg-white dark:bg-[#141A24] border border-gray-100 dark:border-[#263042] flex items-center justify-between">
+        <div className="p-4 rounded-xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] flex items-center justify-between">
           <div>
-            <span className="text-xs font-bold text-gray-400 dark:text-white/50 uppercase tracking-wider">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
               Produtos & Contas
             </span>
-            <div className="text-2xl font-extrabold text-gray-900 dark:text-white mt-1 tabular-nums">
+            <div className="text-xl font-extrabold text-slate-900 dark:text-white mt-0.5 tabular-nums">
               {totalProducts}
             </div>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-white/5 flex items-center justify-center text-gray-600 dark:text-white/70">
-            <span className="material-symbols-outlined">credit_score</span>
+          <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-[#1A202C] flex items-center justify-center text-slate-600 dark:text-[#94A3B8]">
+            <span className="material-symbols-outlined text-[18px]">credit_score</span>
           </div>
         </div>
 
-        <div className="p-5 rounded-2xl bg-white dark:bg-[#141A24] border border-gray-100 dark:border-[#263042] flex items-center justify-between">
+        <div className="p-4 rounded-xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] col-span-2 sm:col-span-1 flex items-center justify-between">
           <div>
-            <span className="text-xs font-bold text-gray-400 dark:text-white/50 uppercase tracking-wider">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
               Status da Conexão
             </span>
-            <div className="text-sm font-bold text-emerald-500 mt-1 flex items-center gap-1.5">
+            <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               Rede Operacional
             </div>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 border border-emerald-500/20">
-            <span className="material-symbols-outlined">wifi_protected_setup</span>
+          <div className="w-9 h-9 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+            <span className="material-symbols-outlined text-[18px]">wifi_protected_setup</span>
           </div>
         </div>
       </section>
 
       {/* Listagem de Instituições Vinculadas */}
-      <section className="flex flex-col gap-4">
+      <section className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-              Suas Instituições Vinculadas
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+              Instituições Vinculadas
             </h2>
-            <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-white/70">
+            <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 dark:bg-[#1A202C] text-slate-600 dark:text-slate-300">
               {connections.length}
             </span>
           </div>
-          <span className="text-xs text-gray-400 dark:text-white/40 flex items-center gap-1">
-            <span className="material-symbols-outlined text-[14px]">shield</span>
-            Privacidade Blindada
-          </span>
         </div>
 
         {isInitialLoading && connections.length === 0 ? (
-          <div className="flex flex-col items-center justify-center p-16 bg-white dark:bg-[#141A24] rounded-3xl border border-gray-100 dark:border-[#263042] gap-3">
-            <Spinner size={32} className="text-[#FF6B00]" />
-            <p className="text-xs text-gray-400 dark:text-white/50 font-medium">
+          <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-[#12161F] rounded-2xl border border-slate-200 dark:border-[#262E3D] gap-2">
+            <Spinner size={24} className="text-[#FF8216]" />
+            <p className="text-xs text-slate-400 font-medium">
               Carregando conexões do Open Finance...
             </p>
           </div>
         ) : connections.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {connections.map((conn) => {
               const institutionName = resolveDisplayInstitution(conn);
               const linkedAccounts = accountsByItem.get(conn.item_id) || [];
@@ -486,20 +458,20 @@ export default function AgentsPage() {
               return (
                 <div
                   key={conn.id}
-                  className="flex flex-col justify-between bg-white dark:bg-[#141A24] border border-gray-100 dark:border-[#263042] rounded-3xl p-6 shadow-sm hover:border-[#FF6B00]/40 transition-all group"
+                  className="flex flex-col justify-between bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] rounded-2xl p-5 shadow-xs hover:border-[#FF8216]/40 transition-all"
                 >
                   <div>
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="w-12 h-12 rounded-2xl bg-[#FF6B00]/10 flex items-center justify-center text-[#FF6B00] border border-[#FF6B00]/20 group-hover:scale-105 transition-transform">
-                        <span className="material-symbols-outlined text-2xl">account_balance</span>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="w-10 h-10 rounded-xl bg-[#FF8216]/10 flex items-center justify-center text-[#FF8216] border border-[#FF8216]/20">
+                        <span className="material-symbols-outlined text-xl">account_balance</span>
                       </div>
                       <span
-                        className={`px-3 py-1 text-[11px] font-bold rounded-full flex items-center gap-1.5 ${
+                        className={`px-2.5 py-0.5 text-[10px] font-bold rounded-full flex items-center gap-1.5 ${
                           isConnected
-                            ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
+                            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
                             : isError
-                            ? "bg-red-500/10 text-red-500 border border-red-500/20"
-                            : "bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-white/70"
+                            ? "bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20"
+                            : "bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-white/70"
                         }`}
                       >
                         <span
@@ -508,32 +480,32 @@ export default function AgentsPage() {
                               ? "bg-emerald-500"
                               : isError
                               ? "bg-red-500"
-                              : "bg-gray-400"
+                              : "bg-slate-400"
                           }`}
                         />
-                        {isConnected ? "Sincronizado" : isError ? "Requer Atenção" : conn.status}
+                        {isConnected ? "Sincronizado" : isError ? "Atenção" : conn.status}
                       </span>
                     </div>
 
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white mb-0.5">
                       {institutionName}
                     </h3>
 
-                    <p className="text-xs text-gray-500 dark:text-white/50 mb-4">
+                    <p className="text-xs text-slate-500 dark:text-[#94A3B8] mb-3">
                       {linkedAccounts.length > 0
                         ? `${linkedAccounts.length} produto(s) monitorado(s)`
                         : "Vínculo Open Finance ativo"}
                     </p>
 
                     {linkedAccounts.length > 0 && (
-                      <div className="flex flex-col gap-2 mb-4 p-3.5 rounded-2xl bg-gray-50 dark:bg-[#0F141C] border border-gray-100 dark:border-[#263042]/60">
+                      <div className="flex flex-col gap-1.5 mb-3 p-2.5 rounded-xl bg-slate-50 dark:bg-[#0E121A] border border-slate-200/80 dark:border-[#262E3D]/80">
                         {linkedAccounts.map((acc) => (
                           <div
                             key={acc.id}
                             className="flex items-center justify-between text-xs"
                           >
-                            <span className="text-gray-600 dark:text-white/70 truncate max-w-[160px] flex items-center gap-1.5">
-                              <span className="material-symbols-outlined text-[15px] text-[#FF6B00]">
+                            <span className="text-slate-600 dark:text-slate-300 truncate max-w-[150px] flex items-center gap-1">
+                              <span className="material-symbols-outlined text-[14px] text-[#FF8216]">
                                 {acc.type === "CREDIT" || acc.type === "CREDIT_CARD"
                                   ? "credit_card"
                                   : "account_balance_wallet"}
@@ -542,7 +514,7 @@ export default function AgentsPage() {
                                 ? "Cartão de Crédito"
                                 : "Conta Corrente"}
                             </span>
-                            <span className="font-bold tabular-nums text-gray-900 dark:text-white">
+                            <span className="font-bold tabular-nums text-slate-900 dark:text-white">
                               {new Intl.NumberFormat("pt-BR", {
                                 style: "currency",
                                 currency: acc.currency || "BRL",
@@ -553,33 +525,29 @@ export default function AgentsPage() {
                       </div>
                     )}
 
-                    <div className="flex flex-col gap-1.5 text-[11px] text-gray-400 dark:text-white/40 mb-5">
-                      <div className="flex items-center gap-1.5">
-                        <span className="material-symbols-outlined text-[14px]">schedule</span>
-                        <span>Última atualização: {lastUpdatedFormatted}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="material-symbols-outlined text-[14px]">verified</span>
-                        <span>Vínculo seguro: •••• {conn.item_id?.slice(-6) || "ativo"}</span>
+                    <div className="flex flex-col gap-1 text-[11px] text-slate-400 mb-4">
+                      <div className="flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[13px]">schedule</span>
+                        <span>Atualizado: {lastUpdatedFormatted}</span>
                       </div>
                     </div>
                   </div>
 
                   {/* Ações */}
-                  <div className="pt-4 border-t border-gray-100 dark:border-[#263042] flex items-center gap-2">
+                  <div className="pt-3 border-t border-slate-100 dark:border-white/5 flex items-center gap-2">
                     <button
                       onClick={() => handleManualSync(conn)}
                       disabled={isSyncing || isDeleting}
-                      className="flex-1 py-2.5 px-3 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-white/5 dark:hover:bg-white/10 text-gray-800 dark:text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer"
+                      className="flex-1 py-2 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-[#1A202C] dark:hover:bg-[#222A3A] text-slate-800 dark:text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer"
                     >
                       {isSyncing ? (
                         <>
-                          <Spinner size={14} className="text-[#FF6B00]" />
+                          <Spinner size={12} className="text-[#FF8216]" />
                           <span>Atualizando...</span>
                         </>
                       ) : (
                         <>
-                          <span className="material-symbols-outlined text-[16px]">refresh</span>
+                          <span className="material-symbols-outlined text-[15px]">refresh</span>
                           <span>Atualizar</span>
                         </>
                       )}
@@ -588,15 +556,15 @@ export default function AgentsPage() {
                     <button
                       onClick={() => handleDisconnectItem(conn)}
                       disabled={isDeleting || isSyncing}
-                      className="py-2.5 px-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer"
-                      title="Revogar acesso e remover dados"
+                      className="py-2 px-3 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer"
+                      title="Revogar acesso"
                     >
                       {isDeleting ? (
-                        <Spinner size={14} className="text-red-500" />
+                        <Spinner size={12} className="text-red-500" />
                       ) : (
-                        <span className="material-symbols-outlined text-[16px]">link_off</span>
+                        <span className="material-symbols-outlined text-[15px]">link_off</span>
                       )}
-                      <span>{isDeleting ? "Revogando..." : "Desconectar"}</span>
+                      <span>{isDeleting ? "Excluindo..." : "Desconectar"}</span>
                     </button>
                   </div>
                 </div>
@@ -604,99 +572,53 @@ export default function AgentsPage() {
             })}
           </div>
         ) : (
-          <div className="p-12 text-center bg-white dark:bg-[#141A24] rounded-3xl border border-gray-100 dark:border-[#263042] flex flex-col items-center gap-4">
-            <div className="w-16 h-16 rounded-3xl bg-[#FF6B00]/10 flex items-center justify-center text-[#FF6B00] border border-[#FF6B00]/20">
-              <span className="material-symbols-outlined text-3xl">account_balance</span>
-            </div>
-            <div className="flex flex-col gap-1 max-w-md">
-              <h3 className="text-base font-bold text-gray-900 dark:text-white">
+          <div className="p-8 text-center bg-white dark:bg-[#12161F] rounded-2xl border border-slate-200 dark:border-[#262E3D] flex flex-col items-center gap-3">
+            <span className="material-symbols-outlined text-3xl text-slate-400">
+              account_balance
+            </span>
+            <div className="flex flex-col gap-0.5 max-w-sm">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
                 Nenhum banco ou cartão conectado
               </h3>
-              <p className="text-xs text-gray-500 dark:text-white/60 leading-relaxed">
-                Conecte seu primeiro banco abaixo para que a Kitsune AI analise seus saldos, faturas e fluxo de caixa automaticamente.
+              <p className="text-xs text-slate-500 dark:text-[#94A3B8]">
+                Conecte sua instituição financeira para que a Kitsune IA analise seus saldos e faturas automaticamente.
               </p>
             </div>
             <button
               onClick={handleAddConnection}
               disabled={isLoadingToken}
-              className="mt-2 h-11 px-6 bg-[#FF6B00] hover:bg-[#E05300] text-white rounded-xl text-xs font-bold flex items-center gap-2 transition-all shadow-md shadow-[#FF6B00]/20 cursor-pointer"
+              className="mt-1 h-10 px-5 bg-[#FF8216] hover:bg-[#FFA047] text-white rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer"
             >
-              <span className="material-symbols-outlined text-[18px]">add_link</span>
+              <span className="material-symbols-outlined text-[16px]">add_link</span>
               <span>Conectar Instituição Agora</span>
             </button>
           </div>
         )}
       </section>
 
-      {/* Instituições Homologadas (Quick Bank Grid) */}
-      <section className="flex flex-col gap-4">
-        <div className="flex flex-col gap-1">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-            Instituições Homologadas no Open Finance
-          </h2>
-          <p className="text-xs text-gray-500 dark:text-white/50">
-            Selecione seu banco para iniciar a conexão segura com 1 clique:
-          </p>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-          {POPULAR_BANKS.map((b) => (
-            <button
-              key={b.id}
-              onClick={handleAddConnection}
-              disabled={isLoadingToken}
-              className="p-4 rounded-2xl bg-white dark:bg-[#141A24] hover:bg-gray-50 dark:hover:bg-[#171F2C] border border-gray-100 dark:border-[#263042] hover:border-[#FF6B00]/40 transition-all flex flex-col items-start justify-between gap-3 text-left group cursor-pointer"
-            >
-              <div className="flex items-center justify-between w-full">
-                <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center font-extrabold text-xs shadow-sm transition-transform group-hover:scale-105"
-                  style={{
-                    backgroundColor: `${b.color}20`,
-                    color: b.color,
-                    border: `1px solid ${b.color}40`,
-                  }}
-                >
-                  {b.shortName}
-                </div>
-                {b.badge && (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#FF6B00]/10 text-[#FF6B00] border border-[#FF6B00]/20">
-                    {b.badge}
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center justify-between w-full">
-                <span className="text-xs font-bold text-gray-900 dark:text-white group-hover:text-[#FF6B00] transition-colors">
-                  {b.name}
-                </span>
-                <span className="material-symbols-outlined text-[16px] text-gray-400 group-hover:text-[#FF6B00] group-hover:translate-x-0.5 transition-all">
-                  arrow_forward
-                </span>
-              </div>
-            </button>
-          ))}
-        </div>
-      </section>
-
       {/* FAQ & Segurança Accordion */}
-      <section className="flex flex-col gap-3 rounded-3xl bg-white dark:bg-[#141A24] border border-gray-100 dark:border-[#263042] p-6">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="material-symbols-outlined text-[#FF6B00]">help_outline</span>
-          <h3 className="text-base font-bold text-gray-900 dark:text-white">
+      <section className="flex flex-col gap-3 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] p-5 shadow-xs">
+        <div className="flex items-center gap-2">
+          <span className="material-symbols-outlined text-[#FF8216]">help_outline</span>
+          <h3 className="text-sm font-bold text-slate-900 dark:text-white">
             Perguntas Frequentes sobre Privacidade & Open Finance
           </h3>
         </div>
 
-        <div className="flex flex-col divide-y divide-gray-100 dark:divide-[#263042]">
+        <div className="flex flex-col divide-y divide-slate-100 dark:divide-white/5">
           {SECURITY_FAQS.map((faq, idx) => {
             const isOpen = openFaqIndex === idx;
             return (
-              <div key={idx} className="py-3.5 first:pt-0 last:pb-0">
+              <div key={idx} className="py-3 first:pt-1 last:pb-0">
                 <button
                   onClick={() => setOpenFaqIndex(isOpen ? null : idx)}
-                  className="w-full flex items-center justify-between gap-4 text-left font-semibold text-xs md:text-sm text-gray-800 dark:text-white/90 hover:text-[#FF6B00] dark:hover:text-[#FF6B00] transition-colors cursor-pointer"
+                  className="w-full flex items-center justify-between gap-3 text-left font-semibold text-xs md:text-sm text-slate-800 dark:text-slate-200 hover:text-[#FF8216] dark:hover:text-[#FF8216] transition-colors cursor-pointer"
                 >
                   <span>{faq.question}</span>
-                  <span className="material-symbols-outlined text-[18px] shrink-0 text-gray-400 transition-transform duration-200" style={{ transform: isOpen ? 'rotate(180deg)' : 'none' }}>
+                  <span
+                    className="material-symbols-outlined text-[18px] shrink-0 text-slate-400 transition-transform duration-200"
+                    style={{ transform: isOpen ? "rotate(180deg)" : "none" }}
+                  >
                     expand_more
                   </span>
                 </button>
@@ -706,7 +628,7 @@ export default function AgentsPage() {
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
                       exit={{ opacity: 0, height: 0 }}
-                      className="text-xs text-gray-500 dark:text-white/60 leading-relaxed mt-2.5 pr-6"
+                      className="text-xs text-slate-500 dark:text-[#94A3B8] leading-relaxed mt-2 pr-4"
                     >
                       {faq.answer}
                     </motion.p>

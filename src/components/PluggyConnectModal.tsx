@@ -21,6 +21,7 @@ interface PluggyConnectModalProps {
   isOpen: boolean;
   onClose: () => void;
   familyMembers: FamilyMember[];
+  initialMemberId?: string | null;
   onMemberCreated?: (newMember: FamilyMember) => void;
   onConnectionSuccess: (result: { itemId: string; familyMemberId: string | null }) => void;
 }
@@ -29,18 +30,19 @@ export default function PluggyConnectModal({
   isOpen,
   onClose,
   familyMembers,
+  initialMemberId,
   onMemberCreated,
   onConnectionSuccess,
 }: PluggyConnectModalProps) {
-  // Por padrão, '' vincula diretamente à conta individual do usuário autenticado (sem exigir membro familiar)
-  const [selectedMemberId, setSelectedMemberId] = useState<string>('');
+  // Por padrão, vincula diretamente à conta pessoal ou ao membro pré-selecionado
+  const [selectedMemberId, setSelectedMemberId] = useState<string>(initialMemberId || '');
   const [connectToken, setConnectToken] = useState<string | null>(null);
   const [isLoadingToken, setIsLoadingToken] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Estado opcional para vincular a um membro familiar
-  const [showFamilySelect, setShowFamilySelect] = useState(false);
+  const [showFamilySelect, setShowFamilySelect] = useState(Boolean(initialMemberId));
   const [isAddingMember, setIsAddingMember] = useState(false);
   const [newMemberName, setNewMemberName] = useState('');
   const [newMemberRole, setNewMemberRole] = useState('Cônjuge');

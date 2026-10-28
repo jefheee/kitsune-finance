@@ -1,21 +1,32 @@
 import React from "react";
 
 interface SpinnerProps {
-  size?: number | string;
+  size?: number | "xs" | "sm" | "md" | "lg";
   className?: string;
   color?: string;
 }
 
+const SIZE_MAP: Record<string, number> = {
+  xs: 12,
+  sm: 16,
+  md: 20,
+  lg: 28,
+};
+
 export default function Spinner({
-  size = 20,
+  size = 18,
   className = "",
   color = "currentColor",
 }: SpinnerProps) {
+  const pixelSize =
+    typeof size === "number" ? size : SIZE_MAP[size] || 18;
+
   return (
     <svg
       className={`animate-spin shrink-0 ${className}`}
-      width={size}
-      height={size}
+      width={pixelSize}
+      height={pixelSize}
+      style={{ width: `${pixelSize}px`, height: `${pixelSize}px`, minWidth: `${pixelSize}px`, minHeight: `${pixelSize}px` }}
       viewBox="0 0 24 24"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
