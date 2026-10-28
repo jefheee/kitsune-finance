@@ -11,6 +11,14 @@ export interface GeminiModelInfo {
 
 export const KITSUNE_AI_MODELS: GeminiModelInfo[] = [
   {
+    id: 'auto',
+    shortTitle: '✨ Automático',
+    name: 'Seleção Inteligente Automática',
+    subtitle: 'Roteia dinamicamente pelo tamanho e complexidade da pergunta',
+    provider: 'gemini',
+    tier: 'fast',
+  },
+  {
     id: 'gemini-3.5-flash-lite',
     shortTitle: '3.5 Flash Lite',
     name: 'Gemini 3.5 Flash-Lite',

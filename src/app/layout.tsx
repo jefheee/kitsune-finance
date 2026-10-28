@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter, JetBrains_Mono } from 'next/font/google';
+import { Plus_Jakarta_Sans, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import AppShell from '@/components/layout/AppShell';
 import { ThemeProvider } from '@/components/theme-provider';
@@ -7,10 +7,11 @@ import { FinanceDataProvider } from '@/context/FinanceDataContext';
 import ServiceWorkerRegistrar from '@/components/ServiceWorkerRegistrar';
 import OnboardingModal from '@/components/OnboardingModal';
 
-const fontSans = Inter({
+const fontSans = Plus_Jakarta_Sans({
   subsets: ['latin'],
-  variable: '--font-inter',
+  variable: '--font-plus-jakarta',
   display: 'swap',
+  weight: ['400', '500', '600', '700', '800'],
 });
 
 const fontMono = JetBrains_Mono({

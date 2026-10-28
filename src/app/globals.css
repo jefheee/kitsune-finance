@@ -3,9 +3,18 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  --color-kitsune: #FF7A00; /* Laranja de destaque */
-  --font-sans: var(--font-inter);
-  --font-mono: var(--font-jetbrains-mono);
+  --color-kitsune: #FF6B00; /* Laranja Chama Kitsune (Stitch Primary) */
+  --color-kitsune-hover: #FF7D1A;
+  --color-kitsune-active: #E05E00;
+  --color-surface-lowest: #090E16;
+  --color-surface-base: #0F141C;
+  --color-surface-card: #141A24;
+  --color-surface-elevated: #1C2331;
+  --color-border-subtle: #263042;
+  --color-success-mint: #10B981;
+  --color-danger-crimson: #EF4444;
+  --font-sans: var(--font-plus-jakarta), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), monospace;
 }
 
 :root {
@@ -16,17 +25,23 @@
 }
 
 body {
-  background-color: #09090b;
-  color: #f4f4f5;
+  background-color: #0F141C;
+  color: #F8FAFC;
   overflow-x: hidden;
   padding-top: var(--sat);
   padding-left: var(--sal);
   padding-right: var(--sar);
+  font-family: var(--font-sans);
 }
 
 .dark body {
-  background-color: #09090b;
-  color: #ffffff;
+  background-color: #0F141C;
+  color: #F8FAFC;
+}
+
+/* Tabular Numerals para alinhamento vertical exato de moedas (Untitled UI & Stitch) */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
 }
 
 .pt-safe {

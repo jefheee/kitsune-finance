@@ -11,26 +11,26 @@ const CONTEXT_ATTACHMENTS = [
   {
     id: "raio-x-mes",
     icon: "analytics",
-    label: "Anexar Raio-X do Mês",
-    description: "Injeta resumo de entradas, saídas e saldo líquido",
+    label: "Raio-X do Mês",
+    description: "Injeta entradas, saídas, saldo livre e ritmo de gastos",
     prompt:
-      "Faça um Raio-X completo do meu mês atual: compare minhas receitas e despesas, destaque o saldo líquido e aponte os principais desvios de orçamento.",
+      "Faça um Raio-X completo do meu mês atual: compare receitas e despesas, analise o saldo líquido e aponte desvios.",
   },
   {
     id: "auditar-cartao",
     icon: "credit_card",
     label: "Auditar Cartão de Crédito",
-    description: "Compara faturas abertas vs liquidez em conta",
+    description: "Compara fatura aberta vs liquidez disponível em conta",
     prompt:
-      "Audite minha exposição atual no cartão de crédito comparada ao meu saldo disponível em conta corrente. Quais cuidados devo tomar antes do fechamento da fatura?",
+      "Audite minha exposição atual no cartão de crédito em relação ao saldo em conta corrente e dias para o fechamento.",
   },
   {
     id: "cortar-gastos",
     icon: "content_cut",
     label: "Análise de Cortar Gastos",
-    description: "Identifica gastos supérfluos e recorrentes",
+    description: "Identifica assinaturas e despesas supérfluas",
     prompt:
-      "Analise minhas transações e categorias recentes e liste os 3 principais pontos onde posso cortar gastos imediatamente, mostrando a economia mensal estimada.",
+      "Analise minhas transações recentes e liste 3 pontos práticos onde posso cortar gastos imediatamente.",
   },
   {
     id: "extrato-7-dias",
@@ -38,8 +38,15 @@ const CONTEXT_ATTACHMENTS = [
     label: "Extrato dos Últimos 7 Dias",
     description: "Auditoria detalhada da última semana",
     prompt:
-      "Apresente uma tabela ou resumo estruturado com os lançamentos dos meus últimos 7 dias e destaque qualquer gasto fora do padrão.",
+      "Audite detalhadamente minhas transações dos últimos 7 dias e destaque qualquer gasto fora do padrão.",
   },
+];
+
+const SUGGESTED_QUICK_PROMPTS = [
+  { label: "Vou conseguir pagar o cartão sem aperto?", query: "Vou conseguir pagar minha fatura do cartão sem aperto com o saldo atual?" },
+  { label: "Quanto já gastei esse mês?", query: "Quanto já gastei no mês atual e qual é meu saldo livre estimado?" },
+  { label: "Onde posso economizar no dia a dia?", query: "Onde posso cortar pequenos gastos este mês sem mudar meu padrão de vida?" },
+  { label: "Como começar minha reserva de emergência?", query: "Como posso começar a montar minha reserva de emergência guardando pouco por semana?" },
 ];
 
 const REASONING_LEVELS: {
@@ -51,6 +58,13 @@ const REASONING_LEVELS: {
   { id: "standard", label: "Padrão", desc: "Equilibrado" },
   { id: "deep", label: "Profundo", desc: "Análise exaustiva" },
 ];
+
+interface ChatSession {
+  id: string;
+  title: string;
+  createdAt: string;
+  messages: any[];
+}
 
 export default function KitsuneAIPage() {
   const {
@@ -71,11 +85,23 @@ export default function KitsuneAIPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedScope, setSelectedScope] = useState<string>("personal");
 
+  // Anexos de Contexto selecionados
+  const [attachedContexts, setAttachedContexts] = useState<string[]>([]);
+
   // Estados dos Popovers na Barra Inferior
   const [isAttachOpen, setIsAttachOpen] = useState(false);
   const [isModelOpen, setIsModelOpen] = useState(false);
   const [isReasoningSubmenuOpen, setIsReasoningSubmenuOpen] = useState(false);
   const [isScopeOpen, setIsScopeOpen] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+
+  // Microfone (Entrada de Voz)
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
+
+  // Sessões de Chat (Histórico Persistente)
+  const [savedSessions, setSavedSessions] = useState<ChatSession[]>([]);
+  const currentSessionIdRef = useRef<string>(`session-${Date.now()}`);
 
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
   const isAtBottomRef = useRef<boolean>(true);
@@ -87,11 +113,51 @@ export default function KitsuneAIPage() {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Carrega histórico de conversas do localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("kitsune_saved_sessions_v2");
+      if (stored) {
+        setSavedSessions(JSON.parse(stored));
+      }
+    } catch (e) {
+      console.warn("Não foi possível carregar sessões anteriores:", e);
+    }
+  }, []);
+
+  // Salva a conversa atual no histórico quando as mensagens mudam
+  useEffect(() => {
+    if (chatMessages.length <= 1) return;
+
+    try {
+      const firstUserMsg = chatMessages.find((m) => m.role === "user");
+      const title = firstUserMsg
+        ? firstUserMsg.content.slice(0, 36) + (firstUserMsg.content.length > 36 ? "..." : "")
+        : "Conversa com Kitsune IA";
+
+      const currentSession: ChatSession = {
+        id: currentSessionIdRef.current,
+        title,
+        createdAt: new Date().toISOString(),
+        messages: chatMessages,
+      };
+
+      setSavedSessions((prev) => {
+        const filtered = prev.filter((s) => s.id !== currentSession.id);
+        const updated = [currentSession, ...filtered].slice(0, 20);
+        localStorage.setItem("kitsune_saved_sessions_v2", JSON.stringify(updated));
+        return updated;
+      });
+    } catch (e) {
+      console.warn("Erro ao salvar sessão:", e);
+    }
+  }, [chatMessages]);
+
   // Monitora se o usuário está ou não no limite inferior do chat
   const handleScroll = useCallback(() => {
     const el = messagesContainerRef.current;
     if (!el) return;
-    const threshold = 70; // 70px de margem de tolerância
+    const threshold = 70;
     const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
     isAtBottomRef.current = distanceFromBottom <= threshold;
   }, []);
@@ -194,14 +260,79 @@ export default function KitsuneAIPage() {
       currency: "BRL",
     }).format(val);
 
-  const sendMessage = async (textToSend: string) => {
-    const trimmed = textToSend.trim();
-    if (!trimmed || isLoading) return;
+  // Microfone: Web Speech API
+  const toggleVoiceRecognition = () => {
+    if (typeof window === "undefined") return;
+
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      alert("Seu navegador não suporta reconhecimento de voz direto. Experimente usar o Google Chrome ou Edge.");
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.lang = "pt-BR";
+      recognition.continuous = false;
+      recognition.interimResults = true;
+
+      recognition.onstart = () => {
+        setIsListening(true);
+      };
+
+      recognition.onresult = (event: any) => {
+        const transcript = Array.from(event.results)
+          .map((result: any) => result[0].transcript)
+          .join("");
+        setInput(transcript);
+      };
+
+      recognition.onerror = () => {
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch (err) {
+      console.error("Erro ao iniciar microfone:", err);
+      setIsListening(false);
+    }
+  };
+
+  const sendMessage = async (customPrompt?: string) => {
+    const rawText = typeof customPrompt === "string" ? customPrompt : input;
+    const trimmed = rawText.trim();
+    const currentAttachments = [...attachedContexts];
+
+    // Se o usuário não digitou texto e não tem anexo, não envia
+    if (!trimmed && currentAttachments.length === 0) return;
+    if (isLoading) return;
+
+    // Constrói o texto visível da mensagem do usuário
+    let displayMessage = trimmed;
+    if (!displayMessage && currentAttachments.length > 0) {
+      displayMessage = currentAttachments
+        .map((id) => CONTEXT_ATTACHMENTS.find((c) => c.id === id)?.label)
+        .filter(Boolean)
+        .join(" + ");
+    }
 
     const userMsgObj = {
       id: `user-${Date.now()}`,
       role: "user" as const,
-      content: trimmed,
+      content: displayMessage,
       timestamp: new Date().toISOString(),
     };
 
@@ -212,6 +343,7 @@ export default function KitsuneAIPage() {
 
     setChatMessages((prev) => [...prev, userMsgObj]);
     setInput("");
+    setAttachedContexts([]);
     setIsLoading(true);
 
     try {
@@ -220,6 +352,7 @@ export default function KitsuneAIPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: trimmed,
+          attachedContexts: currentAttachments,
           model: selectedAiModel,
           reasoningLevel,
           familyMemberId: selectedScope,
@@ -265,7 +398,7 @@ export default function KitsuneAIPage() {
         {
           id: `err-${Date.now()}`,
           role: "assistant",
-          content: "Falha de conexão ao comunicar com o motor Kitsune AI.",
+          content: "Falha de conexão ao comunicar com a consultora Kitsune AI.",
           timestamp: new Date().toISOString(),
         },
       ]);
@@ -276,27 +409,67 @@ export default function KitsuneAIPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    sendMessage(input);
+    sendMessage();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      sendMessage(input);
+      sendMessage();
     }
   };
 
-  const handleClearChat = () => {
+  const handleStartNewChat = () => {
+    currentSessionIdRef.current = `session-${Date.now()}`;
+    setAttachedContexts([]);
+    setInput("");
     setChatMessages([
       {
         id: `welcome-${Date.now()}`,
         role: "assistant",
-        content:
-          "Conversa reiniciada! Estou pronta para analisar seu patrimônio, transações e metas com base nos seus dados sincronizados.",
+        content: `Olá, **${
+          userProfile?.display_name || userProfile?.full_name || "Investidor"
+        }**! Sou sua consultora financeira dedicada. Suas contas e cartões estão sincronizados com segurança bancária. Como posso te orientar hoje?`,
         timestamp: new Date().toISOString(),
         modelUsed: selectedAiModel,
       },
     ]);
+  };
+
+  const handleLoadSession = (session: ChatSession) => {
+    currentSessionIdRef.current = session.id;
+    setChatMessages(session.messages);
+    setIsHistoryOpen(false);
+  };
+
+  const handleDeleteSession = (sessionId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const updated = savedSessions.filter((s) => s.id !== sessionId);
+    setSavedSessions(updated);
+    localStorage.setItem("kitsune_saved_sessions_v2", JSON.stringify(updated));
+  };
+
+  // Exportar conversa para arquivo Markdown
+  const handleExportConversation = () => {
+    const title = `Relatorio_Kitsune_Finance_${new Date().toISOString().slice(0, 10)}.md`;
+    let content = `# Relatório de Consultoria Financeira - Kitsune IA\n`;
+    content += `Data: ${new Date().toLocaleDateString("pt-BR")} às ${new Date().toLocaleTimeString("pt-BR")}\n`;
+    content += `Usuário: ${userProfile?.full_name || user?.email || "Titular"}\n`;
+    content += `Patrimônio Líquido: ${formatCurrency(metrics.netWorth)} | Em Conta: ${formatCurrency(metrics.liquid)} | Cartões: ${formatCurrency(metrics.credit)}\n\n`;
+    content += `---\n\n`;
+
+    chatMessages.forEach((m) => {
+      const sender = m.role === "assistant" ? "Kitsune IA" : "Você";
+      content += `### ${sender} (${new Date(m.timestamp).toLocaleTimeString("pt-BR")})\n\n${m.content}\n\n`;
+    });
+
+    const blob = new Blob([content], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = title;
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   const userDisplayName =
@@ -308,89 +481,105 @@ export default function KitsuneAIPage() {
 
   const scopeBadgeLabel = useMemo(() => {
     if (selectedScope === "personal") return "Meu Patrimônio";
-    if (selectedScope === "all") return "Familiar/Compartilhado";
+    if (selectedScope === "all") return "Familiar / Compartilhado";
     const found = familyMembers.find((m) => m.id === selectedScope);
     return found ? found.name : "Meu Patrimônio";
   }, [selectedScope, familyMembers]);
 
   return (
-    <div className="flex flex-col h-full w-full bg-[#09090b]">
-      {/* Header Limpo (Sem selects nativos) */}
-      <header className="flex flex-col gap-3 px-4 md:px-8 py-3.5 border-b border-zinc-800/80 bg-[#09090b]/90 backdrop-blur-md z-10 shrink-0">
+    <div className="flex flex-col h-full w-full bg-[#0F141C] text-[#F8FAFC]">
+      {/* Header Human-Centric com Warm Obsidian Intelligence */}
+      <header className="flex flex-col gap-3 px-4 md:px-8 py-3.5 border-b border-[#263042] bg-[#0F141C]/95 backdrop-blur-xl z-20 shrink-0">
         <div className="flex items-center justify-between gap-3 max-w-5xl mx-auto w-full">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-2xl bg-kitsune/12 border border-kitsune/20 flex items-center justify-center text-kitsune">
-              <span className="material-symbols-outlined text-[20px]">
+            <div className="w-10 h-10 rounded-2xl bg-[#FF6B00]/15 border border-[#FF6B00]/30 flex items-center justify-center text-[#FF6B00] shadow-[0_0_20px_-4px_rgba(255,107,0,0.3)]">
+              <span className="material-symbols-outlined text-[22px]">
                 auto_awesome
               </span>
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-base md:text-lg font-bold font-sans text-white tracking-tight">
-                  Kitsune AI
+                <h1 className="text-base md:text-lg font-bold text-[#F8FAFC] tracking-tight">
+                  Kitsune IA
                 </h1>
-                <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-sans font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                  Pool Gemini + Groq Ativo
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
+                  Open Finance Conectado
                 </span>
               </div>
-              <p className="text-[11px] font-sans text-zinc-400">
-                Consultora de {userDisplayName} • {metrics.accCount} conta(s) •{" "}
-                {metrics.txCount} lançamentos
+              <p className="text-[11px] text-[#94A3B8]">
+                Consultora de {userDisplayName} • {metrics.accCount} conta(s) • Criptografia Bancária Ativa
               </p>
             </div>
           </div>
 
-          <button
-            onClick={handleClearChat}
-            title="Iniciar nova conversa"
-            className="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-xs font-sans font-medium text-zinc-300 transition-colors cursor-pointer flex items-center gap-1.5"
-          >
-            <span className="material-symbols-outlined text-[15px]">
-              restart_alt
-            </span>
-            <span>Nova Conversa</span>
-          </button>
+          {/* Ações Rápidas do Topo: Histórico de Chats, Exportar Relatório e Nova Conversa */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsHistoryOpen(true)}
+              title="Ver conversas anteriores"
+              className="px-3 py-1.5 rounded-xl bg-[#141A24] hover:bg-[#1C2331] border border-[#263042] text-xs font-medium text-[#F8FAFC] transition-colors cursor-pointer flex items-center gap-1.5"
+            >
+              <span className="material-symbols-outlined text-[16px] text-[#94A3B8]">
+                history
+              </span>
+              <span className="hidden sm:inline">Histórico</span>
+            </button>
+
+            <button
+              onClick={handleExportConversation}
+              title="Baixar resumo da consultoria"
+              className="px-3 py-1.5 rounded-xl bg-[#141A24] hover:bg-[#1C2331] border border-[#263042] text-xs font-medium text-[#F8FAFC] transition-colors cursor-pointer flex items-center gap-1.5"
+            >
+              <span className="material-symbols-outlined text-[16px] text-[#FF6B00]">
+                download
+              </span>
+              <span className="hidden sm:inline">Relatório</span>
+            </button>
+
+            <button
+              onClick={handleStartNewChat}
+              title="Iniciar nova conversa do zero"
+              className="px-3 py-1.5 rounded-xl bg-[#FF6B00] hover:bg-[#FF7D1A] active:bg-[#E05E00] text-white font-bold text-xs transition-all shadow-[0_2px_12px_rgba(255,107,0,0.3)] cursor-pointer flex items-center gap-1.5"
+            >
+              <span className="material-symbols-outlined text-[16px]">
+                add_comment
+              </span>
+              <span>Nova Conversa</span>
+            </button>
+          </div>
         </div>
 
-        {/* Resumo Financeiro Compacto */}
+        {/* Resumo Financeiro Compacto (Tabular Numeral) */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 max-w-5xl mx-auto w-full">
-          <div className="px-3 py-1.5 rounded-xl bg-zinc-900/60 border border-zinc-800/80 flex items-center justify-between">
-            <span className="text-[11px] font-sans text-zinc-400">
-              Patrimônio
-            </span>
-            <span className="text-xs font-mono font-bold text-zinc-100">
+          <div className="px-3 py-1.5 rounded-xl bg-[#141A24] border border-[#263042] flex items-center justify-between">
+            <span className="text-[11px] text-[#94A3B8]">Patrimônio Líquido</span>
+            <span className="text-xs font-bold text-[#F8FAFC] tabular-nums">
               {formatCurrency(metrics.netWorth)}
             </span>
           </div>
-          <div className="px-3 py-1.5 rounded-xl bg-zinc-900/60 border border-zinc-800/80 flex items-center justify-between">
-            <span className="text-[11px] font-sans text-zinc-400">
-              Em Conta
-            </span>
-            <span className="text-xs font-mono font-bold text-zinc-100">
+          <div className="px-3 py-1.5 rounded-xl bg-[#141A24] border border-[#263042] flex items-center justify-between">
+            <span className="text-[11px] text-[#94A3B8]">Livre em Conta</span>
+            <span className="text-xs font-bold text-[#10B981] tabular-nums">
               {formatCurrency(metrics.liquid)}
             </span>
           </div>
-          <div className="px-3 py-1.5 rounded-xl bg-zinc-900/60 border border-zinc-800/80 flex items-center justify-between">
-            <span className="text-[11px] font-sans text-zinc-400">
-              Saídas (Mês)
-            </span>
-            <span className="text-xs font-mono font-bold text-red-400">
+          <div className="px-3 py-1.5 rounded-xl bg-[#141A24] border border-[#263042] flex items-center justify-between">
+            <span className="text-[11px] text-[#94A3B8]">Saídas no Mês</span>
+            <span className="text-xs font-bold text-[#EF4444] tabular-nums">
               {formatCurrency(metrics.monthOut)}
             </span>
           </div>
-          <div className="px-3 py-1.5 rounded-xl bg-zinc-900/60 border border-zinc-800/80 flex items-center justify-between">
-            <span className="text-[11px] font-sans text-zinc-400">
-              Cartões
-            </span>
-            <span className="text-xs font-mono font-bold text-amber-400">
+          <div className="px-3 py-1.5 rounded-xl bg-[#141A24] border border-[#263042] flex items-center justify-between">
+            <span className="text-[11px] text-[#94A3B8]">Fatura de Cartão</span>
+            <span className="text-xs font-bold text-[#FF6B00] tabular-nums">
               {formatCurrency(metrics.credit)}
             </span>
           </div>
         </div>
       </header>
 
-      {/* Área de Mensagens com Renderização Markdown Rica e Animações Fluidas */}
+      {/* Área de Mensagens com Renderização Markdown e Scroll Suave */}
       <div
         ref={messagesContainerRef}
         onScroll={handleScroll}
@@ -408,18 +597,18 @@ export default function KitsuneAIPage() {
               }`}
             >
               {msg.role === "assistant" && (
-                <div className="w-8 h-8 rounded-2xl bg-kitsune/12 border border-kitsune/25 flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
-                  <span className="material-symbols-outlined text-kitsune text-[17px]">
+                <div className="w-9 h-9 rounded-2xl bg-[#FF6B00]/15 border border-[#FF6B00]/30 flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
+                  <span className="material-symbols-outlined text-[#FF6B00] text-[18px]">
                     auto_awesome
                   </span>
                 </div>
               )}
 
               <div
-                className={`border rounded-3xl px-4 py-3.5 md:px-5 md:py-4 max-w-[90%] md:max-w-[84%] shadow-md flex flex-col gap-2 transition-shadow ${
+                className={`border rounded-3xl px-4 py-3.5 md:px-5 md:py-4 max-w-[90%] md:max-w-[84%] shadow-lg flex flex-col gap-2 transition-shadow ${
                   msg.role === "user"
-                    ? "bg-kitsune text-white border-kitsune rounded-tr-sm"
-                    : "bg-zinc-900/90 border-zinc-800/90 rounded-tl-sm text-zinc-100 backdrop-blur-sm"
+                    ? "bg-[#FF6B00] text-white border-[#FF6B00] rounded-tr-sm"
+                    : "bg-[#141A24] border-[#263042] rounded-tl-sm text-[#F8FAFC] backdrop-blur-sm"
                 }`}
               >
                 {msg.role === "assistant" ? (
@@ -435,20 +624,26 @@ export default function KitsuneAIPage() {
                     }}
                   />
                 ) : (
-                  <div className="font-sans text-sm leading-relaxed whitespace-pre-line">
+                  <div className="text-sm leading-relaxed whitespace-pre-line font-medium">
                     {msg.content}
                   </div>
                 )}
 
                 {msg.role === "assistant" && msg.modelUsed && (
-                  <div className="flex items-center justify-between pt-2 border-t border-zinc-800/80 text-[10px] font-sans text-zinc-500">
-                    <span className="flex items-center gap-1">
-                      <span className="material-symbols-outlined text-[12px] text-amber-400">
+                  <div className="flex items-center justify-between pt-2 border-t border-[#263042] text-[11px] text-[#94A3B8]">
+                    <span className="flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-[13px] text-[#FF6B00]">
                         memory
                       </span>
-                      {msg.modelUsed}
+                      {msg.modelUsed === "gemini-3.5-flash-lite"
+                        ? "⚡ 3.5 Flash Lite (Resposta Rápida)"
+                        : msg.modelUsed === "gemini-3.8-flash"
+                        ? "✨ 3.8 Flash (Análise Estruturada)"
+                        : msg.modelUsed === "gemini-4-argon"
+                        ? "🧠 4 Argon (Raciocínio Profundo)"
+                        : msg.modelUsed}
                     </span>
-                    <span>
+                    <span className="text-[10px] text-[#94A3B8]/70">
                       {new Date(msg.timestamp).toLocaleTimeString("pt-BR", {
                         hour: "2-digit",
                         minute: "2-digit",
@@ -465,40 +660,90 @@ export default function KitsuneAIPage() {
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            className="flex items-start gap-3.5"
+            className="flex items-center gap-3.5"
           >
-            <div className="w-8 h-8 rounded-2xl bg-kitsune/12 border border-kitsune/25 flex items-center justify-center shrink-0">
-              <span className="material-symbols-outlined text-kitsune text-[17px] animate-pulse">
+            <div className="w-9 h-9 rounded-2xl bg-[#FF6B00]/15 border border-[#FF6B00]/30 flex items-center justify-center shrink-0">
+              <span className="material-symbols-outlined text-[#FF6B00] text-[18px]">
                 auto_awesome
               </span>
             </div>
-            <div className="border rounded-3xl px-4 py-3.5 bg-zinc-900/90 border-zinc-800 rounded-tl-sm flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-kitsune animate-bounce" />
-              <div
-                className="w-2 h-2 rounded-full bg-kitsune animate-bounce"
-                style={{ animationDelay: "150ms" }}
-              />
-              <div
-                className="w-2 h-2 rounded-full bg-kitsune animate-bounce"
-                style={{ animationDelay: "300ms" }}
-              />
-              <span className="text-xs font-sans text-zinc-400 ml-1.5">
-                Kitsune está analisando ({currentModelInfo.shortTitle})...
-              </span>
+            <div className="p-4 rounded-3xl rounded-tl-sm bg-[#141A24] border border-[#263042] text-xs text-[#94A3B8] flex items-center gap-2.5 shadow-sm">
+              <Spinner size="sm" />
+              <span>Consultando seu patrimônio e formulando recomendações...</span>
             </div>
           </motion.div>
         )}
 
-        <div ref={messagesEndRef} />
+        <div ref={messagesEndRef} className="h-2 shrink-0" />
       </div>
 
-      {/* Barra de Entrada Unificada no Rodapé (Estilo Gemini/Claude) */}
-      <div className="w-full shrink-0 px-3 md:px-6 pb-3 pt-2 bg-gradient-to-t from-[#09090b] via-[#09090b] to-transparent sticky bottom-0 z-30">
+      {/* Pílulas de Perguntas Sugeridas (Estilo Stitch) */}
+      <div className="px-4 md:px-8 max-w-4xl mx-auto w-full pb-2">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+          <span className="text-[11px] text-[#94A3B8] font-bold uppercase tracking-wider shrink-0 flex items-center gap-1">
+            <span className="material-symbols-outlined text-sm text-[#FF6B00]">
+              lightbulb
+            </span>
+            Sugestões:
+          </span>
+          {SUGGESTED_QUICK_PROMPTS.map((item, idx) => (
+            <button
+              key={idx}
+              type="button"
+              disabled={isLoading}
+              onClick={() => sendMessage(item.query)}
+              className="px-3.5 py-1.5 rounded-full bg-[#141A24] hover:bg-[#1C2331] hover:border-[#FF6B00]/40 border border-[#263042] text-[#F8FAFC] text-xs font-medium transition-colors whitespace-nowrap cursor-pointer active:scale-95"
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Caixa de Entrada Inferior com Anexos Visuais, Microfone e Seletor */}
+      <div className="p-3 md:p-4 bg-[#0F141C] border-t border-[#263042] z-20 shrink-0">
         <form
           onSubmit={handleSubmit}
-          className="max-w-4xl mx-auto bg-zinc-900/95 border border-zinc-800 focus-within:border-zinc-700 rounded-3xl p-2.5 md:p-3 shadow-2xl backdrop-blur-xl flex flex-col gap-2"
+          className="max-w-4xl mx-auto bg-[#141A24] border border-[#263042] focus-within:border-[#FF6B00]/60 rounded-3xl p-2.5 md:p-3 shadow-2xl backdrop-blur-xl flex flex-col gap-2 transition-colors"
         >
+          {/* Badges dos Blocos de Contexto Anexados */}
+          {attachedContexts.length > 0 && (
+            <div className="flex items-center gap-1.5 flex-wrap px-1 pt-1">
+              <span className="text-[10px] uppercase font-bold text-[#FF6B00] tracking-wider pl-1">
+                Contexto Anexado:
+              </span>
+              {attachedContexts.map((ctxId) => {
+                const item = CONTEXT_ATTACHMENTS.find((c) => c.id === ctxId);
+                if (!item) return null;
+                return (
+                  <span
+                    key={item.id}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FF6B00]/15 border border-[#FF6B00]/40 text-xs text-[#FF6B00] font-semibold animate-in fade-in"
+                  >
+                    <span className="material-symbols-outlined text-[15px]">
+                      {item.icon}
+                    </span>
+                    <span>{item.label}</span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setAttachedContexts((prev) =>
+                          prev.filter((id) => id !== ctxId)
+                        )
+                      }
+                      className="hover:text-white transition-colors cursor-pointer ml-1"
+                      title="Remover anexo"
+                    >
+                      <span className="material-symbols-outlined text-[14px]">
+                        close
+                      </span>
+                    </button>
+                  </span>
+                );
+              })}
+            </div>
+          )}
+
           {/* Campo de Texto Auto-Resize */}
           <textarea
             ref={textareaRef}
@@ -507,14 +752,20 @@ export default function KitsuneAIPage() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             disabled={isLoading}
-            placeholder="Pergunte à Kitsune AI sobre seu patrimônio, faturas ou investimentos..."
-            className="w-full px-2.5 py-1 bg-transparent border-none outline-none resize-none text-zinc-100 font-sans text-sm placeholder:text-zinc-500 max-h-36 overflow-y-auto"
+            placeholder={
+              isListening
+                ? "Ouvindo sua dúvida... (pode falar)"
+                : attachedContexts.length > 0
+                ? "Digite sua pergunta com esse contexto (ou aperte Enter para enviar)..."
+                : "Pergunte à Kitsune IA sobre seu saldo, faturas, gastos ou investimentos..."
+            }
+            className="w-full px-2.5 py-1.5 bg-transparent border-none outline-none resize-none text-[#F8FAFC] text-sm placeholder:text-[#94A3B8]/60 max-h-36 overflow-y-auto"
           />
 
-          {/* Linha Inferior da Caixa: [+] Anexar | Escopo | Seletor de Modelo (Estilo Print) | Enviar */}
-          <div className="flex items-center justify-between gap-2 pt-1">
+          {/* Linha Inferior da Caixa: [+] Anexar Contexto | Escopo | Microfone | Seletor de Modelo | Enviar */}
+          <div className="flex items-center justify-between gap-2 pt-1 border-t border-[#263042]/50">
             <div className="flex items-center gap-1.5 flex-wrap">
-              {/* 1. Botão + (Anexar Contexto) */}
+              {/* 1. Botão + (Menu de Anexar Contexto) */}
               <div ref={attachRef} className="relative">
                 <button
                   type="button"
@@ -523,11 +774,11 @@ export default function KitsuneAIPage() {
                     setIsModelOpen(false);
                     setIsScopeOpen(false);
                   }}
-                  title="Anexar contexto financeiro rápido"
+                  title="Anexar bloco de contexto financeiro"
                   className={`w-8 h-8 rounded-full flex items-center justify-center border transition-all cursor-pointer ${
-                    isAttachOpen
-                      ? "bg-amber-500/20 border-amber-500/40 text-amber-400"
-                      : "bg-zinc-800/80 hover:bg-zinc-800 border-zinc-700/70 text-zinc-300"
+                    isAttachOpen || attachedContexts.length > 0
+                      ? "bg-[#FF6B00]/20 border-[#FF6B00]/50 text-[#FF6B00]"
+                      : "bg-[#1C2331] hover:bg-[#252A33] border-[#263042] text-[#94A3B8]"
                   }`}
                 >
                   <span className="material-symbols-outlined text-[18px]">
@@ -536,40 +787,62 @@ export default function KitsuneAIPage() {
                 </button>
 
                 {isAttachOpen && (
-                  <div className="absolute bottom-full left-0 mb-2.5 w-72 bg-zinc-900/95 border border-zinc-800 rounded-2xl shadow-2xl backdrop-blur-xl p-2 flex flex-col gap-1 z-50 animate-in fade-in zoom-in-95 duration-150">
-                    <div className="px-2.5 py-1 text-[10px] font-sans font-bold uppercase tracking-wider text-zinc-400">
+                  <div className="absolute bottom-full left-0 mb-2.5 w-72 bg-[#141A24] border border-[#263042] rounded-2xl shadow-2xl backdrop-blur-xl p-2 flex flex-col gap-1 z-50 animate-in fade-in zoom-in-95 duration-150">
+                    <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
                       Anexar Bloco de Contexto
                     </div>
-                    {CONTEXT_ATTACHMENTS.map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => {
-                          setIsAttachOpen(false);
-                          sendMessage(item.prompt);
-                        }}
-                        className="w-full px-3 py-2.5 rounded-xl hover:bg-zinc-800/80 text-left transition-colors flex items-start gap-2.5 cursor-pointer group"
-                      >
-                        <div className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center shrink-0 mt-0.5 group-hover:bg-amber-500/20">
-                          <span className="material-symbols-outlined text-[16px]">
-                            {item.icon}
-                          </span>
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="text-xs font-sans font-semibold text-zinc-100">
-                            {item.label}
-                          </span>
-                          <span className="text-[11px] font-sans text-zinc-400 leading-tight mt-0.5">
-                            {item.description}
-                          </span>
-                        </div>
-                      </button>
-                    ))}
+                    {CONTEXT_ATTACHMENTS.map((item) => {
+                      const isAttached = attachedContexts.includes(item.id);
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => {
+                            setAttachedContexts((prev) =>
+                              prev.includes(item.id)
+                                ? prev.filter((id) => id !== item.id)
+                                : [...prev, item.id]
+                            );
+                            setIsAttachOpen(false);
+                          }}
+                          className={`w-full px-3 py-2.5 rounded-xl text-left transition-colors flex items-start gap-2.5 cursor-pointer ${
+                            isAttached
+                              ? "bg-[#FF6B00]/15 text-[#FF6B00]"
+                              : "hover:bg-[#1C2331] text-[#F8FAFC]"
+                          }`}
+                        >
+                          <div
+                            className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
+                              isAttached
+                                ? "bg-[#FF6B00] text-white"
+                                : "bg-[#FF6B00]/15 text-[#FF6B00]"
+                            }`}
+                          >
+                            <span className="material-symbols-outlined text-[16px]">
+                              {item.icon}
+                            </span>
+                          </div>
+                          <div className="flex flex-col flex-1">
+                            <span className="text-xs font-semibold">
+                              {item.label}
+                            </span>
+                            <span className="text-[11px] text-[#94A3B8] leading-tight mt-0.5">
+                              {item.description}
+                            </span>
+                          </div>
+                          {isAttached && (
+                            <span className="material-symbols-outlined text-[16px] text-[#FF6B00]">
+                              check
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </div>
 
-              {/* 2. Seletor de Escopo (Meu Patrimônio vs Familiar/Compartilhado) */}
+              {/* 2. Seletor de Escopo (Meu Patrimônio vs Familiar) */}
               <div ref={scopeRef} className="relative">
                 <button
                   type="button"
@@ -578,22 +851,22 @@ export default function KitsuneAIPage() {
                     setIsAttachOpen(false);
                     setIsModelOpen(false);
                   }}
-                  className="h-8 px-3 rounded-full bg-zinc-800/70 hover:bg-zinc-800 border border-zinc-700/60 text-xs font-sans font-medium text-zinc-200 flex items-center gap-1.5 transition-colors cursor-pointer"
+                  className="h-8 px-3 rounded-full bg-[#1C2331] hover:bg-[#252A33] border border-[#263042] text-xs font-medium text-[#F8FAFC] flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
-                  <span className="material-symbols-outlined text-[15px] text-amber-400">
+                  <span className="material-symbols-outlined text-[15px] text-[#FF6B00]">
                     {selectedScope === "personal" ? "person" : "groups"}
                   </span>
                   <span className="max-w-[130px] truncate">
                     {scopeBadgeLabel}
                   </span>
-                  <span className="material-symbols-outlined text-[15px] text-zinc-400">
+                  <span className="material-symbols-outlined text-[15px] text-[#94A3B8]">
                     expand_more
                   </span>
                 </button>
 
                 {isScopeOpen && (
-                  <div className="absolute bottom-full left-0 mb-2.5 w-60 bg-zinc-900/95 border border-zinc-800 rounded-2xl shadow-2xl backdrop-blur-xl p-1.5 flex flex-col gap-0.5 z-50 animate-in fade-in zoom-in-95 duration-150">
-                    <div className="px-3 py-1.5 text-[10px] font-sans font-bold uppercase tracking-wider text-zinc-400">
+                  <div className="absolute bottom-full left-0 mb-2.5 w-60 bg-[#141A24] border border-[#263042] rounded-2xl shadow-2xl backdrop-blur-xl p-1.5 flex flex-col gap-0.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                    <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
                       Escopo da Análise
                     </div>
                     <button
@@ -602,20 +875,20 @@ export default function KitsuneAIPage() {
                         setSelectedScope("personal");
                         setIsScopeOpen(false);
                       }}
-                      className={`w-full px-3 py-2 rounded-xl text-left font-sans flex items-center justify-between cursor-pointer transition-colors ${
+                      className={`w-full px-3 py-2 rounded-xl text-left flex items-center justify-between cursor-pointer transition-colors ${
                         selectedScope === "personal"
-                          ? "bg-amber-500/15 text-amber-400 font-semibold"
-                          : "text-zinc-200 hover:bg-zinc-800/80"
+                          ? "bg-[#FF6B00]/15 text-[#FF6B00] font-semibold"
+                          : "text-[#F8FAFC] hover:bg-[#1C2331]"
                       }`}
                     >
                       <div className="flex flex-col">
                         <span className="text-xs">Meu Patrimônio</span>
-                        <span className="text-[11px] text-zinc-400 font-normal">
+                        <span className="text-[11px] text-[#94A3B8] font-normal">
                           Visão individual isolada
                         </span>
                       </div>
                       {selectedScope === "personal" && (
-                        <span className="material-symbols-outlined text-[16px] text-amber-400">
+                        <span className="material-symbols-outlined text-[16px] text-[#FF6B00]">
                           check
                         </span>
                       )}
@@ -627,68 +900,48 @@ export default function KitsuneAIPage() {
                         setSelectedScope("all");
                         setIsScopeOpen(false);
                       }}
-                      className={`w-full px-3 py-2 rounded-xl text-left font-sans flex items-center justify-between cursor-pointer transition-colors ${
+                      className={`w-full px-3 py-2 rounded-xl text-left flex items-center justify-between cursor-pointer transition-colors ${
                         selectedScope === "all"
-                          ? "bg-amber-500/15 text-amber-400 font-semibold"
-                          : "text-zinc-200 hover:bg-zinc-800/80"
+                          ? "bg-[#FF6B00]/15 text-[#FF6B00] font-semibold"
+                          : "text-[#F8FAFC] hover:bg-[#1C2331]"
                       }`}
                     >
                       <div className="flex flex-col">
-                        <span className="text-xs">Familiar/Compartilhado</span>
-                        <span className="text-[11px] text-zinc-400 font-normal">
-                          Consolidado do workspace
+                        <span className="text-xs">Familiar / Compartilhado</span>
+                        <span className="text-[11px] text-[#94A3B8] font-normal">
+                          Consolidado de todos os membros
                         </span>
                       </div>
                       {selectedScope === "all" && (
-                        <span className="material-symbols-outlined text-[16px] text-amber-400">
+                        <span className="material-symbols-outlined text-[16px] text-[#FF6B00]">
                           check
                         </span>
                       )}
                     </button>
-
-                    {familyMembers.length > 0 && (
-                      <>
-                        <div className="h-px bg-zinc-800 my-1" />
-                        {familyMembers.map((m) => {
-                          const active = selectedScope === m.id;
-                          return (
-                            <button
-                              key={m.id}
-                              type="button"
-                              onClick={() => {
-                                setSelectedScope(m.id);
-                                setIsScopeOpen(false);
-                              }}
-                              className={`w-full px-3 py-2 rounded-xl text-left font-sans flex items-center justify-between cursor-pointer transition-colors ${
-                                active
-                                  ? "bg-amber-500/15 text-amber-400 font-semibold"
-                                  : "text-zinc-200 hover:bg-zinc-800/80"
-                              }`}
-                            >
-                              <div className="flex flex-col">
-                                <span className="text-xs">{m.name}</span>
-                                <span className="text-[11px] text-zinc-400 font-normal">
-                                  {m.role || "Membro"}
-                                </span>
-                              </div>
-                              {active && (
-                                <span className="material-symbols-outlined text-[16px] text-amber-400">
-                                  check
-                                </span>
-                              )}
-                            </button>
-                          );
-                        })}
-                      </>
-                    )}
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Lado Direito: Seletor de Modelo Estilo Print Gemini + Botão de Envio */}
+            {/* Lado Direito: Microfone + Seletor de Modelo + Botão de Envio */}
             <div className="flex items-center gap-2">
-              {/* 3. Pílula Clicável do Seletor de Modelo (Estilo Print) */}
+              {/* 3. Botão de Microfone (Transcrição por Voz) */}
+              <button
+                type="button"
+                onClick={toggleVoiceRecognition}
+                title={isListening ? "Parar de ouvir" : "Falar por voz"}
+                className={`w-8 h-8 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+                  isListening
+                    ? "bg-[#FF6B00] text-white animate-pulse shadow-[0_0_16px_rgba(255,107,0,0.6)]"
+                    : "bg-[#1C2331] hover:bg-[#252A33] border border-[#263042] text-[#94A3B8] hover:text-[#FF6B00]"
+                }`}
+              >
+                <span className="material-symbols-outlined text-[18px]">
+                  {isListening ? "graphic_eq" : "mic"}
+                </span>
+              </button>
+
+              {/* 4. Seletor de Modelo de IA (Incluindo Automático) */}
               <div ref={modelRef} className="relative">
                 <button
                   type="button"
@@ -697,23 +950,21 @@ export default function KitsuneAIPage() {
                     setIsAttachOpen(false);
                     setIsScopeOpen(false);
                   }}
-                  className="h-8 px-3 rounded-full bg-zinc-800/80 hover:bg-zinc-800 border border-zinc-700/70 text-xs font-sans font-semibold text-zinc-100 flex items-center gap-1.5 transition-colors cursor-pointer"
+                  className="h-8 px-3 rounded-full bg-[#1C2331] hover:bg-[#252A33] border border-[#263042] text-xs font-semibold text-[#F8FAFC] flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <span>{currentModelInfo.shortTitle}</span>
-                  <span
-                    className={`material-symbols-outlined text-[15px] text-zinc-400 transition-transform duration-200 ${
-                      isModelOpen ? "rotate-180" : ""
-                    }`}
-                  >
+                  <span className="material-symbols-outlined text-[15px] text-[#94A3B8]">
                     expand_more
                   </span>
                 </button>
 
-                {/* Popover Moderno Fiel à Print Enviada */}
                 {isModelOpen && (
-                  <div className="absolute bottom-full right-0 mb-2.5 w-64 bg-zinc-900/95 border border-zinc-800 rounded-2xl shadow-2xl backdrop-blur-xl py-2 px-1.5 flex flex-col gap-0.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="absolute bottom-full right-0 mb-2.5 w-68 bg-[#141A24] border border-[#263042] rounded-2xl shadow-2xl backdrop-blur-xl p-1.5 flex flex-col gap-0.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                    <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
+                      Modelo Inteligente
+                    </div>
                     {KITSUNE_AI_MODELS.map((model) => {
-                      const isSelected = model.id === selectedAiModel;
+                      const isSelected = selectedAiModel === model.id;
                       return (
                         <button
                           key={model.id}
@@ -721,112 +972,149 @@ export default function KitsuneAIPage() {
                           onClick={() => {
                             setSelectedAiModel(model.id);
                             setIsModelOpen(false);
-                            setIsReasoningSubmenuOpen(false);
                           }}
-                          className={`w-full px-3 py-2.5 rounded-xl text-left font-sans transition-colors flex items-center gap-3 cursor-pointer ${
+                          className={`w-full px-3 py-2 rounded-xl text-left flex items-center justify-between cursor-pointer transition-colors ${
                             isSelected
-                              ? "bg-amber-500/12 text-amber-400"
-                              : "text-zinc-100 hover:bg-zinc-800/80"
+                              ? "bg-[#FF6B00]/15 text-[#FF6B00] font-semibold"
+                              : "text-[#F8FAFC] hover:bg-[#1C2331]"
                           }`}
                         >
-                          <div className="w-4 flex items-center justify-center shrink-0">
-                            {isSelected && (
-                              <span className="material-symbols-outlined text-[17px] text-amber-400 font-bold">
-                                check
-                              </span>
-                            )}
-                          </div>
                           <div className="flex flex-col">
-                            <span className="text-[13px] font-semibold leading-tight text-zinc-100">
-                              {model.shortTitle}
-                            </span>
-                            <span className="text-xs text-zinc-400 font-normal mt-0.5">
+                            <span className="text-xs">{model.shortTitle}</span>
+                            <span className="text-[10px] text-[#94A3B8] leading-tight">
                               {model.subtitle}
                             </span>
                           </div>
+                          {isSelected && (
+                            <span className="material-symbols-outlined text-[16px] text-[#FF6B00]">
+                              check
+                            </span>
+                          )}
                         </button>
                       );
                     })}
 
-                    <div className="h-px bg-zinc-800 my-1.5 mx-2" />
+                    <div className="h-px bg-[#263042] w-full my-1" />
 
-                    {/* Item "Nível de raciocínio ▸" igual ao da print */}
-                    <div className="relative">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setIsReasoningSubmenuOpen((prev) => !prev)
-                        }
-                        className="w-full pl-10 pr-3 py-2.5 rounded-xl text-left font-sans text-xs font-medium text-zinc-200 hover:bg-zinc-800/80 transition-colors flex items-center justify-between cursor-pointer"
-                      >
-                        <span>Nível de raciocínio</span>
-                        <div className="flex items-center gap-1 text-zinc-400">
-                          <span className="text-[11px] text-amber-400 font-semibold">
-                            {
-                              REASONING_LEVELS.find(
-                                (r) => r.id === reasoningLevel
-                              )?.label
-                            }
-                          </span>
-                          <span className="material-symbols-outlined text-[16px]">
-                             arrow_right
-                          </span>
-                        </div>
-                      </button>
-
-                      {isReasoningSubmenuOpen && (
-                        <div className="mt-1 mx-2 p-1.5 rounded-xl bg-zinc-950/90 border border-zinc-800 flex flex-col gap-0.5">
-                          {REASONING_LEVELS.map((lvl) => {
-                            const active = reasoningLevel === lvl.id;
-                            return (
-                              <button
-                                key={lvl.id}
-                                type="button"
-                                onClick={() => {
-                                  setReasoningLevel(lvl.id);
-                                  setIsReasoningSubmenuOpen(false);
-                                }}
-                                className={`w-full px-2.5 py-1.5 rounded-lg text-left font-sans flex items-center justify-between cursor-pointer ${
-                                  active
-                                    ? "bg-amber-500/15 text-amber-400 font-semibold"
-                                    : "text-zinc-300 hover:bg-zinc-800"
-                                }`}
-                              >
-                                <span className="text-xs">{lvl.label}</span>
-                                <span className="text-[10px] text-zinc-400">
-                                  {lvl.desc}
-                                </span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
+                    {/* Nível de Raciocínio */}
+                    <div className="px-3 py-1 flex items-center justify-between text-xs text-[#94A3B8]">
+                      <span>Raciocínio:</span>
+                      <div className="flex items-center gap-1">
+                        {REASONING_LEVELS.map((lvl) => (
+                          <button
+                            key={lvl.id}
+                            type="button"
+                            onClick={() => setReasoningLevel(lvl.id)}
+                            className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-colors ${
+                              reasoningLevel === lvl.id
+                                ? "bg-[#FF6B00] text-white"
+                                : "bg-[#1C2331] text-[#94A3B8] hover:text-[#F8FAFC]"
+                            }`}
+                          >
+                            {lvl.label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* 4. Botão de Envio */}
+              {/* 5. Botão de Envio Proeminente */}
               <button
                 type="submit"
-                disabled={!input.trim() || isLoading}
-                className="w-9 h-9 rounded-full bg-kitsune text-white flex items-center justify-center hover:bg-kitsune/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-kitsune/20 shrink-0 cursor-pointer"
+                disabled={isLoading || (!input.trim() && attachedContexts.length === 0)}
+                className="w-8 h-8 rounded-full bg-[#FF6B00] hover:bg-[#FF7D1A] active:bg-[#E05E00] text-white flex items-center justify-center transition-all shadow-[0_2px_10px_rgba(255,107,0,0.35)] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                title="Enviar mensagem"
               >
-                {isLoading ? (
-                  <Spinner size={16} className="text-white" />
-                ) : (
-                  <span
-                    className="material-symbols-outlined text-[19px]"
-                    style={{ fontVariationSettings: "'FILL' 1" }}
-                  >
-                    arrow_upward
-                  </span>
-                )}
+                <span className="material-symbols-outlined text-[18px]">
+                  arrow_upward
+                </span>
               </button>
             </div>
           </div>
         </form>
       </div>
+
+      {/* Drawer Lateral: Histórico de Conversas Salvas */}
+      {isHistoryOpen && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex justify-end animate-in fade-in duration-200">
+          <div className="w-full max-w-sm h-full bg-[#141A24] border-l border-[#263042] p-5 flex flex-col justify-between shadow-2xl">
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center justify-between border-b border-[#263042] pb-3">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[#FF6B00] text-xl">
+                    history
+                  </span>
+                  <h3 className="font-bold text-sm text-[#F8FAFC]">
+                    Histórico de Conversas
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setIsHistoryOpen(false)}
+                  className="p-1 rounded-lg text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#1C2331]"
+                >
+                  <span className="material-symbols-outlined text-lg">close</span>
+                </button>
+              </div>
+
+              <button
+                onClick={() => {
+                  handleStartNewChat();
+                  setIsHistoryOpen(false);
+                }}
+                className="w-full py-2.5 px-3 rounded-xl bg-[#FF6B00] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-[#FF6B00]/25"
+              >
+                <span className="material-symbols-outlined text-[16px]">
+                  add
+                </span>
+                Nova Conversa
+              </button>
+
+              <div className="flex flex-col gap-2 overflow-y-auto max-h-[70vh] pt-2">
+                {savedSessions.length === 0 ? (
+                  <p className="text-xs text-[#94A3B8] text-center py-8">
+                    Nenhuma conversa anterior salva neste navegador.
+                  </p>
+                ) : (
+                  savedSessions.map((session) => (
+                    <div
+                      key={session.id}
+                      onClick={() => handleLoadSession(session)}
+                      className="p-3 rounded-xl bg-[#0F141C] border border-[#263042] hover:border-[#FF6B00]/40 flex items-center justify-between gap-2 cursor-pointer transition-colors group"
+                    >
+                      <div className="flex flex-col gap-0.5 overflow-hidden">
+                        <span className="text-xs font-semibold text-[#F8FAFC] truncate">
+                          {session.title}
+                        </span>
+                        <span className="text-[10px] text-[#94A3B8]">
+                          {new Date(session.createdAt).toLocaleDateString("pt-BR")}{" "}
+                          • {session.messages.length} mensagens
+                        </span>
+                      </div>
+                      <button
+                        onClick={(e) => handleDeleteSession(session.id, e)}
+                        title="Excluir conversa"
+                        className="opacity-0 group-hover:opacity-100 p-1 text-[#94A3B8] hover:text-[#EF4444] transition-all"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">
+                          delete
+                        </span>
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-[#263042]">
+              <p className="text-[11px] text-[#94A3B8] text-center">
+                Conversas salvas localmente com criptografia de sessão.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
