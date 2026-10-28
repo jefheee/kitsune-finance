@@ -5,6 +5,11 @@ import Link from "next/link";
 import Spinner from "@/components/Spinner";
 import PluggyConnectModal from "@/components/PluggyConnectModal";
 import CustomDropdown from "@/components/ui/CustomDropdown";
+import { AiDiagnosticPanel } from "@/components/AiDiagnosticPanel";
+import { AnomalyAlertCard } from "@/components/AnomalyAlertCard";
+import { SpendingHeatmap } from "@/components/finance/SpendingHeatmap";
+import { SubscriptionsTracker } from "@/components/finance/SubscriptionsTracker";
+import { InstallmentsTracker } from "@/components/finance/InstallmentsTracker";
 import { useFinanceData } from "@/context/FinanceDataContext";
 
 export default function DashboardPage() {
@@ -44,6 +49,8 @@ export default function DashboardPage() {
   const TABS = [
     "Visão Geral",
     "Extrato & Transações",
+    "Parcelamentos",
+    "Assinaturas",
     "Cartões de Crédito",
     "Categorias de Gastos",
     "Visão Familiar",
@@ -305,7 +312,20 @@ export default function DashboardPage() {
         </div>
 
         {/* Ações Superiores */}
-        <div className="flex items-center gap-2.5 shrink-0 self-stretch sm:self-auto">
+        <div className="flex items-center gap-2 shrink-0 self-stretch sm:self-auto flex-wrap">
+          <a
+            href="/api/export/spreadsheet"
+            download
+            title="Exportar dados consolidados em Planilha (CSV / Excel)"
+            className="flex-1 sm:flex-initial h-10 px-3.5 rounded-xl bg-white dark:bg-[#12161F] hover:bg-slate-100 dark:hover:bg-[#1A202C] border border-slate-200 dark:border-[#262E3D] text-xs font-semibold text-slate-700 dark:text-[#F8FAFC] flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs"
+          >
+            <span className="material-symbols-outlined text-[17px] text-[#FF8216]">
+              table_chart
+            </span>
+            <span className="hidden sm:inline">Exportar Planilha</span>
+            <span className="sm:hidden">Planilha</span>
+          </a>
+
           <button
             onClick={() => revalidate(true)}
             title="Atualizar dados bancários agora"
@@ -358,6 +378,9 @@ export default function DashboardPage() {
 
       {activeTab === "Visão Geral" ? (
         <>
+          {/* Alerta Preventivo de Anomalias em Segundo Plano (Agente Albert) */}
+          <AnomalyAlertCard />
+
           {/* Key Metrics: 4 Cards Responsivos */}
           <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
             {/* Card 1: Patrimônio Total */}
@@ -461,73 +484,19 @@ export default function DashboardPage() {
             </div>
           </section>
 
-          {/* Painel Consultivo da Kitsune AI (Sóbrio, Sem Glows, 100% Dinâmico) */}
-          <section className="p-5 md:p-6 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
-            <div className="flex items-start gap-3.5 flex-1 min-w-0">
-              <div className="w-11 h-11 rounded-xl bg-[#FF8216]/10 text-[#FF8216] border border-[#FF8216]/20 flex items-center justify-center shrink-0">
-                <span className="material-symbols-outlined text-2xl">psychology</span>
-              </div>
-
-              <div className="flex flex-col gap-1.5 flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="text-sm md:text-base font-bold text-slate-900 dark:text-[#F8FAFC]">
-                    Diagnóstico da Kitsune IA
-                  </h2>
-                  <span className={`px-2 py-0.5 rounded-full bg-slate-100 dark:bg-[#1A202C] text-xs font-bold ${kitsuneScore.color}`}>
-                    Score: {kitsuneScore.score} • {kitsuneScore.label}
-                  </span>
-                </div>
-
-                {isGeneratingAi ? (
-                  <div className="flex items-center gap-2 py-1 text-xs text-slate-500 dark:text-[#94A3B8]">
-                    <Spinner size={14} className="text-[#FF8216]" />
-                    <span>A Kitsune IA está analisando seu patrimônio...</span>
-                  </div>
-                ) : aiInsight ? (
-                  <p className="text-xs md:text-sm text-slate-600 dark:text-[#94A3B8] leading-relaxed whitespace-pre-line font-normal">
-                    {aiInsight.text}
-                  </p>
-                ) : (
-                  <p className="text-xs md:text-sm text-slate-600 dark:text-[#94A3B8] leading-relaxed">
-                    Seu patrimônio consolidado está em <strong className="text-slate-800 dark:text-slate-200">{formatCurrency(totalBalance)}</strong> com <strong className="text-emerald-500">{formatCurrency(liquidBalance)}</strong> disponível em conta e <strong className="text-[#FF8216]">{formatCurrency(creditCardBalance)}</strong> em faturas abertas. Clique ao lado para gerar sua análise consultiva.
-                  </p>
-                )}
-
-                <div className="flex items-center gap-2 text-[10px] text-slate-400 pt-0.5">
-                  <span className="flex items-center gap-1">
-                    <span className="material-symbols-outlined text-xs text-emerald-500">verified</span>
-                    Baseado em dados reais do Open Finance
-                  </span>
-                  {aiInsight && (
-                    <>
-                      <span>•</span>
-                      <span>Atualizado às {new Date(aiInsight.updatedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Ações da Consultora */}
-            <div className="flex flex-row md:flex-col gap-2 shrink-0 w-full md:w-auto">
-              <Link
-                href="/kitsune"
-                className="flex-1 md:flex-initial h-10 px-4 rounded-xl bg-[#FF8216] hover:bg-[#FFA047] active:bg-[#E66E08] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-[16px]">chat</span>
-                <span>Conversar</span>
-              </Link>
-
-              <button
-                onClick={generateAiInsight}
-                disabled={isGeneratingAi}
-                className="flex-1 md:flex-initial h-10 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-[#1A202C] dark:hover:bg-[#222A3A] border border-slate-200 dark:border-[#262E3D] text-xs font-semibold text-slate-800 dark:text-[#F8FAFC] flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
-              >
-                <span className="material-symbols-outlined text-[16px] text-[#FF8216]">refresh</span>
-                <span>Atualizar</span>
-              </button>
-            </div>
-          </section>
+          {/* Painel Consultivo da Kitsune AI (Estruturado em Cards, Métricas Visuais e Resumo Executivo) */}
+          <AiDiagnosticPanel
+            aiInsight={aiInsight}
+            isGenerating={isGeneratingAi}
+            onRefresh={generateAiInsight}
+            totalBalance={totalBalance}
+            liquidBalance={liquidBalance}
+            creditCardBalance={creditCardBalance}
+            monthlyIncome={monthlyIncome}
+            monthlyExpense={monthlyExpense}
+            kitsuneScore={kitsuneScore}
+            formatCurrency={formatCurrency}
+          />
 
           {/* Grid de 2 Colunas: Contas Conectadas + Lançamentos Recentes */}
           <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -672,7 +641,25 @@ export default function DashboardPage() {
               </div>
             </div>
           </section>
+
+          {/* Mapa de Calor de Gastos Diários (Estilo Pierre Vision) */}
+          <SpendingHeatmap
+            transactions={filteredTransactions}
+            formatCurrency={formatCurrency}
+          />
         </>
+      ) : activeTab === "Parcelamentos" ? (
+        /* Aba Parcelamentos (Rastreamento de Compras Parceladas) */
+        <InstallmentsTracker
+          transactions={filteredTransactions}
+          formatCurrency={formatCurrency}
+        />
+      ) : activeTab === "Assinaturas" ? (
+        /* Aba Assinaturas (Auditoria de Serviços Recorrentes) */
+        <SubscriptionsTracker
+          transactions={filteredTransactions}
+          formatCurrency={formatCurrency}
+        />
       ) : activeTab === "Extrato & Transações" ? (
         /* Aba Extrato */
         <section className="bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] rounded-2xl p-4 md:p-6 shadow-xs flex flex-col gap-4">

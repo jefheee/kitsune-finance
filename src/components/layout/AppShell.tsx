@@ -55,7 +55,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     { path: "/profile", icon: "person", label: "Perfil" },
   ];
 
-  const isPublicRoute = pathname === "/login" || pathname === "/signup";
+  const isPublicRoute = pathname === "/login" || pathname === "/signup" || pathname === "/";
 
   if (isPublicRoute) {
     return <>{children}</>;
