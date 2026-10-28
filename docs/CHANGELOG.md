@@ -4,6 +4,29 @@ Todas as alterações notáveis no projeto Kitsune Finance são registradas de f
 
 ---
 
+## [2026-10-27] - Redesign Open Finance Warm Obsidian, Otimização de Tokens & FAQ de Segurança
+- **Arquivos Afetados:** `src/app/agents/page.tsx`, `src/app/api/chat/route.ts`, `src/context/FinanceDataContext.tsx`, `docs/PROJECT_STATE.md`, `docs/CHANGELOG.md`.
+- **Objetivo:** 
+  - Redesign completo da página de Conexões Bancárias (`/agents`) alinhada às telas do Stitch (`80fa7af03ce8417fba73ef02d068139f` e `90e3a36dbc424738a1c01bbbd7f44de3`) com Warm Obsidian tokens.
+  - Adição do Security Assurance Banner (100% Somente-Leitura, Regulação Bacen nº 1/2020 e Criptografia AES-256 TLS 1.3).
+  - Implementação do Quick Bank Grid (Nubank, Itaú, Bradesco, Santander, Banco do Brasil, Inter, C6, BTG) para conexão rápida com 1 clique e FAQ interativo de privacidade.
+  - Eliminação de jargões técnicos de banco de dados e substituição por garantias humanas de privacidade.
+  - Otimização severa de consumo de tokens no endpoint `/api/chat` com digest pipe-delimited de alta densidade (~85% de economia em transações) e injeção condicional de extratos.
+  - Modelo padrão inicial do assistente configurado como "✨ Automático" no `FinanceDataContext`.
+
+---
+
+## [2026-10-27] - Redesign Warm Obsidian, Perfil do Usuário, Roteamento Automático & Licença MIT
+- **Arquivos Afetados:** `LICENSE`, `src/app/layout.tsx`, `src/app/globals.css`, `src/app/template.tsx`, `src/app/loading.tsx`, `src/app/profile/page.tsx`, `src/components/layout/AppShell.tsx`, `src/app/kitsune/page.tsx`, `src/app/api/chat/route.ts`, `src/utils/ai/gemini.ts`, `docs/PROJECT_STATE.md`, `docs/CHANGELOG.md`.
+- **Objetivo:** 
+  - Adição do arquivo de licenciamento Open Source `LICENSE` (MIT).
+  - Adoção da identidade de design "Warm Obsidian Intelligence" (Stitch/Untitled UI) com fonte Plus Jakarta Sans, números tabulares e eliminação de jargões técnicos.
+  - Implementação da página de Perfil (`/profile`) com upload de avatar, nome de exibição, renda mensal com simulação 50/30/20 e objetivos financeiros no Supabase.
+  - Transições fluidas de páginas com Framer Motion (`template.tsx`) e animação suave de loading com ambient glow (`loading.tsx`).
+  - Chat Kitsune AI com modo "✨ Automático" (roteamento por complexidade), blocos de contexto como badges anexáveis, microfone por voz em tempo real e histórico de conversas anteriores.
+
+---
+
 ## [2026-10-27] - Inicialização do Docs as Code e Melhorias no Chat AI
 - **Arquivos Afetados:** `docs/PROJECT_STATE.md`, `docs/CHANGELOG.md`, `AGENTS.md`, `src/app/kitsune/page.tsx`, `src/app/globals.css`.
 - **Objetivo:** 

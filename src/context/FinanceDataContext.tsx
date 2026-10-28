@@ -87,16 +87,16 @@ export function FinanceDataProvider({ children }: { children: React.ReactNode })
   const [lastFetchedAt, setLastFetchedAt] = useState<number | null>(null);
   const [isFamilyModeEnabled, setIsFamilyModeEnabledState] = useState<boolean>(false);
 
-  const [selectedAiModel, setSelectedAiModel] = useState<string>('gemini-3.5-flash-lite');
+  const [selectedAiModel, setSelectedAiModel] = useState<string>('auto');
   const [reasoningLevel, setReasoningLevel] = useState<'fast' | 'standard' | 'deep'>('standard');
   const [chatMessages, setChatMessages] = useState<ChatMessageItem[]>([
     {
       id: 'welcome-msg',
       role: 'assistant',
       content:
-        'Olá! Sou a **Kitsune AI**, sua estrategista patrimonial pessoal. Estou conectada diretamente aos seus dados isolados no Supabase. Quer analisar seu fluxo de caixa do mês, auditar despesas por categoria ou planejar sua alocação?',
+        'Olá! Sou a **Kitsune AI**, sua estrategista patrimonial pessoal. Seus dados estão protegidos com criptografia de ponta a ponta e leitura somente-leitura. Deseja realizar um Raio-X do mês, auditar faturas de cartão ou receber recomendações de economia?',
       timestamp: new Date().toISOString(),
-      modelUsed: 'gemini-3.5-flash-lite',
+      modelUsed: 'auto',
     },
   ]);
 

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import Link from "next/link";
 import Spinner from "@/components/Spinner";
 import PluggyConnectModal from "@/components/PluggyConnectModal";
 import CustomDropdown from "@/components/ui/CustomDropdown";
@@ -9,6 +10,7 @@ import { useFinanceData } from "@/context/FinanceDataContext";
 export default function DashboardPage() {
   const {
     user,
+    userProfile,
     accounts,
     transactions,
     familyMembers,
@@ -23,7 +25,7 @@ export default function DashboardPage() {
     removeFamilyMemberLocal,
   } = useFinanceData();
 
-  const [activeTab, setActiveTab] = useState("Visão geral");
+  const [activeTab, setActiveTab] = useState("Visão Geral");
   const [selectedMemberId, setSelectedMemberId] = useState<string>("all");
   const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
 
@@ -37,11 +39,11 @@ export default function DashboardPage() {
   const [isCreatingMember, setIsCreatingMember] = useState(false);
 
   const TABS = [
-    "Visão geral",
-    "Transações",
-    "Cartões",
-    "Categorias",
-    "Visão Compartilhada/Familiar",
+    "Visão Geral",
+    "Extrato & Transações",
+    "Cartões de Crédito",
+    "Categorias de Gastos",
+    "Visão Familiar",
   ];
 
   const memberMap = useMemo(() => {
@@ -50,8 +52,6 @@ export default function DashboardPage() {
     return map;
   }, [familyMembers]);
 
-  // Filtro inteligente: se modo familiar estiver ativo e um membro específico foi escolhido, filtra por ele;
-  // caso contrário, exibe todas as contas pertencentes ao user_id autenticado
   const filteredAccounts = useMemo(() => {
     if (!isFamilyModeEnabled || selectedMemberId === "all") {
       return accounts;
@@ -136,6 +136,38 @@ export default function DashboardPage() {
     };
   }, [filteredAccounts, filteredTransactions]);
 
+  // Cálculo Determinístico do Kitsune Score de Saúde Financeira (0 - 1000)
+  const kitsuneScore = useMemo(() => {
+    if (accounts.length === 0) return { score: 500, label: "Aguardando Conexões", color: "text-[#94A3B8]" };
+    let score = 500;
+
+    // 1. Cobertura de Cartão com Liquidez
+    if (liquidBalance > creditCardBalance * 1.5) score += 200;
+    else if (liquidBalance >= creditCardBalance) score += 100;
+    else score -= 150;
+
+    // 2. Balanço Mensal
+    const netMonthly = monthlyIncome - monthlyExpense;
+    if (netMonthly > 0) score += 180;
+    else if (monthlyExpense > 0) score -= 120;
+
+    // 3. Diversificação / Contas
+    if (accounts.length >= 2) score += 70;
+
+    const finalScore = Math.max(300, Math.min(980, score));
+    if (finalScore >= 800) return { score: finalScore, label: "Excelente", color: "text-[#10B981]" };
+    if (finalScore >= 650) return { score: finalScore, label: "Saudável", color: "text-[#10B981]" };
+    if (finalScore >= 500) return { score: finalScore, label: "Atenção Necessária", color: "text-[#FF6B00]" };
+    return { score: finalScore, label: "Risco de Liquidez", color: "text-[#EF4444]" };
+  }, [accounts.length, liquidBalance, creditCardBalance, monthlyIncome, monthlyExpense]);
+
+  // Pré-computação automática de IA em background se não houver insight salvo
+  useEffect(() => {
+    if (!aiInsight && !isGeneratingAi && accounts.length > 0 && transactions.length > 0) {
+      generateAiInsight();
+    }
+  }, [aiInsight, accounts.length, transactions.length]);
+
   const generateAiInsight = async () => {
     setIsGeneratingAi(true);
     setAiError(null);
@@ -164,33 +196,35 @@ export default function DashboardPage() {
 
   const handleAddFamilyMember = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMemberName.trim()) return;
+    if (!newMemberName.trim() || isCreatingMember) return;
     setIsCreatingMember(true);
     try {
-      const res = await fetch("/api/family-members", {
+      const response = await fetch("/api/family-members", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: newMemberName.trim(), role: newMemberRole }),
       });
-      const data = await res.json();
-      if (res.ok && data.member) {
-        addFamilyMemberLocal(data.member);
-        setNewMemberName("");
-      }
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Falha ao criar membro");
+      addFamilyMemberLocal(data.member);
+      setNewMemberName("");
+      setIsFamilyModeEnabled(true);
+    } catch (err: any) {
+      alert(err.message);
     } finally {
       setIsCreatingMember(false);
     }
   };
 
-  const handleDeleteFamilyMember = async (memberId: string) => {
-    const res = await fetch(`/api/family-members?id=${encodeURIComponent(memberId)}`, {
-      method: "DELETE",
-    });
-    if (res.ok) {
-      removeFamilyMemberLocal(memberId);
-      if (selectedMemberId === memberId) {
-        setSelectedMemberId("all");
-      }
+  const handleDeleteFamilyMember = async (id: string) => {
+    if (!confirm("Tem certeza que deseja remover este membro da visualização compartilhada?")) return;
+    try {
+      const response = await fetch(`/api/family-members?id=${id}`, { method: "DELETE" });
+      if (!response.ok) throw new Error("Falha ao remover membro");
+      removeFamilyMemberLocal(id);
+      if (selectedMemberId === id) setSelectedMemberId("all");
+    } catch (err: any) {
+      alert(err.message);
     }
   };
 
@@ -213,7 +247,11 @@ export default function DashboardPage() {
   };
 
   const userDisplayName =
-    user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Investidor";
+    userProfile?.display_name ||
+    userProfile?.full_name ||
+    user?.user_metadata?.full_name ||
+    user?.email?.split("@")[0] ||
+    "Investidor";
 
   const scopeLabel = !isFamilyModeEnabled
     ? `Patrimônio Pessoal • ${userDisplayName}`
@@ -225,129 +263,79 @@ export default function DashboardPage() {
 
   if (isInitialLoading && accounts.length === 0 && transactions.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full p-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-kitsune"></div>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] p-12 bg-[#0F141C]">
+        <div className="w-12 h-12 rounded-2xl bg-[#141A24] border border-[#263042] flex items-center justify-center animate-pulse">
+          <span className="material-symbols-outlined text-2xl text-[#FF6B00]">
+            auto_awesome
+          </span>
+        </div>
+        <span className="text-xs text-[#94A3B8] font-medium mt-3">
+          Sincronizando patrimônio com segurança...
+        </span>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-8 p-6 md:p-8 max-w-6xl mx-auto w-full">
-      {/* Header Principal: Foco Individual do Usuário Autenticado */}
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2.5">
-            <span className="material-symbols-outlined text-kitsune text-2xl">
-              account_balance_wallet
+    <div className="flex flex-col gap-8 p-6 md:p-8 max-w-6xl mx-auto w-full bg-[#0F141C] text-[#F8FAFC]">
+      {/* Header Principal: Warm Obsidian & Human-Centric */}
+      <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-2">
+        <div className="flex flex-col gap-2">
+          <div className="inline-flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-[#141A24] border border-[#263042] w-fit">
+            <span className="w-2 h-2 rounded-full bg-[#10B981]" />
+            <span className="text-xs text-[#10B981] font-semibold tracking-normal">
+              Proteção Bancária Ativa • Criptografia de ponta a ponta
             </span>
-            <h1 className="text-2xl md:text-3xl font-bold font-sans text-gray-900 dark:text-white tracking-tight">
-              Meu Patrimônio
-            </h1>
-            {isRevalidating && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-sans font-semibold bg-kitsune/10 text-kitsune">
-                <span className="w-1.5 h-1.5 rounded-full bg-kitsune animate-ping" />
-                Atualizando
-              </span>
-            )}
           </div>
-          <p className="text-gray-500 dark:text-white/50 text-sm font-sans">
-            Dashboard patrimonial isolado de{" "}
-            <span className="text-gray-800 dark:text-white/80 font-medium">
-              {userDisplayName}
-            </span>{" "}
-            • Leitura instantânea via Supabase RLS.
+
+          <h1 className="text-2xl md:text-3xl font-extrabold text-[#F8FAFC] tracking-tight">
+            Olá, {userDisplayName}!{" "}
+            <span className="text-[#FF6B00] font-normal">Aqui está seu resumo financeiro de hoje.</span>
+          </h1>
+
+          <p className="text-sm text-[#94A3B8] max-w-2xl leading-relaxed">
+            Acompanhe de forma simples e transparente suas contas, metas e o fechamento do seu mês, sem termos complicados.
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 self-start md:self-auto">
+        {/* Top Action Cluster */}
+        <div className="flex items-center gap-3 shrink-0 self-start lg:self-auto">
           <button
             onClick={() => revalidate(true)}
-            title="Recarregar do banco local"
-            className="p-2.5 rounded-full bg-white dark:bg-[#121212] border border-gray-200 dark:border-white/10 text-gray-600 dark:text-white/70 hover:text-kitsune transition-colors cursor-pointer"
+            title="Atualizar dados bancários agora"
+            className="h-11 px-4 rounded-xl bg-[#141A24] hover:bg-[#1C2331] border border-[#263042] text-xs font-semibold text-[#F8FAFC] flex items-center gap-2 transition-all cursor-pointer shadow-sm"
           >
-            <span className="material-symbols-outlined text-[18px]">sync</span>
+            <span className={`material-symbols-outlined text-[18px] text-[#10B981] ${isRevalidating ? "animate-spin" : ""}`}>
+              sync
+            </span>
+            <span className="hidden sm:inline">Atualizar Tudo</span>
           </button>
 
           <button
             onClick={() => setIsConnectModalOpen(true)}
-            className="flex items-center justify-center gap-2 px-5 py-2.5 bg-kitsune hover:bg-kitsune/90 text-white rounded-full font-sans text-sm font-bold shadow-md shadow-kitsune/20 transition-all cursor-pointer"
+            className="h-11 px-5 rounded-xl bg-[#FF6B00] hover:bg-[#FF7D1A] active:bg-[#E05E00] text-white font-bold text-xs flex items-center gap-2 shadow-[0_4px_16px_rgba(255,107,0,0.35)] transition-all cursor-pointer"
           >
             <span className="material-symbols-outlined text-[18px]">add_link</span>
-            <span>Conectar Instituição</span>
+            <span>Conectar Nova Conta</span>
           </button>
         </div>
       </header>
 
-      {/* Barra de Filtro Opcional — Aparece somente se o usuário ativou a Visão Compartilhada/Familiar */}
-      {isFamilyModeEnabled && (
-        <section className="flex flex-col gap-2 bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/5 rounded-2xl p-4">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-sans font-bold text-gray-500 dark:text-white/50 uppercase tracking-wider flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-kitsune text-[16px]">
-                diversity_3
-              </span>
-              Filtro da Visão Compartilhada / Familiar (Opcional)
-            </span>
-            <button
-              onClick={() => {
-                setIsFamilyModeEnabled(false);
-                setSelectedMemberId("all");
-              }}
-              className="text-[11px] font-sans text-gray-400 hover:text-gray-700 dark:hover:text-white cursor-pointer"
-            >
-              Voltar ao modo 100% individual
-            </button>
-          </div>
-          <div className="flex items-center gap-2 overflow-x-auto pt-1 scrollbar-hide">
-            <button
-              onClick={() => setSelectedMemberId("all")}
-              className={`whitespace-nowrap px-4 py-1.5 rounded-full font-sans text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
-                selectedMemberId === "all"
-                  ? "bg-kitsune text-white shadow-sm"
-                  : "bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-white/60 hover:text-gray-900 dark:hover:text-white"
-              }`}
-            >
-              <span className="material-symbols-outlined text-[15px]">groups</span>
-              <span>Todas as Contas</span>
-            </button>
-
-            {familyMembers.map((member) => {
-              const isSelected = selectedMemberId === member.id;
-              return (
-                <button
-                  key={member.id}
-                  onClick={() => setSelectedMemberId(member.id)}
-                  className={`whitespace-nowrap px-4 py-1.5 rounded-full font-sans text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
-                    isSelected
-                      ? "bg-kitsune text-white shadow-sm"
-                      : "bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-white/60 hover:text-gray-900 dark:hover:text-white"
-                  }`}
-                >
-                  <span className="material-symbols-outlined text-[15px]">person</span>
-                  <span>{member.name}</span>
-                  <span className="opacity-60 text-[10px]">({member.role || "Membro"})</span>
-                </button>
-              );
-            })}
-          </div>
-        </section>
-      )}
-
-      {/* Abas de Navegação Rápida */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-6 px-6 md:mx-0 md:px-0">
+      {/* Abas de Navegação Rápida (Estilo Stitch) */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none -mx-6 px-6 md:mx-0 md:px-0">
         {TABS.map((tab) => {
           const isActive = activeTab === tab;
-          const isFamilyTab = tab === "Visão Compartilhada/Familiar";
+          const isFamilyTab = tab === "Visão Familiar";
           return (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`whitespace-nowrap px-4 py-2 rounded-full font-sans text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5 ${
+              className={`whitespace-nowrap px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
                 isActive
-                  ? "bg-gray-900 text-white dark:bg-white dark:text-black"
+                  ? "bg-[#FF6B00] text-white shadow-md shadow-[#FF6B00]/25"
                   : isFamilyTab
-                  ? "bg-kitsune/10 text-kitsune hover:bg-kitsune/20 border border-kitsune/20"
-                  : "bg-transparent text-gray-500 hover:text-gray-900 dark:text-white/50 dark:hover:text-white border border-gray-200 dark:border-white/10"
+                  ? "bg-[#141A24] text-[#FF6B00] hover:bg-[#1C2331] border border-[#FF6B00]/30"
+                  : "bg-[#141A24] text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#1C2331] border border-[#263042]"
               }`}
             >
               {isFamilyTab && (
@@ -359,381 +347,425 @@ export default function DashboardPage() {
         })}
       </div>
 
-      {activeTab === "Visão geral" ? (
+      {activeTab === "Visão Geral" ? (
         <>
-          {/* Cards de Métricas Patrimoniais */}
+          {/* Key Metrics Row (4 Cards de Alto Contraste Stitch) */}
           <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/5 rounded-3xl p-6 shadow-sm flex flex-col gap-2">
+            {/* Card 1: Patrimônio Líquido */}
+            <div className="p-6 rounded-2xl bg-[#141A24] border border-[#263042] flex flex-col justify-between gap-3 shadow-md relative overflow-hidden group">
               <div className="flex items-center justify-between">
-                <span className="text-gray-500 dark:text-white/50 text-xs font-sans uppercase tracking-wider font-semibold">
-                  Patrimônio Líquido
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#94A3B8]">
+                  Patrimônio Total Líquido
                 </span>
-                <span className="material-symbols-outlined text-kitsune text-sm">
-                  account_balance
-                </span>
+                <div className="w-9 h-9 rounded-xl bg-[#1C2331] flex items-center justify-center text-[#FF6B00]">
+                  <span className="material-symbols-outlined text-lg">account_balance</span>
+                </div>
               </div>
-              <span className="text-2xl md:text-3xl font-bold font-mono tracking-tight text-gray-900 dark:text-white">
-                {formatCurrency(totalBalance)}
-              </span>
-              <span className="text-[11px] text-gray-400 font-sans">
-                Saldo em conta: {formatCurrency(liquidBalance)}
-              </span>
+              <div>
+                <span className="text-2xl md:text-3xl font-extrabold text-[#F8FAFC] tabular-nums tracking-tight">
+                  {formatCurrency(totalBalance)}
+                </span>
+                <p className="text-xs text-[#10B981] font-semibold mt-1 flex items-center gap-1">
+                  <span className="material-symbols-outlined text-sm">verified</span>
+                  Disponível em conta: {formatCurrency(liquidBalance)}
+                </p>
+              </div>
+              <div className="pt-2 border-t border-[#263042]/70 flex items-center justify-between text-[11px] text-[#94A3B8]">
+                <span>Descontadas faturas em aberto</span>
+                <span className="text-[#10B981] font-semibold">Balanço Positivo</span>
+              </div>
             </div>
 
-            <div className="bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/5 rounded-3xl p-6 shadow-sm flex flex-col gap-2">
+            {/* Card 2: Entradas Deste Mês */}
+            <div className="p-6 rounded-2xl bg-[#141A24] border border-[#263042] flex flex-col justify-between gap-3 shadow-md relative overflow-hidden group">
               <div className="flex items-center justify-between">
-                <span className="text-gray-500 dark:text-white/50 text-xs font-sans uppercase tracking-wider font-semibold">
-                  Receitas (Mês)
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#94A3B8]">
+                  Entradas Deste Mês
                 </span>
-                <span className="material-symbols-outlined text-green-500 text-sm">
-                  trending_up
-                </span>
+                <div className="w-9 h-9 rounded-xl bg-[#10B981]/15 flex items-center justify-center text-[#10B981]">
+                  <span className="material-symbols-outlined text-lg">trending_up</span>
+                </div>
               </div>
-              <span className="text-2xl md:text-3xl font-bold font-mono tracking-tight text-green-500">
-                {formatCurrency(monthlyIncome)}
-              </span>
-              <span className="text-[11px] text-gray-400 font-sans">
-                Entradas registradas no mês
-              </span>
+              <div>
+                <span className="text-2xl md:text-3xl font-extrabold text-[#10B981] tabular-nums tracking-tight">
+                  {formatCurrency(monthlyIncome)}
+                </span>
+                <p className="text-xs text-[#94A3B8] mt-1 flex items-center gap-1">
+                  <span className="material-symbols-outlined text-sm text-[#10B981]">check_circle</span>
+                  Recebimentos e créditos registrados
+                </p>
+              </div>
+              <div className="pt-2 border-t border-[#263042]/70 flex items-center justify-between text-[11px] text-[#94A3B8]">
+                <span>Fluxo de Caixa</span>
+                <span className="text-[#F8FAFC] font-semibold">Entradas Confirmadas</span>
+              </div>
             </div>
 
-            <div className="bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/5 rounded-3xl p-6 shadow-sm flex flex-col gap-2">
+            {/* Card 3: Gastos Deste Mês */}
+            <div className="p-6 rounded-2xl bg-[#141A24] border border-[#263042] flex flex-col justify-between gap-3 shadow-md relative overflow-hidden group">
               <div className="flex items-center justify-between">
-                <span className="text-gray-500 dark:text-white/50 text-xs font-sans uppercase tracking-wider font-semibold">
-                  Despesas (Mês)
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#94A3B8]">
+                  Gastos Deste Mês
                 </span>
-                <span className="material-symbols-outlined text-red-500 text-sm">
-                  trending_down
+                <div className="w-9 h-9 rounded-xl bg-[#EF4444]/15 flex items-center justify-center text-[#EF4444]">
+                  <span className="material-symbols-outlined text-lg">shopping_bag</span>
+                </div>
+              </div>
+              <div>
+                <span className="text-2xl md:text-3xl font-extrabold text-[#EF4444] tabular-nums tracking-tight">
+                  {formatCurrency(monthlyExpense)}
+                </span>
+                <p className="text-xs text-[#94A3B8] mt-1 flex items-center gap-1">
+                  <span className="material-symbols-outlined text-sm text-[#FF6B00]">pie_chart</span>
+                  {categorySummary[0] ? `Maior peso: ${categorySummary[0].name}` : "Gastos controlados"}
+                </p>
+              </div>
+              <div className="pt-2 border-t border-[#263042]/70 flex items-center justify-between text-[11px] text-[#94A3B8]">
+                <span>Margem de Sobra</span>
+                <span className="text-[#10B981] font-semibold">
+                  {formatCurrency(Math.max(0, monthlyIncome - monthlyExpense))}
                 </span>
               </div>
-              <span className="text-2xl md:text-3xl font-bold font-mono tracking-tight text-red-500">
-                {formatCurrency(monthlyExpense)}
-              </span>
-              <span className="text-[11px] text-gray-400 font-sans">
-                Saídas e pagamentos no mês
-              </span>
             </div>
 
-            <div className="bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/5 rounded-3xl p-6 shadow-sm flex flex-col gap-2">
+            {/* Card 4: Faturas de Cartão */}
+            <div className="p-6 rounded-2xl bg-[#141A24] border border-[#263042] flex flex-col justify-between gap-3 shadow-md relative overflow-hidden group">
               <div className="flex items-center justify-between">
-                <span className="text-gray-500 dark:text-white/50 text-xs font-sans uppercase tracking-wider font-semibold">
-                  Faturas de Cartões
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#94A3B8]">
+                  Fatura Atual do Cartão
                 </span>
-                <span className="material-symbols-outlined text-gray-400 text-sm">
-                  credit_card
-                </span>
+                <div className="w-9 h-9 rounded-xl bg-[#1C2331] flex items-center justify-center text-[#FF6B00]">
+                  <span className="material-symbols-outlined text-lg">credit_card</span>
+                </div>
               </div>
-              <span className="text-2xl md:text-3xl font-bold font-mono tracking-tight text-gray-900 dark:text-white">
-                {formatCurrency(creditCardBalance)}
-              </span>
-              <span className="text-[11px] text-gray-400 font-sans">
-                Compromissos de crédito
-              </span>
+              <div>
+                <span className="text-2xl md:text-3xl font-extrabold text-[#FF6B00] tabular-nums tracking-tight">
+                  {formatCurrency(creditCardBalance)}
+                </span>
+                <p className="text-xs text-[#94A3B8] mt-1 flex items-center gap-1">
+                  <span className="material-symbols-outlined text-sm text-[#FF6B00]">schedule</span>
+                  {liquidBalance >= creditCardBalance ? "Saldo em conta cobre 100%" : "Atenção: liquidez menor que a fatura"}
+                </p>
+              </div>
+              <div className="pt-2 border-t border-[#263042]/70 flex items-center justify-between text-[11px] text-[#94A3B8]">
+                <span>Status da Fatura</span>
+                <span className="text-[#FF6B00] font-semibold">Em Aberto</span>
+              </div>
             </div>
           </section>
 
-          {/* Diagnóstico Kitsune AI */}
-          <section className="flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold font-sans text-gray-900 dark:text-white flex items-center gap-2">
-                <span className="material-symbols-outlined text-kitsune">auto_awesome</span>
-                Diagnóstico Patrimonial Kitsune AI
-              </h2>
-              <button
-                onClick={generateAiInsight}
-                disabled={isGeneratingAi}
-                className="flex items-center gap-2 px-4 py-2 bg-kitsune/10 hover:bg-kitsune/20 text-kitsune rounded-full font-sans text-xs font-semibold transition-colors disabled:opacity-50 cursor-pointer"
-              >
-                {isGeneratingAi ? (
-                  <>
-                    <Spinner size={14} className="text-kitsune" />
-                    <span>Analisando finanças...</span>
-                  </>
-                ) : (
-                  <>
-                    <span className="material-symbols-outlined text-[16px]">refresh</span>
-                    <span>Gerar Diagnóstico IA</span>
-                  </>
-                )}
-              </button>
-            </div>
+          {/* Kitsune Health Score & Atmospheric Advisory Panel (Stitch) */}
+          <section className="p-6 md:p-8 rounded-3xl bg-gradient-to-br from-[#FF6B00]/15 via-[#141A24] to-[#090E16] border border-[#FF6B00]/30 shadow-xl relative overflow-hidden">
+            {/* Ambient Back Glow */}
+            <div className="absolute -left-16 -bottom-16 w-72 h-72 bg-[#FF6B00]/10 rounded-full blur-3xl pointer-events-none" />
 
-            <div className="bg-white dark:bg-[#121212] border border-kitsune/20 dark:border-kitsune/20 rounded-3xl p-6 md:p-8 shadow-sm relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-1.5 h-full bg-kitsune"></div>
-
-              {aiError && (
-                <div className="mb-4 p-3 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded-xl text-xs font-medium border border-red-100 dark:border-red-500/20">
-                  {aiError}
+            <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+              <div className="flex items-start gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-[#FF6B00] flex items-center justify-center text-white shrink-0 shadow-[0_4px_20px_rgba(255,107,0,0.4)]">
+                  <span className="material-symbols-outlined text-3xl">psychology</span>
                 </div>
-              )}
 
-              {isGeneratingAi ? (
-                <div className="flex flex-col gap-3 animate-pulse">
-                  <div className="h-4 bg-gray-200 dark:bg-white/10 rounded w-3/4"></div>
-                  <div className="h-4 bg-gray-200 dark:bg-white/10 rounded w-full"></div>
-                  <div className="h-4 bg-gray-200 dark:bg-white/10 rounded w-5/6"></div>
-                </div>
-              ) : aiInsight ? (
-                <div className="flex flex-col gap-4">
-                  <p className="text-gray-900 dark:text-white/90 font-sans text-sm leading-relaxed whitespace-pre-line">
-                    {aiInsight.text}
-                  </p>
-                  <div className="flex items-center gap-2 pt-4 border-t border-gray-100 dark:border-white/5">
-                    <span className="material-symbols-outlined text-[14px] text-gray-400">
-                      schedule
-                    </span>
-                    <span className="text-[11px] text-gray-400 font-sans">
-                      Última análise: {new Date(aiInsight.updatedAt).toLocaleString("pt-BR")}
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <h2 className="text-lg md:text-xl font-bold text-[#F8FAFC]">
+                      Diagnóstico & Conselho da Kitsune IA
+                    </h2>
+                    <span className="px-2.5 py-0.5 rounded-full bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30 text-xs font-bold">
+                      Score de Saúde: {kitsuneScore.score} • {kitsuneScore.label}
                     </span>
                   </div>
+
+                  {isGeneratingAi ? (
+                    <div className="flex items-center gap-3 py-2 text-xs text-[#94A3B8] animate-pulse">
+                      <Spinner size={16} />
+                      <span>A Kitsune IA está analisando seus lançamentos e preparando recomendações...</span>
+                    </div>
+                  ) : aiInsight ? (
+                    <p className="text-sm md:text-base text-[#94A3B8] leading-relaxed max-w-3xl whitespace-pre-line font-normal">
+                      {aiInsight.text}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-[#94A3B8]">
+                      Seus dados financeiros estão prontos para análise consultiva. Clique ao lado para gerar seu diagnóstico personalizado.
+                    </p>
+                  )}
+
+                  <div className="flex items-center gap-4 text-xs text-[#94A3B8] pt-1">
+                    <span className="flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-sm text-[#10B981]">verified</span>
+                      Gerado com base em seus hábitos recentes
+                    </span>
+                    {aiInsight && (
+                      <>
+                        <span>•</span>
+                        <span>Atualizado em {new Date(aiInsight.updatedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
+                      </>
+                    )}
+                  </div>
                 </div>
-              ) : (
-                <div className="text-center py-6 text-gray-400 font-sans text-sm">
-                  Nenhum diagnóstico gerado ainda. Clique em &ldquo;Gerar Diagnóstico IA&rdquo; para analisar suas contas com o pool Gemini.
-                </div>
-              )}
+              </div>
+
+              {/* Ações Rápidas da Consultora */}
+              <div className="flex flex-col sm:flex-row lg:flex-col gap-3 shrink-0 w-full lg:w-auto">
+                <Link
+                  href="/kitsune"
+                  className="h-11 px-6 rounded-xl bg-[#FF6B00] hover:bg-[#FF7D1A] active:bg-[#E05E00] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-[0_4px_16px_rgba(255,107,0,0.35)] transition-all cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[18px]">chat_bubble</span>
+                  Conversar com a Kitsune
+                </Link>
+
+                <button
+                  onClick={generateAiInsight}
+                  disabled={isGeneratingAi}
+                  className="h-11 px-5 rounded-xl bg-[#1C2331] hover:bg-[#252A33] border border-[#263042] text-xs font-semibold text-[#F8FAFC] flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  <span className="material-symbols-outlined text-[18px] text-[#FF6B00]">
+                    refresh
+                  </span>
+                  Atualizar Diagnóstico
+                </button>
+              </div>
             </div>
           </section>
 
-          {/* Contas e Cartões do Usuário */}
-          <section className="flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold font-sans text-gray-900 dark:text-white flex items-center gap-2">
-                <span className="material-symbols-outlined text-gray-400">
-                  account_balance_wallet
+          {/* Two Column Layout: Connected Accounts + Recent Transactions */}
+          <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            {/* Left Column: Minhas Contas e Cartões (5 cols) */}
+            <div className="lg:col-span-5 flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-xl text-[#FF6B00]">
+                    account_balance_wallet
+                  </span>
+                  <h2 className="text-base font-bold text-[#F8FAFC]">
+                    Minhas Contas & Cartões
+                  </h2>
+                </div>
+                <span className="text-xs text-[#94A3B8] bg-[#141A24] border border-[#263042] px-2.5 py-1 rounded-lg">
+                  {filteredAccounts.length} Ativa(s)
                 </span>
-                Minhas Contas & Cartões ({filteredAccounts.length})
-              </h2>
-              <span className="text-xs text-gray-400 font-sans">{scopeLabel}</span>
-            </div>
+              </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredAccounts.length > 0 ? (
-                filteredAccounts.map((account) => {
-                  const isCredit =
-                    account.type === "CREDIT" || account.type === "CREDIT_CARD";
-                  const member =
-                    account.family_members || memberMap.get(account.family_member_id);
-
-                  return (
-                    <div
-                      key={account.id}
-                      className="flex flex-col justify-between bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/5 rounded-3xl p-6 shadow-sm hover:border-kitsune/30 transition-all"
-                    >
-                      <div>
-                        <div className="flex items-center justify-between mb-3">
-                          <span className="px-2.5 py-1 bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-white/70 rounded-full text-[11px] font-sans font-semibold flex items-center gap-1">
-                            <span className="material-symbols-outlined text-[13px]">
-                              {isCredit ? "credit_card" : "verified_user"}
-                            </span>
-                            {isFamilyModeEnabled && member
-                              ? `${member.name} (${member.role || "Membro"})`
-                              : isCredit
-                              ? "Cartão de Crédito"
-                              : "Conta Corrente / Digital"}
-                          </span>
-                          <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center text-gray-500">
-                            <span className="material-symbols-outlined text-sm">
-                              {isCredit ? "credit_card" : "account_balance"}
-                            </span>
+              <div className="flex flex-col gap-3">
+                {filteredAccounts.length > 0 ? (
+                  filteredAccounts.map((account) => {
+                    const isCredit =
+                      account.type === "CREDIT" || account.type === "CREDIT_CARD";
+                    return (
+                      <div
+                        key={account.id}
+                        className="p-5 rounded-2xl bg-[#141A24] border border-[#263042] hover:border-[#FF6B00]/40 transition-all flex flex-col gap-3 shadow-sm"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-[#1C2331] flex items-center justify-center text-[#FF6B00]">
+                              <span className="material-symbols-outlined text-xl">
+                                {isCredit ? "credit_card" : "account_balance"}
+                              </span>
+                            </div>
+                            <div>
+                              <h3 className="text-sm font-bold text-[#F8FAFC]">
+                                {account.bank_name || account.name || "Instituição"}
+                              </h3>
+                              <p className="text-[11px] text-[#94A3B8]">
+                                {isCredit ? "Cartão de Crédito" : "Conta Corrente / Digital"}
+                              </p>
+                            </div>
                           </div>
+
+                          <span
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                              isCredit
+                                ? "bg-[#FF6B00]/15 text-[#FF6B00]"
+                                : "bg-[#10B981]/15 text-[#10B981]"
+                            }`}
+                          >
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full ${
+                                isCredit ? "bg-[#FF6B00]" : "bg-[#10B981]"
+                              }`}
+                            />
+                            {isCredit ? "Fatura Aberta" : "Seguro & Ativo"}
+                          </span>
                         </div>
 
-                        <h3 className="text-base font-bold font-sans text-gray-900 dark:text-white mb-1">
-                          {account.bank_name || account.name || "Instituição"}
-                        </h3>
-                        <p className="text-xs text-gray-400 font-sans mb-4">
-                          {isCredit ? "Fatura Aberta" : "Saldo Disponível"} •{" "}
-                          {account.currency || "BRL"}
-                        </p>
+                        <div className="p-3 rounded-xl bg-[#0F141C] border border-[#263042]/70 flex items-center justify-between">
+                          <span className="text-xs text-[#94A3B8]">
+                            {isCredit ? "Fatura Atual:" : "Saldo Disponível:"}
+                          </span>
+                          <span
+                            className={`text-base font-extrabold tabular-nums ${
+                              isCredit ? "text-[#FF6B00]" : "text-[#10B981]"
+                            }`}
+                          >
+                            {formatCurrency(Number(account.balance) || 0)}
+                          </span>
+                        </div>
                       </div>
+                    );
+                  })
+                ) : (
+                  <div className="p-8 text-center bg-[#141A24] rounded-2xl border border-[#263042] flex flex-col items-center justify-center gap-3">
+                    <span className="material-symbols-outlined text-3xl text-[#94A3B8]">
+                      account_balance
+                    </span>
+                    <p className="text-xs font-semibold text-[#F8FAFC]">
+                      Nenhuma instituição bancária conectada.
+                    </p>
+                    <button
+                      onClick={() => setIsConnectModalOpen(true)}
+                      className="px-4 py-2 bg-[#FF6B00] text-white rounded-xl text-xs font-bold shadow-md cursor-pointer"
+                    >
+                      Conectar Banco
+                    </button>
+                  </div>
+                )}
+              </div>
 
-                      <div className="pt-3 border-t border-gray-100 dark:border-white/5 flex items-baseline justify-between">
-                        <span className="text-xs text-gray-400 font-sans">
-                          {isCredit ? "Fatura Atual" : "Saldo Atual"}
-                        </span>
-                        <span
-                          className={`text-xl font-bold font-mono tracking-tight ${
-                            isCredit ? "text-red-500" : "text-gray-900 dark:text-white"
-                          }`}
-                        >
-                          {isCredit ? "-" : ""}
-                          {formatCurrency(Number(account.balance) || 0)}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="col-span-full p-8 text-center bg-white dark:bg-[#121212] rounded-3xl border border-gray-100 dark:border-white/5 flex flex-col items-center justify-center gap-3">
-                  <span className="material-symbols-outlined text-4xl text-gray-300 dark:text-white/20">
-                    account_balance
+              {/* Caixa de Garantia Bancária Bacen */}
+              <div className="p-4 rounded-xl bg-[#141A24] border border-[#263042] flex items-center gap-3 text-xs text-[#94A3B8]">
+                <span className="material-symbols-outlined text-xl text-[#10B981] shrink-0">
+                  shield
+                </span>
+                <p>
+                  Protegido pelos protocolos do <strong className="text-[#F8FAFC]">Banco Central do Brasil</strong>. Nenhuma senha bancária é armazenada.
+                </p>
+              </div>
+            </div>
+
+            {/* Right Column: Movimentações Recentes (7 cols) */}
+            <div className="lg:col-span-7 flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-xl text-[#FF6B00]">
+                    receipt_long
                   </span>
-                  <p className="font-sans font-semibold text-gray-700 dark:text-gray-300">
-                    Nenhuma instituição bancária conectada ainda.
-                  </p>
-                  <p className="text-xs text-gray-400 font-sans max-w-sm">
-                    Conecte seu banco via Open Finance para visualizar saldos e transações isolados na sua conta.
-                  </p>
-                  <button
-                    onClick={() => setIsConnectModalOpen(true)}
-                    className="mt-2 px-4 py-2 bg-kitsune text-white rounded-full text-xs font-bold font-sans hover:bg-kitsune/90 transition-colors cursor-pointer"
-                  >
-                    Conectar Minha Conta
-                  </button>
+                  <h2 className="text-base font-bold text-[#F8FAFC]">
+                    Movimentações Recentes
+                  </h2>
                 </div>
-              )}
-            </div>
-          </section>
+                <button
+                  onClick={() => setActiveTab("Extrato & Transações")}
+                  className="text-xs text-[#FF6B00] font-semibold hover:underline flex items-center gap-1 cursor-pointer"
+                >
+                  Ver extrato completo
+                  <span className="material-symbols-outlined text-[15px]">
+                    chevron_right
+                  </span>
+                </button>
+              </div>
 
-          {/* Transações Recentes */}
-          <section className="flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold font-sans text-gray-900 dark:text-white flex items-center gap-2">
-                <span className="material-symbols-outlined text-gray-400">receipt_long</span>
-                Transações Recentes ({filteredTransactions.length})
-              </h2>
-              <span className="text-xs text-gray-400 font-sans">
-                Sincronizadas no banco local
-              </span>
-            </div>
-
-            <div className="flex flex-col bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/5 rounded-3xl shadow-sm overflow-hidden">
-              {filteredTransactions.length > 0 ? (
-                <div className="divide-y divide-gray-100 dark:divide-white/5">
-                  {filteredTransactions.slice(0, 30).map((txn) => {
+              <div className="flex flex-col bg-[#141A24] border border-[#263042] rounded-2xl shadow-sm overflow-hidden divide-y divide-[#263042]/70">
+                {filteredTransactions.length > 0 ? (
+                  filteredTransactions.slice(0, 15).map((txn) => {
                     const isCredit = txn.type === "CREDIT" || Number(txn.amount) > 0;
-                    const member =
-                      txn.family_members || memberMap.get(txn.family_member_id);
-                    const bankName = txn.bank_accounts?.bank_name || "Conta";
-
                     return (
                       <div
                         key={txn.id}
-                        className="flex items-center justify-between p-4 md:p-5 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors"
+                        className="flex items-center justify-between p-4 hover:bg-[#1C2331]/50 transition-colors"
                       >
                         <div className="flex items-center gap-3.5">
                           <div
-                            className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
+                            className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
                               isCredit
-                                ? "bg-green-500/10 text-green-500"
-                                : "bg-red-500/10 text-red-500"
+                                ? "bg-[#10B981]/15 text-[#10B981]"
+                                : "bg-[#EF4444]/15 text-[#EF4444]"
                             }`}
                           >
                             <span className="material-symbols-outlined text-base">
-                              {isCredit ? "arrow_upward" : "arrow_downward"}
+                              {isCredit ? "payments" : "shopping_cart"}
                             </span>
                           </div>
                           <div className="flex flex-col">
-                            <span className="font-sans font-semibold text-sm text-gray-900 dark:text-white line-clamp-1">
+                            <span className="text-xs md:text-sm font-semibold text-[#F8FAFC] line-clamp-1">
                               {txn.description}
                             </span>
-                            <div className="flex items-center gap-2 text-xs text-gray-400 font-sans mt-0.5 flex-wrap">
+                            <div className="flex items-center gap-2 text-[11px] text-[#94A3B8] mt-0.5">
                               <span>{formatDate(txn.executed_at || txn.date)}</span>
                               <span>•</span>
-                              <span className="text-gray-500 dark:text-white/60">
-                                {txn.category || "Outros"}
-                              </span>
-                              <span>•</span>
-                              <span className="px-1.5 py-0.5 bg-gray-100 dark:bg-white/5 rounded text-[10px] font-medium text-gray-600 dark:text-white/70">
-                                {bankName}
-                                {isFamilyModeEnabled && member ? ` • ${member.name}` : ""}
-                              </span>
+                              <span>{txn.category || "Outros"}</span>
                             </div>
                           </div>
                         </div>
 
                         <span
-                          className={`font-mono font-bold text-sm shrink-0 pl-3 ${
-                            isCredit ? "text-green-500" : "text-red-500"
+                          className={`text-sm font-bold tabular-nums shrink-0 pl-3 ${
+                            isCredit ? "text-[#10B981]" : "text-[#EF4444]"
                           }`}
                         >
-                          {isCredit ? "+" : "-"}
+                          {isCredit ? "+ " : "- "}
                           {formatCurrency(Math.abs(Number(txn.amount)))}
                         </span>
                       </div>
                     );
-                  })}
-                </div>
-              ) : (
-                <div className="p-8 text-center text-gray-400 font-sans text-sm">
-                  Nenhuma transação registrada para o filtro atual.
-                </div>
-              )}
+                  })
+                ) : (
+                  <div className="p-8 text-center text-xs text-[#94A3B8]">
+                    Nenhuma transação sincronizada ainda.
+                  </div>
+                )}
+              </div>
             </div>
           </section>
         </>
-      ) : activeTab === "Transações" ? (
+      ) : activeTab === "Extrato & Transações" ? (
         <section className="flex flex-col gap-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold font-sans text-gray-900 dark:text-white">
+            <h2 className="text-base font-bold text-[#F8FAFC]">
               Histórico Completo de Transações ({filteredTransactions.length})
             </h2>
-            <span className="text-xs text-gray-400 font-sans">{scopeLabel}</span>
+            <span className="text-xs text-[#94A3B8]">{scopeLabel}</span>
           </div>
 
-          <div className="flex flex-col bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/5 rounded-3xl shadow-sm overflow-hidden">
-            {filteredTransactions.length > 0 ? (
-              <div className="divide-y divide-gray-100 dark:divide-white/5">
-                {filteredTransactions.map((txn) => {
-                  const isCredit = txn.type === "CREDIT" || Number(txn.amount) > 0;
-                  const bankName = txn.bank_accounts?.bank_name || "Instituição";
-
-                  return (
+          <div className="flex flex-col bg-[#141A24] border border-[#263042] rounded-2xl shadow-sm overflow-hidden divide-y divide-[#263042]/70">
+            {filteredTransactions.map((txn) => {
+              const isCredit = txn.type === "CREDIT" || Number(txn.amount) > 0;
+              return (
+                <div
+                  key={txn.id}
+                  className="flex items-center justify-between p-4 hover:bg-[#1C2331]/50 transition-colors"
+                >
+                  <div className="flex items-center gap-3.5">
                     <div
-                      key={txn.id}
-                      className="flex items-center justify-between p-4 md:p-5 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors"
+                      className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                        isCredit
+                          ? "bg-[#10B981]/15 text-[#10B981]"
+                          : "bg-[#EF4444]/15 text-[#EF4444]"
+                      }`}
                     >
-                      <div className="flex items-center gap-3.5">
-                        <div
-                          className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
-                            isCredit
-                              ? "bg-green-500/10 text-green-500"
-                              : "bg-red-500/10 text-red-500"
-                          }`}
-                        >
-                          <span className="material-symbols-outlined text-base">
-                            {isCredit ? "arrow_upward" : "arrow_downward"}
-                          </span>
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="font-sans font-semibold text-sm text-gray-900 dark:text-white">
-                            {txn.description}
-                          </span>
-                          <div className="flex items-center gap-2 text-xs text-gray-400 font-sans mt-0.5">
-                            <span>{formatDate(txn.executed_at || txn.date)}</span>
-                            <span>•</span>
-                            <span>{txn.category || "Outros"}</span>
-                            <span>•</span>
-                            <span className="px-1.5 py-0.5 bg-gray-100 dark:bg-white/5 rounded text-[10px] font-medium text-gray-600 dark:text-white/70">
-                              {bankName}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <span
-                        className={`font-mono font-bold text-sm shrink-0 pl-3 ${
-                          isCredit ? "text-green-500" : "text-red-500"
-                        }`}
-                      >
-                        {isCredit ? "+" : "-"}
-                        {formatCurrency(Math.abs(Number(txn.amount)))}
+                      <span className="material-symbols-outlined text-base">
+                        {isCredit ? "arrow_upward" : "arrow_downward"}
                       </span>
                     </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="p-8 text-center text-gray-400 font-sans text-sm">
-                Nenhum lançamento encontrado.
-              </div>
-            )}
+                    <div className="flex flex-col">
+                      <span className="text-sm font-semibold text-[#F8FAFC]">
+                        {txn.description}
+                      </span>
+                      <div className="flex items-center gap-2 text-xs text-[#94A3B8] mt-0.5">
+                        <span>{formatDate(txn.executed_at || txn.date)}</span>
+                        <span>•</span>
+                        <span>{txn.category || "Outros"}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <span
+                    className={`text-sm font-bold tabular-nums shrink-0 pl-3 ${
+                      isCredit ? "text-[#10B981]" : "text-[#EF4444]"
+                    }`}
+                  >
+                    {isCredit ? "+ " : "- "}
+                    {formatCurrency(Math.abs(Number(txn.amount)))}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </section>
-      ) : activeTab === "Cartões" ? (
+      ) : activeTab === "Cartões de Crédito" ? (
         <section className="flex flex-col gap-4">
-          <h2 className="text-lg font-bold font-sans text-gray-900 dark:text-white">
+          <h2 className="text-base font-bold text-[#F8FAFC]">
             Meus Cartões de Crédito
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -741,123 +773,113 @@ export default function DashboardPage() {
               .length > 0 ? (
               filteredAccounts
                 .filter((a) => a.type === "CREDIT" || a.type === "CREDIT_CARD")
-                .map((card) => {
-                  const member =
-                    card.family_members || memberMap.get(card.family_member_id);
-                  return (
-                    <div
-                      key={card.id}
-                      className="bg-gradient-to-br from-gray-900 to-gray-800 dark:from-[#161616] dark:to-[#0f0f0f] border border-gray-700/30 rounded-3xl p-6 text-white shadow-xl flex flex-col justify-between h-48"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-sans font-bold text-sm tracking-wide text-white/80">
-                          {card.bank_name || card.name}
-                        </span>
-                        <span className="material-symbols-outlined text-kitsune text-xl">
-                          contactless
-                        </span>
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <span className="text-xs text-white/50 font-sans">Fatura Atual</span>
-                        <span className="text-2xl font-mono font-bold tracking-tight text-white">
-                          {formatCurrency(Number(card.balance) || 0)}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between pt-2 border-t border-white/10 text-xs text-white/70 font-sans">
-                        <span>{member?.name || userDisplayName}</span>
-                        <span>{card.currency || "BRL"}</span>
-                      </div>
+                .map((card) => (
+                  <div
+                    key={card.id}
+                    className="bg-[#141A24] border border-[#263042] rounded-3xl p-6 text-white shadow-xl flex flex-col justify-between h-48 relative overflow-hidden"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-sm tracking-wide text-[#F8FAFC]">
+                        {card.bank_name || card.name}
+                      </span>
+                      <span className="material-symbols-outlined text-[#FF6B00] text-xl">
+                        contactless
+                      </span>
                     </div>
-                  );
-                })
+                    <div className="flex flex-col gap-1">
+                      <span className="text-xs text-[#94A3B8]">Fatura Atual</span>
+                      <span className="text-2xl font-extrabold tabular-nums tracking-tight text-[#FF6B00]">
+                        {formatCurrency(Number(card.balance) || 0)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between pt-2 border-t border-[#263042] text-xs text-[#94A3B8]">
+                      <span>{userDisplayName}</span>
+                      <span>{card.currency || "BRL"}</span>
+                    </div>
+                  </div>
+                ))
             ) : (
-              <div className="col-span-full p-8 text-center bg-white dark:bg-[#121212] rounded-3xl border border-gray-100 dark:border-white/5 text-gray-400 font-sans text-sm">
-                Nenhum cartão de crédito encontrado.
+              <div className="col-span-full p-8 text-center bg-[#141A24] rounded-2xl border border-[#263042] text-xs text-[#94A3B8]">
+                Nenhum cartão de crédito registrado no momento.
               </div>
             )}
           </div>
         </section>
-      ) : activeTab === "Categorias" ? (
+      ) : activeTab === "Categorias de Gastos" ? (
         <section className="flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold font-sans text-gray-900 dark:text-white">
-              Despesas por Categoria
-            </h2>
-            <span className="text-xs text-gray-400 font-sans">
-              Baseado nas transações sincronizadas
-            </span>
-          </div>
+          <h2 className="text-base font-bold text-[#F8FAFC]">
+            Despesas por Categoria (Mês Atual)
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {categorySummary.length > 0 ? (
               categorySummary.map((cat) => (
                 <div
                   key={cat.name}
-                  className="bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/5 rounded-3xl p-5 flex items-center justify-between"
+                  className="bg-[#141A24] border border-[#263042] rounded-2xl p-5 flex items-center justify-between"
                 >
                   <div className="flex flex-col gap-1">
-                    <span className="font-sans font-bold text-sm text-gray-900 dark:text-white">
+                    <span className="font-bold text-sm text-[#F8FAFC]">
                       {cat.name}
                     </span>
-                    <span className="text-xs text-gray-400 font-sans">
+                    <span className="text-xs text-[#94A3B8]">
                       {cat.count} {cat.count === 1 ? "lançamento" : "lançamentos"}
                     </span>
                   </div>
-                  <span className="font-mono font-bold text-base text-red-500">
+                  <span className="text-sm font-extrabold tabular-nums text-[#EF4444]">
                     {formatCurrency(cat.total)}
                   </span>
                 </div>
               ))
             ) : (
-              <div className="col-span-full p-8 text-center bg-white dark:bg-[#121212] rounded-3xl border border-gray-100 dark:border-white/5 text-gray-400 font-sans text-sm">
+              <div className="col-span-full p-8 text-center bg-[#141A24] rounded-2xl border border-[#263042] text-xs text-[#94A3B8]">
                 Nenhuma despesa categorizada até o momento.
               </div>
             )}
           </div>
         </section>
       ) : (
-        /* Aba Opcional: Visão Compartilhada / Familiar */
+        /* Aba: Visão Familiar */
         <section className="flex flex-col gap-6">
-          <div className="bg-white dark:bg-[#121212] border border-gray-100 dark:border-white/5 rounded-3xl p-6 md:p-8 flex flex-col gap-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 dark:border-white/5 pb-6">
+          <div className="bg-[#141A24] border border-[#263042] rounded-3xl p-6 md:p-8 flex flex-col gap-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#263042] pb-6">
               <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-kitsune">
+                  <span className="material-symbols-outlined text-[#FF6B00]">
                     diversity_3
                   </span>
-                  <h2 className="text-xl font-bold font-sans text-gray-900 dark:text-white">
-                    Visão Compartilhada / Agregação Familiar (Opcional)
+                  <h2 className="text-lg font-bold text-[#F8FAFC]">
+                    Visão Compartilhada / Agregação Familiar
                   </h2>
                 </div>
-                <p className="text-sm text-gray-500 dark:text-white/60 font-sans max-w-2xl">
-                  Por padrão, o Kitsune Finance opera de forma 100% individual para o seu usuário. Ative este modo opcional caso queira organizar contas conjuntas ou de dependentes no seu workspace.
+                <p className="text-xs text-[#94A3B8] max-w-2xl leading-relaxed">
+                  Por padrão, o Kitsune Finance opera de forma 100% individual. Ative este modo opcional caso queira organizar contas conjuntas ou de dependentes no seu workspace.
                 </p>
               </div>
 
               <button
                 onClick={() => setIsFamilyModeEnabled(!isFamilyModeEnabled)}
-                className={`px-5 py-2.5 rounded-full font-sans text-xs font-bold transition-all cursor-pointer shrink-0 flex items-center gap-2 ${
+                className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 flex items-center gap-2 ${
                   isFamilyModeEnabled
-                    ? "bg-green-500/15 text-green-600 dark:text-green-400 border border-green-500/30"
-                    : "bg-kitsune text-white shadow-md shadow-kitsune/20"
+                    ? "bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30"
+                    : "bg-[#FF6B00] text-white shadow-md shadow-[#FF6B00]/20"
                 }`}
               >
                 <span className="material-symbols-outlined text-[16px]">
                   {isFamilyModeEnabled ? "check_circle" : "toggle_on"}
                 </span>
                 {isFamilyModeEnabled
-                  ? "Visão Compartilhada Ativa (Clique para Desativar)"
+                  ? "Visão Compartilhada Ativa"
                   : "Ativar Visão Compartilhada"}
               </button>
             </div>
 
-            {/* Cadastro e Gestão de Membros do Workspace */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <form
                 onSubmit={handleAddFamilyMember}
-                className="p-5 bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/10 rounded-2xl flex flex-col gap-4"
+                className="p-5 bg-[#0F141C] border border-[#263042] rounded-2xl flex flex-col gap-4"
               >
-                <h3 className="text-sm font-bold font-sans text-gray-900 dark:text-white flex items-center gap-2">
-                  <span className="material-symbols-outlined text-kitsune text-[18px]">
+                <h3 className="text-xs font-bold text-[#F8FAFC] flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[#FF6B00] text-[18px]">
                     person_add
                   </span>
                   Adicionar Membro ao Workspace
@@ -869,7 +891,7 @@ export default function DashboardPage() {
                     value={newMemberName}
                     onChange={(e) => setNewMemberName(e.target.value)}
                     required
-                    className="p-3 bg-zinc-900/90 border border-zinc-800 rounded-xl text-xs font-sans text-zinc-100 focus:outline-none focus:border-kitsune"
+                    className="p-3 bg-[#141A24] border border-[#263042] rounded-xl text-xs text-[#F8FAFC] focus:outline-none focus:border-[#FF6B00]"
                   />
                   <CustomDropdown
                     value={newMemberRole}
@@ -886,14 +908,14 @@ export default function DashboardPage() {
                 <button
                   type="submit"
                   disabled={isCreatingMember || !newMemberName.trim()}
-                  className="self-start px-5 py-2.5 bg-kitsune hover:bg-kitsune/90 text-white rounded-xl text-xs font-sans font-bold disabled:opacity-50 cursor-pointer"
+                  className="self-start px-5 py-2.5 bg-[#FF6B00] hover:bg-[#FF7D1A] text-white rounded-xl text-xs font-bold disabled:opacity-50 cursor-pointer"
                 >
                   {isCreatingMember ? "Adicionando..." : "Adicionar Membro"}
                 </button>
               </form>
 
               <div className="flex flex-col gap-3">
-                <h3 className="text-sm font-bold font-sans text-gray-900 dark:text-white">
+                <h3 className="text-xs font-bold text-[#F8FAFC]">
                   Membros Cadastrados ({familyMembers.length})
                 </h3>
                 {familyMembers.length > 0 ? (
@@ -901,17 +923,17 @@ export default function DashboardPage() {
                     {familyMembers.map((m) => (
                       <div
                         key={m.id}
-                        className="flex items-center justify-between p-3.5 bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/10 rounded-2xl"
+                        className="flex items-center justify-between p-3.5 bg-[#0F141C] border border-[#263042] rounded-2xl"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-kitsune/10 text-kitsune flex items-center justify-center">
+                          <div className="w-8 h-8 rounded-full bg-[#FF6B00]/15 text-[#FF6B00] flex items-center justify-center">
                             <span className="material-symbols-outlined text-sm">person</span>
                           </div>
                           <div className="flex flex-col">
-                            <span className="text-sm font-sans font-semibold text-gray-900 dark:text-white">
+                            <span className="text-xs font-semibold text-[#F8FAFC]">
                               {m.name}
                             </span>
-                            <span className="text-[11px] font-sans text-gray-400">
+                            <span className="text-[11px] text-[#94A3B8]">
                               {m.role || "Membro"}
                             </span>
                           </div>
@@ -919,8 +941,7 @@ export default function DashboardPage() {
 
                         <button
                           onClick={() => handleDeleteFamilyMember(m.id)}
-                          title="Remover membro (contas permanecem salvas na sua conta principal)"
-                          className="text-gray-400 hover:text-red-500 transition-colors p-1.5 cursor-pointer"
+                          className="text-[#94A3B8] hover:text-[#EF4444] transition-colors p-1.5 cursor-pointer"
                         >
                           <span className="material-symbols-outlined text-[18px]">delete</span>
                         </button>
@@ -928,7 +949,7 @@ export default function DashboardPage() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-xs text-gray-400 font-sans">
+                  <p className="text-xs text-[#94A3B8]">
                     Nenhum membro adicional cadastrado. Suas contas estão vinculadas diretamente ao seu usuário.
                   </p>
                 )}
@@ -938,7 +959,7 @@ export default function DashboardPage() {
         </section>
       )}
 
-      {/* Modal de Conexão com a Pluggy */}
+      {/* Modal de Conexão Open Finance */}
       <PluggyConnectModal
         isOpen={isConnectModalOpen}
         onClose={() => setIsConnectModalOpen(false)}

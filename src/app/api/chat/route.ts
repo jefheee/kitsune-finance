@@ -23,7 +23,8 @@ export async function POST(req: Request) {
 
     const body = await req.json();
     const userMessage = typeof body?.message === 'string' ? body.message.trim() : '';
-    const preferredModel = typeof body?.model === 'string' ? body.model : 'gemini-3.5-flash-lite';
+    const attachedContexts: string[] = Array.isArray(body?.attachedContexts) ? body.attachedContexts : [];
+    const requestedModel = typeof body?.model === 'string' ? body.model : 'auto';
     const reasoningLevel =
       body?.reasoningLevel === 'fast' || body?.reasoningLevel === 'deep'
         ? body.reasoningLevel
@@ -36,8 +37,51 @@ export async function POST(req: Request) {
         : null;
     const rawHistory = Array.isArray(body?.history) ? body.history : [];
 
-    if (!userMessage) {
-      return NextResponse.json({ error: 'Mensagem é obrigatória.' }, { status: 400 });
+    // Se o usuário não digitou texto, mas anexou blocos de contexto, sintetiza o prompt do bloco
+    let effectivePrompt = userMessage;
+    if (!effectivePrompt && attachedContexts.length > 0) {
+      if (attachedContexts.includes('raio-x-mes')) {
+        effectivePrompt = 'Faça um Raio-X completo do meu mês atual: compare receitas e despesas, analise o saldo líquido e aponte desvios.';
+      } else if (attachedContexts.includes('auditar-cartao')) {
+        effectivePrompt = 'Audite minha exposição no cartão de crédito em relação ao saldo em conta corrente e dias para o fechamento.';
+      } else if (attachedContexts.includes('cortar-gastos')) {
+        effectivePrompt = 'Analise meus gastos e aponte onde posso cortar despesas supérfluas ou recorrentes sem comprometer meu padrão.';
+      } else if (attachedContexts.includes('extrato-7-dias')) {
+        effectivePrompt = 'Audite detalhadamente minhas transações dos últimos 7 dias e destaque pontos de atenção.';
+      } else {
+        effectivePrompt = 'Analise os dados financeiros anexados e forneça seu diagnóstico consultivo.';
+      }
+    }
+
+    if (!effectivePrompt) {
+      return NextResponse.json({ error: 'Mensagem ou bloco de contexto é obrigatório.' }, { status: 400 });
+    }
+
+    // Roteamento Inteligente: Modo Automático por complexidade e tamanho
+    let preferredModel = requestedModel;
+    let routerReason = '';
+
+    if (requestedModel === 'auto') {
+      const isComplexQuery =
+        effectivePrompt.length > 280 ||
+        /planejamento|aposentadoria|tribut|imposto|investimento|sac|price|amortiza|proje[çc]|futuro|fire/i.test(effectivePrompt) ||
+        reasoningLevel === 'deep';
+
+      const isMediumQuery =
+        attachedContexts.length > 0 ||
+        effectivePrompt.length > 70 ||
+        /fatura|cart[aã]o|cortar|gastos|extrato|compara|saldo/i.test(effectivePrompt);
+
+      if (isComplexQuery) {
+        preferredModel = 'gemini-4-argon';
+        routerReason = 'Pergunta estratégica complexa: roteado para Gemini 4 Argon';
+      } else if (isMediumQuery) {
+        preferredModel = 'gemini-3.8-flash';
+        routerReason = 'Consulta financeira estruturada: roteado para Gemini 3.8 Flash';
+      } else {
+        preferredModel = 'gemini-3.5-flash-lite';
+        routerReason = 'Pergunta direta: roteado para Gemini 3.5 Flash-Lite para resposta ultra-rápida';
+      }
     }
 
     // 1. Coleta estritamente os dados financeiros do user.id autenticado (Isolamento Multi-Tenant)
@@ -127,28 +171,35 @@ export async function POST(req: Request) {
       }
     });
 
-    const last7DaysTransactions = safeTransactions
-      .filter((tx) => {
-        const rawDate = tx.executed_at || tx.date;
-        const d = rawDate ? new Date(rawDate) : new Date(0);
-        return d >= sevenDaysAgo;
-      })
-      .map((tx) => ({
-        data: (tx.executed_at || tx.date || '').toString().split('T')[0],
-        descricao: tx.description,
-        valor: Number(tx.amount),
-        categoria: tx.category || 'Outros',
-      }));
+    // Otimização de Tokens: Formato compacto de alta densidade informativa
+    const needs7Days =
+      attachedContexts.includes('extrato-7-dias') ||
+      /7 dias|semana|recente|auditoria/i.test(effectivePrompt);
 
-    const recentTransactionsDigest = safeTransactions.slice(0, 35).map((tx) => ({
-      data: (tx.executed_at || tx.date || '').toString().split('T')[0],
-      descricao: tx.description,
-      valor: Number(tx.amount),
-      tipo: tx.type === 'CREDIT' || Number(tx.amount) > 0 ? 'ENTRADA' : 'SAIDA',
-      categoria: tx.category || 'Outros',
-      conta: accountMap.get(tx.account_id) || 'Conta',
-      membro: tx.family_member_id ? memberMap.get(tx.family_member_id) || 'Titular' : 'Pessoal',
-    }));
+    const txLimit = reasoningLevel === 'deep' ? 20 : 12;
+    const compactTransactions = safeTransactions.slice(0, txLimit).map((tx) => {
+      const dt = (tx.executed_at || tx.date || '').toString().split('T')[0];
+      const bank = accountMap.get(tx.account_id) || 'Banco';
+      const amount = Number(tx.amount) || 0;
+      const sign = tx.type === 'CREDIT' || amount > 0 ? '+' : '-';
+      const cat = tx.category || 'Geral';
+      return `${dt} | ${bank} | ${tx.description} | ${sign}R$ ${Math.abs(amount).toFixed(2)} (${cat})`;
+    });
+
+    const compact7Days = needs7Days
+      ? safeTransactions
+          .filter((tx) => {
+            const rawDate = tx.executed_at || tx.date;
+            const d = rawDate ? new Date(rawDate) : new Date(0);
+            return d >= sevenDaysAgo;
+          })
+          .map((tx) => {
+            const dt = (tx.executed_at || tx.date || '').toString().split('T')[0];
+            const amount = Number(tx.amount) || 0;
+            const sign = tx.type === 'CREDIT' || amount > 0 ? '+' : '-';
+            return `${dt} | ${tx.description} | ${sign}R$ ${Math.abs(amount).toFixed(2)} (${tx.category || 'Geral'})`;
+          })
+      : undefined;
 
     const userDisplayName =
       profile?.display_name ||
@@ -157,7 +208,7 @@ export async function POST(req: Request) {
       user.email ||
       'Titular';
 
-    const financialContext = {
+    const financialContext: Record<string, any> = {
       usuario: userDisplayName,
       objetivoFinanceiro: profile?.financial_goal || 'Gestão patrimonial e controle inteligente',
       rendaMensalDeclaradaBRL: profile?.monthly_income ? Number(profile.monthly_income) : undefined,
@@ -184,10 +235,14 @@ export async function POST(req: Request) {
       })),
       gastosPorCategoriaRecentes: Object.entries(categoryBreakdown)
         .sort((a, b) => b[1] - a[1])
+        .slice(0, 8)
         .map(([categoria, total]) => ({ categoria, totalBRL: Number(total.toFixed(2)) })),
-      extratoUltimos7Dias: last7DaysTransactions,
-      ultimasTransacoes: recentTransactionsDigest,
+      ultimasTransacoesCompactas: compactTransactions,
     };
+
+    if (compact7Days && compact7Days.length > 0) {
+      financialContext.extratoUltimos7Dias = compact7Days;
+    }
 
     const reasoningDirective =
       reasoningLevel === 'fast'
@@ -195,6 +250,29 @@ export async function POST(req: Request) {
         : reasoningLevel === 'deep'
         ? 'Realize uma análise profunda, estruturada com tabelas Markdown quando útil, cruzando liquidez, categorias e projeções.'
         : 'Responda de forma analítica, bem estruturada em Markdown (usando **negrito**, listas e tabelas quando apropriado).';
+
+    let contextDirectives = '';
+    if (attachedContexts.length > 0) {
+      contextDirectives =
+        '\nFOCO PRIORITÁRIO DOS BLOCOS DE CONTEXTO ANEXADOS PELO USUÁRIO:\n' +
+        attachedContexts
+          .map((id) => {
+            if (id === 'raio-x-mes') {
+              return '- [ANEXO ATIVO: RAIO-X DO MÊS] Priorize o fechamento do mês, saldo líquido livre vs faturas em aberto e desvios de orçamento.';
+            }
+            if (id === 'auditar-cartao') {
+              return '- [ANEXO ATIVO: AUDITORIA DE CARTÃO] Compare a fatura aberta do cartão com o saldo líquido em conta e alerte sobre os dias até o fechamento.';
+            }
+            if (id === 'cortar-gastos') {
+              return '- [ANEXO ATIVO: CORTE DE GASTOS] Identifique assinaturas, despesas invisíveis e categorias de maior volume para sugerir cortes indolores.';
+            }
+            if (id === 'extrato-7-dias') {
+              return '- [ANEXO ATIVO: EXTRATO 7 DIAS] Audite minuciosamente as transações da última semana, apontando qualquer anomalia.';
+            }
+            return `- [ANEXO ATIVO: ${id}]`;
+          })
+          .join('\n');
+    }
 
     const systemInstruction = `Você é a Kitsune AI, estrategista financeira pessoal de elite (Private Family Office & Wealth Advisor) integrada ao Kitsune Finance.
 Diretrizes obrigatórias de comunicação e design:
@@ -206,6 +284,7 @@ Diretrizes obrigatórias de comunicação e design:
    - Use listas e **negrito** nos pontos-chave e números relevantes para leitura dinâmica.
    - Apresente comparativos em tabelas Markdown estruturadas sempre que envolver mais de 2 números ou itens.
    - EVITE poluição visual e NÃO use múltiplos traços ou divisores seguidos. Deixe o espaçamento entre tópicos e títulos estruturar o texto com elegância.
+${contextDirectives}
 
 CONTEXTO FINANCEIRO ATUALIZADO DO USUÁRIO:
 ${JSON.stringify(financialContext, null, 2)}`;
@@ -224,7 +303,7 @@ ${JSON.stringify(financialContext, null, 2)}`;
     if (preferredModel.startsWith('llama-')) {
       const groqRes = await generateWithGroq({
         systemInstruction,
-        prompt: userMessage,
+        prompt: effectivePrompt,
         history: sanitizedHistory,
         preferredModel,
         temperature,
@@ -233,6 +312,7 @@ ${JSON.stringify(financialContext, null, 2)}`;
       return NextResponse.json({
         message: groqRes.text,
         modelUsed: groqRes.modelUsed,
+        routerReason: routerReason || undefined,
         provider: 'groq',
         summarySnapshot: financialContext.resumoPatrimonial,
       });
@@ -240,7 +320,7 @@ ${JSON.stringify(financialContext, null, 2)}`;
 
     const aiResponse = await generateWithGeminiPool({
       systemInstruction,
-      prompt: userMessage,
+      prompt: effectivePrompt,
       history: sanitizedHistory,
       preferredModel,
       reasoningLevel,
@@ -250,6 +330,7 @@ ${JSON.stringify(financialContext, null, 2)}`;
     return NextResponse.json({
       message: aiResponse.text,
       modelUsed: aiResponse.modelUsed,
+      routerReason: routerReason || undefined,
       keyPoolIndex: aiResponse.keyIndexUsed,
       provider: aiResponse.modelUsed.startsWith('llama-') ? 'groq' : 'gemini',
       summarySnapshot: financialContext.resumoPatrimonial,
