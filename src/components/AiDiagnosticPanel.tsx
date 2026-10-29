@@ -178,9 +178,9 @@ export function AiDiagnosticPanel({
   };
 
   return (
-    <div className="bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] rounded-2xl p-5 md:p-6 shadow-sm flex flex-col gap-5">
+    <div className="bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] rounded-2xl p-5 md:p-6 shadow-xs flex flex-col gap-5 transition-all duration-700 ease-out animate-in fade-in">
       {/* Top Header do Painel */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-[#262E3D]/80 pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-[#27272A] pb-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-[#FF8216]/10 border border-[#FF8216]/20 flex items-center justify-center shrink-0">
             <span className="material-symbols-outlined text-xl text-[#FF8216]">
@@ -239,7 +239,7 @@ export function AiDiagnosticPanel({
             onClick={onRefresh}
             disabled={isGenerating}
             title="Recalcular diagnóstico agora"
-            className="h-8 px-3 rounded-lg bg-slate-100 dark:bg-[#1A202C] hover:bg-slate-200 dark:hover:bg-[#262E3D] text-slate-700 dark:text-[#F8FAFC] border border-slate-200 dark:border-white/5 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+            className="h-8 px-3 rounded-lg bg-slate-100 dark:bg-[#18181B] hover:bg-slate-200 dark:hover:bg-[#27272A] text-slate-700 dark:text-[#F8FAFC] border border-slate-200 dark:border-[#27272A] text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
           >
             <span
               className={`material-symbols-outlined text-[15px] ${
@@ -253,8 +253,8 @@ export function AiDiagnosticPanel({
         </div>
       </div>
 
-      {/* Resumo Executivo */}
-      <div className="flex flex-col gap-2">
+      {/* Resumo Executivo com transição suave */}
+      <div className="flex flex-col gap-2 transition-opacity duration-500 ease-out">
         <h3 className="text-sm font-extrabold text-slate-900 dark:text-[#F8FAFC]">
           {parsedData.headline}
         </h3>
@@ -268,7 +268,7 @@ export function AiDiagnosticPanel({
         {parsedData.cards.map((card, idx) => (
           <div
             key={idx}
-            className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#0E121A] border border-slate-200 dark:border-[#262E3D] flex flex-col gap-1.5"
+            className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] flex flex-col gap-1.5 transition-all duration-300"
           >
             <div className="flex items-center justify-between text-[11px]">
               <span className="text-slate-500 dark:text-[#94A3B8] font-medium truncate">
@@ -292,9 +292,9 @@ export function AiDiagnosticPanel({
         ))}
       </div>
 
-      {/* Ações Imediatas Recomendadas */}
+      {/* Ações Imediatas Recomendadas com animação fluida */}
       {parsedData.actionPoints.length > 0 && (
-        <div className="flex flex-col gap-2 pt-2 border-t border-slate-100 dark:border-[#262E3D]/60">
+        <div className="flex flex-col gap-2 pt-2 border-t border-slate-100 dark:border-[#27272A]/70">
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
             Ações Recomendadas pela Kitsune
           </span>
@@ -302,7 +302,7 @@ export function AiDiagnosticPanel({
             {parsedData.actionPoints.map((act, idx) => (
               <div
                 key={idx}
-                className="p-3 rounded-xl bg-slate-50/80 dark:bg-[#0E121A]/80 border border-slate-200/80 dark:border-[#262E3D]/80 flex items-start gap-2.5"
+                className="p-3 rounded-xl bg-slate-50/80 dark:bg-[#18181B] border border-slate-200/80 dark:border-[#27272A] flex items-start gap-2.5 transition-all duration-500 hover:border-[#FF8216]/40"
               >
                 <div className="w-6 h-6 rounded-lg bg-[#FF8216]/10 text-[#FF8216] flex items-center justify-center shrink-0 mt-0.5">
                   <span className="material-symbols-outlined text-[14px]">
@@ -336,7 +336,7 @@ export function AiDiagnosticPanel({
         </button>
 
         {showFullReport && (
-          <div className="mt-3 p-4 rounded-xl bg-slate-50 dark:bg-[#0E121A] border border-slate-200 dark:border-[#262E3D] text-xs text-slate-700 dark:text-slate-300 leading-relaxed space-y-2 whitespace-pre-line">
+          <div className="mt-3 p-4 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] text-xs text-slate-700 dark:text-slate-300 leading-relaxed space-y-2 whitespace-pre-line animate-in fade-in duration-500">
             {parsedData.fullReport}
           </div>
         )}

@@ -39,7 +39,7 @@ const FAQ_ITEMS = [
 
 const AGENTS = [
   {
-    name: "Albert",
+    name: "Sentinela Kitsune",
     role: "Auditor de Anomalias",
     tagline: "Detecta cobranças indevidas, fraudes e tarifas surpresa antes de você perceber.",
     icon: "shield",
@@ -47,7 +47,7 @@ const AGENTS = [
     badge: "Antifraude Ativo",
   },
   {
-    name: "Sherlock",
+    name: "Kenji",
     role: "Rastreamento & Classificação",
     tagline: "Corrige suas categorias sem alucinar e aprende com o seu estilo de vida financeiro.",
     icon: "search",
@@ -55,7 +55,7 @@ const AGENTS = [
     badge: "Zero Alucinação",
   },
   {
-    name: "Megamen",
+    name: "Ren",
     role: "Guardião do Orçamento",
     tagline: "Simula projeções de caixa e alerta no momento exato antes de ultrapassar o teto.",
     icon: "battery_charging_full",
@@ -63,7 +63,7 @@ const AGENTS = [
     badge: "Teto de Gastos",
   },
   {
-    name: "Rita",
+    name: "Aiko",
     role: "Estrategista de Metas",
     tagline: "Desenha planos de aportes e missões práticas para acelerar sua reserva de emergência.",
     icon: "flag",
@@ -71,7 +71,7 @@ const AGENTS = [
     badge: "Metas Patrimoniais",
   },
   {
-    name: "Julius",
+    name: "Kuro",
     role: "Moderador de Impulsos",
     tagline: "Conselheiro financeiro linha-dura que alerta contra gastos desnecessários no dia a dia.",
     icon: "savings",
@@ -150,8 +150,13 @@ export default function LandingPage() {
         id="vantagens"
         className="pt-32 sm:pt-40 pb-20 px-4 max-w-7xl mx-auto flex flex-col items-center text-center relative overflow-hidden"
       >
-        {/* Glow de Fundo Sutil */}
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-[#FF8216]/10 blur-[130px] rounded-full pointer-events-none -z-10" />
+        {/* Glow de Fundo Sutil Otimizado com Aceleração de Hardware */}
+        <div
+          className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[550px] h-[280px] pointer-events-none -z-10 rounded-full opacity-60"
+          style={{
+            background: "radial-gradient(ellipse at center, rgba(255,130,22,0.14) 0%, transparent 70%)",
+          }}
+        />
 
         {/* Pill Badge */}
         <motion.div
@@ -210,10 +215,10 @@ export default function LandingPage() {
         <div className="relative w-full max-w-[960px] mx-auto mt-4 px-2">
           {/* Card Flutuante 1: Últimas Transações (Top-Left no Desktop) */}
           <motion.div
-            initial={{ opacity: 0, x: -30 }}
+            initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-            className="hidden lg:flex absolute top-12 left-4 z-20 flex-col gap-2.5 p-4 rounded-2xl bg-[#121214]/90 backdrop-blur-xl border border-white/10 shadow-2xl w-64 text-left"
+            transition={{ duration: 0.6, delay: 0.3 }}
+            className="hidden lg:flex absolute top-12 left-4 z-20 flex-col gap-2.5 p-4 rounded-2xl bg-[#121214] border border-white/10 shadow-2xl w-64 text-left transform-gpu"
           >
             <div className="flex items-center justify-between text-[11px] text-zinc-400 border-b border-white/5 pb-2">
               <span className="font-bold uppercase tracking-wider">Últimas transações</span>
@@ -245,17 +250,17 @@ export default function LandingPage() {
             </div>
           </motion.div>
 
-          {/* Card Flutuante 2: Agente Albert • Anomalia Evitada (Top-Right no Desktop) */}
+          {/* Card Flutuante 2: Sentinela Kitsune • Anomalia Evitada (Top-Right no Desktop) */}
           <motion.div
-            initial={{ opacity: 0, x: 30 }}
+            initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, delay: 0.5 }}
-            className="hidden lg:flex absolute top-20 right-4 z-20 flex-col gap-2 p-4 rounded-2xl bg-[#121214]/90 backdrop-blur-xl border border-[#FF8216]/30 shadow-2xl w-64 text-left"
+            transition={{ duration: 0.6, delay: 0.4 }}
+            className="hidden lg:flex absolute top-20 right-4 z-20 flex-col gap-2 p-4 rounded-2xl bg-[#121214] border border-[#FF8216]/30 shadow-2xl w-64 text-left transform-gpu"
           >
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#FF8216] animate-ping" />
+              <span className="w-2 h-2 rounded-full bg-[#FF8216]" />
               <span className="text-[11px] font-bold text-[#FF8216] uppercase tracking-wider">
-                Agente Albert
+                Sentinela Kitsune
               </span>
             </div>
             <span className="text-xs font-bold text-white">
@@ -369,7 +374,7 @@ export default function LandingPage() {
             Conexão Direta com Principais Instituições do Brasil
           </span>
 
-          {/* Carrossel Infinito com Fade nas Pontas */}
+          {/* Carrossel Infinito com Fade nas Pontas — Logos Oficiais em Alta Definição */}
           <div className="relative w-full max-w-5xl overflow-hidden py-3 [mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)]">
             <div className="animate-marquee flex items-center gap-3">
               {[
@@ -393,6 +398,16 @@ export default function LandingPage() {
                 { slug: 'neon', name: 'Neon' },
                 { slug: 'banrisul', name: 'Banrisul' },
                 { slug: 'daycoval', name: 'Daycoval' },
+                { slug: 'civia', name: 'Civia' },
+                { slug: 'unicred', name: 'Unicred' },
+                { slug: 'ailos', name: 'Ailos' },
+                { slug: 'cresol', name: 'Cresol' },
+                { slug: 'original', name: 'Banco Original' },
+                { slug: 'agibank', name: 'Agibank' },
+                { slug: 'banco-bv', name: 'BV' },
+                { slug: 'sofisa', name: 'Sofisa Direto' },
+                { slug: 'wise', name: 'Wise' },
+                { slug: 'nomad', name: 'Nomad' },
                 // Duplicação para loop contínuo infinito
                 { slug: 'nubank', name: 'Nubank' },
                 { slug: 'itau', name: 'Itaú' },
@@ -414,14 +429,23 @@ export default function LandingPage() {
                 { slug: 'neon', name: 'Neon' },
                 { slug: 'banrisul', name: 'Banrisul' },
                 { slug: 'daycoval', name: 'Daycoval' },
+                { slug: 'civia', name: 'Civia' },
+                { slug: 'unicred', name: 'Unicred' },
+                { slug: 'ailos', name: 'Ailos' },
+                { slug: 'cresol', name: 'Cresol' },
+                { slug: 'original', name: 'Banco Original' },
+                { slug: 'agibank', name: 'Agibank' },
+                { slug: 'banco-bv', name: 'BV' },
+                { slug: 'sofisa', name: 'Sofisa Direto' },
+                { slug: 'wise', name: 'Wise' },
+                { slug: 'nomad', name: 'Nomad' },
               ].map((b, idx) => (
                 <div
                   key={`${b.slug}-${idx}`}
-                  className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-white/5 border border-white/10 hover:border-[#FF8216]/50 hover:bg-white/10 transition-all shadow-sm shrink-0"
+                  className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 hover:border-[#FF8216]/50 hover:bg-white/10 transition-all shadow-sm flex items-center justify-center p-2 shrink-0 group cursor-pointer"
                   title={b.name}
                 >
-                  <BankLogo bank={b.slug} size="xs" />
-                  <span className="text-xs font-semibold text-zinc-200 whitespace-nowrap">{b.name}</span>
+                  <BankLogo bank={b.slug} size="sm" className="group-hover:scale-110 transition-transform" />
                 </div>
               ))}
             </div>
@@ -429,7 +453,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Seção Exclusiva: Galeria de Agentes Inteligentes Inspirados no Pierre */}
+      {/* Seção Exclusiva: Galeria de Agentes Especialistas da Kitsune */}
       <section className="py-20 px-4 max-w-6xl mx-auto border-t border-white/10">
         <div className="flex flex-col items-center text-center gap-3 mb-12">
           <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-[#FF8216]/10 text-[#FF8216] border border-[#FF8216]/20">
@@ -439,7 +463,7 @@ export default function LandingPage() {
             Conheça seus Agentes Especialistas
           </h2>
           <p className="text-xs sm:text-sm text-zinc-400 max-w-xl">
-            Uma equipe completa com papéis dinâmicos que trabalham em segundo plano para auditar, proteger e multiplicar seu patrimônio.
+            Uma equipe de guardiões autônomos que operam em segundo plano para auditar, proteger e multiplicar seu patrimônio.
           </p>
         </div>
 
@@ -447,23 +471,23 @@ export default function LandingPage() {
           {[
             {
               emoji: '😾',
-              name: 'Julius',
-              role: 'Fiscal Ranzinza',
-              desc: 'Reclama quando você gastar de um jeito absurdo e calcula quanto você economiza se não comprar.',
+              name: 'Kuro',
+              role: 'Fiscal Ranzinza & Guardião',
+              desc: 'Alerta quando você gasta além da conta e calcula com rigor o valor que você poupa ao evitar compras por impulso.',
               tag: 'Corta Supérfluos',
             },
             {
               emoji: '🎩',
-              name: 'Tio Patinhas',
+              name: 'Daiko',
               role: 'Estrategista Patrimonial',
-              desc: 'Audita saldos parados em conta corrente e indica rendimentos reais no CDI e Selic.',
+              desc: 'Audita saldos ociosos em conta corrente e indica rendimentos imediatos com liquidez diária no CDI e Selic.',
               tag: 'Multiplica Caixa',
             },
             {
               emoji: '🕵️‍♂️',
-              name: 'Inspetor Bugiganga',
-              role: 'Caçador de Erros',
-              desc: 'Encontra cobranças duplicadas na mesma data, tarifas ocultas e assinaturas esquecidas.',
+              name: 'Kage',
+              role: 'Caçador de Tarifas & Erros',
+              desc: 'Encontra cobranças duplicadas na mesma data, tarifas bancárias ocultas e assinaturas esquecidas no seu extrato.',
               tag: 'Zero Taxas Indevidas',
             },
           ].map((ag, i) => (
@@ -519,7 +543,7 @@ export default function LandingPage() {
                 </div>
                 <div className="min-w-0 text-left">
                   <span className="text-xs font-bold text-white block">
-                    Albert • Agente de Anomalias
+                    Sentinela Kitsune • Agente de Anomalias
                   </span>
                   <p className="text-[11px] text-zinc-400 leading-tight mt-0.5">
                     Cobrança duplicada detectada: R$ 89,90 em streaming. Sugestão preventiva gerada.

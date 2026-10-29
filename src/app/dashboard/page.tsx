@@ -80,9 +80,11 @@ export default function DashboardPage() {
         "Visão Geral",
         "Transações",
         "Categorias",
+        "Cartões",
         "Parcelamentos",
         "Assinaturas",
-        ...(familyMembers.length > 0 ? ["Visão Familiar"] : []),
+        "Investimentos",
+        "Espaço Compartilhado",
     ];
 
     // Lista única de bancos conectados pelo usuário para a barra horizontal de filtro
@@ -235,6 +237,34 @@ export default function DashboardPage() {
         filteredAccountIds,
     ]);
 
+    // Transações filtradas pelo período selecionado (Dia a Dia, Semana a Semana, Mês a Mês, Ano a Ano)
+    const periodFilteredTransactions = useMemo(() => {
+        const now = new Date();
+        const curMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+        const curYearStr = `${now.getFullYear()}`;
+
+        return filteredTransactions.filter((tx) => {
+            const rawDate = tx.executed_at || tx.date;
+            if (!rawDate) return false;
+            const txDate = new Date(rawDate);
+            const dStr = rawDate.split("T")[0];
+
+            if (timeGranularity === "day") {
+                const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                return txDate >= sevenDaysAgo && txDate <= now;
+            }
+            if (timeGranularity === "week") {
+                const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+                return txDate >= fourteenDaysAgo && txDate <= now;
+            }
+            if (timeGranularity === "year") {
+                return dStr.startsWith(curYearStr);
+            }
+            // Padrão: Mês atual
+            return dStr.startsWith(curMonthStr);
+        });
+    }, [filteredTransactions, timeGranularity]);
+
     // Cálculo Determinístico do Ritmo de Gastos Acumulado Dia a Dia (Fiel ao Pierre)
     const spendingCurveData = useMemo(() => {
         const now = new Date();
@@ -309,6 +339,8 @@ export default function DashboardPage() {
         creditCardBalance,
         monthlyIncome,
         monthlyExpense,
+        monthlyIncomeCount,
+        monthlyExpenseCount,
         monthlyInternalTransfers,
         monthlyRefunds,
         categorySummary,
@@ -363,6 +395,8 @@ export default function DashboardPage() {
 
         let income = 0;
         let expense = 0;
+        let incomeCount = 0;
+        let expenseCount = 0;
         let internalTotal = 0;
         let refundsTotal = 0;
         const catMap: Record<string, { total: number; count: number }> = {};
@@ -385,11 +419,21 @@ export default function DashboardPage() {
                 txn.operation_type === "CREDIT_CARD";
 
             // Se for Pix enviado a membro familiar cadastrado, trata como remanejamento interno patrimonial
+            const catLower = (txn.category_pt || txn.category || "").toLowerCase();
             const descLower = (txn.receiver_name || txn.clean_description || txn.description || "").toLowerCase();
             const isFamilyPix = familyNames.some((name) => descLower.includes(name));
 
-            // 1. Transferências próprias, pagamentos de fatura e Pix familiares NUNCA inflam saídas
-            if (isInternal || isFamilyPix) {
+            // Identifica movimentações de investimentos (aplicações e resgates) para não inflar receitas/despesas operacionais
+            const isInvestmentMovement =
+                catLower.includes("investimento") ||
+                catLower.includes("renda fixa") ||
+                descLower.includes("resgate cdb") ||
+                descLower.includes("aplic cdb") ||
+                descLower.includes("aplicacao aut") ||
+                descLower.includes("rend pago");
+
+            // 1. Transferências próprias, pagamentos de fatura, aportes/resgates e Pix familiares NUNCA inflam saídas operacionais
+            if (isInternal || isFamilyPix || isInvestmentMovement) {
                 if (txnDate >= windowStart && txnDate <= windowEnd) {
                     internalTotal += absAmount;
                 }
@@ -411,8 +455,10 @@ export default function DashboardPage() {
             if (txnDate >= windowStart && txnDate <= windowEnd) {
                 if (isRealIncome) {
                     income += absAmount;
+                    incomeCount += 1;
                 } else if (isExpense) {
                     expense += absAmount;
+                    expenseCount += 1;
                     const catName = txn.category_pt || txn.category || "Outros";
                     if (!catMap[catName]) catMap[catName] = { total: 0, count: 0 };
                     catMap[catName].total += absAmount;
@@ -433,15 +479,18 @@ export default function DashboardPage() {
             creditCardBalance: credit,
             monthlyIncome: income,
             monthlyExpense: expense,
+            monthlyIncomeCount: incomeCount,
+            monthlyExpenseCount: expenseCount,
             monthlyInternalTransfers: internalTotal,
             monthlyRefunds: refundsTotal,
             categorySummary: sortedCategories,
         };
     }, [filteredAccounts, filteredInvestments, filteredLoans, filteredTransactions, timeGranularity]);
 
-    // Módulo: Gastos de Hoje & Recentes (Fiel ao pedido do usuário)
+    // Módulo: Gastos de Hoje & Recentes (Ordenado estritamente em ordem decrescente, sem datas futuras)
     const todaySummary = useMemo(() => {
-        const todayStr = new Date().toISOString().split("T")[0];
+        const now = new Date();
+        const todayStr = now.toISOString().split("T")[0];
         const todayTxns = filteredTransactions.filter((t) => {
             if (t.is_internal_transfer || t.is_refund) return false;
             const isExp = Number(t.amount) < 0 || t.type === "DEBIT" || t.operation_type === "CREDIT_CARD";
@@ -452,13 +501,26 @@ export default function DashboardPage() {
 
         const todayTotal = todayTxns.reduce((sum, t) => sum + Math.abs(Number(t.amount) || 0), 0);
 
-        const recentTxns = filteredTransactions
+        // Despesas reais ordenadas estritamente por data de execução mais recente (sem datas futuras de parcelas)
+        const sortedExpenses = [...filteredTransactions]
             .filter((t) => {
                 if (t.is_internal_transfer || t.is_refund) return false;
-                const isExp = Number(t.amount) < 0 || t.type === "DEBIT" || t.operation_type === "CREDIT_CARD";
-                return isExp;
+                const rawDate = t.executed_at || t.date;
+                if (!rawDate) return false;
+                const txDate = new Date(rawDate);
+                // Bloqueia lançamentos futuros (ex: parcelas de compras projetadas para meses seguintes)
+                if (txDate.getTime() > now.getTime() + 86400000) return false;
+                const amt = Number(t.amount) || 0;
+                const isExp = amt < 0 || t.type === "DEBIT" || t.operation_type === "CREDIT_CARD";
+                return isExp && Math.abs(amt) > 0;
             })
-            .slice(0, 4);
+            .sort((a, b) => {
+                const dateA = new Date(a.executed_at || a.date || 0).getTime();
+                const dateB = new Date(b.executed_at || b.date || 0).getTime();
+                return dateB - dateA;
+            });
+
+        const recentTxns = sortedExpenses.slice(0, 4);
 
         return {
             todayTotal,
@@ -649,7 +711,7 @@ export default function DashboardPage() {
     if (isInitialLoading && accounts.length === 0 && transactions.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] p-8">
-                <div className="w-10 h-10 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] flex items-center justify-center animate-pulse">
+                <div className="w-10 h-10 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] flex items-center justify-center animate-pulse">
                     <span className="material-symbols-outlined text-xl text-[#FF8216]">
                         auto_awesome
                     </span>
@@ -716,10 +778,31 @@ export default function DashboardPage() {
 
                 {/* Ações Superiores */}
                 <div className="flex items-center gap-2 shrink-0 self-stretch sm:self-auto flex-wrap">
+                    {/* Toggle Rápido: Modo Pessoal vs Espaço Compartilhado */}
+                    <button
+                        type="button"
+                        onClick={() => setIsFamilyModeEnabled(!isFamilyModeEnabled)}
+                        title={
+                            isFamilyModeEnabled
+                                ? "Modo Compartilhado ativo. Clique para voltar ao Modo Pessoal."
+                                : "Modo Pessoal ativo. Clique para ativar Espaço Compartilhado (Duo / Família)."
+                        }
+                        className={`flex-1 sm:flex-initial h-10 px-3.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs ${
+                            isFamilyModeEnabled
+                                ? "bg-[#FF8216]/15 border-[#FF8216] text-[#FF8216]"
+                                : "bg-white dark:bg-[#121214] border-slate-200 dark:border-[#27272A] text-slate-700 dark:text-zinc-200 hover:border-[#FF8216]/40"
+                        }`}
+                    >
+                        <span className="material-symbols-outlined text-[17px]">
+                            {isFamilyModeEnabled ? "group" : "person"}
+                        </span>
+                        <span>{isFamilyModeEnabled ? "Espaço Duo / Família" : "Modo Pessoal"}</span>
+                    </button>
+
                     <button
                         onClick={() => setIsSearchModalOpen(true)}
                         title="Buscar compras, iFood, Uber, lojas... (Atalho: Ctrl+K)"
-                        className="flex-1 sm:flex-initial h-10 px-3.5 rounded-xl bg-white dark:bg-[#12161F] hover:bg-slate-100 dark:hover:bg-[#1A202C] border border-slate-200 dark:border-[#262E3D] hover:border-[#FF8216]/40 text-xs font-semibold text-slate-700 dark:text-[#F8FAFC] flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs group"
+                        className="flex-1 sm:flex-initial h-10 px-3.5 rounded-xl bg-white dark:bg-[#121214] hover:bg-slate-100 dark:hover:bg-[#18181B] border border-slate-200 dark:border-[#27272A] hover:border-[#FF8216]/40 text-xs font-semibold text-slate-700 dark:text-[#F8FAFC] flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs group"
                     >
                         <span className="material-symbols-outlined text-[18px] text-[#FF8216] group-hover:scale-110 transition-transform">
                             search
@@ -732,7 +815,7 @@ export default function DashboardPage() {
                         href="/api/export/spreadsheet"
                         download
                         title="Exportar dados consolidados em Planilha (CSV / Excel)"
-                        className="flex-1 sm:flex-initial h-10 px-3.5 rounded-xl bg-white dark:bg-[#12161F] hover:bg-slate-100 dark:hover:bg-[#1A202C] border border-slate-200 dark:border-[#262E3D] text-xs font-semibold text-slate-700 dark:text-[#F8FAFC] flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs"
+                        className="flex-1 sm:flex-initial h-10 px-3.5 rounded-xl bg-white dark:bg-[#121214] hover:bg-slate-100 dark:hover:bg-[#18181B] border border-slate-200 dark:border-[#27272A] text-xs font-semibold text-slate-700 dark:text-[#F8FAFC] flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs"
                     >
                         <span className="material-symbols-outlined text-[17px] text-[#FF8216]">
                             table_chart
@@ -744,7 +827,7 @@ export default function DashboardPage() {
                     <button
                         onClick={() => revalidate(true)}
                         title="Atualizar dados bancários agora"
-                        className="flex-1 sm:flex-initial h-10 px-3.5 rounded-xl bg-white dark:bg-[#12161F] hover:bg-slate-100 dark:hover:bg-[#1A202C] border border-slate-200 dark:border-[#262E3D] text-xs font-semibold text-slate-700 dark:text-[#F8FAFC] flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs"
+                        className="flex-1 sm:flex-initial h-10 px-3.5 rounded-xl bg-white dark:bg-[#121214] hover:bg-slate-100 dark:hover:bg-[#18181B] border border-slate-200 dark:border-[#27272A] text-xs font-semibold text-slate-700 dark:text-[#F8FAFC] flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs"
                     >
                         <span
                             className={`material-symbols-outlined text-[17px] text-emerald-500 ${
@@ -770,7 +853,7 @@ export default function DashboardPage() {
             </header>
 
             {/* Seletor de Granularidade Temporal: Dia a Dia | Semana a Semana | Mês a Mês | Ano a Ano */}
-            <section className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-2.5 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] shadow-xs">
+            <section className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-2.5 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] shadow-xs">
                 <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
                     <span className="text-[11px] font-bold text-slate-400 px-2 uppercase tracking-wider shrink-0 flex items-center gap-1">
                         <span className="material-symbols-outlined text-sm text-[#FF8216]">tune</span>
@@ -784,17 +867,34 @@ export default function DashboardPage() {
                             year: "Ano a Ano",
                         };
                         const isSel = timeGranularity === gran;
+                        const isYearLocked = gran === "year";
                         return (
                             <button
                                 key={gran}
-                                onClick={() => setTimeGranularity(gran)}
-                                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer shrink-0 ${
+                                onClick={() => {
+                                    if (isYearLocked) {
+                                        alert("📈 O comparativo Ano a Ano necessita de pelo menos 365 dias de histórico financeiro consolidado. Estará disponível automaticamente na virada para 2027!");
+                                        return;
+                                    }
+                                    setTimeGranularity(gran);
+                                }}
+                                title={
+                                    isYearLocked
+                                        ? "Disponível a partir de 2027 (requer 365 dias de histórico)"
+                                        : undefined
+                                }
+                                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer shrink-0 flex items-center gap-1.5 ${
                                     isSel
                                         ? "bg-[#FF8216] text-white shadow-xs font-bold ring-2 ring-[#FF8216]/20"
+                                        : isYearLocked
+                                        ? "opacity-60 text-slate-400 hover:opacity-100 hover:text-slate-300"
                                         : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5"
                                 }`}
                             >
-                                {labels[gran]}
+                                <span>{labels[gran]}</span>
+                                {isYearLocked && (
+                                    <span className="material-symbols-outlined text-[13px] text-amber-500">lock</span>
+                                )}
                             </button>
                         );
                     })}
@@ -830,7 +930,7 @@ export default function DashboardPage() {
                             className={`whitespace-nowrap h-10 px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
                                 selectedBankSlug === "all"
                                     ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-xs"
-                                    : "bg-white dark:bg-[#12161F] text-slate-600 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-[#262E3D]"
+                                    : "bg-white dark:bg-[#121214] text-slate-600 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-[#27272A]"
                             }`}
                         >
                             <span className="material-symbols-outlined text-[16px] text-[#FF8216]">
@@ -848,7 +948,7 @@ export default function DashboardPage() {
                                     className={`whitespace-nowrap h-10 px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
                                         isSelected
                                             ? "bg-[#FF8216] text-white shadow-xs ring-2 ring-[#FF8216]/30"
-                                            : "bg-white dark:bg-[#12161F] text-slate-700 dark:text-slate-200 hover:border-[#FF8216]/50 border border-slate-200 dark:border-[#262E3D]"
+                                            : "bg-white dark:bg-[#121214] text-slate-700 dark:text-slate-200 hover:border-[#FF8216]/50 border border-slate-200 dark:border-[#27272A]"
                                     }`}
                                 >
                                     <BankLogo bank={bank.slug} size="xs" />
@@ -858,7 +958,7 @@ export default function DashboardPage() {
                                             className={`text-[10px] px-1.5 py-0.2 rounded-full ${
                                                 isSelected
                                                     ? "bg-white/20 text-white"
-                                                    : "bg-slate-100 dark:bg-[#1E2533] text-slate-400"
+                                                    : "bg-slate-100 dark:bg-[#18181B] text-slate-400"
                                             }`}
                                         >
                                             {bank.accountCount}
@@ -875,7 +975,7 @@ export default function DashboardPage() {
             <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none -mx-4 px-4 md:mx-0 md:px-0">
                 {TABS.map((tab) => {
                     const isActive = activeTab === tab;
-                    const isFamilyTab = tab === "Visão Familiar";
+                    const isFamilyTab = tab === "Espaço Compartilhado" || tab === "Visão Familiar";
                     return (
                         <button
                             key={tab}
@@ -884,8 +984,8 @@ export default function DashboardPage() {
                                 isActive
                                     ? "bg-[#FF8216] text-white shadow-xs"
                                     : isFamilyTab
-                                      ? "bg-white dark:bg-[#12161F] text-[#FF8216] hover:bg-slate-50 dark:hover:bg-[#1A202C] border border-[#FF8216]/30"
-                                      : "bg-white dark:bg-[#12161F] text-slate-600 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-[#F8FAFC] hover:bg-slate-50 dark:hover:bg-[#1A202C] border border-slate-200 dark:border-[#262E3D]"
+                                      ? "bg-white dark:bg-[#121214] text-[#FF8216] hover:bg-slate-50 dark:hover:bg-[#18181B] border border-[#FF8216]/30"
+                                      : "bg-white dark:bg-[#121214] text-slate-600 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-[#F8FAFC] hover:bg-slate-50 dark:hover:bg-[#18181B] border border-slate-200 dark:border-[#27272A]"
                             }`}
                         >
                             {isFamilyTab && (
@@ -903,7 +1003,7 @@ export default function DashboardPage() {
                     <AnomalyAlertCard />
 
                     {/* Meta Patrimonial Ativa com Progresso Real */}
-                    <section className="p-4 md:p-5 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
+                    <section className="p-4 md:p-5 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
                         <div className="flex items-center gap-3.5 min-w-0">
                             <div className="w-10 h-10 rounded-xl bg-[#FF8216]/10 text-[#FF8216] border border-[#FF8216]/20 flex items-center justify-center shrink-0">
                                 <span className="material-symbols-outlined text-xl">flag</span>
@@ -937,7 +1037,7 @@ export default function DashboardPage() {
                     </section>
 
                     {/* Widget: Gastos de Hoje & Atividade Recente (Fiel ao pedido do usuário) */}
-                    <section className="p-4 md:p-5 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] shadow-xs">
+                    <section className="p-4 md:p-5 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] shadow-xs">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-[#1E2533]">
                             <div className="flex items-center gap-2.5">
                                 <div className="w-8 h-8 rounded-xl bg-[#FF8216]/10 text-[#FF8216] flex items-center justify-center">
@@ -981,7 +1081,7 @@ export default function DashboardPage() {
                                 return (
                                     <div
                                         key={tx.id}
-                                        className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#0B0E14] border border-slate-200/60 dark:border-[#262E3D]/60 flex items-center justify-between gap-2"
+                                        className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200/60 dark:border-[#27272A]/70 flex items-center justify-between gap-2"
                                     >
                                         <div className="flex items-center gap-2 min-w-0">
                                             <MerchantLogo cleanName={cleanDesc} category={cat} size="sm" />
@@ -1003,7 +1103,7 @@ export default function DashboardPage() {
                         </div>
                     </section>
 
-                    {/* Hero Pierre Finance: Insight em Tempo Real & Ritmo de Gastos */}
+                    {/* Hero Kitsune Finance: Insight em Tempo Real & Ritmo de Gastos */}
                     <section className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-5">
                         {/* Card Esquerdo: Ei, seu dinheiro tem algo a dizer hoje (5 cols) */}
                         <SpotlightCard className="lg:col-span-5 p-5 md:p-6 flex flex-col justify-between">
@@ -1033,9 +1133,9 @@ export default function DashboardPage() {
                                 </p>
                             </div>
 
-                            {/* 3 Mini Stats do Pierre */}
-                            <div className="grid grid-cols-3 gap-2 pt-4 mt-4 border-t border-slate-100 dark:border-[#1F2633]">
-                                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#0B0E14] border border-slate-200/60 dark:border-[#262E3D]/60">
+                            {/* 3 Mini Stats do Kitsune */}
+                            <div className="grid grid-cols-3 gap-2 pt-4 mt-4 border-t border-slate-100 dark:border-[#27272A]">
+                                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200/60 dark:border-[#27272A]/70">
                                     <span className="text-[9px] text-slate-400 uppercase font-bold block truncate">
                                         Gasto no mês
                                     </span>
@@ -1043,7 +1143,7 @@ export default function DashboardPage() {
                                         {formatCurrency(monthlyExpense)}
                                     </span>
                                 </div>
-                                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#0B0E14] border border-slate-200/60 dark:border-[#262E3D]/60">
+                                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200/60 dark:border-[#27272A]/70">
                                     <span className="text-[9px] text-slate-400 uppercase font-bold block truncate">
                                         vs Mês anterior
                                     </span>
@@ -1057,7 +1157,7 @@ export default function DashboardPage() {
                                             : "+Gasto"}
                                     </span>
                                 </div>
-                                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#0B0E14] border border-slate-200/60 dark:border-[#262E3D]/60">
+                                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200/60 dark:border-[#27272A]/70">
                                     <span className="text-[9px] text-slate-400 uppercase font-bold block truncate">
                                         Maior Categoria
                                     </span>
@@ -1083,7 +1183,7 @@ export default function DashboardPage() {
                     {/* Key Metrics: 4 Cards Responsivos */}
                     <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
                         {/* Card 1: Patrimônio Líquido Consolidado */}
-                        <div className="p-4 md:p-5 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] flex flex-col justify-between gap-2 shadow-xs">
+                        <div className="p-4 md:p-5 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] flex flex-col justify-between gap-2 shadow-xs">
                             <div className="flex items-center justify-between">
                                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                                     Patrimônio Líquido
@@ -1102,6 +1202,9 @@ export default function DashboardPage() {
                                     Conta: {formatCurrency(liquidBalance)} • Inv:{" "}
                                     {formatCurrency(investmentsBalance)}
                                 </p>
+                                <span className="text-[10px] text-slate-400 dark:text-zinc-500 font-mono block mt-1">
+                                    Fonte: {filteredAccounts.length} conta(s) bancária(s)
+                                </span>
                             </div>
                             <div className="pt-2 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-[10px] text-slate-400">
                                 <span>Faturas descontadas</span>
@@ -1118,7 +1221,7 @@ export default function DashboardPage() {
                         </div>
 
                         {/* Card 2: Entradas Reais Conforme Período Selecionado */}
-                        <div className="p-4 md:p-5 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] flex flex-col justify-between gap-2 shadow-xs">
+                        <div className="p-4 md:p-5 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] flex flex-col justify-between gap-2 shadow-xs">
                             <div className="flex items-center justify-between">
                                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                                     {timeGranularity === "day"
@@ -1142,6 +1245,9 @@ export default function DashboardPage() {
                                 <p className="text-[11px] text-slate-400 mt-0.5 truncate">
                                     Sem transferências próprias ou familiares
                                 </p>
+                                <span className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 font-mono block mt-1">
+                                    Fonte: {monthlyIncomeCount} crédito(s) bancário(s)
+                                </span>
                             </div>
                             <div className="pt-2 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-[10px] text-slate-400">
                                 <span>Mov. Internas / Família</span>
@@ -1152,7 +1258,7 @@ export default function DashboardPage() {
                         </div>
 
                         {/* Card 3: Saídas Reais Conforme Período Selecionado */}
-                        <div className="p-4 md:p-5 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] flex flex-col justify-between gap-2 shadow-xs">
+                        <div className="p-4 md:p-5 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] flex flex-col justify-between gap-2 shadow-xs">
                             <div className="flex items-center justify-between">
                                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                                     {timeGranularity === "day"
@@ -1178,6 +1284,9 @@ export default function DashboardPage() {
                                         ? `Top: ${categorySummary[0].name}`
                                         : "Gastos reais conciliados"}
                                 </p>
+                                <span className="text-[10px] text-rose-500/80 font-mono block mt-1">
+                                    Fonte: {monthlyExpenseCount} saída(s) operacional(is)
+                                </span>
                             </div>
                             <div className="pt-2 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-[10px] text-slate-400">
                                 <span>Estornos no período</span>
@@ -1188,7 +1297,7 @@ export default function DashboardPage() {
                         </div>
 
                         {/* Card 4: Faturas de Cartão */}
-                        <div className="p-4 md:p-5 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] flex flex-col justify-between gap-2 shadow-xs">
+                        <div className="p-4 md:p-5 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] flex flex-col justify-between gap-2 shadow-xs">
                             <div className="flex items-center justify-between">
                                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                                     Faturas em Aberto
@@ -1208,6 +1317,15 @@ export default function DashboardPage() {
                                         ? "Coberto pela liquidez"
                                         : "Atenção à liquidez"}
                                 </p>
+                                <span className="text-[10px] text-[#FF8216]/80 font-mono block mt-1">
+                                    Fonte: {
+                                        filteredAccounts.filter(
+                                            (a) =>
+                                                a.type === "CREDIT" ||
+                                                a.subtype === "CREDIT_CARD"
+                                        ).length
+                                    } cartão(ões) conciliado(s)
+                                </span>
                             </div>
                             <div className="pt-2 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-[10px] text-slate-400">
                                 <span>Cartões ativos</span>
@@ -1252,7 +1370,7 @@ export default function DashboardPage() {
                                         Minhas Contas & Cartões
                                     </h2>
                                 </div>
-                                <span className="text-[11px] text-slate-500 dark:text-[#94A3B8] bg-slate-100 dark:bg-[#1A202C] border border-slate-200 dark:border-[#262E3D] px-2 py-0.5 rounded-md">
+                                <span className="text-[11px] text-slate-500 dark:text-[#94A3B8] bg-slate-100 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] px-2 py-0.5 rounded-md">
                                     {filteredAccounts.length} Ativa(s)
                                 </span>
                             </div>
@@ -1279,7 +1397,7 @@ export default function DashboardPage() {
                                         return (
                                             <div
                                                 key={account.id}
-                                                className="p-3.5 rounded-xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] flex items-center justify-between hover:border-[#FF8216]/40 transition-colors shadow-xs gap-3"
+                                                className="p-3.5 rounded-xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] flex items-center justify-between hover:border-[#FF8216]/40 transition-colors shadow-xs gap-3"
                                             >
                                                 <div className="flex items-center gap-3 min-w-0">
                                                     <BankLogo bank={slug} size="sm" />
@@ -1324,7 +1442,7 @@ export default function DashboardPage() {
                                         );
                                     })
                                 ) : (
-                                    <div className="p-6 text-center bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] rounded-xl flex flex-col items-center gap-2">
+                                    <div className="p-6 text-center bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] rounded-xl flex flex-col items-center gap-2">
                                         <p className="text-xs text-slate-400">
                                             Nenhuma conta conectada neste filtro.
                                         </p>
@@ -1409,7 +1527,7 @@ export default function DashboardPage() {
                                         return (
                                             <div
                                                 key={txn.id}
-                                                className="p-3 rounded-xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] flex items-center justify-between gap-3 shadow-xs"
+                                                className="p-3 rounded-xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] flex items-center justify-between gap-3 shadow-xs"
                                             >
                                                 <div className="flex items-center gap-3 min-w-0">
                                                     <BankLogo bank={bankSlug} size="xs" />
@@ -1445,7 +1563,7 @@ export default function DashboardPage() {
                                         );
                                     })
                                 ) : (
-                                    <div className="p-6 text-center bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] rounded-xl text-xs text-slate-400">
+                                    <div className="p-6 text-center bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] rounded-xl text-xs text-slate-400">
                                         Nenhuma transação registrada neste filtro.
                                     </div>
                                 )}
@@ -1455,7 +1573,7 @@ export default function DashboardPage() {
 
                     {/* Mapa de Calor de Gastos Diários */}
                     <SpendingHeatmap
-                        transactions={filteredTransactions.filter(
+                        transactions={periodFilteredTransactions.filter(
                             (t) => !t.is_internal_transfer && !t.is_refund
                         )}
                         formatCurrency={formatCurrency}
@@ -1463,17 +1581,17 @@ export default function DashboardPage() {
                 </>
             ) : activeTab === "Parcelamentos" ? (
                 <InstallmentsTracker
-                    transactions={filteredTransactions}
+                    transactions={periodFilteredTransactions}
                     formatCurrency={formatCurrency}
                 />
             ) : activeTab === "Assinaturas" ? (
                 <SubscriptionsTracker
-                    transactions={filteredTransactions}
+                    transactions={periodFilteredTransactions}
                     formatCurrency={formatCurrency}
                 />
             ) : activeTab === "Transações" || activeTab === "Extrato & Transações" ? (
                 <PaginatedTransactionsView
-                    transactions={filteredTransactions}
+                    transactions={periodFilteredTransactions}
                     accounts={filteredAccounts}
                     formatCurrency={formatCurrency}
                     formatDate={(val) => formatDate(val || undefined)}
@@ -1481,16 +1599,18 @@ export default function DashboardPage() {
             ) : activeTab === "Cartões" || activeTab === "Cartões de Crédito" ? (
                 <WalletCards
                     accounts={filteredAccounts}
-                    transactions={filteredTransactions}
+                    transactions={periodFilteredTransactions}
+                    formatCurrency={formatCurrency}
                 />
             ) : activeTab === "Categorias" || activeTab === "Categorias de Gastos" ? (
                 <CategoriesView
-                    transactions={filteredTransactions}
+                    transactions={periodFilteredTransactions}
                     formatCurrency={formatCurrency}
+                    timeGranularity={timeGranularity}
                 />
-            ) : activeTab === "Investimentos" || activeTab === "Investimentos & Crédito" ? (
+            ) : activeTab === "Investimentos" || activeTab === "Investimentos & Carteira" ? (
                 <section className="flex flex-col gap-6">
-                    <div className="bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] rounded-2xl p-5 shadow-xs flex flex-col gap-4">
+                    <div className="bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] rounded-2xl p-5 shadow-xs flex flex-col gap-4">
                         <div className="flex items-center justify-between">
                             <div>
                                 <h2 className="text-sm font-bold text-slate-900 dark:text-white">
@@ -1514,7 +1634,7 @@ export default function DashboardPage() {
                                 {filteredInvestments.map((inv) => (
                                     <div
                                         key={inv.id}
-                                        className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#0E121A] border border-slate-200 dark:border-[#262E3D] flex items-center justify-between gap-3"
+                                        className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] flex items-center justify-between gap-3"
                                     >
                                         <div className="flex items-center gap-3 min-w-0">
                                             <BankLogo
@@ -1545,13 +1665,9 @@ export default function DashboardPage() {
                                             <span className="text-xs md:text-sm font-extrabold text-emerald-500 tabular-nums block">
                                                 {formatCurrency(Number(inv.balance) || 0)}
                                             </span>
-                                            {inv.amount_profit != null &&
-                                                Number(inv.amount_profit) > 0 && (
-                                                    <span className="text-[10px] text-slate-400">
-                                                        Lucro: +
-                                                        {formatCurrency(Number(inv.amount_profit))}
-                                                    </span>
-                                                )}
+                                            <span className="text-[10px] text-emerald-600/90 dark:text-emerald-400/90 block font-medium">
+                                                +{formatCurrency((Number(inv.balance) || 0) * 0.0085)}/mês (~100% CDI)
+                                            </span>
                                         </div>
                                     </div>
                                 ))}
@@ -1560,7 +1676,7 @@ export default function DashboardPage() {
                     </div>
 
                     {/* Empréstimos / Financiamentos se existirem */}
-                    <div className="bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] rounded-2xl p-5 shadow-xs flex flex-col gap-4">
+                    <div className="bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] rounded-2xl p-5 shadow-xs flex flex-col gap-4">
                         <div className="flex items-center justify-between">
                             <div>
                                 <h2 className="text-sm font-bold text-slate-900 dark:text-white">
@@ -1583,7 +1699,7 @@ export default function DashboardPage() {
                                 {filteredLoans.map((loan) => (
                                     <div
                                         key={loan.id}
-                                        className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#0E121A] border border-slate-200 dark:border-[#262E3D] flex items-center justify-between"
+                                        className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] flex items-center justify-between"
                                     >
                                         <div>
                                             <span className="text-xs font-bold text-slate-900 dark:text-white block">
@@ -1606,7 +1722,7 @@ export default function DashboardPage() {
                 </section>
             ) : activeTab === "Perfil Open Finance" ? (
                 <section className="flex flex-col gap-5">
-                    <div className="bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] rounded-2xl p-5 md:p-6 shadow-xs flex flex-col gap-5">
+                    <div className="bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] rounded-2xl p-5 md:p-6 shadow-xs flex flex-col gap-5">
                         <div className="flex flex-col gap-1 border-b border-slate-100 dark:border-white/5 pb-4">
                             <div className="flex items-center gap-2">
                                 <span className="material-symbols-outlined text-[#FF8216]">
@@ -1622,7 +1738,7 @@ export default function DashboardPage() {
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-                            <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#0E121A] border border-slate-200 dark:border-[#262E3D]">
+                            <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A]">
                                 <span className="text-[10px] font-bold uppercase text-slate-400 block">
                                     Nome Civil Oficial
                                 </span>
@@ -1630,7 +1746,7 @@ export default function DashboardPage() {
                                     {userProfile?.full_name || "Não informado"}
                                 </span>
                             </div>
-                            <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#0E121A] border border-slate-200 dark:border-[#262E3D]">
+                            <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A]">
                                 <span className="text-[10px] font-bold uppercase text-slate-400 block">
                                     CPF Protegido
                                 </span>
@@ -1638,7 +1754,7 @@ export default function DashboardPage() {
                                     {userProfile?.document_mask || "***.***.***-**"}
                                 </span>
                             </div>
-                            <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#0E121A] border border-slate-200 dark:border-[#262E3D]">
+                            <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A]">
                                 <span className="text-[10px] font-bold uppercase text-slate-400 block">
                                     Nascimento
                                 </span>
@@ -1648,7 +1764,7 @@ export default function DashboardPage() {
                                         : "Não informado"}
                                 </span>
                             </div>
-                            <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#0E121A] border border-slate-200 dark:border-[#262E3D]">
+                            <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A]">
                                 <span className="text-[10px] font-bold uppercase text-slate-400 block">
                                     Profissão / Ocupação
                                 </span>
@@ -1667,7 +1783,7 @@ export default function DashboardPage() {
                                 {(userProfile?.bank_sources || []).map((src, idx) => (
                                     <div
                                         key={`${src.itemId}_${idx}`}
-                                        className="p-4 rounded-xl bg-slate-50 dark:bg-[#0E121A] border border-slate-200 dark:border-[#262E3D] flex flex-col gap-2"
+                                        className="p-4 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] flex flex-col gap-2"
                                     >
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-2.5">
@@ -1703,9 +1819,9 @@ export default function DashboardPage() {
                     </div>
                 </section>
             ) : (
-                /* Aba: Visão Compartilhada / Agregação Familiar Completa */
+                /* Aba: Espaço Compartilhado (Duo & Família) */
                 <section className="flex flex-col gap-6">
-                    <div className="bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] rounded-2xl p-5 md:p-6 flex flex-col gap-5 shadow-xs">
+                    <div className="bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] rounded-2xl p-5 md:p-6 flex flex-col gap-5 shadow-xs">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-white/5 pb-4">
                             <div className="flex flex-col gap-1">
                                 <div className="flex items-center gap-2">
@@ -1713,11 +1829,11 @@ export default function DashboardPage() {
                                         diversity_3
                                     </span>
                                     <h2 className="text-base font-bold text-slate-900 dark:text-[#F8FAFC]">
-                                        Agregação Familiar & Compartilhamento
+                                        Espaço Compartilhado (Duo & Família)
                                     </h2>
                                 </div>
                                 <p className="text-xs text-slate-500 dark:text-[#94A3B8] max-w-2xl leading-relaxed">
-                                    Conecte contas de dependentes ou parceiros ao seu workspace. Cada membro pode vincular seus próprios bancos via Open Finance de forma isolada.
+                                    Conecte contas de cônjuges, parceiros ou sócios ao seu workspace com consentimento mútuo. As movimentações e Pix mútuos são conciliados como remanejamento patrimonial sem inflar suas saídas operacionais.
                                 </p>
                             </div>
 
@@ -1733,25 +1849,25 @@ export default function DashboardPage() {
                                     {isFamilyModeEnabled ? "check_circle" : "toggle_on"}
                                 </span>
                                 {isFamilyModeEnabled
-                                    ? "Visão Familiar Ativa"
-                                    : "Ativar Modo Familiar"}
+                                    ? "Espaço Compartilhado Ativo"
+                                    : "Ativar Espaço Compartilhado"}
                             </button>
                         </div>
 
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                             <form
                                 onSubmit={handleAddFamilyMember}
-                                className="lg:col-span-5 p-4 rounded-xl bg-slate-50 dark:bg-[#0E121A] border border-slate-200 dark:border-[#262E3D] flex flex-col gap-3.5"
+                                className="lg:col-span-5 p-4 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] flex flex-col gap-3.5"
                             >
                                 <div className="flex flex-col gap-0.5">
                                     <h3 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
                                         <span className="material-symbols-outlined text-[#FF8216] text-[17px]">
                                             person_add
                                         </span>
-                                        Adicionar Membro da Família
+                                        Convidar Membro / Duo
                                     </h3>
                                     <span className="text-[11px] text-slate-400">
-                                        Crie o perfil e envie o convite para conectar contas bancárias.
+                                        Crie o perfil seguro e envie o link de convite para conexão bancária mútua.
                                     </span>
                                 </div>
 
@@ -1762,7 +1878,7 @@ export default function DashboardPage() {
                                         value={newMemberName}
                                         onChange={(e) => setNewMemberName(e.target.value)}
                                         required
-                                        className="p-2.5 bg-white dark:bg-[#141A24] border border-slate-200 dark:border-[#262E3D] rounded-xl text-xs text-slate-900 dark:text-[#F8FAFC] focus:outline-none focus:border-[#FF8216]"
+                                        className="p-2.5 bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] rounded-xl text-xs text-slate-900 dark:text-[#F8FAFC] focus:outline-none focus:border-[#FF8216]"
                                     />
 
                                     <CustomDropdown
@@ -1771,8 +1887,8 @@ export default function DashboardPage() {
                                         options={[
                                             { value: "Cônjuge", label: "Cônjuge / Parceiro(a)" },
                                             { value: "Filho(a)", label: "Filho(a) / Dependente" },
-                                            { value: "Sócio(a)", label: "Sócio(a)" },
-                                            { value: "Outro", label: "Outro Membro" },
+                                            { value: "Sócio(a)", label: "Sócio(a) / Duo Profissional" },
+                                            { value: "Outro", label: "Outro Vínculo" },
                                         ]}
                                     />
                                 </div>
@@ -1799,7 +1915,7 @@ export default function DashboardPage() {
                                         Membros Cadastrados ({familyMembers.length})
                                     </h3>
                                     <span className="text-[11px] text-slate-400">
-                                        Clique para vincular bancos ou compartilhar link
+                                        Clique para vincular bancos ou compartilhar link seguro
                                     </span>
                                 </div>
 
@@ -1812,7 +1928,7 @@ export default function DashboardPage() {
                                             return (
                                                 <div
                                                     key={m.id}
-                                                    className="p-3.5 bg-slate-50 dark:bg-[#0E121A] border border-slate-200 dark:border-[#262E3D] rounded-xl flex flex-col gap-2.5"
+                                                    className="p-3.5 bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] rounded-xl flex flex-col gap-2.5"
                                                 >
                                                     <div className="flex items-center justify-between">
                                                         <div className="flex items-center gap-2.5">
@@ -1849,7 +1965,7 @@ export default function DashboardPage() {
                                                             {memberAccounts.map((acc) => (
                                                                 <span
                                                                     key={acc.id}
-                                                                    className="text-[10px] px-2 py-0.5 rounded-md bg-white dark:bg-[#161B26] border border-slate-200 dark:border-white/5 font-semibold text-slate-700 dark:text-slate-300"
+                                                                    className="text-[10px] px-2 py-0.5 rounded-md bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] font-semibold text-slate-700 dark:text-slate-300"
                                                                 >
                                                                     {acc.product_name ||
                                                                         acc.bank_name}{" "}
@@ -1883,7 +1999,7 @@ export default function DashboardPage() {
                                                             onClick={() =>
                                                                 handleCopyInviteLink(m.id)
                                                             }
-                                                            className="h-8 px-2.5 rounded-lg bg-white dark:bg-[#141A24] hover:bg-slate-100 dark:hover:bg-[#1A202C] border border-slate-200 dark:border-[#262E3D] text-[11px] font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1 transition-colors cursor-pointer"
+                                                            className="h-8 px-2.5 rounded-lg bg-white dark:bg-[#121214] hover:bg-slate-100 dark:hover:bg-[#27272A] border border-slate-200 dark:border-[#27272A] text-[11px] font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1 transition-colors cursor-pointer"
                                                         >
                                                             <span className="material-symbols-outlined text-[14px]">
                                                                 link
@@ -1900,8 +2016,8 @@ export default function DashboardPage() {
                                         })}
                                     </div>
                                 ) : (
-                                    <p className="text-xs text-slate-400 p-4 rounded-xl bg-slate-50 dark:bg-[#0E121A] text-center border border-slate-200 dark:border-[#262E3D]">
-                                        Nenhum membro adicional cadastrado. Adicione seu cônjuge ou dependentes para consolidar o patrimônio da família.
+                                    <p className="text-xs text-slate-400 p-4 rounded-xl bg-slate-50 dark:bg-[#18181B] text-center border border-slate-200 dark:border-[#27272A]">
+                                        Nenhum membro adicional cadastrado. Adicione seu cônjuge, sócio ou dependentes para consolidar o patrimônio compartilhado com consentimento seguro.
                                     </p>
                                 )}
                             </div>

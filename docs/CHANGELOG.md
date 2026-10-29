@@ -4,6 +4,18 @@ Todas as alterações notáveis no projeto Kitsune Finance são registradas de f
 
 ---
 
+## [2026-10-29] - Refatoração Global de Categorias, Carrossel Wallet Touch/Mouse, Espaço Compartilhado & Identidade Kitsune
+- **Arquivos Afetados:** `src/app/dashboard/page.tsx`, `src/components/finance/CategoriesView.tsx`, `src/components/finance/WalletCards.tsx`, `src/utils/finance/card-theme-resolver.ts`, `src/app/investments/page.tsx`, `src/app/kitsune/page.tsx`, `src/app/agents/page.tsx`, `src/app/page.tsx`, `src/components/AiDiagnosticPanel.tsx`, `src/components/AnomalyAlertCard.tsx`, `src/app/globals.css`, `src/utils/finance/income-detector.ts`, `docs/PROJECT_STATE.md`, `docs/CHANGELOG.md`.
+- **Objetivo:**
+  - Correção da distorção de R$ 40k em categorias: exclusão estrita de CDBs/aportes e aplicação do filtro temporal ativo.
+  - Carrossel de cartões responsivo estilo Apple Wallet com suporte nativo a drag por mouse e touch swipe, limite utilizado vs livre, faturas detalhadas e dicas dinâmicas.
+  - Resolver dinâmico de temas `resolveCardTheme` para cartões bancários com gradientes escuros refinados e reflexo especular minimalista.
+  - Reativação completa do Espaço Compartilhado (Duo & Família) com consentimento mútuo, conciliação de transferências internas e alternância no header.
+  - Pacing gradual na Kitsune AI: exibição de 4 etapas de pensamento em tempo real e digitação tipo máquina de escrever.
+  - Padronização definitiva dos agentes da Kitsune (Sentinela Kitsune, Kuro, Daiko, Kage, Ren, Kenji, Takeshi), audit de segurança no Git e paleta Warm Obsidian (#0A0A0A/#121214/#27272A).
+
+---
+
 ## [2026-10-29] - Kitsune Vision Integrada ao Chat, Páginas Dedicadas /cards e /investments, Modo Privacidade e Correção Crítica de Sinais
 - **Arquivos Afetados:** `src/app/cards/page.tsx`, `src/app/investments/page.tsx`, `src/app/kitsune/page.tsx`, `src/app/api/chat/route.ts`, `src/components/finance/WalletCards.tsx`, `src/components/finance/PaginatedTransactionsView.tsx`, `src/components/finance/CategoriesView.tsx`, `src/components/finance/SubscriptionsTracker.tsx`, `src/app/dashboard/page.tsx`, `src/components/layout/AppShell.tsx`, `src/context/FinanceDataContext.tsx`, `src/utils/ai/dossier.ts`, `docs/PROJECT_STATE.md`, `docs/CHANGELOG.md`.
 - **Objetivo:**

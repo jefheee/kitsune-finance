@@ -28,10 +28,10 @@ export default function CardsPage() {
   )}. Analise se há risco de atraso, se estou pagando alguma tarifa ou anuidade indevida e como otimizar minhas datas de fechamento.`;
 
   return (
-    <div className="flex-1 w-full min-h-screen bg-slate-50 dark:bg-[#0B0E14] text-slate-900 dark:text-[#F8FAFC] p-4 md:p-8 overflow-y-auto">
+    <div className="flex-1 w-full min-h-screen bg-slate-50 dark:bg-[#0A0A0A] text-slate-900 dark:text-[#F8FAFC] p-4 md:p-8 overflow-y-auto">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header da Página */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-[#262E3D]">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-[#27272A]">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="p-1.5 rounded-lg bg-[#FF8216]/10 text-[#FF8216] border border-[#FF8216]/20">
@@ -66,7 +66,7 @@ export default function CardsPage() {
 
         {/* Guia Rápido de Otimização de Cartões */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
-          <div className="p-4 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D]">
+          <div className="p-4 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A]">
             <div className="flex items-center gap-2 text-[#FF8216] font-bold text-xs mb-2">
               <span className="material-symbols-outlined text-sm">schedule</span>
               <span>Melhor Dia de Compra</span>
@@ -76,7 +76,7 @@ export default function CardsPage() {
             </p>
           </div>
 
-          <div className="p-4 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D]">
+          <div className="p-4 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A]">
             <div className="flex items-center gap-2 text-emerald-500 font-bold text-xs mb-2">
               <span className="material-symbols-outlined text-sm">verified_user</span>
               <span>Isenção de Anuidade</span>
@@ -86,7 +86,7 @@ export default function CardsPage() {
             </p>
           </div>
 
-          <div className="p-4 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D]">
+          <div className="p-4 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A]">
             <div className="flex items-center gap-2 text-blue-500 font-bold text-xs mb-2">
               <span className="material-symbols-outlined text-sm">speed</span>
               <span>Score de Crédito</span>

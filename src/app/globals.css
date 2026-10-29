@@ -6,11 +6,11 @@
   --color-kitsune: #FF8216; /* Laranja Oficial Kitsune Finance */
   --color-kitsune-hover: #FFA047;
   --color-kitsune-active: #E66E08;
-  --color-surface-lowest: #05070A;
-  --color-surface-base: #0B0E14;
-  --color-surface-card: #12161F;
-  --color-surface-elevated: #1A202C;
-  --color-border-subtle: #262E3D;
+  --color-surface-lowest: #050505;
+  --color-surface-base: #0A0A0A;
+  --color-surface-card: #121214;
+  --color-surface-elevated: #18181B;
+  --color-border-subtle: #27272A;
   --color-success-mint: #10B981;
   --color-danger-crimson: #EF4444;
   --font-sans: var(--font-plus-jakarta), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -24,6 +24,10 @@
   --sar: env(safe-area-inset-right, 0px);
 }
 
+html {
+  scrollbar-gutter: stable;
+}
+
 /* Suporte de alto contraste para Tema Claro e Tema Escuro com Transições Fluidas */
 body {
   background-color: #F8FAFC;
@@ -33,28 +37,27 @@ body {
   padding-left: var(--sal);
   padding-right: var(--sar);
   font-family: var(--font-sans);
-  transition: background-color 0.5s cubic-bezier(0.16, 1, 0.3, 1), color 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-/* Transições fluidas e amortecidas (sem acelerações abruptas) */
-.transition-all {
-  transition-duration: 0.45s !important;
-  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1) !important;
-}
-
-.transition-colors {
-  transition-duration: 0.4s !important;
-  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1) !important;
-}
-
-.transition-transform {
-  transition-duration: 0.5s !important;
-  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition: background-color 0.4s cubic-bezier(0.16, 1, 0.3, 1), color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .dark body {
-  background-color: #0B0E14;
-  color: #F8FAFC;
+  background-color: #0A0A0A;
+  color: #F4F4F5;
+}
+
+@keyframes pageFadeIn {
+  from {
+    opacity: 0.88;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-page-enter {
+  animation: pageFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 /* Tabular Numerals para alinhamento vertical exato de moedas */
