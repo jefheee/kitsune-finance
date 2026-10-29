@@ -39,6 +39,7 @@ export default function DashboardPage() {
         setSelectedBankSlug,
         isFamilyModeEnabled,
         setIsFamilyModeEnabled,
+        isPrivacyMode,
         revalidate,
         setAiInsightState,
         addFamilyMemberLocal,
@@ -78,13 +79,10 @@ export default function DashboardPage() {
     const TABS = [
         "Visão Geral",
         "Transações",
+        "Categorias",
         "Parcelamentos",
         "Assinaturas",
-        "Categorias",
-        "Cartões",
-        "Investimentos",
-        "Visão Familiar",
-        "Perfil Open Finance",
+        ...(familyMembers.length > 0 ? ["Visão Familiar"] : []),
     ];
 
     // Lista única de bancos conectados pelo usuário para a barra horizontal de filtro
@@ -257,21 +255,25 @@ export default function DashboardPage() {
         filteredTransactions.forEach((tx) => {
             if (tx.is_internal_transfer || tx.is_refund) return;
             const amt = Number(tx.amount) || 0;
-            if (amt <= 0) return;
+            const isExpense = amt < 0 || tx.type === "DEBIT" || tx.operation_type === "CREDIT_CARD";
+            if (!isExpense) return;
+            const absAmt = Math.abs(amt);
+            if (absAmt === 0) return;
+
             const dStr = (tx.date || tx.executed_at || "").split("T")[0];
             if (dStr.startsWith(curMonthStr)) {
                 const parts = dStr.split("-");
                 const dayNum = parseInt(parts[2], 10);
                 if (dayNum >= 1 && dayNum <= 31) {
-                    curDays[dayNum - 1] += amt;
-                    curTotal += amt;
+                    curDays[dayNum - 1] += absAmt;
+                    curTotal += absAmt;
                 }
             } else if (dStr.startsWith(prevMonthStr)) {
                 const parts = dStr.split("-");
                 const dayNum = parseInt(parts[2], 10);
                 if (dayNum >= 1 && dayNum <= 31) {
-                    prevDays[dayNum - 1] += amt;
-                    prevTotal += amt;
+                    prevDays[dayNum - 1] += absAmt;
+                    prevTotal += absAmt;
                 }
             }
         });
@@ -336,27 +338,27 @@ export default function DashboardPage() {
             0
         );
 
-        // Determinar janela temporal conforme granularidade selecionada (Dia, Semana, Mês ou Ano)
-        const latestTxTime =
-            filteredTransactions.length > 0
-                ? Math.max(
-                      ...filteredTransactions
-                          .map((t) => new Date(t.date || t.executed_at || 0).getTime())
-                          .filter((n) => !isNaN(n))
-                  )
-                : Date.now();
-        const refDate = new Date(latestTxTime || Date.now());
+        // Determinar janela temporal estritamente pelo calendário atual (sem saltar para faturas futuras)
+        const now = new Date();
+        let windowStart = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
+        let windowEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
 
-        let windowStart = new Date(refDate.getFullYear(), refDate.getMonth(), 1);
         if (timeGranularity === "day") {
-            // Últimos 7 dias para visão dia a dia
-            windowStart = new Date(refDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+            // Últimos 7 dias até o fim de hoje
+            windowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6, 0, 0, 0);
+            windowEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
         } else if (timeGranularity === "week") {
-            // Últimos 14 dias para visão semanal
-            windowStart = new Date(refDate.getTime() - 14 * 24 * 60 * 60 * 1000);
+            // Últimas 2 semanas (14 dias) até o fim de hoje
+            windowStart = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+            windowEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+        } else if (timeGranularity === "month") {
+            // Mês atual completo
+            windowStart = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
+            windowEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
         } else if (timeGranularity === "year") {
-            // 1 de janeiro do ano atual para visão anual
-            windowStart = new Date(refDate.getFullYear(), 0, 1);
+            // Ano atual do dia 1 de janeiro até 31 de dezembro
+            windowStart = new Date(now.getFullYear(), 0, 1, 0, 0, 0);
+            windowEnd = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
         }
 
         let income = 0;
@@ -364,6 +366,9 @@ export default function DashboardPage() {
         let internalTotal = 0;
         let refundsTotal = 0;
         const catMap: Record<string, { total: number; count: number }> = {};
+
+        // Lista de nomes de membros familiares cadastrados para conciliação de Pix
+        const familyNames = familyMembers.map((f) => f.name.toLowerCase().trim()).filter(Boolean);
 
         filteredTransactions.forEach((txn) => {
             const rawDate = txn.date || txn.executed_at;
@@ -379,9 +384,13 @@ export default function DashboardPage() {
                 txn.bank_accounts?.subtype === "CREDIT_CARD" ||
                 txn.operation_type === "CREDIT_CARD";
 
-            // 1. Transferências próprias e pagamentos de fatura NUNCA inflam entradas ou saídas
-            if (isInternal) {
-                if (txnDate >= windowStart) {
+            // Se for Pix enviado a membro familiar cadastrado, trata como remanejamento interno patrimonial
+            const descLower = (txn.receiver_name || txn.clean_description || txn.description || "").toLowerCase();
+            const isFamilyPix = familyNames.some((name) => descLower.includes(name));
+
+            // 1. Transferências próprias, pagamentos de fatura e Pix familiares NUNCA inflam saídas
+            if (isInternal || isFamilyPix) {
+                if (txnDate >= windowStart && txnDate <= windowEnd) {
                     internalTotal += absAmount;
                 }
                 return;
@@ -389,28 +398,26 @@ export default function DashboardPage() {
 
             // 2. Estornos / reembolsos em cartão abatem da fatura e são contabilizados separadamente
             if (isRefund) {
-                if (txnDate >= windowStart) {
+                if (txnDate >= windowStart && txnDate <= windowEnd) {
                     refundsTotal += absAmount;
                 }
                 return;
             }
 
-            // 3. Receita real (somente créditos em conta corrente/poupança) vs Despesa real
-            const isRealIncome = txn.type === "CREDIT" && !isCreditCardAcc;
+            // 3. Receita real vs Despesa real com sinal normalizado
+            const isExpense = Number(txn.amount) < 0 || txn.type === "DEBIT" || isCreditCardAcc;
+            const isRealIncome = !isExpense && (txn.type === "CREDIT" || Number(txn.amount) > 0) && !isCreditCardAcc;
 
-            if (txnDate >= windowStart) {
+            if (txnDate >= windowStart && txnDate <= windowEnd) {
                 if (isRealIncome) {
                     income += absAmount;
-                } else {
+                } else if (isExpense) {
                     expense += absAmount;
+                    const catName = txn.category_pt || txn.category || "Outros";
+                    if (!catMap[catName]) catMap[catName] = { total: 0, count: 0 };
+                    catMap[catName].total += absAmount;
+                    catMap[catName].count += 1;
                 }
-            }
-
-            if (!isRealIncome) {
-                const catName = txn.category_pt || txn.category || "Outros";
-                if (!catMap[catName]) catMap[catName] = { total: 0, count: 0 };
-                catMap[catName].total += absAmount;
-                catMap[catName].count += 1;
             }
         });
 
@@ -432,7 +439,40 @@ export default function DashboardPage() {
         };
     }, [filteredAccounts, filteredInvestments, filteredLoans, filteredTransactions, timeGranularity]);
 
+    // Módulo: Gastos de Hoje & Recentes (Fiel ao pedido do usuário)
+    const todaySummary = useMemo(() => {
+        const todayStr = new Date().toISOString().split("T")[0];
+        const todayTxns = filteredTransactions.filter((t) => {
+            if (t.is_internal_transfer || t.is_refund) return false;
+            const isExp = Number(t.amount) < 0 || t.type === "DEBIT" || t.operation_type === "CREDIT_CARD";
+            if (!isExp) return false;
+            const dStr = (t.date || t.executed_at || "").split("T")[0];
+            return dStr === todayStr;
+        });
+
+        const todayTotal = todayTxns.reduce((sum, t) => sum + Math.abs(Number(t.amount) || 0), 0);
+
+        const recentTxns = filteredTransactions
+            .filter((t) => {
+                if (t.is_internal_transfer || t.is_refund) return false;
+                const isExp = Number(t.amount) < 0 || t.type === "DEBIT" || t.operation_type === "CREDIT_CARD";
+                return isExp;
+            })
+            .slice(0, 4);
+
+        return {
+            todayTotal,
+            todayCount: todayTxns.length,
+            todayTxns,
+            hasSpentToday: todayTxns.length > 0,
+            recentTxns,
+        };
+    }, [filteredTransactions]);
+
     const formatCurrency = (value: number) => {
+        if (isPrivacyMode) {
+            return "R$ ••••••";
+        }
         return new Intl.NumberFormat("pt-BR", {
             style: "currency",
             currency: "BRL",
@@ -896,6 +936,73 @@ export default function DashboardPage() {
                         </div>
                     </section>
 
+                    {/* Widget: Gastos de Hoje & Atividade Recente (Fiel ao pedido do usuário) */}
+                    <section className="p-4 md:p-5 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] shadow-xs">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-[#1E2533]">
+                            <div className="flex items-center gap-2.5">
+                                <div className="w-8 h-8 rounded-xl bg-[#FF8216]/10 text-[#FF8216] flex items-center justify-center">
+                                    <span className="material-symbols-outlined text-[18px]">
+                                        {todaySummary.hasSpentToday ? "today" : "celebration"}
+                                    </span>
+                                </div>
+                                <div>
+                                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                                        <span>{todaySummary.hasSpentToday ? "Gastos de Hoje" : "Nenhum Gasto Hoje 🎉"}</span>
+                                        {todaySummary.hasSpentToday && (
+                                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-500 border border-rose-500/20">
+                                                {formatCurrency(todaySummary.todayTotal)}
+                                            </span>
+                                        )}
+                                    </h3>
+                                    <p className="text-[11px] text-slate-500 dark:text-[#94A3B8]">
+                                        {todaySummary.hasSpentToday
+                                            ? `Você realizou ${todaySummary.todayCount} gasto(s) hoje.`
+                                            : "Seu saldo de hoje está 100% preservado. Veja suas saídas recentes:"}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab("Transações")}
+                                className="text-xs font-bold text-[#FF8216] hover:underline flex items-center gap-1 self-start sm:self-auto cursor-pointer"
+                            >
+                                <span>Ver extrato completo</span>
+                                <span className="material-symbols-outlined text-[15px]">arrow_forward</span>
+                            </button>
+                        </div>
+
+                        {/* Lista de Gastos de Hoje ou Recentes */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 pt-3">
+                            {(todaySummary.hasSpentToday ? todaySummary.todayTxns : todaySummary.recentTxns).map((tx) => {
+                                const cleanDesc = tx.clean_description || tx.description || "Transação";
+                                const cat = tx.category_pt || tx.category || "Geral";
+                                const amt = Math.abs(Number(tx.amount) || 0);
+                                return (
+                                    <div
+                                        key={tx.id}
+                                        className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#0B0E14] border border-slate-200/60 dark:border-[#262E3D]/60 flex items-center justify-between gap-2"
+                                    >
+                                        <div className="flex items-center gap-2 min-w-0">
+                                            <MerchantLogo cleanName={cleanDesc} category={cat} size="sm" />
+                                            <div className="min-w-0">
+                                                <span className="text-xs font-bold text-slate-900 dark:text-white truncate block">
+                                                    {cleanDesc}
+                                                </span>
+                                                <span className="text-[10px] text-slate-400 font-mono">
+                                                    {formatDate(tx.date || tx.executed_at)} · {cat}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <span className="text-xs font-black text-rose-500 tabular-nums shrink-0">
+                                            - {formatCurrency(amt)}
+                                        </span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </section>
+
                     {/* Hero Pierre Finance: Insight em Tempo Real & Ritmo de Gastos */}
                     <section className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-5">
                         {/* Card Esquerdo: Ei, seu dinheiro tem algo a dizer hoje (5 cols) */}
@@ -1010,11 +1117,17 @@ export default function DashboardPage() {
                             </div>
                         </div>
 
-                        {/* Card 2: Entradas Reais do Mês */}
+                        {/* Card 2: Entradas Reais Conforme Período Selecionado */}
                         <div className="p-4 md:p-5 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] flex flex-col justify-between gap-2 shadow-xs">
                             <div className="flex items-center justify-between">
                                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                                    Entradas do Mês
+                                    {timeGranularity === "day"
+                                        ? "Entradas (7 Dias)"
+                                        : timeGranularity === "week"
+                                        ? "Entradas (2 Semanas)"
+                                        : timeGranularity === "year"
+                                        ? "Entradas do Ano"
+                                        : "Entradas do Mês"}
                                 </span>
                                 <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
                                     <span className="material-symbols-outlined text-[16px]">
@@ -1027,22 +1140,28 @@ export default function DashboardPage() {
                                     {formatCurrency(monthlyIncome)}
                                 </span>
                                 <p className="text-[11px] text-slate-400 mt-0.5 truncate">
-                                    Sem transferências próprias
+                                    Sem transferências próprias ou familiares
                                 </p>
                             </div>
                             <div className="pt-2 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-[10px] text-slate-400">
-                                <span>Mov. Internas</span>
+                                <span>Mov. Internas / Família</span>
                                 <span className="text-slate-600 dark:text-slate-300 font-semibold tabular-nums">
                                     {formatCurrency(monthlyInternalTransfers)}
                                 </span>
                             </div>
                         </div>
 
-                        {/* Card 3: Saídas Reais do Mês */}
+                        {/* Card 3: Saídas Reais Conforme Período Selecionado */}
                         <div className="p-4 md:p-5 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] flex flex-col justify-between gap-2 shadow-xs">
                             <div className="flex items-center justify-between">
                                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                                    Saídas do Mês
+                                    {timeGranularity === "day"
+                                        ? "Saídas (7 Dias)"
+                                        : timeGranularity === "week"
+                                        ? "Saídas (2 Semanas)"
+                                        : timeGranularity === "year"
+                                        ? "Saídas do Ano"
+                                        : "Saídas do Mês"}
                                 </span>
                                 <div className="w-7 h-7 rounded-lg bg-red-500/10 flex items-center justify-center text-red-500">
                                     <span className="material-symbols-outlined text-[16px]">
@@ -1061,7 +1180,7 @@ export default function DashboardPage() {
                                 </p>
                             </div>
                             <div className="pt-2 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-[10px] text-slate-400">
-                                <span>Estornos no mês</span>
+                                <span>Estornos no período</span>
                                 <span className="text-emerald-500 font-bold tabular-nums">
                                     +{formatCurrency(monthlyRefunds)}
                                 </span>

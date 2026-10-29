@@ -119,9 +119,9 @@ export default function LandingPage() {
           <a href="#agentes" className="hover:text-white transition-colors">
             Agentes
           </a>
-          <Link href="/vision" className="text-[#FF8216] font-bold hover:text-[#FFA047] transition-colors flex items-center gap-1">
+          <Link href="/kitsune?action=vision" className="text-[#FF8216] font-bold hover:text-[#FFA047] transition-colors flex items-center gap-1">
             <span className="material-symbols-outlined text-[16px]">visibility</span>
-            Vision IA
+            Kitsune Vision
           </Link>
           <a href="#faq" className="hover:text-white transition-colors">
             FAQ
@@ -724,7 +724,7 @@ export default function LandingPage() {
               </p>
             </div>
             <Link
-              href="/vision"
+              href="/kitsune?action=vision"
               className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-[#FF8216] hover:bg-[#FFA047] text-white font-bold text-xs tracking-tight transition-transform active:scale-95 shadow-md shadow-[#FF8216]/20 self-start cursor-pointer"
             >
               <span>Experimentar Kitsune Vision</span>

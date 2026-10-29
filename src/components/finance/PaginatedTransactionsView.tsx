@@ -132,8 +132,9 @@ export function PaginatedTransactionsView({
 
         // Filtro de Tipo
         const amt = Number(tx.amount) || 0;
-        const isIncome = tx.type === "CREDIT" || amt < 0;
-        if (typeFilter === "expenses" && isIncome) return false;
+        const isExpense = amt < 0 || tx.type === "DEBIT" || tx.operation_type === "CREDIT_CARD";
+        const isIncome = !isExpense && (amt > 0 || tx.type === "CREDIT");
+        if (typeFilter === "expenses" && !isExpense) return false;
         if (typeFilter === "incomes" && !isIncome) return false;
 
         // Filtro de Categoria
@@ -173,9 +174,11 @@ export function PaginatedTransactionsView({
     filteredList.forEach((t) => {
       if (t.is_internal_transfer) return;
       const amt = Number(t.amount) || 0;
-      if (t.type === "CREDIT" || amt < 0) {
+      const isExp = amt < 0 || t.type === "DEBIT" || t.operation_type === "CREDIT_CARD";
+      const isInc = !isExp && (amt > 0 || t.type === "CREDIT");
+      if (isInc) {
         inc += Math.abs(amt);
-      } else {
+      } else if (isExp) {
         exp += Math.abs(amt);
       }
     });
@@ -387,7 +390,8 @@ export function PaginatedTransactionsView({
               <tbody className="divide-y divide-slate-100 dark:divide-[#1F2633]">
                 {paginatedItems.map((tx) => {
                   const amt = Number(tx.amount) || 0;
-                  const isCredit = tx.type === "CREDIT" || amt < 0;
+                  const isExpense = amt < 0 || tx.type === "DEBIT" || tx.operation_type === "CREDIT_CARD";
+                  const isIncome = !isExpense && (amt > 0 || tx.type === "CREDIT");
                   const absAmt = Math.abs(amt);
                   const cleanDesc = tx.clean_description || tx.description || "Transação";
                   const cat = tx.category_pt || tx.category || "Outros";
@@ -449,12 +453,12 @@ export function PaginatedTransactionsView({
                       <td className="py-3.5 px-4 text-right whitespace-nowrap">
                         <span
                           className={`font-extrabold tabular-nums text-xs ${
-                            isCredit
+                            isIncome
                               ? "text-emerald-500"
                               : "text-slate-900 dark:text-white"
                           }`}
                         >
-                          {isCredit ? "+" : "-"} {formatCurrency(absAmt)}
+                          {isIncome ? "+" : "-"} {formatCurrency(absAmt)}
                         </span>
                       </td>
                     </tr>

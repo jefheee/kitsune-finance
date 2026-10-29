@@ -89,7 +89,9 @@ export function AnomalyAlertCard() {
 
       <div className="flex items-center gap-2 shrink-0 self-stretch sm:self-auto">
         <Link
-          href="/kitsune"
+          href={`/kitsune?prompt=${encodeURIComponent(
+            `Kitsune AI, o Agente Albert detectou um alerta preventivo: "${current.title} - ${current.description}". Por favor, faça uma auditoria aprofundada desse lançamento com base nos meus dados bancários. É uma cobrança duplicada ou parcelamento legítimo? Qual recomendação prática você me dá?`
+          )}`}
           className="flex-1 sm:flex-initial h-8 px-3 rounded-lg bg-[#FF8216] hover:bg-[#FFA047] text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
         >
           <span>Auditar com IA</span>

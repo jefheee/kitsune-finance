@@ -378,7 +378,7 @@ export default function ConnectionsPage() {
                         <span className="material-symbols-outlined text-4xl text-slate-500">account_balance</span>
                         <h3 className="text-base font-bold text-white">Nenhum banco ou cartão conectado</h3>
                         <p className="text-xs text-slate-400 max-w-sm">
-                            Conecte sua instituição financeira para que a Kitsune IA analise seus saldos e faturas automaticamente.
+                            Conecte sua instituição financeira para que a Kitsune AI analise seus saldos e faturas automaticamente.
                         </p>
                         <button
                             onClick={handleAddConnection}

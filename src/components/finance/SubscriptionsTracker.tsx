@@ -253,8 +253,14 @@ export function SubscriptionsTracker({ transactions, formatCurrency }: Subscript
                                     <span className="text-[10px] text-slate-400">/cobrança</span>
                                 </div>
                                 <Link
-                                    href="/kitsune"
-                                    title="Auditar assinatura com a Kitsune IA"
+                                    href={`/kitsune?prompt=${encodeURIComponent(
+                                        `Kitsune AI, gostaria de auditar minha assinatura de "${sub.name}" no valor de ${formatCurrency(
+                                            sub.amount
+                                        )} por cobrança (impacto anual estimado de ${formatCurrency(
+                                            sub.amount * 12
+                                        )}). Vale a pena manter esse serviço ou cortar/otimizar?`
+                                    )}`}
+                                    title="Auditar assinatura com a Kitsune AI"
                                     className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-[#1A202C] dark:hover:bg-[#242C3D] flex items-center justify-center text-slate-500 hover:text-[#FF8216] transition-colors"
                                 >
                                     <span className="material-symbols-outlined text-[16px]">auto_awesome</span>

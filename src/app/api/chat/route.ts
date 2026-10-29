@@ -114,6 +114,7 @@ export async function POST(req: Request) {
         const body = await req.json();
         const userMessage = typeof body?.message === 'string' ? body.message.trim() : '';
         const attachedContexts: string[] = Array.isArray(body?.attachedContexts) ? body.attachedContexts : [];
+        const images: Array<{ mimeType: string; data: string }> = Array.isArray(body?.images) ? body.images : [];
         const requestedModel = typeof body?.model === 'string' ? body.model : 'auto';
         const reasoningLevel =
             body?.reasoningLevel === 'fast' || body?.reasoningLevel === 'deep'
@@ -125,9 +126,11 @@ export async function POST(req: Request) {
                 : null;
         const rawHistory = Array.isArray(body?.history) ? body.history : [];
 
-        // Se o usuário não digitou texto, mas anexou blocos de contexto, sintetiza o prompt do bloco
+        // Se o usuário não digitou texto, mas anexou imagem ou blocos de contexto, sintetiza o prompt adequado
         let effectivePrompt = userMessage;
-        if (!effectivePrompt && attachedContexts.length > 0) {
+        if (!effectivePrompt && images.length > 0) {
+            effectivePrompt = 'Analise a imagem anexada no contexto do meu patrimônio e histórico financeiro. O que você identifica de relevante e quais são suas recomendações práticas?';
+        } else if (!effectivePrompt && attachedContexts.length > 0) {
             if (attachedContexts.includes('raio-x-mes')) {
                 effectivePrompt =
                     'Faça um Raio-X completo do meu mês atual: compare receitas e despesas reais (excluindo transferências próprias), analise o saldo líquido e aponte desvios.';
@@ -145,15 +148,18 @@ export async function POST(req: Request) {
             }
         }
 
-        if (!effectivePrompt) {
-            return NextResponse.json({ error: 'Mensagem ou bloco de contexto é obrigatório.' }, { status: 400 });
+        if (!effectivePrompt && images.length === 0) {
+            return NextResponse.json({ error: 'Mensagem, anexo ou imagem é obrigatório.' }, { status: 400 });
         }
 
-        // Roteamento Inteligente: Modo Automático por complexidade e tamanho
+        // Roteamento Inteligente: Modo Automático por complexidade, tamanho e multimodalidade
         let preferredModel = requestedModel;
         let routerReason = '';
 
-        if (requestedModel === 'auto') {
+        if (images.length > 0) {
+            preferredModel = 'gemini-3.8-flash';
+            routerReason = 'Entrada com imagem (Kitsune Multimodal): roteado para Gemini 3.8 Flash';
+        } else if (requestedModel === 'auto') {
             const isComplexQuery =
                 effectivePrompt.length > 280 ||
                 /planejamento|aposentadoria|tribut|imposto|investimento|sac|price|amortiza|proje[çc]|futuro|fire/i.test(
@@ -280,11 +286,12 @@ export async function POST(req: Request) {
 
         // Persistir a mensagem do usuário na sessão
         if (activeSessionId) {
+            const persistedUserMsg = images.length > 0 ? `[📷 Imagem Anexada]\n${effectivePrompt}` : effectivePrompt;
             await supabase.from('ai_chat_messages').insert({
                 session_id: activeSessionId,
                 user_id: user.id,
                 role: 'user',
-                content: effectivePrompt,
+                content: persistedUserMsg,
             });
         }
 
@@ -318,10 +325,21 @@ export async function POST(req: Request) {
                     .join('\n');
         }
 
-        const systemInstruction = `${cachedSystemPrompt}\n\nDIRETIVA DE ESTILO DESTA RESPOSTA:\n- ${reasoningDirective}${contextDirectives}`;
+        let multimodalDirectives = '';
+        if (images.length > 0) {
+            multimodalDirectives = `\nDIRETIVA MULTIMODAL KITSUNE VISION & CÁLCULOS EXATOS:
+O usuário enviou uma ou mais imagens anexadas diretamente no chat (cardápio, produto/etiqueta, proposta de financiamento de casa/carro, comprovante ou nota fiscal).
+1. Realize leitura visual minuciosa (OCR de alta fidelidade) identificando todos os números, valores em R$, taxas de juros (CET), prazos e nomes de estabelecimentos.
+2. Cardápio: identifique os itens e preços, calcule o custo médio da refeição e aponte se o consumo está dentro do padrão financeiro do usuário ou se extrapola a média de alimentação.
+3. Produto / Compra por Impulso: calcule com exatidão matemática quantas horas de trabalho do usuário custa aquele produto (fórmula: Preço do Item ÷ (Renda Mensal ÷ 176 horas)). Alerte se o produto cabe no saldo livre do mês e sugira a 'Regra dos 30 dias de reflexão'.
+4. Simulação de Financiamento (Casa ou Carro): audite o Custo Efetivo Total (CET), compare amortização SAC vs Tabela Price, calcule o valor total de juros pagos ao fim do contrato e verifique rigorosamente se a parcela compromete mais de 30% da renda mensal líquida do usuário.
+5. Comprovante / Recibo: confirme autenticidade, valores, data e se já há lançamento correspondente nas contas conectadas do usuário.`;
+        }
+
+        const systemInstruction = `${cachedSystemPrompt}\n\nDIRETIVA DE ESTILO DESTA RESPOSTA:\n- ${reasoningDirective}${contextDirectives}${multimodalDirectives}`;
         const temperature = reasoningLevel === 'fast' ? 0.2 : reasoningLevel === 'deep' ? 0.4 : 0.35;
 
-        if (preferredModel.startsWith('llama-')) {
+        if (preferredModel.startsWith('llama-') && images.length === 0) {
             const groqRes = await generateWithGroq({
                 systemInstruction,
                 prompt: effectivePrompt,
@@ -357,6 +375,7 @@ export async function POST(req: Request) {
             preferredModel,
             reasoningLevel,
             temperature,
+            images,
         });
 
         if (activeSessionId) {

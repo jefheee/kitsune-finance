@@ -4,6 +4,20 @@ Todas as alterações notáveis no projeto Kitsune Finance são registradas de f
 
 ---
 
+## [2026-10-29] - Kitsune Vision Integrada ao Chat, Páginas Dedicadas /cards e /investments, Modo Privacidade e Correção Crítica de Sinais
+- **Arquivos Afetados:** `src/app/cards/page.tsx`, `src/app/investments/page.tsx`, `src/app/kitsune/page.tsx`, `src/app/api/chat/route.ts`, `src/components/finance/WalletCards.tsx`, `src/components/finance/PaginatedTransactionsView.tsx`, `src/components/finance/CategoriesView.tsx`, `src/components/finance/SubscriptionsTracker.tsx`, `src/app/dashboard/page.tsx`, `src/components/layout/AppShell.tsx`, `src/context/FinanceDataContext.tsx`, `src/utils/ai/dossier.ts`, `docs/PROJECT_STATE.md`, `docs/CHANGELOG.md`.
+- **Objetivo:**
+  - Fusão definitiva do Kitsune Vision Multimodal diretamente no chat da Kitsune AI (`/kitsune`), eliminando a rota separada `/vision`. Integração de Câmera ao vivo WebRTC, seleção da galeria com compressão client-side em Canvas (1280px, JPEG 0.85), OCR de alta fidelidade e modos rápidos guiados (Cardápio, Horas de Trabalho de Produtos, Simulação Imóvel/Carro e Comprovantes).
+  - Correção emergencial de sinais no extrato: compras a débito e no cartão não são mais invertidas como receitas. Lógica refatorada para classificar despesas e receitas com precisão matemática em todas as visualizações (`PaginatedTransactionsView.tsx`, `CategoriesView.tsx`, `WalletCards.tsx`, `dossier.ts`).
+  - Criação da página dedicada de Cartões (`/cards`): visual Wallet com proporção clássica de cartão (`aspect-[1.586/1]`), cálculo de faturas reais e independentes por cartão via `getCardInvoiceAmount()`, estatísticas consolidadas de crédito e auditoria inteligente de tarifas e anuidade.
+  - Criação da página dedicada de Investimentos (`/investments`): consolidação multi-banco com logos oficiais, termômetro macroeconômico brasileiro em tempo real (Selic 10,75%, CDI 10,65%, IPCA 4,42%, Juro Real +6,23% a.a., Ibovespa e Dólar) e recomendações inteligentes de alocação de ativos (Kitsune Strategy) adaptadas ao patrimônio e renda do usuário.
+  - Implementação do Modo Privacidade (`isPrivacyMode` ativo por padrão ao entrar no site) com máscara `R$ ••••••` e botão de alternância no AppShell (desktop e mobile).
+  - Módulo "Gastos de Hoje & Atividade Recente" no Dashboard e correção do filtro de granularidade temporal com datas dinâmicas ancoradas em `new Date()`.
+  - Suporte completo a query params `?prompt=...` nos botões de auditoria, preenchendo e enviando automaticamente a consulta contextualizada ao chat.
+  - Padronização 100% obrigatória do nome para "Kitsune AI" em todos os arquivos e interfaces.
+
+---
+
 ## [2026-10-29] - Suíte Pierre Design System, Kitsune Vision Multimodal, Carteira Wallet 3D & Paginação Estruturada
 - **Arquivos Afetados:** `src/app/api/ai/vision/route.ts`, `src/app/vision/page.tsx`, `src/components/vision/VisionAnalyzer.tsx`, `src/components/finance/WalletCards.tsx`, `src/components/finance/PaginatedTransactionsView.tsx`, `src/components/finance/CategoriesView.tsx`, `src/components/charts/SpendingCurveChart.tsx`, `src/components/charts/CategoryDonutChart.tsx`, `src/components/charts/InvoiceBarChart.tsx`, `src/components/react-bits/*`, `src/app/dashboard/page.tsx`, `src/components/layout/AppShell.tsx`, `src/app/kitsune/page.tsx`, `src/app/page.tsx`, `src/utils/ai/gemini.ts`, `docs/PROJECT_STATE.md`, `docs/CHANGELOG.md`.
 - **Objetivo:**

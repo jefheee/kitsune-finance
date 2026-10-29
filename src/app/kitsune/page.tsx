@@ -88,6 +88,21 @@ export default function KitsuneAIPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedScope, setSelectedScope] = useState<string>("personal");
 
+  // Imagem anexada para Kitsune Vision integrada
+  const [attachedImage, setAttachedImage] = useState<{
+    mimeType: string;
+    data: string;
+    previewUrl: string;
+    name?: string;
+  } | null>(null);
+
+  // Estados de Câmera WebRTC ao vivo
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [cameraFacing, setCameraFacing] = useState<"environment" | "user">("environment");
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const cameraStreamRef = useRef<MediaStream | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // Anexos de Contexto selecionados
   const [attachedContexts, setAttachedContexts] = useState<string[]>([]);
 
@@ -142,7 +157,7 @@ export default function KitsuneAIPage() {
         if (Array.isArray(data.sessions) && data.sessions.length > 0) {
           const formatted: ChatSession[] = data.sessions.map((s: any) => ({
             id: s.id,
-            title: s.title || "Conversa com Kitsune IA",
+            title: s.title || "Conversa com Kitsune AI",
             createdAt: s.created_at,
             messages: [],
           }));
@@ -177,7 +192,7 @@ export default function KitsuneAIPage() {
       const firstUserMsg = chatMessages.find((m) => m.role === "user");
       const title = firstUserMsg
         ? firstUserMsg.content.slice(0, 36) + (firstUserMsg.content.length > 36 ? "..." : "")
-        : "Conversa com Kitsune IA";
+        : "Conversa com Kitsune AI";
 
       const currentSession: ChatSession = {
         id: currentSessionIdRef.current,
@@ -214,6 +229,130 @@ export default function KitsuneAIPage() {
   useEffect(() => {
     scrollToBottomSmooth(true);
   }, [chatMessages.length, isLoading, scrollToBottomSmooth]);
+
+  // Compressão de imagem client-side (Canvas 1280px máx, JPEG 0.85)
+  const compressAndSetImage = async (file: File) => {
+    try {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new window.Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          let { width, height } = img;
+          const maxDim = 1280;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) return;
+          ctx.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+          const base64Data = dataUrl.split(",")[1];
+          setAttachedImage({
+            mimeType: "image/jpeg",
+            data: base64Data,
+            previewUrl: dataUrl,
+            name: file.name || "Imagem da Galeria",
+          });
+        };
+        img.src = e.target?.result as string;
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      console.warn("Falha ao processar imagem:", err);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      compressAndSetImage(file);
+    }
+  };
+
+  // Câmera WebRTC ao vivo
+  const startCamera = async (facing: "environment" | "user" = "environment") => {
+    try {
+      if (cameraStreamRef.current) {
+        cameraStreamRef.current.getTracks().forEach((t) => t.stop());
+      }
+      setIsCameraOpen(true);
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: facing, width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false,
+      });
+      cameraStreamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+      }
+    } catch (err) {
+      console.warn("Não foi possível acessar a câmera:", err);
+      alert("Acesso à câmera não disponível ou bloqueado. Por favor, escolha da galeria.");
+      setIsCameraOpen(false);
+      fileInputRef.current?.click();
+    }
+  };
+
+  const stopCamera = () => {
+    if (cameraStreamRef.current) {
+      cameraStreamRef.current.getTracks().forEach((t) => t.stop());
+      cameraStreamRef.current = null;
+    }
+    setIsCameraOpen(false);
+  };
+
+  const capturePhoto = () => {
+    if (!videoRef.current) return;
+    const video = videoRef.current;
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth || 1280;
+    canvas.height = video.videoHeight || 720;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+    const base64Data = dataUrl.split(",")[1];
+
+    setAttachedImage({
+      mimeType: "image/jpeg",
+      data: base64Data,
+      previewUrl: dataUrl,
+      name: "Foto da Câmera (Kitsune Vision)",
+    });
+    stopCamera();
+  };
+
+  // Captura parâmetros de URL (?prompt=... ou ?action=vision)
+  const isHandledParamRef = useRef(false);
+  useEffect(() => {
+    if (typeof window === "undefined" || isHandledParamRef.current) return;
+    const params = new URLSearchParams(window.location.search);
+    const promptParam = params.get("prompt");
+    const actionParam = params.get("action");
+
+    if (promptParam) {
+      isHandledParamRef.current = true;
+      setInput(promptParam);
+      const timer = setTimeout(() => {
+        sendMessage(promptParam);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+
+    if (actionParam === "vision") {
+      isHandledParamRef.current = true;
+      startCamera("environment");
+    }
+  }, []);
 
   // Auto-resize do textarea
   useEffect(() => {
@@ -603,8 +742,9 @@ export default function KitsuneAIPage() {
     const rawText = typeof customPrompt === "string" ? customPrompt : input;
     const trimmed = rawText.trim();
     const currentAttachments = [...attachedContexts];
+    const imageToSend = attachedImage;
 
-    if (!trimmed && currentAttachments.length === 0) return;
+    if (!trimmed && currentAttachments.length === 0 && !imageToSend) return;
     if (isLoading) return;
 
     let displayMessage = trimmed;
@@ -614,17 +754,22 @@ export default function KitsuneAIPage() {
         .filter(Boolean)
         .join(" + ");
     }
+    if (!displayMessage && imageToSend) {
+      displayMessage = "📷 [Imagem Anexada] Analisar no contexto do meu patrimônio e histórico financeiro";
+    }
 
-    const userMsg = {
+    const userMsg: any = {
       id: `user-${Date.now()}`,
       role: "user" as const,
       content: displayMessage,
       timestamp: new Date().toISOString(),
+      imagePreview: imageToSend?.previewUrl,
     };
 
     setChatMessages((prev) => [...prev, userMsg]);
     setInput("");
     setAttachedContexts([]);
+    setAttachedImage(null);
     setIsLoading(true);
 
     try {
@@ -640,12 +785,13 @@ export default function KitsuneAIPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sessionId: isBackendSession ? currentSessionIdRef.current : undefined,
-          message: trimmed,
+          message: trimmed || displayMessage,
           attachedContexts: currentAttachments,
           model: selectedAiModel,
           reasoningLevel,
           familyMemberId: selectedScope,
           history: historyPayload,
+          images: imageToSend ? [{ mimeType: imageToSend.mimeType, data: imageToSend.data }] : [],
         }),
       });
 
@@ -714,7 +860,7 @@ export default function KitsuneAIPage() {
 
   const handleExportMarkdown = () => {
     const lines = [
-      `# Relatório de Consultoria Financeira - Kitsune IA`,
+      `# Relatório de Consultoria Financeira - Kitsune AI`,
       `Data: ${new Date().toLocaleDateString("pt-BR")} às ${new Date().toLocaleTimeString("pt-BR")}`,
       `Usuário: ${userProfile?.display_name || user?.email || "Titular"}`,
       `Patrimônio Líquido: ${formatCurrency(financialSummary.netWorth)}`,
@@ -722,7 +868,7 @@ export default function KitsuneAIPage() {
       `\n---\n`,
       ...chatMessages.map(
         (m) =>
-          `### ${m.role === "assistant" ? "Kitsune IA" : "Você"} (${new Date(m.timestamp).toLocaleTimeString("pt-BR")}):\n${m.content}\n`
+          `### ${m.role === "assistant" ? "Kitsune AI" : "Você"} (${new Date(m.timestamp).toLocaleTimeString("pt-BR")}):\n${m.content}\n`
       ),
     ];
 
@@ -761,7 +907,7 @@ export default function KitsuneAIPage() {
           <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-2">
               <h1 className="text-sm md:text-base font-extrabold text-slate-900 dark:text-white truncate">
-                Kitsune IA
+                Kitsune AI
               </h1>
               <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -965,8 +1111,19 @@ export default function KitsuneAIPage() {
                     }}
                   />
                 ) : (
-                  <div className="text-sm leading-relaxed whitespace-pre-line font-medium">
-                    {msg.content}
+                  <div className="flex flex-col gap-2">
+                    {(msg as any).imagePreview && (
+                      <div className="rounded-xl overflow-hidden border border-white/20 max-w-[260px] shadow-sm">
+                        <img
+                          src={(msg as any).imagePreview}
+                          alt="Imagem anexada"
+                          className="w-full h-auto max-h-56 object-cover"
+                        />
+                      </div>
+                    )}
+                    <div className="text-sm leading-relaxed whitespace-pre-line font-medium">
+                      {msg.content}
+                    </div>
                   </div>
                 )}
 
@@ -1016,7 +1173,7 @@ export default function KitsuneAIPage() {
                 <span className="w-1.5 h-1.5 rounded-full bg-[#FF8216] animate-bounce" style={{ animationDelay: "300ms" }} />
               </div>
               <span className="font-medium text-slate-700 dark:text-slate-300">
-                Kitsune IA está analisando seu patrimônio...
+                Kitsune AI está analisando seu patrimônio...
               </span>
             </div>
           </motion.div>
@@ -1167,6 +1324,34 @@ export default function KitsuneAIPage() {
             </div>
           )}
 
+          {/* Preview da Imagem Anexada (Kitsune Vision) */}
+          {attachedImage && (
+            <div className="flex items-center gap-2.5 p-2 bg-[#FF8216]/10 border border-[#FF8216]/30 rounded-xl mb-1">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={attachedImage.previewUrl}
+                alt="Preview"
+                className="w-12 h-12 rounded-lg object-cover border border-[#FF8216]/40 shrink-0"
+              />
+              <div className="flex flex-col flex-1 min-w-0">
+                <span className="text-xs font-bold text-[#FF8216] truncate">
+                  {attachedImage.name || "Imagem Anexada (Kitsune Vision)"}
+                </span>
+                <span className="text-[10px] text-slate-500 dark:text-[#94A3B8]">
+                  Foto pronta para análise multimodal com IA
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAttachedImage(null)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                title="Remover imagem"
+              >
+                <span className="material-symbols-outlined text-[16px]">close</span>
+              </button>
+            </div>
+          )}
+
           {/* Campo de Texto */}
           <textarea
             ref={textareaRef}
@@ -1178,9 +1363,11 @@ export default function KitsuneAIPage() {
             placeholder={
               isListening
                 ? "Ouvindo sua voz... Fale agora."
+                : attachedImage
+                ? "Digite instruções para a análise da foto (ex: horas de trabalho, juros, cardápio)..."
                 : attachedContexts.length > 0
                 ? "Digite sua pergunta com esse contexto anexado..."
-                : "Pergunte à Kitsune IA sobre seu saldo, faturas ou despesas..."
+                : "Pergunte à Kitsune AI sobre seu saldo, faturas ou envie fotos de compras/cardápios..."
             }
             className="w-full px-2 py-1 bg-transparent border-none outline-none resize-none text-slate-900 dark:text-[#F8FAFC] text-sm placeholder:text-slate-400 dark:placeholder:text-[#94A3B8]/60 max-h-32 overflow-y-auto"
           />
@@ -1188,7 +1375,7 @@ export default function KitsuneAIPage() {
           {/* Barra de Ações: [+] Anexar | Escopo | Microfone | Modelo | Enviar */}
           <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-200/60 dark:border-[#262E3D]/60">
             <div className="flex items-center gap-1.5 flex-wrap">
-              {/* Botão [+] Anexar Contexto */}
+              {/* Botão [+] Anexar Contexto ou Imagem */}
               <div ref={attachRef} className="relative">
                 <button
                   type="button"
@@ -1197,9 +1384,9 @@ export default function KitsuneAIPage() {
                     setIsModelOpen(false);
                     setIsScopeOpen(false);
                   }}
-                  title="Anexar bloco de contexto financeiro"
+                  title="Anexar foto da câmera, galeria ou bloco de contexto financeiro"
                   className={`w-8 h-8 rounded-xl flex items-center justify-center border transition-all cursor-pointer ${
-                    isAttachOpen || attachedContexts.length > 0
+                    isAttachOpen || attachedContexts.length > 0 || attachedImage
                       ? "bg-[#FF8216]/20 border-[#FF8216]/50 text-[#FF8216]"
                       : "bg-white dark:bg-[#1A202C] hover:bg-slate-100 dark:hover:bg-[#222A3A] border-slate-200 dark:border-[#262E3D] text-slate-600 dark:text-[#94A3B8]"
                   }`}
@@ -1210,25 +1397,109 @@ export default function KitsuneAIPage() {
                 </button>
 
                 {isAttachOpen && (
-                  <div className="absolute bottom-full left-0 mb-2.5 w-72 bg-white dark:bg-[#141A24] border border-slate-200 dark:border-[#262E3D] rounded-2xl shadow-xl p-2 flex flex-col gap-1 z-50">
-                    <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                      Anexar ao Prompt
+                  <div className="absolute bottom-full left-0 mb-2.5 w-80 max-h-96 overflow-y-auto bg-white dark:bg-[#141A24] border border-slate-200 dark:border-[#262E3D] rounded-2xl shadow-2xl p-2.5 flex flex-col gap-1.5 z-50">
+                    <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#FF8216]">
+                      Kitsune Vision • Multimodal
                     </div>
-                    {/* Atalho Direto para o Kitsune Vision */}
-                    <Link
-                      href="/vision"
-                      className="w-full px-3 py-2 rounded-xl text-left transition-colors flex items-start gap-2.5 cursor-pointer bg-[#FF8216]/10 hover:bg-[#FF8216]/20 text-[#FF8216] border border-[#FF8216]/30 mb-1"
+
+                    <div className="grid grid-cols-2 gap-1.5 mb-1.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsAttachOpen(false);
+                          startCamera("environment");
+                        }}
+                        className="p-2.5 rounded-xl bg-[#FF8216]/10 hover:bg-[#FF8216]/20 text-[#FF8216] border border-[#FF8216]/25 flex flex-col items-center gap-1 text-center transition-all cursor-pointer"
+                      >
+                        <span className="material-symbols-outlined text-xl">photo_camera</span>
+                        <span className="text-[11px] font-bold">Tirar Foto Agora</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsAttachOpen(false);
+                          fileInputRef.current?.click();
+                        }}
+                        className="p-2.5 rounded-xl bg-slate-100 dark:bg-[#1C2331] hover:bg-slate-200 dark:hover:bg-[#222B3D] text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-white/10 flex flex-col items-center gap-1 text-center transition-all cursor-pointer"
+                      >
+                        <span className="material-symbols-outlined text-xl">photo_library</span>
+                        <span className="text-[11px] font-bold">Escolher da Galeria</span>
+                      </button>
+                    </div>
+
+                    <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      Modos Rápidos com Imagem
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAttachOpen(false);
+                        setInput("Estou enviando a foto deste cardápio. Analise os pratos com melhor custo-benefício e compare com minha média de gastos com alimentação.");
+                        fileInputRef.current?.click();
+                      }}
+                      className="w-full px-3 py-2 rounded-xl text-left transition-colors flex items-center gap-2.5 cursor-pointer hover:bg-slate-100 dark:hover:bg-[#1C2331] text-slate-800 dark:text-slate-100"
                     >
-                      <div className="w-7 h-7 rounded-lg bg-[#FF8216] text-white flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
-                        <span className="material-symbols-outlined text-[16px]">visibility</span>
+                      <span className="p-1.5 rounded-lg bg-[#FF8216]/10 text-[#FF8216] material-symbols-outlined text-sm">restaurant_menu</span>
+                      <div className="flex flex-col min-w-0 flex-1">
+                        <span className="text-xs font-semibold">Cardápio de Restaurante</span>
+                        <span className="text-[10px] text-slate-400">Compara preços e indica opções inteligentes</span>
                       </div>
-                      <div className="flex flex-col flex-1 min-w-0">
-                        <span className="text-xs font-bold truncate">Kitsune Vision</span>
-                        <span className="text-[11px] text-slate-500 dark:text-[#94A3B8] leading-tight">
-                          Foto da câmera ou galeria (cardápio, compras, simulação)
-                        </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAttachOpen(false);
+                        setInput("Estou considerando comprar este produto. Calcule com precisão quantas horas de trabalho minhas ele custa com base na minha renda mensal e me diga se cabe no meu saldo livre.");
+                        fileInputRef.current?.click();
+                      }}
+                      className="w-full px-3 py-2 rounded-xl text-left transition-colors flex items-center gap-2.5 cursor-pointer hover:bg-slate-100 dark:hover:bg-[#1C2331] text-slate-800 dark:text-slate-100"
+                    >
+                      <span className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-500 material-symbols-outlined text-sm">schedule</span>
+                      <div className="flex flex-col min-w-0 flex-1">
+                        <span className="text-xs font-semibold">Produto ou Etiqueta (Horas de Trabalho)</span>
+                        <span className="text-[10px] text-slate-400">Calcula esforço de trabalho e anti-impulso</span>
                       </div>
-                    </Link>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAttachOpen(false);
+                        setInput("Audite esta proposta de financiamento de imóvel ou carro: taxa de juros CET real, custo total dos juros e se a parcela compromete mais de 30% da minha renda mensal.");
+                        fileInputRef.current?.click();
+                      }}
+                      className="w-full px-3 py-2 rounded-xl text-left transition-colors flex items-center gap-2.5 cursor-pointer hover:bg-slate-100 dark:hover:bg-[#1C2331] text-slate-800 dark:text-slate-100"
+                    >
+                      <span className="p-1.5 rounded-lg bg-blue-500/10 text-blue-500 material-symbols-outlined text-sm">home</span>
+                      <div className="flex flex-col min-w-0 flex-1">
+                        <span className="text-xs font-semibold">Simulação de Casa ou Carro</span>
+                        <span className="text-[10px] text-slate-400">Auditoria CET, SAC vs Price e regra dos 30%</span>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAttachOpen(false);
+                        setInput("Audite esta nota fiscal / comprovante de pagamento: verifique valores, tributos e taxas embutidas.");
+                        fileInputRef.current?.click();
+                      }}
+                      className="w-full px-3 py-2 rounded-xl text-left transition-colors flex items-center gap-2.5 cursor-pointer hover:bg-slate-100 dark:hover:bg-[#1C2331] text-slate-800 dark:text-slate-100"
+                    >
+                      <span className="p-1.5 rounded-lg bg-purple-500/10 text-purple-500 material-symbols-outlined text-sm">receipt</span>
+                      <div className="flex flex-col min-w-0 flex-1">
+                        <span className="text-xs font-semibold">Nota Fiscal ou Comprovante</span>
+                        <span className="text-[10px] text-slate-400">Verifica taxas e conciliação bancária</span>
+                      </div>
+                    </button>
+
+                    <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-1">
+                      Blocos de Contexto Financeiro
+                    </div>
+
                     {CONTEXT_ATTACHMENTS.map((item) => {
                       const isAttached = attachedContexts.includes(item.id);
                       return (
@@ -1408,7 +1679,7 @@ export default function KitsuneAIPage() {
               {/* Botão de Envio */}
               <button
                 type="submit"
-                disabled={isLoading || (!input.trim() && attachedContexts.length === 0)}
+                disabled={isLoading || (!input.trim() && attachedContexts.length === 0 && !attachedImage)}
                 className="w-8 h-8 rounded-xl bg-[#FF8216] hover:bg-[#FFA047] active:bg-[#E66E08] text-white flex items-center justify-center transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-sm"
               >
                 <span className="material-symbols-outlined text-[18px]">
@@ -1418,6 +1689,80 @@ export default function KitsuneAIPage() {
             </div>
           </div>
         </form>
+
+        {/* Input invisível para seleção de arquivo da galeria */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleFileChange}
+          className="hidden"
+        />
+
+        {/* Modal Câmera WebRTC ao Vivo (Kitsune Vision) */}
+        {isCameraOpen && (
+          <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex flex-col items-center justify-between p-4 md:p-6 animate-in fade-in duration-200">
+            <div className="w-full max-w-lg flex items-center justify-between text-white pb-2">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-[#FF8216]">photo_camera</span>
+                <span className="text-sm font-bold">Kitsune Vision • Captura ao Vivo</span>
+              </div>
+              <button
+                type="button"
+                onClick={stopCamera}
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-base">close</span>
+              </button>
+            </div>
+
+            <div className="relative w-full max-w-lg flex-1 my-3 bg-black rounded-3xl overflow-hidden flex items-center justify-center border border-white/20 shadow-2xl">
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-full object-cover"
+              />
+            </div>
+
+            <div className="w-full max-w-lg flex items-center justify-around pb-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const nextFacing = cameraFacing === "environment" ? "user" : "environment";
+                  setCameraFacing(nextFacing);
+                  startCamera(nextFacing);
+                }}
+                className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer"
+                title="Alternar Câmera"
+              >
+                <span className="material-symbols-outlined text-xl">flip_camera_ios</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={capturePhoto}
+                className="w-16 h-16 rounded-full bg-[#FF8216] hover:bg-[#FFA047] active:scale-95 border-4 border-white flex items-center justify-center text-white shadow-lg transition-transform cursor-pointer"
+                title="Capturar Foto"
+              >
+                <span className="material-symbols-outlined text-2xl">camera</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  stopCamera();
+                  fileInputRef.current?.click();
+                }}
+                className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer"
+                title="Escolher da Galeria"
+              >
+                <span className="material-symbols-outlined text-xl">photo_library</span>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
