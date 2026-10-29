@@ -123,9 +123,29 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen relative w-full overflow-x-hidden">
+    <div className="flex flex-col items-center justify-center min-h-screen relative w-full overflow-x-hidden p-4">
       <div className="w-full h-full min-h-screen md:min-h-fit md:max-w-[440px] bg-white dark:bg-[#121212] border border-gray-200 dark:border-white/5 md:rounded-3xl p-6 md:p-10 shadow-xl flex flex-col items-center justify-center relative z-10 md:my-8">
-        
+        {/* Link de Retorno à Landing Page */}
+        <div className="w-full flex items-center justify-between mb-8">
+          <Link
+            href="/"
+            className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-[#FF8216] dark:text-slate-400 dark:hover:text-[#FF8216] transition-colors"
+          >
+            <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+            <span>Voltar ao início</span>
+          </Link>
+
+          <Link href="/" className="flex items-center gap-2">
+            <Image
+              src="/assets/logo/logo_sem_fundo.png"
+              alt="Logo Kitsune"
+              width={28}
+              height={28}
+              priority
+              className="object-contain"
+            />
+          </Link>
+        </div>
         
         <h1 className="text-3xl font-bold font-sans text-gray-900 dark:text-white mb-3 text-center tracking-tight">
           Acesse sua Conta

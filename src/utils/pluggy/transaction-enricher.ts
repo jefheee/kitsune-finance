@@ -1,3 +1,5 @@
+import { resolveMerchant } from '@/utils/finance/merchant-resolver';
+
 export interface PluggyTransactionRaw {
     id: string;
     description?: string | null;
@@ -467,6 +469,12 @@ export function cleanTransactionDescription(tx: PluggyTransactionRaw): string {
         .trim();
 
     if (!cleaned) cleaned = raw;
+
+    // Resolução Comercial com Simple Icons & Dicionário de Abreviações Comerciais BR
+    const resolved = resolveMerchant(cleaned);
+    if (resolved.cleanName && resolved.cleanName !== 'Transação' && (resolved.simpleIconSlug || resolved.isDecodedStore)) {
+        return resolved.cleanName;
+    }
 
     // Se estiver 100% em maiúsculas, converte para Title Case elegante
     if (cleaned === cleaned.toUpperCase() && cleaned.length > 3) {

@@ -11,6 +11,8 @@ import { SpendingHeatmap } from "@/components/finance/SpendingHeatmap";
 import { SubscriptionsTracker } from "@/components/finance/SubscriptionsTracker";
 import { InstallmentsTracker } from "@/components/finance/InstallmentsTracker";
 import { BankLogo } from "@/components/BankLogo";
+import { MerchantLogo } from "@/components/MerchantLogo";
+import { GlobalFinanceSearchModal } from "@/components/finance/GlobalFinanceSearchModal";
 import { getBankCatalogBySlugOrName } from "@/utils/pluggy/bank-resolver";
 import { useFinanceData } from "@/context/FinanceDataContext";
 
@@ -44,6 +46,22 @@ export default function DashboardPage() {
 
     const [isGeneratingAi, setIsGeneratingAi] = useState(false);
     const [aiError, setAiError] = useState<string | null>(null);
+
+    // Pesquisa Global Inteligente e Granularidade Temporal
+    const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+    const [timeGranularity, setTimeGranularity] = useState<"day" | "week" | "month" | "year">("month");
+
+    // Atalho global Ctrl+K / Cmd+K para abrir busca
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+                e.preventDefault();
+                setIsSearchModalOpen((prev) => !prev);
+            }
+        };
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, []);
 
     const [newMemberName, setNewMemberName] = useState("");
     const [newMemberEmail, setNewMemberEmail] = useState("");
@@ -250,7 +268,7 @@ export default function DashboardPage() {
             0
         );
 
-        // Determinar janela de 30 dias a partir da transação mais recente (ou mês atual)
+        // Determinar janela temporal conforme granularidade selecionada (Dia, Semana, Mês ou Ano)
         const latestTxTime =
             filteredTransactions.length > 0
                 ? Math.max(
@@ -260,7 +278,18 @@ export default function DashboardPage() {
                   )
                 : Date.now();
         const refDate = new Date(latestTxTime || Date.now());
-        const windowStart = new Date(refDate.getFullYear(), refDate.getMonth(), 1);
+
+        let windowStart = new Date(refDate.getFullYear(), refDate.getMonth(), 1);
+        if (timeGranularity === "day") {
+            // Últimos 7 dias para visão dia a dia
+            windowStart = new Date(refDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+        } else if (timeGranularity === "week") {
+            // Últimos 14 dias para visão semanal
+            windowStart = new Date(refDate.getTime() - 14 * 24 * 60 * 60 * 1000);
+        } else if (timeGranularity === "year") {
+            // 1 de janeiro do ano atual para visão anual
+            windowStart = new Date(refDate.getFullYear(), 0, 1);
+        }
 
         let income = 0;
         let expense = 0;
@@ -333,7 +362,7 @@ export default function DashboardPage() {
             monthlyRefunds: refundsTotal,
             categorySummary: sortedCategories,
         };
-    }, [filteredAccounts, filteredInvestments, filteredLoans, filteredTransactions]);
+    }, [filteredAccounts, filteredInvestments, filteredLoans, filteredTransactions, timeGranularity]);
 
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat("pt-BR", {
@@ -579,6 +608,18 @@ export default function DashboardPage() {
 
                 {/* Ações Superiores */}
                 <div className="flex items-center gap-2 shrink-0 self-stretch sm:self-auto flex-wrap">
+                    <button
+                        onClick={() => setIsSearchModalOpen(true)}
+                        title="Buscar compras, iFood, Uber, lojas... (Atalho: Ctrl+K)"
+                        className="flex-1 sm:flex-initial h-10 px-3.5 rounded-xl bg-white dark:bg-[#12161F] hover:bg-slate-100 dark:hover:bg-[#1A202C] border border-slate-200 dark:border-[#262E3D] hover:border-[#FF8216]/40 text-xs font-semibold text-slate-700 dark:text-[#F8FAFC] flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs group"
+                    >
+                        <span className="material-symbols-outlined text-[18px] text-[#FF8216] group-hover:scale-110 transition-transform">
+                            search
+                        </span>
+                        <span className="hidden sm:inline">Buscar (Ctrl+K)</span>
+                        <span className="sm:hidden">Buscar</span>
+                    </button>
+
                     <a
                         href="/api/export/spreadsheet"
                         download
@@ -619,6 +660,45 @@ export default function DashboardPage() {
                     </button>
                 </div>
             </header>
+
+            {/* Seletor de Granularidade Temporal: Dia a Dia | Semana a Semana | Mês a Mês | Ano a Ano */}
+            <section className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-2.5 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] shadow-xs">
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+                    <span className="text-[11px] font-bold text-slate-400 px-2 uppercase tracking-wider shrink-0 flex items-center gap-1">
+                        <span className="material-symbols-outlined text-sm text-[#FF8216]">tune</span>
+                        Período:
+                    </span>
+                    {(["day", "week", "month", "year"] as const).map((gran) => {
+                        const labels = {
+                            day: "Dia a Dia",
+                            week: "Semana a Semana",
+                            month: "Mês a Mês",
+                            year: "Ano a Ano",
+                        };
+                        const isSel = timeGranularity === gran;
+                        return (
+                            <button
+                                key={gran}
+                                onClick={() => setTimeGranularity(gran)}
+                                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer shrink-0 ${
+                                    isSel
+                                        ? "bg-[#FF8216] text-white shadow-xs font-bold ring-2 ring-[#FF8216]/20"
+                                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5"
+                                }`}
+                            >
+                                {labels[gran]}
+                            </button>
+                        );
+                    })}
+                </div>
+
+                <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 font-mono self-end sm:self-auto px-2">
+                    {timeGranularity === "month" && "📅 Visão Mensal Consolidada"}
+                    {timeGranularity === "day" && "⏱️ Visão dos Últimos 7 Dias"}
+                    {timeGranularity === "week" && "📊 Ritmo das Últimas 2 Semanas"}
+                    {timeGranularity === "year" && "📈 Visão Anual Acumulada"}
+                </div>
+            </section>
 
             {/* Barra Horizontal de Seleção Global por Banco com Logos SVG Oficiais */}
             {connectedBanks.length > 0 && (
@@ -1165,7 +1245,12 @@ export default function DashboardPage() {
                                     className="py-3 flex items-center justify-between text-xs gap-3"
                                 >
                                     <div className="flex items-center gap-3 min-w-0">
-                                        <BankLogo bank={bankSlug} size="xs" />
+                                        <MerchantLogo
+                                            cleanName={cleanDesc}
+                                            rawDescription={txn.raw_description}
+                                            category={catPt}
+                                            size="sm"
+                                        />
                                         <div className="flex flex-col min-w-0">
                                             <div className="flex items-center gap-2 flex-wrap">
                                                 <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">
@@ -1173,9 +1258,13 @@ export default function DashboardPage() {
                                                 </span>
                                                 {renderTransactionBadge(txn)}
                                             </div>
-                                            <span className="text-[10px] text-slate-400 truncate mt-0.5">
-                                                {formatDate(txn.date || txn.executed_at)} •{" "}
-                                                {bankLabel} • {catPt}
+                                            <span className="text-[10px] text-slate-400 truncate mt-0.5 flex items-center gap-1.5">
+                                                <span>{formatDate(txn.date || txn.executed_at)}</span>
+                                                <span>•</span>
+                                                <BankLogo bank={bankSlug} size="xs" className="w-3.5 h-3.5 inline-block" />
+                                                <span>{bankLabel}</span>
+                                                <span>•</span>
+                                                <span>{catPt}</span>
                                             </span>
                                         </div>
                                     </div>
@@ -1760,6 +1849,14 @@ export default function DashboardPage() {
                 onConnectionSuccess={() => {
                     revalidate(true);
                 }}
+            />
+
+            <GlobalFinanceSearchModal
+                isOpen={isSearchModalOpen}
+                onClose={() => setIsSearchModalOpen(false)}
+                transactions={filteredTransactions}
+                formatCurrency={formatCurrency}
+                formatDate={formatDate}
             />
         </div>
     );

@@ -356,40 +356,137 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* Vitrine Oficial Open Finance Brasil */}
-        <div className="mt-14 w-full flex flex-col items-center gap-4">
-          <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">
+        {/* Vitrine Oficial Open Finance Brasil com Rolagem Fluida Infinita (Marquee) */}
+        <div className="mt-14 w-full flex flex-col items-center gap-4 overflow-hidden">
+          <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest text-center">
             Conexão Direta com Principais Instituições do Brasil
           </span>
-          <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3.5 max-w-4xl opacity-90">
-            {[
-              { slug: 'nubank', name: 'Nubank' },
-              { slug: 'itau', name: 'Itaú' },
-              { slug: 'santander', name: 'Santander' },
-              { slug: 'inter', name: 'Banco Inter' },
-              { slug: 'caixa', name: 'Caixa' },
-              { slug: 'mercadopago', name: 'Mercado Pago' },
-              { slug: 'bradesco', name: 'Bradesco' },
-              { slug: 'bb', name: 'Banco do Brasil' },
-              { slug: 'c6', name: 'C6 Bank' },
-              { slug: 'btg', name: 'BTG Pactual' },
-              { slug: 'safra', name: 'Banco Safra' },
-              { slug: 'picpay', name: 'PicPay' },
-              { slug: 'xp', name: 'XP' },
-              { slug: 'rico', name: 'Rico' },
-              { slug: 'sicredi', name: 'Sicredi' },
-              { slug: 'sicoob', name: 'Sicoob' },
-            ].map((b) => (
-              <div
-                key={b.slug}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 hover:border-[#FF8216]/40 hover:bg-white/10 transition-all shadow-sm"
-                title={b.name}
-              >
-                <BankLogo bank={b.slug} size="xs" />
-                <span className="text-xs font-semibold text-zinc-300">{b.name}</span>
-              </div>
-            ))}
+
+          {/* Carrossel Infinito com Fade nas Pontas */}
+          <div className="relative w-full max-w-5xl overflow-hidden py-3 [mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)]">
+            <div className="animate-marquee flex items-center gap-3">
+              {[
+                { slug: 'nubank', name: 'Nubank' },
+                { slug: 'itau', name: 'Itaú' },
+                { slug: 'santander', name: 'Santander' },
+                { slug: 'inter', name: 'Banco Inter' },
+                { slug: 'caixa', name: 'Caixa' },
+                { slug: 'mercadopago', name: 'Mercado Pago' },
+                { slug: 'bradesco', name: 'Bradesco' },
+                { slug: 'bb', name: 'Banco do Brasil' },
+                { slug: 'c6', name: 'C6 Bank' },
+                { slug: 'btg', name: 'BTG Pactual' },
+                { slug: 'safra', name: 'Banco Safra' },
+                { slug: 'picpay', name: 'PicPay' },
+                { slug: 'xp', name: 'XP Investimentos' },
+                { slug: 'rico', name: 'Rico' },
+                { slug: 'sicredi', name: 'Sicredi' },
+                { slug: 'sicoob', name: 'Sicoob' },
+                { slug: 'pagbank', name: 'PagBank' },
+                { slug: 'neon', name: 'Neon' },
+                { slug: 'banrisul', name: 'Banrisul' },
+                { slug: 'daycoval', name: 'Daycoval' },
+                // Duplicação para loop contínuo infinito
+                { slug: 'nubank', name: 'Nubank' },
+                { slug: 'itau', name: 'Itaú' },
+                { slug: 'santander', name: 'Santander' },
+                { slug: 'inter', name: 'Banco Inter' },
+                { slug: 'caixa', name: 'Caixa' },
+                { slug: 'mercadopago', name: 'Mercado Pago' },
+                { slug: 'bradesco', name: 'Bradesco' },
+                { slug: 'bb', name: 'Banco do Brasil' },
+                { slug: 'c6', name: 'C6 Bank' },
+                { slug: 'btg', name: 'BTG Pactual' },
+                { slug: 'safra', name: 'Banco Safra' },
+                { slug: 'picpay', name: 'PicPay' },
+                { slug: 'xp', name: 'XP Investimentos' },
+                { slug: 'rico', name: 'Rico' },
+                { slug: 'sicredi', name: 'Sicredi' },
+                { slug: 'sicoob', name: 'Sicoob' },
+                { slug: 'pagbank', name: 'PagBank' },
+                { slug: 'neon', name: 'Neon' },
+                { slug: 'banrisul', name: 'Banrisul' },
+                { slug: 'daycoval', name: 'Daycoval' },
+              ].map((b, idx) => (
+                <div
+                  key={`${b.slug}-${idx}`}
+                  className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-white/5 border border-white/10 hover:border-[#FF8216]/50 hover:bg-white/10 transition-all shadow-sm shrink-0"
+                  title={b.name}
+                >
+                  <BankLogo bank={b.slug} size="xs" />
+                  <span className="text-xs font-semibold text-zinc-200 whitespace-nowrap">{b.name}</span>
+                </div>
+              ))}
+            </div>
           </div>
+        </div>
+      </section>
+
+      {/* Seção Exclusiva: Galeria de Agentes Inteligentes Inspirados no Pierre */}
+      <section className="py-20 px-4 max-w-6xl mx-auto border-t border-white/10">
+        <div className="flex flex-col items-center text-center gap-3 mb-12">
+          <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-[#FF8216]/10 text-[#FF8216] border border-[#FF8216]/20">
+            Inteligência Financeira Autônoma
+          </span>
+          <h2 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
+            Conheça seus Agentes Especialistas
+          </h2>
+          <p className="text-xs sm:text-sm text-zinc-400 max-w-xl">
+            Uma equipe completa com papéis dinâmicos que trabalham em segundo plano para auditar, proteger e multiplicar seu patrimônio.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {[
+            {
+              emoji: '😾',
+              name: 'Julius',
+              role: 'Fiscal Ranzinza',
+              desc: 'Reclama quando você gastar de um jeito absurdo e calcula quanto você economiza se não comprar.',
+              tag: 'Corta Supérfluos',
+            },
+            {
+              emoji: '🎩',
+              name: 'Tio Patinhas',
+              role: 'Estrategista Patrimonial',
+              desc: 'Audita saldos parados em conta corrente e indica rendimentos reais no CDI e Selic.',
+              tag: 'Multiplica Caixa',
+            },
+            {
+              emoji: '🕵️‍♂️',
+              name: 'Inspetor Bugiganga',
+              role: 'Caçador de Erros',
+              desc: 'Encontra cobranças duplicadas na mesma data, tarifas ocultas e assinaturas esquecidas.',
+              tag: 'Zero Taxas Indevidas',
+            },
+          ].map((ag, i) => (
+            <div
+              key={i}
+              className="p-6 rounded-3xl bg-gradient-to-b from-[#18181B] to-[#121215] border border-white/10 hover:border-white/20 transition-all flex flex-col justify-between gap-4 group"
+            >
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-2xl group-hover:scale-105 transition-transform">
+                    {ag.emoji}
+                  </div>
+                  <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#FF8216]/10 text-[#FF8216] border border-[#FF8216]/20">
+                    {ag.tag}
+                  </span>
+                </div>
+                <h3 className="text-lg font-bold text-white group-hover:text-[#FF8216] transition-colors">
+                  {ag.name}
+                </h3>
+                <p className="text-xs text-zinc-400 leading-relaxed">
+                  {ag.desc}
+                </p>
+              </div>
+
+              <div className="pt-3 border-t border-white/5 flex items-center justify-between text-xs text-zinc-300 font-medium">
+                <span>{ag.role}</span>
+                <span className="text-emerald-400 font-mono text-[11px]">● 100% Dinâmico</span>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 
