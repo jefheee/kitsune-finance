@@ -4,10 +4,11 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useTheme } from "next-themes";
 import { createClient } from "@/utils/supabase/client";
 import { useFinanceData } from "@/context/FinanceDataContext";
+import { NotificationsModal } from "@/components/NotificationsModal";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -15,7 +16,27 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const { userProfile, user, isPrivacyMode, togglePrivacyMode } = useFinanceData();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [unreadNotifsCount, setUnreadNotifsCount] = useState(0);
   const router = useRouter();
+
+  const fetchUnreadNotifs = useCallback(async () => {
+    try {
+      const res = await fetch("/api/notifications");
+      if (res.ok) {
+        const data = await res.json();
+        setUnreadNotifsCount(data.unreadCount || 0);
+      }
+    } catch {
+      // quiet fail
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchUnreadNotifs();
+    const interval = setInterval(fetchUnreadNotifs, 15000);
+    return () => clearInterval(interval);
+  }, [fetchUnreadNotifs]);
 
   const handleLogout = async () => {
     const supabase = createClient();
@@ -50,12 +71,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     { path: "/connections", icon: "account_balance", label: "Bancos" },
   ];
 
-  // Mobile Bottom Bar
+  // Mobile Bottom Bar (Estilo Pierre Finance: Clean, Flutuante e Sem Poluição)
   const mobileNavItems = [
-    { path: "/dashboard", icon: "dashboard", label: "Início" },
+    { path: "/dashboard", icon: "home", label: "Início" },
+    { path: "/dashboard?tab=Transações", icon: "swap_horiz", label: "Extrato" },
     { path: "/kitsune", icon: "auto_awesome", label: "Kitsune AI" },
     { path: "/cards", icon: "wallet", label: "Cartões" },
-    { path: "/investments", icon: "trending_up", label: "Investir" },
     { path: "/profile", icon: "person", label: "Perfil" },
   ];
 
@@ -149,6 +170,21 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             </span>
           </button>
 
+          {/* Botão de Notificações */}
+          <button
+            type="button"
+            onClick={() => setIsNotificationsOpen(true)}
+            className="w-10 h-10 flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#161618] transition-colors cursor-pointer relative"
+            title="Notificações & Convites"
+          >
+            <span className="material-symbols-outlined text-[20px]">notifications</span>
+            {unreadNotifsCount > 0 && (
+              <span className="absolute top-1.5 right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-[#FF8216] text-white text-[9px] font-black flex items-center justify-center animate-pulse">
+                {unreadNotifsCount > 9 ? "9+" : unreadNotifsCount}
+              </span>
+            )}
+          </button>
+
           {/* Botão de Configurações */}
           <Link
             href="/settings"
@@ -222,6 +258,21 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               </span>
             </button>
 
+            {/* Botão de Notificações Mobile */}
+            <button
+              type="button"
+              onClick={() => setIsNotificationsOpen(true)}
+              className="p-1.5 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#161618] transition-colors cursor-pointer relative"
+              title="Notificações & Convites"
+            >
+              <span className="material-symbols-outlined text-[19px]">notifications</span>
+              {unreadNotifsCount > 0 && (
+                <span className="absolute top-0 right-0 min-w-[14px] h-3.5 px-0.5 rounded-full bg-[#FF8216] text-white text-[9px] font-black flex items-center justify-center animate-pulse">
+                  {unreadNotifsCount > 9 ? "9+" : unreadNotifsCount}
+                </span>
+              )}
+            </button>
+
             <ThemeToggle />
 
             <Link
@@ -256,33 +307,45 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         {children}
       </main>
 
-      {/* Mobile Floating Bottom Navigation (< 768px) */}
-      <nav className="md:hidden fixed bottom-3 left-1/2 -translate-x-1/2 w-[calc(100%-1.5rem)] max-w-sm h-14 bg-white/95 dark:bg-[#121214]/95 backdrop-blur-xl border border-slate-200 dark:border-[#27272A] rounded-2xl shadow-xl flex items-center justify-around px-2 z-50 pb-safe select-none">
+      {/* Mobile Floating Bottom Navigation (< 768px - Fiel ao Pierre Finance) */}
+      <nav className="md:hidden fixed bottom-3 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-sm h-14 bg-white/90 dark:bg-[#121214]/90 backdrop-blur-2xl border border-slate-200/80 dark:border-white/10 rounded-full shadow-2xl flex items-center justify-around px-3 z-50 pb-safe select-none">
         {mobileNavItems.map((item) => {
-          const isActive = pathname.startsWith(item.path);
+          const isActive = pathname === item.path || (item.path !== "/" && !item.path.includes("?") && pathname.startsWith(item.path));
           return (
             <Link
               key={item.path}
               href={item.path}
-              className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl transition-all duration-200 ${
+              className={`flex flex-col items-center justify-center p-2 rounded-full transition-all duration-200 relative ${
                 isActive
-                  ? "bg-[#FF8216]/12 text-[#FF8216] font-bold"
-                  : "text-slate-500 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-[#F8FAFC]"
+                  ? "text-[#FF8216]"
+                  : "text-slate-400 hover:text-slate-900 dark:hover:text-white"
               }`}
+              title={item.label}
             >
               <span
-                className="material-symbols-outlined text-[20px]"
+                className="material-symbols-outlined text-[22px]"
                 style={{
                   fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0",
                 }}
               >
                 {item.icon}
               </span>
-              <span className="text-[11px] font-medium">{item.label}</span>
+              {isActive && (
+                <span className="w-1 h-1 rounded-full bg-[#FF8216] mt-0.5" />
+              )}
             </Link>
           );
         })}
       </nav>
+      {/* Modal de Notificações & Convites em Tempo Real */}
+      <NotificationsModal
+        isOpen={isNotificationsOpen}
+        onClose={() => {
+          setIsNotificationsOpen(false);
+          fetchUnreadNotifs();
+        }}
+        onRefreshData={fetchUnreadNotifs}
+      />
     </div>
   );
 }

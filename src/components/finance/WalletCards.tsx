@@ -68,10 +68,18 @@ export function WalletCards({ accounts, transactions, formatCurrency: propFormat
   }, [accounts, transactions]);
 
   const [selectedCardIndex, setSelectedCardIndex] = useState<number>(0);
+  const [viewMode, setViewMode] = useState<"stack" | "carousel">("stack");
   const carouselRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
+
+  // Saldo Líquido Consolidado em Contas (para o widget Pierre Finance)
+  const totalLiquidBalance = useMemo(() => {
+    return accounts
+      .filter((a) => a.type !== "CREDIT" && a.subtype !== "CREDIT_CARD")
+      .reduce((sum, a) => sum + (Number(a.balance) || 0), 0);
+  }, [accounts]);
 
   // Cartão ativo selecionado
   const activeCard = creditCards[selectedCardIndex] || creditCards[0] || null;
@@ -251,8 +259,81 @@ export function WalletCards({ accounts, transactions, formatCurrency: propFormat
         </div>
       </div>
 
-      {/* Carrossel Interativo de Cartões com Arraste (Drag to Scroll) */}
-      <div className="flex flex-col gap-3">
+      {/* Visualização Mobile Estilo Pierre Finance (Mobile First) */}
+      <div className="flex md:hidden flex-col gap-3.5">
+        {/* Widget Principal Pierre Finance */}
+        <div className="rounded-3xl bg-[#18181B] border border-[#27272A] overflow-hidden p-5 flex flex-col justify-between shadow-lg">
+          {/* Topo Temático com Logo do Banco e Dígitos */}
+          <div className={`-mx-5 -mt-5 p-4 bg-gradient-to-r ${activeTheme.bgGradient} flex items-center justify-between border-b ${activeTheme.border}`}>
+            <div className="flex items-center gap-2">
+              <BankLogo
+                bank={activeCard?.institution_slug || activeCard?.institution_name || activeCard?.bank_name}
+                size="xs"
+              />
+              <span className="text-xs font-bold text-white">
+                {activeCard?.product_name || activeCard?.bank_name || "Cartão"}
+              </span>
+            </div>
+            <span className="text-xs font-mono text-white/70">
+              •••• {activeCard?.account_number?.slice(-4) || "8903"}
+            </span>
+          </div>
+
+          <div className="mt-5 flex flex-col gap-1">
+            <span className="text-xs text-slate-400 font-medium">Total em faturas</span>
+            <span className="text-3xl font-extrabold text-white tracking-tight tabular-nums">
+              {formatCurrency(activeCardInvoice)}
+            </span>
+            <span className="text-xs text-slate-500 mt-1">
+              Próximo vencimento: {activeCard?.balance_due_date || "13 de Novembro"}
+            </span>
+          </div>
+
+          {/* Dots Indicator */}
+          <div className="flex items-center justify-center gap-1.5 mt-4">
+            {creditCards.map((_, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => setSelectedCardIndex(idx)}
+                className={`h-1.5 rounded-full transition-all cursor-pointer ${
+                  selectedCardIndex === idx ? "w-5 bg-white" : "w-1.5 bg-white/20"
+                }`}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Saldo em Contas Pill (Fiel à Print Pierre) */}
+        <Link
+          href="/dashboard"
+          className="p-4 rounded-2xl bg-[#18181B] border border-[#27272A] flex items-center justify-between hover:border-slate-700 transition-colors"
+        >
+          <div className="flex flex-col gap-0.5">
+            <div className="flex items-center gap-1 text-xs text-slate-400 font-medium">
+              <span>Saldo em contas</span>
+              <span className="material-symbols-outlined text-sm">chevron_right</span>
+            </div>
+            <span className="text-lg font-bold text-white tabular-nums">
+              {formatCurrency(totalLiquidBalance)}
+            </span>
+          </div>
+        </Link>
+
+        {/* Pergunte à Kitsune AI Pill (Fiel à Print Pierre) */}
+        <Link
+          href={`/kitsune?prompt=${encodeURIComponent(
+            `Kitsune AI, por favor audite o cartão ${activeCard?.product_name || "selecionado"} e resuma minhas faturas recentes.`
+          )}`}
+          className="p-3.5 rounded-2xl bg-[#18181B] border border-[#27272A] flex items-center gap-3 text-slate-400 hover:text-white transition-colors"
+        >
+          <span className="material-symbols-outlined text-[#FF8216] text-xl">qr_code_scanner</span>
+          <span className="text-xs font-medium">Pergunte à Kitsune AI</span>
+        </Link>
+      </div>
+
+      {/* Seletor de Modo: Carteira Stack (Apple Wallet) vs Carrossel Horizontal */}
+      <div className="hidden md:flex flex-col gap-3">
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-lg text-[#FF8216]">wallet</span>
@@ -260,126 +341,246 @@ export function WalletCards({ accounts, transactions, formatCurrency: propFormat
               Meus Cartões ({creditCards.length})
             </h2>
           </div>
-          <div className="flex items-center gap-1 text-[11px] text-slate-400">
-            <span className="material-symbols-outlined text-[14px]">swipe</span>
-            <span>Arraste ou clique para alternar</span>
+          
+          <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] rounded-xl text-[11px]">
+            <button
+              type="button"
+              onClick={() => setViewMode("stack")}
+              className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                viewMode === "stack"
+                  ? "bg-[#FF8216] text-white shadow-xs"
+                  : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+              }`}
+            >
+              <span className="material-symbols-outlined text-[13px]">layers</span>
+              <span>Carteira (Apple Wallet Stack)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("carousel")}
+              className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                viewMode === "carousel"
+                  ? "bg-[#FF8216] text-white shadow-xs"
+                  : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+              }`}
+            >
+              <span className="material-symbols-outlined text-[13px]">view_carousel</span>
+              <span>Carrossel Horizontal</span>
+            </button>
           </div>
         </div>
 
-        {/* Container Horizontal com Arraste pelo Mouse e Touch */}
-        <div
-          ref={carouselRef}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUpOrLeave}
-          onMouseLeave={handleMouseUpOrLeave}
-          className={`flex gap-4 overflow-x-auto py-2 px-1 scrollbar-none snap-x snap-mandatory ${
-            isDragging ? "cursor-grabbing select-none" : "cursor-grab"
-          }`}
-          style={{ scrollBehavior: isDragging ? "auto" : "smooth" }}
-        >
-          {creditCards.map((card, idx) => {
-            const isSelected = selectedCardIndex === idx;
-            const theme = resolveCardTheme(
-              card.product_name || card.name || card.bank_name,
-              card.institution_slug || card.institution_name
-            );
-            const cardInv = getCardInvoiceAmount(card, transactions);
-            const digits = card.account_number?.slice(-4) || "8903";
+        {/* MODO 1: Carteira Stack Apple Wallet Vertical (Overlapping Stack) */}
+        {viewMode === "stack" ? (
+          <div className="w-full max-w-lg mx-auto py-4 px-2 flex flex-col items-center">
+            {creditCards.map((card, idx) => {
+              const isSelected = selectedCardIndex === idx;
+              const theme = resolveCardTheme(
+                card.product_name || card.name || card.bank_name,
+                card.institution_slug || card.institution_name
+              );
+              const cardInv = getCardInvoiceAmount(card, transactions);
+              const digits = card.account_number?.slice(-4) || "8903";
 
-            return (
-              <div
-                key={card.id || idx}
-                onClick={() => setSelectedCardIndex(idx)}
-                className={`snap-center shrink-0 w-[280px] sm:w-[320px] aspect-[1.586/1] rounded-3xl p-5 bg-gradient-to-br ${
-                  theme.bgGradient
-                } ${
-                  theme.border
-                } border relative overflow-hidden transition-all duration-300 cursor-pointer flex flex-col justify-between ${
-                  isSelected
-                    ? "ring-2 ring-[#FF8216] shadow-xl scale-[1.02]"
-                    : "opacity-75 hover:opacity-95 scale-100"
-                }`}
-              >
-                {/* Efeito de Reflexo Minimalista e Sofisticado */}
-                <div className="absolute inset-0 bg-gradient-to-tr from-white/[0.08] via-white/[0.02] to-transparent pointer-events-none rounded-3xl" />
+              return (
+                <div
+                  key={card.id || idx}
+                  onClick={() => setSelectedCardIndex(idx)}
+                  className={`w-full aspect-[1.586/1] rounded-3xl p-5 bg-gradient-to-br ${
+                    theme.bgGradient
+                  } ${
+                    theme.border
+                  } border relative overflow-hidden transition-all duration-500 ease-out cursor-pointer shadow-xl ${
+                    idx > 0 ? "-mt-[125px] sm:-mt-[145px]" : ""
+                  } ${
+                    isSelected
+                      ? "ring-2 ring-[#FF8216] shadow-2xl -translate-y-2 z-30 scale-[1.01]"
+                      : "hover:-translate-y-3 hover:shadow-2xl opacity-95 hover:opacity-100 z-10"
+                  }`}
+                  style={{
+                    zIndex: isSelected ? 35 : idx + 1,
+                  }}
+                >
+                  {/* Efeito de Reflexo Minimalista e Sofisticado */}
+                  <div className="absolute inset-0 bg-gradient-to-tr from-white/[0.08] via-white/[0.02] to-transparent pointer-events-none rounded-3xl" />
 
-                {/* Topo do Cartão: Logo da Instituição e Contactless */}
-                <div className="flex items-center justify-between relative z-10">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-white/10 backdrop-blur-md p-1 flex items-center justify-center">
-                      <BankLogo
-                        bank={card.institution_slug || card.institution_name || card.bank_name}
-                        size="xs"
-                      />
+                  {/* Topo do Cartão: Logo da Instituição e Contactless */}
+                  <div className="flex items-center justify-between relative z-10">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-white/10 backdrop-blur-md p-1 flex items-center justify-center">
+                        <BankLogo
+                          bank={card.institution_slug || card.institution_name || card.bank_name}
+                          size="xs"
+                        />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-white block truncate max-w-[160px]">
+                          {card.product_name || card.bank_name || "Cartão"}
+                        </span>
+                        <span className={`text-[10px] ${theme.subtextColor} font-mono tracking-wider`}>
+                          •••• {digits}
+                        </span>
+                      </div>
                     </div>
+
+                    <span className="material-symbols-outlined text-[18px] text-white/60">
+                      contactless
+                    </span>
+                  </div>
+
+                  {/* Centro do Cartão: Chip Dourado/Prata Minimalista */}
+                  <div className="relative z-10 flex items-center justify-between mt-3">
+                    <div
+                      className="w-10 h-7 rounded-md border border-white/20 flex items-center justify-center opacity-85"
+                      style={{ backgroundColor: theme.chipColor + "30" }}
+                    >
+                      <div className="w-5 h-4 rounded-xs border border-white/30" />
+                    </div>
+                    <span
+                      className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${theme.badgeStyle}`}
+                    >
+                      {theme.brandFallback}
+                    </span>
+                  </div>
+
+                  {/* Rodapé do Cartão: Fatura Atual e Indicador */}
+                  <div className="flex items-end justify-between relative z-10 mt-auto pt-2">
                     <div>
-                      <span className="text-xs font-bold text-white block truncate max-w-[140px]">
-                        {card.product_name || card.bank_name || "Cartão"}
+                      <span className="text-[9px] text-white/60 uppercase font-bold tracking-wider block">
+                        Fatura Atual
                       </span>
-                      <span className={`text-[10px] ${theme.subtextColor} font-mono tracking-wider`}>
-                        •••• {digits}
+                      <span className="text-base sm:text-lg font-black text-white tabular-nums tracking-tight">
+                        {formatCurrency(cardInv)}
                       </span>
                     </div>
-                  </div>
 
-                  <span className="material-symbols-outlined text-[18px] text-white/60">
-                    contactless
-                  </span>
-                </div>
-
-                {/* Centro do Cartão: Chip Dourado/Prata Minimalista */}
-                <div className="relative z-10 flex items-center justify-between">
-                  <div
-                    className="w-10 h-7 rounded-md border border-white/20 flex items-center justify-center opacity-85"
-                    style={{ backgroundColor: theme.chipColor + "30" }}
-                  >
-                    <div className="w-5 h-4 rounded-xs border border-white/30" />
-                  </div>
-                  <span
-                    className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${theme.badgeStyle}`}
-                  >
-                    {theme.brandFallback}
-                  </span>
-                </div>
-
-                {/* Rodapé do Cartão: Fatura Atual e Indicador */}
-                <div className="flex items-end justify-between relative z-10">
-                  <div>
-                    <span className="text-[9px] text-white/60 uppercase font-bold tracking-wider block">
-                      Fatura Atual
-                    </span>
-                    <span className="text-base sm:text-lg font-black text-white tabular-nums tracking-tight">
-                      {formatCurrency(cardInv)}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#EB001B] inline-block opacity-90" />
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#F79E1B] inline-block -ml-2 opacity-90" />
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#EB001B] inline-block opacity-90" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#F79E1B] inline-block -ml-2 opacity-90" />
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Indicadores de Pontos (Dots) */}
-        <div className="flex items-center justify-center gap-1.5 py-1">
-          {creditCards.map((_, idx) => (
-            <button
-              key={idx}
-              type="button"
-              onClick={() => scrollToCard(idx)}
-              className={`h-1.5 rounded-full transition-all cursor-pointer ${
-                selectedCardIndex === idx
-                  ? "w-6 bg-[#FF8216]"
-                  : "w-1.5 bg-slate-300 dark:bg-[#27272A] hover:bg-slate-400"
+              );
+            })}
+          </div>
+        ) : (
+          /* MODO 2: Carrossel Horizontal com Arraste (Drag to Scroll) */
+          <>
+            <div
+              ref={carouselRef}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUpOrLeave}
+              onMouseLeave={handleMouseUpOrLeave}
+              className={`flex gap-4 overflow-x-auto py-2 px-1 scrollbar-none snap-x snap-mandatory ${
+                isDragging ? "cursor-grabbing select-none" : "cursor-grab"
               }`}
-              title={`Ver cartão ${idx + 1}`}
-            />
-          ))}
-        </div>
+              style={{ scrollBehavior: isDragging ? "auto" : "smooth" }}
+            >
+              {creditCards.map((card, idx) => {
+                const isSelected = selectedCardIndex === idx;
+                const theme = resolveCardTheme(
+                  card.product_name || card.name || card.bank_name,
+                  card.institution_slug || card.institution_name
+                );
+                const cardInv = getCardInvoiceAmount(card, transactions);
+                const digits = card.account_number?.slice(-4) || "8903";
+
+                return (
+                  <div
+                    key={card.id || idx}
+                    onClick={() => setSelectedCardIndex(idx)}
+                    className={`snap-center shrink-0 w-[280px] sm:w-[320px] aspect-[1.586/1] rounded-3xl p-5 bg-gradient-to-br ${
+                      theme.bgGradient
+                    } ${
+                      theme.border
+                    } border relative overflow-hidden transition-all duration-300 cursor-pointer flex flex-col justify-between ${
+                      isSelected
+                        ? "ring-2 ring-[#FF8216] shadow-xl scale-[1.02]"
+                        : "opacity-75 hover:opacity-95 scale-100"
+                    }`}
+                  >
+                    {/* Efeito de Reflexo Minimalista e Sofisticado */}
+                    <div className="absolute inset-0 bg-gradient-to-tr from-white/[0.08] via-white/[0.02] to-transparent pointer-events-none rounded-3xl" />
+
+                    {/* Topo do Cartão: Logo da Instituição e Contactless */}
+                    <div className="flex items-center justify-between relative z-10">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-xl bg-white/10 backdrop-blur-md p-1 flex items-center justify-center">
+                          <BankLogo
+                            bank={card.institution_slug || card.institution_name || card.bank_name}
+                            size="xs"
+                          />
+                        </div>
+                        <div>
+                          <span className="text-xs font-bold text-white block truncate max-w-[140px]">
+                            {card.product_name || card.bank_name || "Cartão"}
+                          </span>
+                          <span className={`text-[10px] ${theme.subtextColor} font-mono tracking-wider`}>
+                            •••• {digits}
+                          </span>
+                        </div>
+                      </div>
+
+                      <span className="material-symbols-outlined text-[18px] text-white/60">
+                        contactless
+                      </span>
+                    </div>
+
+                    {/* Centro do Cartão: Chip Dourado/Prata Minimalista */}
+                    <div className="relative z-10 flex items-center justify-between">
+                      <div
+                        className="w-10 h-7 rounded-md border border-white/20 flex items-center justify-center opacity-85"
+                        style={{ backgroundColor: theme.chipColor + "30" }}
+                      >
+                        <div className="w-5 h-4 rounded-xs border border-white/30" />
+                      </div>
+                      <span
+                        className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${theme.badgeStyle}`}
+                      >
+                        {theme.brandFallback}
+                      </span>
+                    </div>
+
+                    {/* Rodapé do Cartão: Fatura Atual e Indicador */}
+                    <div className="flex items-end justify-between relative z-10">
+                      <div>
+                        <span className="text-[9px] text-white/60 uppercase font-bold tracking-wider block">
+                          Fatura Atual
+                        </span>
+                        <span className="text-base sm:text-lg font-black text-white tabular-nums tracking-tight">
+                          {formatCurrency(cardInv)}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#EB001B] inline-block opacity-90" />
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#F79E1B] inline-block -ml-2 opacity-90" />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Indicadores de Pontos (Dots) */}
+            <div className="flex items-center justify-center gap-1.5 py-1">
+              {creditCards.map((_, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => scrollToCard(idx)}
+                  className={`h-1.5 rounded-full transition-all cursor-pointer ${
+                    selectedCardIndex === idx
+                      ? "w-6 bg-[#FF8216]"
+                      : "w-1.5 bg-slate-300 dark:bg-[#27272A] hover:bg-slate-400"
+                  }`}
+                  title={`Ver cartão ${idx + 1}`}
+                />
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Detalhamento Dinâmico do Cartão Ativo (Inspirado no Print 5) */}

@@ -4,6 +4,17 @@ Todas as alterações notáveis no projeto Kitsune Finance são registradas de f
 
 ---
 
+## [2026-10-29] - Espaço Compartilhado com Supabase RLS, Central de Notificações, Apple Wallet Stack e Mobile Pierre Finance
+- **Arquivos Afetados:** `src/app/api/shared-space/route.ts`, `src/app/api/notifications/route.ts`, `src/components/NotificationsModal.tsx`, `src/components/providers/SmoothScrollProvider.tsx`, `src/context/FinanceDataContext.tsx`, `src/app/dashboard/page.tsx`, `src/components/finance/WalletCards.tsx`, `src/components/layout/AppShell.tsx`, `src/app/globals.css`, `src/app/kitsune/page.tsx`, `docs/PROJECT_STATE.md`, `docs/CHANGELOG.md`.
+- **Objetivo:**
+  - Implementação completa do Espaço Compartilhado via Supabase (`shared_connections`, `user_notifications`), pré-requisito de conta bancária conectada, envio de convites por e-mail com geração de código (`KT-XXXX`), link utilizável (`?accept_invite=...`) e consolidação multi-tenant com conciliação automática de Pix interno.
+  - Central de Notificações funcional no AppShell (desktop e mobile) para visualização e resposta instantânea a convites mútuos.
+  - Modo Apple Wallet Stack vertical nos cartões com sobreposição fluida, exibição de cabeçalhos e transição para carrossel.
+  - Redesenho mobile inspirado no Pierre Finance com barra inferior flutuante em pill dock, widget de faturas e saldo em contas.
+  - Rolagem suave com Lenis integrada via `SmoothScrollProvider` e eliminação de tags técnicas desnecessárias na interface.
+
+---
+
 ## [2026-10-29] - Padronização Visual Neutra: Eliminação Completa de Tons Azulados em Todo o App
 - **Arquivos Afetados:** src/components/react-bits/SpotlightCard.tsx, src/components/finance/PaginatedTransactionsView.tsx, src/components/finance/InstallmentsTracker.tsx, src/components/finance/SubscriptionsTracker.tsx, src/components/finance/SpendingHeatmap.tsx, src/components/charts/InvoiceBarChart.tsx, src/components/charts/CategoryDonutChart.tsx, src/components/charts/SpendingCurveChart.tsx, src/components/AppsModal.tsx, src/components/vision/VisionAnalyzer.tsx, src/components/layout/AppShell.tsx, src/app/connections/page.tsx, src/app/profile/page.tsx, src/app/settings/page.tsx, src/app/dashboard/page.tsx, src/app/kitsune/page.tsx, src/app/investments/page.tsx, src/app/agents/page.tsx, src/app/globals.css.
 - **Objetivo:**

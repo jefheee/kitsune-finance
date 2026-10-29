@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Spinner from "@/components/Spinner";
 import PluggyConnectModal from "@/components/PluggyConnectModal";
@@ -39,6 +39,8 @@ export default function DashboardPage() {
         setSelectedBankSlug,
         isFamilyModeEnabled,
         setIsFamilyModeEnabled,
+        activePartner,
+        sharedConnection,
         isPrivacyMode,
         revalidate,
         setAiInsightState,
@@ -57,6 +59,143 @@ export default function DashboardPage() {
     // Pesquisa Global Inteligente e Granularidade Temporal
     const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
     const [timeGranularity, setTimeGranularity] = useState<"day" | "week" | "month" | "year">("month");
+
+    // Espaço Compartilhado (Duo & Família) com Supabase & RLS
+    const [sharedSpaceData, setSharedSpaceData] = useState<{
+        has_bank_accounts: boolean;
+        active_connection: any | null;
+        pending_received: any[];
+        pending_sent: any[];
+    } | null>(null);
+    const [isLoadingSharedSpace, setIsLoadingSharedSpace] = useState(false);
+    const [inviteEmail, setInviteEmail] = useState("");
+    const [inviteName, setInviteName] = useState("");
+    const [inviteRole, setInviteRole] = useState("Cônjuge");
+    const [isSendingInvite, setIsSendingInvite] = useState(false);
+    const [inputInviteCode, setInputInviteCode] = useState("");
+    const [isValidatingCode, setIsValidatingCode] = useState(false);
+    const [sharedMessage, setSharedMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+    const [copiedCodeOrLink, setCopiedCodeOrLink] = useState<string | null>(null);
+
+    const fetchSharedSpace = useCallback(async () => {
+        try {
+            setIsLoadingSharedSpace(true);
+            const res = await fetch("/api/shared-space");
+            const data = await res.json();
+            if (res.ok) {
+                setSharedSpaceData(data);
+            }
+        } catch (e) {
+            console.error("Erro ao buscar dados do espaço compartilhado:", e);
+        } finally {
+            setIsLoadingSharedSpace(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchSharedSpace();
+        if (typeof window !== "undefined") {
+            const params = new URLSearchParams(window.location.search);
+            const inviteParam = params.get("accept_invite");
+            if (inviteParam) {
+                setActiveTab("Espaço Compartilhado");
+                setInputInviteCode(inviteParam.toUpperCase());
+            }
+        }
+    }, [fetchSharedSpace]);
+
+    const handleSendInvite = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!inviteEmail.trim() || isSendingInvite) return;
+        setIsSendingInvite(true);
+        setSharedMessage(null);
+        try {
+            const res = await fetch("/api/shared-space", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    email: inviteEmail.trim(),
+                    name: inviteName.trim() || undefined,
+                    role: inviteRole,
+                }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Erro ao enviar convite");
+            setSharedMessage({
+                type: "success",
+                text: `Convite enviado com sucesso para ${inviteEmail}! Código gerado: ${data.invite_code}`,
+            });
+            setInviteEmail("");
+            setInviteName("");
+            await fetchSharedSpace();
+            revalidate(true);
+        } catch (err: any) {
+            setSharedMessage({ type: "error", text: err.message });
+        } finally {
+            setIsSendingInvite(false);
+        }
+    };
+
+    const handleRespondInvite = async (inviteCode: string, action: "accept" | "reject") => {
+        setIsValidatingCode(true);
+        setSharedMessage(null);
+        try {
+            const res = await fetch("/api/shared-space", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ inviteCode, action }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Erro ao processar convite");
+            setSharedMessage({
+                type: "success",
+                text:
+                    action === "accept"
+                        ? "Conexão estabelecida com sucesso! Seu Espaço Compartilhado está ativo."
+                        : "Convite recusado.",
+            });
+            setInputInviteCode("");
+            if (action === "accept") {
+                setIsFamilyModeEnabled(true);
+            }
+            await fetchSharedSpace();
+            revalidate(true);
+        } catch (err: any) {
+            setSharedMessage({ type: "error", text: err.message });
+        } finally {
+            setIsValidatingCode(false);
+        }
+    };
+
+    const handleUnlinkSharedSpace = async () => {
+        if (
+            !confirm(
+                "Tem certeza que deseja desvincular o Espaço Compartilhado? As contas do parceiro deixarão de ser consolidadas na sua visão."
+            )
+        )
+            return;
+        try {
+            const res = await fetch("/api/shared-space", { method: "DELETE" });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Erro ao desvincular");
+            setSharedMessage({
+                type: "success",
+                text: "Espaço compartilhado desvinculado com sucesso.",
+            });
+            setIsFamilyModeEnabled(false);
+            await fetchSharedSpace();
+            revalidate(true);
+        } catch (err: any) {
+            alert(err.message);
+        }
+    };
+
+    const handleCopy = (text: string, key: string) => {
+        if (typeof window === "undefined") return;
+        navigator.clipboard.writeText(text);
+        setCopiedCodeOrLink(key);
+        setTimeout(() => setCopiedCodeOrLink(null), 3000);
+    };
 
     // Atalho global Ctrl+K / Cmd+K para abrir busca
     useEffect(() => {
@@ -756,17 +895,10 @@ export default function DashboardPage() {
     };
 
     return (
-        <div className="flex flex-col gap-6 md:gap-7 p-4 md:p-8 max-w-6xl mx-auto w-full font-sans">
+        <div className="flex flex-col gap-6 md:gap-7 p-4 md:p-8 pb-28 md:pb-10 max-w-6xl mx-auto w-full font-sans">
             {/* Header Principal */}
             <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
                 <div className="flex flex-col gap-1.5">
-                    <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 w-fit">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                        <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">
-                            Open Finance Brasil • Dados Conciliados & Isolados (RLS)
-                        </span>
-                    </div>
-
                     <h1 className="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-[#F8FAFC] tracking-tight">
                         Olá, {userFirstName}!
                     </h1>
@@ -1833,7 +1965,7 @@ export default function DashboardPage() {
                                     </h2>
                                 </div>
                                 <p className="text-xs text-slate-500 dark:text-[#94A3B8] max-w-2xl leading-relaxed">
-                                    Conecte contas de cônjuges, parceiros ou sócios ao seu workspace com consentimento mútuo. As movimentações e Pix mútuos são conciliados como remanejamento patrimonial sem inflar suas saídas operacionais.
+                                    Vincule sua conta à de seu cônjuge ou sócio com consentimento mútuo e proteção Row Level Security (RLS). As movimentações e Pix mútuos são conciliados como remanejamento patrimonial sem inflar suas saídas operacionais.
                                 </p>
                             </div>
 
@@ -1842,7 +1974,7 @@ export default function DashboardPage() {
                                 className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 flex items-center gap-1.5 ${
                                     isFamilyModeEnabled
                                         ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                                        : "bg-[#FF8216] text-white shadow-xs"
+                                        : "bg-[#FF8216] text-white shadow-xs hover:bg-[#FFA047]"
                                 }`}
                             >
                                 <span className="material-symbols-outlined text-[16px]">
@@ -1854,174 +1986,330 @@ export default function DashboardPage() {
                             </button>
                         </div>
 
-                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                            <form
-                                onSubmit={handleAddFamilyMember}
-                                className="lg:col-span-5 p-4 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] flex flex-col gap-3.5"
+                        {/* Mensagem de Feedback de Operação */}
+                        {sharedMessage && (
+                            <div
+                                className={`p-3.5 rounded-xl text-xs flex items-center justify-between gap-2 border ${
+                                    sharedMessage.type === "success"
+                                        ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                                        : "bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400"
+                                }`}
                             >
-                                <div className="flex flex-col gap-0.5">
-                                    <h3 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                                        <span className="material-symbols-outlined text-[#FF8216] text-[17px]">
-                                            person_add
-                                        </span>
-                                        Convidar Membro / Duo
-                                    </h3>
-                                    <span className="text-[11px] text-slate-400">
-                                        Crie o perfil seguro e envie o link de convite para conexão bancária mútua.
+                                <div className="flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-base">
+                                        {sharedMessage.type === "success" ? "check_circle" : "error"}
                                     </span>
+                                    <span>{sharedMessage.text}</span>
                                 </div>
-
-                                <div className="flex flex-col gap-2">
-                                    <input
-                                        type="text"
-                                        placeholder="Nome do membro (ex: Mariana)"
-                                        value={newMemberName}
-                                        onChange={(e) => setNewMemberName(e.target.value)}
-                                        required
-                                        className="p-2.5 bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] rounded-xl text-xs text-slate-900 dark:text-[#F8FAFC] focus:outline-none focus:border-[#FF8216]"
-                                    />
-
-                                    <CustomDropdown
-                                        value={newMemberRole}
-                                        onChange={(val) => setNewMemberRole(val)}
-                                        options={[
-                                            { value: "Cônjuge", label: "Cônjuge / Parceiro(a)" },
-                                            { value: "Filho(a)", label: "Filho(a) / Dependente" },
-                                            { value: "Sócio(a)", label: "Sócio(a) / Duo Profissional" },
-                                            { value: "Outro", label: "Outro Vínculo" },
-                                        ]}
-                                    />
-                                </div>
-
                                 <button
-                                    type="submit"
-                                    disabled={isCreatingMember || !newMemberName.trim()}
-                                    className="h-10 px-4 bg-[#FF8216] hover:bg-[#FFA047] text-white rounded-xl text-xs font-bold disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1.5"
+                                    onClick={() => setSharedMessage(null)}
+                                    className="p-1 hover:opacity-70 cursor-pointer"
                                 >
-                                    {isCreatingMember ? (
-                                        <Spinner size={14} className="text-white" />
-                                    ) : (
-                                        <span className="material-symbols-outlined text-[16px]">
-                                            add
-                                        </span>
-                                    )}
-                                    <span>Adicionar Membro</span>
+                                    <span className="material-symbols-outlined text-sm">close</span>
                                 </button>
-                            </form>
+                            </div>
+                        )}
 
-                            <div className="lg:col-span-7 flex flex-col gap-3">
-                                <div className="flex items-center justify-between">
-                                    <h3 className="text-xs font-bold text-slate-900 dark:text-white">
-                                        Membros Cadastrados ({familyMembers.length})
-                                    </h3>
-                                    <span className="text-[11px] text-slate-400">
-                                        Clique para vincular bancos ou compartilhar link seguro
+                        {/* Pré-requisito: Usuário precisa ter pelo menos 1 banco conectado */}
+                        {sharedSpaceData && !sharedSpaceData.has_bank_accounts && (
+                            <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <div className="flex items-start gap-3">
+                                    <span className="material-symbols-outlined text-amber-500 text-xl shrink-0 mt-0.5">
+                                        account_balance
                                     </span>
+                                    <div>
+                                        <h4 className="text-xs font-bold text-amber-600 dark:text-amber-400">
+                                            Conecte uma conta bancária primeiro
+                                        </h4>
+                                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                                            Para convidar seu cônjuge/sócio ou aceitar conexões com conciliação mútua, você precisa ter pelo menos 1 conta sincronizada via Open Finance.
+                                        </p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setIsConnectModalOpen(true)}
+                                    className="px-3.5 py-2 bg-[#FF8216] hover:bg-[#FFA047] text-white rounded-xl text-xs font-bold shrink-0 flex items-center gap-1.5 cursor-pointer shadow-xs"
+                                >
+                                    <span className="material-symbols-outlined text-sm">add_link</span>
+                                    <span>Conectar Banco via Open Finance</span>
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Estado 1: Conexão Ativa Estabelecida */}
+                        {sharedSpaceData?.active_connection ? (
+                            <div className="p-5 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] flex flex-col gap-4">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-12 h-12 rounded-full bg-[#FF8216]/10 text-[#FF8216] flex items-center justify-center font-extrabold text-base border border-[#FF8216]/20">
+                                            {(sharedSpaceData.active_connection.partner_name || sharedSpaceData.active_connection.partner_email || "P")
+                                                .slice(0, 2)
+                                                .toUpperCase()}
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm font-bold text-slate-900 dark:text-white">
+                                                    {sharedSpaceData.active_connection.partner_name || "Parceiro Vinculado"}
+                                                </span>
+                                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 flex items-center gap-1">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                                    Conectado & Seguro
+                                                </span>
+                                            </div>
+                                            <span className="text-xs text-slate-500 dark:text-slate-400">
+                                                {sharedSpaceData.active_connection.partner_email} • Vínculo: {sharedSpaceData.active_connection.role}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-2.5">
+                                        <button
+                                            onClick={() => setIsFamilyModeEnabled(!isFamilyModeEnabled)}
+                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+                                                isFamilyModeEnabled
+                                                    ? "bg-white dark:bg-[#121214] border-slate-200 dark:border-[#27272A] text-slate-700 dark:text-slate-300"
+                                                    : "bg-[#FF8216] text-white border-transparent"
+                                            }`}
+                                        >
+                                            {isFamilyModeEnabled ? "Ocultar Dados do Duo" : "Consolidar no Painel"}
+                                        </button>
+                                        <button
+                                            onClick={handleUnlinkSharedSpace}
+                                            className="px-3 py-1.5 rounded-lg text-xs font-bold text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer border border-rose-500/20"
+                                            title="Desvincular Espaço Compartilhado"
+                                        >
+                                            Desvincular
+                                        </button>
+                                    </div>
                                 </div>
 
-                                {familyMembers.length > 0 ? (
+                                <div className="p-3 rounded-lg bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-emerald-500 text-base shrink-0">
+                                        shield
+                                    </span>
+                                    <span>
+                                        Privacidade garantida via Supabase Row-Level Security: ambos visualizam contas e investimentos integrados. Transferências Pix mútuas são conciliadas como remanejamento interno.
+                                    </span>
+                                </div>
+                            </div>
+                        ) : (
+                            /* Estado 2: Nenhum parceiro ativo -> Convites Recebidos, Formulário de Convite e Validador de Código */
+                            <div className="flex flex-col gap-6">
+                                {/* Convites Recebidos Aguardando Aceite */}
+                                {sharedSpaceData?.pending_received && sharedSpaceData.pending_received.length > 0 && (
                                     <div className="flex flex-col gap-2.5">
-                                        {familyMembers.map((m) => {
-                                            const memberAccounts = accounts.filter(
-                                                (a) => a.family_member_id === m.id
-                                            );
-                                            return (
+                                        <h3 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                                            <span className="material-symbols-outlined text-[#FF8216] text-base">
+                                                mark_email_unread
+                                            </span>
+                                            Convites de Conexão Recebidos ({sharedSpaceData.pending_received.length})
+                                        </h3>
+                                        {sharedSpaceData.pending_received.map((inv) => (
+                                            <div
+                                                key={inv.id}
+                                                className="p-4 rounded-xl bg-[#FF8216]/5 border border-[#FF8216]/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-9 h-9 rounded-full bg-[#FF8216]/10 text-[#FF8216] flex items-center justify-center font-bold text-xs">
+                                                        {(inv.requester_name || inv.requester_email || "U").slice(0, 2).toUpperCase()}
+                                                    </div>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-xs font-bold text-slate-900 dark:text-white">
+                                                            {inv.requester_name || inv.requester_email} convidou você
+                                                        </span>
+                                                        <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                                                            Vínculo: {inv.role} • Código: <code className="font-mono font-bold text-[#FF8216]">{inv.invite_code}</code>
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center gap-2 shrink-0">
+                                                    <button
+                                                        onClick={() => handleRespondInvite(inv.invite_code, "accept")}
+                                                        disabled={isValidatingCode}
+                                                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold cursor-pointer disabled:opacity-50 flex items-center gap-1"
+                                                    >
+                                                        <span className="material-symbols-outlined text-sm">check</span>
+                                                        <span>Aceitar Conexão</span>
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleRespondInvite(inv.invite_code, "reject")}
+                                                        disabled={isValidatingCode}
+                                                        className="px-3 py-1.5 bg-slate-200 dark:bg-[#27272A] hover:bg-slate-300 dark:hover:bg-[#323238] text-slate-700 dark:text-slate-300 rounded-lg text-xs font-semibold cursor-pointer disabled:opacity-50"
+                                                    >
+                                                        Recusar
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                                    {/* Formulário 1: Convidar Cônjuge/Sócio por E-mail */}
+                                    <form
+                                        onSubmit={handleSendInvite}
+                                        className="lg:col-span-6 p-4 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] flex flex-col gap-3.5"
+                                    >
+                                        <div className="flex flex-col gap-0.5">
+                                            <h3 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                                                <span className="material-symbols-outlined text-[#FF8216] text-[17px]">
+                                                    send
+                                                </span>
+                                                Convidar por E-mail
+                                            </h3>
+                                            <span className="text-[11px] text-slate-400">
+                                                Envie um convite seguro diretamente para a conta cadastrada do parceiro.
+                                            </span>
+                                        </div>
+
+                                        <div className="flex flex-col gap-2">
+                                            <input
+                                                type="email"
+                                                placeholder="E-mail da pessoa cadastrada (ex: mariana@exemplo.com)"
+                                                value={inviteEmail}
+                                                onChange={(e) => setInviteEmail(e.target.value)}
+                                                required
+                                                className="p-2.5 bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] rounded-xl text-xs text-slate-900 dark:text-[#F8FAFC] focus:outline-none focus:border-[#FF8216]"
+                                            />
+
+                                            <input
+                                                type="text"
+                                                placeholder="Nome do parceiro(a) (opcional)"
+                                                value={inviteName}
+                                                onChange={(e) => setInviteName(e.target.value)}
+                                                className="p-2.5 bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] rounded-xl text-xs text-slate-900 dark:text-[#F8FAFC] focus:outline-none focus:border-[#FF8216]"
+                                            />
+
+                                            <CustomDropdown
+                                                value={inviteRole}
+                                                onChange={(val) => setInviteRole(val)}
+                                                options={[
+                                                    { value: "Cônjuge", label: "Cônjuge / Parceiro(a)" },
+                                                    { value: "Filho(a)", label: "Filho(a) / Dependente" },
+                                                    { value: "Sócio(a)", label: "Sócio(a) / Duo Profissional" },
+                                                    { value: "Outro", label: "Outro Vínculo" },
+                                                ]}
+                                            />
+                                        </div>
+
+                                        <button
+                                            type="submit"
+                                            disabled={isSendingInvite || !inviteEmail.trim()}
+                                            className="h-10 px-4 bg-[#FF8216] hover:bg-[#FFA047] text-white rounded-xl text-xs font-bold disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1.5 transition-colors"
+                                        >
+                                            {isSendingInvite ? (
+                                                <Spinner size={14} />
+                                            ) : (
+                                                <span className="material-symbols-outlined text-[16px]">
+                                                    forward_to_inbox
+                                                </span>
+                                            )}
+                                            <span>Enviar Convite Seguro</span>
+                                        </button>
+                                    </form>
+
+                                    {/* Formulário 2: Inserir Código de Convite Recebido */}
+                                    <div className="lg:col-span-6 p-4 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] flex flex-col justify-between gap-3.5">
+                                        <div className="flex flex-col gap-0.5">
+                                            <h3 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                                                <span className="material-symbols-outlined text-[#FF8216] text-[17px]">
+                                                    key
+                                                </span>
+                                                Já possui um Código de Convite?
+                                            </h3>
+                                            <span className="text-[11px] text-slate-400">
+                                                Se o parceiro compartilhou um código KT-XXXX com você, insira abaixo para validar e vincular.
+                                            </span>
+                                        </div>
+
+                                        <div className="flex flex-col gap-2">
+                                            <input
+                                                type="text"
+                                                placeholder="KT-XXXX (ex: KT-A1B2C3)"
+                                                value={inputInviteCode}
+                                                onChange={(e) => setInputInviteCode(e.target.value.toUpperCase())}
+                                                maxLength={12}
+                                                className="p-2.5 bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] rounded-xl text-xs font-mono font-bold tracking-wider text-slate-900 dark:text-[#F8FAFC] focus:outline-none focus:border-[#FF8216] uppercase"
+                                            />
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => handleRespondInvite(inputInviteCode.trim(), "accept")}
+                                            disabled={isValidatingCode || !inputInviteCode.trim()}
+                                            className="h-10 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1.5 transition-colors"
+                                        >
+                                            {isValidatingCode ? (
+                                                <Spinner size={14} />
+                                            ) : (
+                                                <span className="material-symbols-outlined text-[16px]">
+                                                    link
+                                                </span>
+                                            )}
+                                            <span>Validar e Vincular Contas</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Convites Enviados em Aberto com Link e Código Copiáveis */}
+                                {sharedSpaceData?.pending_sent && sharedSpaceData.pending_sent.length > 0 && (
+                                    <div className="flex flex-col gap-2.5 pt-2">
+                                        <h3 className="text-xs font-bold text-slate-900 dark:text-white">
+                                            Convites Enviados em Aberto ({sharedSpaceData.pending_sent.length})
+                                        </h3>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                            {sharedSpaceData.pending_sent.map((sent) => (
                                                 <div
-                                                    key={m.id}
-                                                    className="p-3.5 bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] rounded-xl flex flex-col gap-2.5"
+                                                    key={sent.id}
+                                                    className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] flex flex-col gap-2.5"
                                                 >
                                                     <div className="flex items-center justify-between">
-                                                        <div className="flex items-center gap-2.5">
-                                                            <div className="w-8 h-8 rounded-full bg-[#FF8216]/10 text-[#FF8216] flex items-center justify-center font-bold text-xs">
-                                                                {m.name.slice(0, 2).toUpperCase()}
-                                                            </div>
-                                                            <div className="flex flex-col">
-                                                                <span className="text-xs font-bold text-slate-900 dark:text-[#F8FAFC]">
-                                                                    {m.name}
-                                                                </span>
-                                                                <span className="text-[11px] text-slate-400">
-                                                                    {m.role || "Membro"} •{" "}
-                                                                    {memberAccounts.length} conta(s)
-                                                                    vinculada(s)
-                                                                </span>
-                                                            </div>
-                                                        </div>
-
-                                                        <button
-                                                            onClick={() =>
-                                                                handleDeleteFamilyMember(m.id)
-                                                            }
-                                                            className="text-slate-400 hover:text-red-500 transition-colors p-1 cursor-pointer"
-                                                            title="Remover membro"
-                                                        >
-                                                            <span className="material-symbols-outlined text-[16px]">
-                                                                delete
+                                                        <div className="flex flex-col">
+                                                            <span className="text-xs font-bold text-slate-900 dark:text-white">
+                                                                {sent.recipient_email}
                                                             </span>
-                                                        </button>
+                                                            <span className="text-[11px] text-slate-400">
+                                                                {sent.role} • Aguardando aceite
+                                                            </span>
+                                                        </div>
+                                                        <span className="px-2 py-0.5 rounded-md font-mono text-[11px] font-extrabold bg-[#FF8216]/10 text-[#FF8216] border border-[#FF8216]/20">
+                                                            {sent.invite_code}
+                                                        </span>
                                                     </div>
 
-                                                    {memberAccounts.length > 0 && (
-                                                        <div className="flex flex-wrap gap-1.5 pt-1">
-                                                            {memberAccounts.map((acc) => (
-                                                                <span
-                                                                    key={acc.id}
-                                                                    className="text-[10px] px-2 py-0.5 rounded-md bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] font-semibold text-slate-700 dark:text-slate-300"
-                                                                >
-                                                                    {acc.product_name ||
-                                                                        acc.bank_name}{" "}
-                                                                    (
-                                                                    {formatCurrency(
-                                                                        Number(acc.balance) || 0
-                                                                    )}
-                                                                    )
-                                                                </span>
-                                                            ))}
-                                                        </div>
-                                                    )}
-
-                                                    <div className="pt-2 border-t border-slate-200/60 dark:border-white/5 flex items-center gap-2">
+                                                    <div className="flex items-center gap-2 pt-1 border-t border-slate-200/60 dark:border-white/5">
                                                         <button
-                                                            onClick={() => {
-                                                                setConnectForMemberId(m.id);
-                                                                setIsConnectModalOpen(true);
-                                                            }}
-                                                            className="h-8 px-2.5 rounded-lg bg-[#FF8216]/10 hover:bg-[#FF8216]/20 text-[#FF8216] text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                                                            onClick={() => handleCopy(sent.invite_code, `code_${sent.id}`)}
+                                                            className="flex-1 h-8 px-2.5 rounded-lg bg-white dark:bg-[#121214] hover:bg-slate-100 dark:hover:bg-[#27272A] border border-slate-200 dark:border-[#27272A] text-[11px] font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-center gap-1 cursor-pointer transition-colors"
                                                         >
-                                                            <span className="material-symbols-outlined text-[14px]">
-                                                                add_link
+                                                            <span className="material-symbols-outlined text-[13px]">
+                                                                content_copy
                                                             </span>
                                                             <span>
-                                                                Conectar Banco via Open Finance
+                                                                {copiedCodeOrLink === `code_${sent.id}` ? "Copiado!" : "Copiar Código"}
                                                             </span>
                                                         </button>
 
                                                         <button
-                                                            onClick={() =>
-                                                                handleCopyInviteLink(m.id)
-                                                            }
-                                                            className="h-8 px-2.5 rounded-lg bg-white dark:bg-[#121214] hover:bg-slate-100 dark:hover:bg-[#27272A] border border-slate-200 dark:border-[#27272A] text-[11px] font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1 transition-colors cursor-pointer"
+                                                            onClick={() => handleCopy(sent.invite_link, `link_${sent.id}`)}
+                                                            className="flex-1 h-8 px-2.5 rounded-lg bg-[#FF8216]/10 hover:bg-[#FF8216]/20 text-[#FF8216] text-[11px] font-bold flex items-center justify-center gap-1 cursor-pointer transition-colors"
                                                         >
-                                                            <span className="material-symbols-outlined text-[14px]">
-                                                                link
+                                                            <span className="material-symbols-outlined text-[13px]">
+                                                                share
                                                             </span>
                                                             <span>
-                                                                {copiedMemberId === m.id
-                                                                    ? "Link Copiado!"
-                                                                    : "Copiar Link"}
+                                                                {copiedCodeOrLink === `link_${sent.id}` ? "Link Copiado!" : "Copiar Link"}
                                                             </span>
                                                         </button>
                                                     </div>
                                                 </div>
-                                            );
-                                        })}
+                                            ))}
+                                        </div>
                                     </div>
-                                ) : (
-                                    <p className="text-xs text-slate-400 p-4 rounded-xl bg-slate-50 dark:bg-[#18181B] text-center border border-slate-200 dark:border-[#27272A]">
-                                        Nenhum membro adicional cadastrado. Adicione seu cônjuge, sócio ou dependentes para consolidar o patrimônio compartilhado com consentimento seguro.
-                                    </p>
                                 )}
                             </div>
-                        </div>
+                        )}
                     </div>
                 </section>
             )}
