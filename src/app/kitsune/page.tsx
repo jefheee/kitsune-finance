@@ -121,21 +121,46 @@ export default function KitsuneAIPage() {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Carrega histórico de conversas do localStorage
-  useEffect(() => {
+  // Carrega histórico de conversas isolado por usuário
+  const loadSessions = useCallback(async () => {
+    if (!user?.id) return;
     try {
-      const stored = localStorage.getItem("kitsune_saved_sessions_v2");
+      const res = await fetch("/api/chat");
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.sessions) && data.sessions.length > 0) {
+          const formatted: ChatSession[] = data.sessions.map((s: any) => ({
+            id: s.id,
+            title: s.title || "Conversa com Kitsune IA",
+            createdAt: s.created_at,
+            messages: [],
+          }));
+          setSavedSessions(formatted);
+          localStorage.setItem(`kitsune_${user.id}_saved_sessions_v2`, JSON.stringify(formatted));
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn("Não foi possível carregar sessões da API:", e);
+    }
+
+    try {
+      const stored = localStorage.getItem(`kitsune_${user.id}_saved_sessions_v2`);
       if (stored) {
         setSavedSessions(JSON.parse(stored));
       }
     } catch (e) {
-      console.warn("Não foi possível carregar sessões anteriores:", e);
+      console.warn("Não foi possível carregar sessões anteriores locais:", e);
     }
-  }, []);
+  }, [user?.id]);
+
+  useEffect(() => {
+    loadSessions();
+  }, [loadSessions]);
 
   // Salva a conversa atual no histórico quando as mensagens mudam
   useEffect(() => {
-    if (chatMessages.length <= 1) return;
+    if (!user?.id || chatMessages.length <= 1) return;
 
     try {
       const firstUserMsg = chatMessages.find((m) => m.role === "user");
@@ -153,13 +178,13 @@ export default function KitsuneAIPage() {
       setSavedSessions((prev) => {
         const filtered = prev.filter((s) => s.id !== currentSession.id);
         const updated = [currentSession, ...filtered].slice(0, 20);
-        localStorage.setItem("kitsune_saved_sessions_v2", JSON.stringify(updated));
+        localStorage.setItem(`kitsune_${user.id}_saved_sessions_v2`, JSON.stringify(updated));
         return updated;
       });
     } catch (e) {
-      console.warn("Erro ao salvar sessão:", e);
+      console.warn("Erro ao salvar sessão local:", e);
     }
-  }, [chatMessages]);
+  }, [chatMessages, user?.id]);
 
   const handleScroll = useCallback(() => {
     const el = messagesContainerRef.current;
@@ -476,10 +501,13 @@ export default function KitsuneAIPage() {
         content: m.content,
       }));
 
+      const isBackendSession = currentSessionIdRef.current && !currentSessionIdRef.current.startsWith("session-");
+
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          sessionId: isBackendSession ? currentSessionIdRef.current : undefined,
           message: trimmed,
           attachedContexts: currentAttachments,
           model: selectedAiModel,
@@ -493,6 +521,10 @@ export default function KitsuneAIPage() {
 
       if (!res.ok) {
         throw new Error(data.error || "Erro na resposta da Kitsune AI");
+      }
+
+      if (data.sessionId) {
+        currentSessionIdRef.current = data.sessionId;
       }
 
       const assistantMsgId = `assistant-${Date.now()}`;
@@ -676,31 +708,79 @@ export default function KitsuneAIPage() {
               <div className="flex-1 overflow-y-auto flex flex-col gap-2">
                 {savedSessions.length === 0 ? (
                   <p className="text-xs text-slate-400 p-4 text-center">
-                    Nenhuma conversa anterior salva neste navegador.
+                    Nenhuma conversa anterior salva.
                   </p>
                 ) : (
                   savedSessions.map((session) => (
-                    <button
+                    <div
                       key={session.id}
-                      onClick={() => {
+                      onClick={async () => {
                         currentSessionIdRef.current = session.id;
-                        setChatMessages(session.messages);
+                        try {
+                          const res = await fetch(`/api/chat?sessionId=${session.id}`);
+                          if (res.ok) {
+                            const data = await res.json();
+                            if (Array.isArray(data.messages) && data.messages.length > 0) {
+                              setChatMessages(
+                                data.messages.map((m: any) => ({
+                                  id: m.id,
+                                  role: m.role === 'model' || m.role === 'assistant' ? 'assistant' : 'user',
+                                  content: m.content,
+                                  timestamp: m.created_at || new Date().toISOString(),
+                                }))
+                              );
+                              setIsHistoryOpen(false);
+                              return;
+                            }
+                          }
+                        } catch (e) {
+                          console.warn("Erro ao buscar mensagens do servidor:", e);
+                        }
+                        if (session.messages && session.messages.length > 0) {
+                          setChatMessages(session.messages);
+                        }
                         setIsHistoryOpen(false);
                       }}
-                      className="p-3 rounded-xl border border-slate-200 dark:border-[#262E3D] hover:border-[#FF8216]/50 bg-slate-50 dark:bg-[#0E121A] text-left flex flex-col gap-1 transition-colors cursor-pointer"
+                      className="group p-3 rounded-xl border border-slate-200 dark:border-[#262E3D] hover:border-[#FF8216]/50 bg-slate-50 dark:bg-[#0E121A] text-left flex items-center justify-between gap-2 transition-colors cursor-pointer"
                     >
-                      <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
-                        {session.title}
-                      </span>
-                      <span className="text-[10px] text-slate-400">
-                        {new Date(session.createdAt).toLocaleDateString("pt-BR", {
-                          day: "2-digit",
-                          month: "short",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
-                    </button>
+                      <div className="flex flex-col gap-1 min-w-0 flex-1">
+                        <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
+                          {session.title}
+                        </span>
+                        <span className="text-[10px] text-slate-400">
+                          {new Date(session.createdAt).toLocaleDateString("pt-BR", {
+                            day: "2-digit",
+                            month: "short",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      </div>
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          try {
+                            await fetch(`/api/chat?sessionId=${session.id}`, { method: 'DELETE' });
+                            setSavedSessions((prev) => {
+                              const updated = prev.filter((s) => s.id !== session.id);
+                              if (user?.id) {
+                                localStorage.setItem(`kitsune_${user.id}_saved_sessions_v2`, JSON.stringify(updated));
+                              }
+                              return updated;
+                            });
+                            if (currentSessionIdRef.current === session.id) {
+                              handleNewConversation();
+                            }
+                          } catch (err) {
+                            console.error("Erro ao deletar sessão:", err);
+                          }
+                        }}
+                        className="opacity-0 group-hover:opacity-100 p-1 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-all"
+                        title="Excluir conversa"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">delete</span>
+                      </button>
+                    </div>
                   ))
                 )}
               </div>

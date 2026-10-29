@@ -30,7 +30,7 @@ export async function POST(req: Request) {
 
     let accountsQuery = supabase
       .from('bank_accounts')
-      .select('balance, type, bank_name, family_member_id')
+      .select('balance, type, subtype, bank_name, institution_name, family_member_id')
       .eq('user_id', userId);
 
     if (familyMemberId) {
@@ -39,12 +39,19 @@ export async function POST(req: Request) {
 
     const { data: bankAccounts } = await accountsQuery;
 
+    // Buscar investimentos reais
+    const { data: investments } = await supabase
+      .from('investments')
+      .select('balance')
+      .eq('user_id', userId);
+
     let txQuery = supabase
       .from('transactions')
-      .select('description, amount, type, category, date, executed_at')
+      .select('description, clean_description, amount, type, category, category_pt, date, executed_at, is_internal_transfer, is_refund')
       .eq('user_id', userId)
+      .eq('is_internal_transfer', false)
       .order('executed_at', { ascending: false })
-      .limit(120);
+      .limit(150);
 
     if (familyMemberId) {
       txQuery = txQuery.eq('family_member_id', familyMemberId);
@@ -57,14 +64,15 @@ export async function POST(req: Request) {
 
     (bankAccounts || []).forEach((acc) => {
       const bal = Number(acc.balance) || 0;
-      if (acc.type === 'CREDIT' || acc.type === 'CREDIT_CARD') {
+      if (acc.type === 'CREDIT' || acc.type === 'CREDIT_CARD' || acc.subtype === 'CREDIT_CARD') {
         creditDebt += Math.abs(bal);
       } else {
         liquidBalance += bal;
       }
     });
 
-    const totalBalance = liquidBalance - creditDebt;
+    const totalInvested = (investments || []).reduce((sum, inv) => sum + (Number(inv.balance) || 0), 0);
+    const totalBalance = liquidBalance + totalInvested - creditDebt;
 
     const now = new Date();
     const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -78,16 +86,22 @@ export async function POST(req: Request) {
       const rawDate = txn.executed_at || txn.date;
       const txnDate = rawDate ? new Date(rawDate) : new Date();
       const amount = Number(txn.amount) || 0;
-      const isCredit = txn.type === 'CREDIT' || amount > 0;
 
       if (txnDate >= currentMonthStart) {
+        if (txn.is_refund) {
+          // Estornos abatem saídas
+          monthlyExpense = Math.max(0, monthlyExpense - Math.abs(amount));
+          return;
+        }
+
+        const isCredit = txn.type === 'CREDIT' || amount > 0;
         if (isCredit) {
           monthlyIncome += Math.abs(amount);
         } else {
           const absVal = Math.abs(amount);
           monthlyExpense += absVal;
           expenses.push(txn);
-          const cat = txn.category || 'Outros';
+          const cat = txn.category_pt || txn.category || 'Outros';
           categoryTotals[cat] = (categoryTotals[cat] || 0) + absVal;
         }
       }

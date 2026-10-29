@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { LandingQrCode } from "@/components/landing/LandingQrCode";
+import { BankLogo } from "@/components/BankLogo";
 
 const FAQ_ITEMS = [
   {
@@ -352,6 +353,42 @@ export default function LandingPage() {
             <span className="text-xs text-zinc-400 mt-1">
               Cálculos determinísticos sem alucinação
             </span>
+          </div>
+        </div>
+
+        {/* Vitrine Oficial Open Finance Brasil */}
+        <div className="mt-14 w-full flex flex-col items-center gap-4">
+          <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">
+            Conexão Direta com Principais Instituições do Brasil
+          </span>
+          <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3.5 max-w-4xl opacity-90">
+            {[
+              { slug: 'nubank', name: 'Nubank' },
+              { slug: 'itau', name: 'Itaú' },
+              { slug: 'santander', name: 'Santander' },
+              { slug: 'inter', name: 'Banco Inter' },
+              { slug: 'caixa', name: 'Caixa' },
+              { slug: 'mercadopago', name: 'Mercado Pago' },
+              { slug: 'bradesco', name: 'Bradesco' },
+              { slug: 'bb', name: 'Banco do Brasil' },
+              { slug: 'c6', name: 'C6 Bank' },
+              { slug: 'btg', name: 'BTG Pactual' },
+              { slug: 'safra', name: 'Banco Safra' },
+              { slug: 'picpay', name: 'PicPay' },
+              { slug: 'xp', name: 'XP' },
+              { slug: 'rico', name: 'Rico' },
+              { slug: 'sicredi', name: 'Sicredi' },
+              { slug: 'sicoob', name: 'Sicoob' },
+            ].map((b) => (
+              <div
+                key={b.slug}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 hover:border-[#FF8216]/40 hover:bg-white/10 transition-all shadow-sm"
+                title={b.name}
+              >
+                <BankLogo bank={b.slug} size="xs" />
+                <span className="text-xs font-semibold text-zinc-300">{b.name}</span>
+              </div>
+            ))}
           </div>
         </div>
       </section>
