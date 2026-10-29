@@ -6,6 +6,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { FinanceDataProvider } from '@/context/FinanceDataContext';
 import ServiceWorkerRegistrar from '@/components/ServiceWorkerRegistrar';
 import OnboardingModal from '@/components/OnboardingModal';
+import { SmoothScrollProvider } from '@/components/providers/SmoothScrollProvider';
 
 const fontSans = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -64,9 +65,11 @@ export default function RootLayout({
       <body className="bg-[#F8FAFC] dark:bg-[#0A0A0A] text-slate-900 dark:text-[#F8FAFC] antialiased" suppressHydrationWarning>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem={true}>
           <FinanceDataProvider>
-            <ServiceWorkerRegistrar />
-            <OnboardingModal />
-            <AppShell>{children}</AppShell>
+            <SmoothScrollProvider>
+              <ServiceWorkerRegistrar />
+              <OnboardingModal />
+              <AppShell>{children}</AppShell>
+            </SmoothScrollProvider>
           </FinanceDataProvider>
         </ThemeProvider>
       </body>

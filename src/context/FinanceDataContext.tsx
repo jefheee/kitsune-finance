@@ -77,6 +77,8 @@ interface FinanceDataContextValue {
     // Shared view toggle (optional Family Aggregation)
     isFamilyModeEnabled: boolean;
     setIsFamilyModeEnabled: (enabled: boolean) => void;
+    activePartner: { id: string; full_name?: string; display_name?: string; avatar_url?: string } | null;
+    sharedConnection: any | null;
     // Chat state persisted across tab switches
     chatMessages: ChatMessageItem[];
     setChatMessages: React.Dispatch<React.SetStateAction<ChatMessageItem[]>>;
@@ -164,6 +166,8 @@ export function FinanceDataProvider({ children }: { children: React.ReactNode })
     const [lastFetchedAt, setLastFetchedAt] = useState<number | null>(null);
     const [selectedBankSlug, setSelectedBankSlugState] = useState<string>('all');
     const [isFamilyModeEnabled, setIsFamilyModeEnabledState] = useState<boolean>(false);
+    const [activePartner, setActivePartner] = useState<{ id: string; full_name?: string; display_name?: string; avatar_url?: string } | null>(null);
+    const [sharedConnection, setSharedConnection] = useState<any | null>(null);
     // Modo Privacidade: Sempre ativado por padrão conforme solicitado
     const [isPrivacyMode, setIsPrivacyMode] = useState<boolean>(true);
 
@@ -189,6 +193,7 @@ export function FinanceDataProvider({ children }: { children: React.ReactNode })
     const isFetchingRef = useRef(false);
     const lastFetchedRef = useRef<number | null>(null);
     const currentUserIdRef = useRef<string | null>(null);
+    const revalidateRef = useRef<(force?: boolean) => Promise<void>>(async () => {});
 
     const setSelectedBankSlug = useCallback((slug: string) => {
         setSelectedBankSlugState(slug);
@@ -208,6 +213,11 @@ export function FinanceDataProvider({ children }: { children: React.ReactNode })
                 enabled ? '1' : '0'
             );
         }
+        // Força revalidação imediata com bypass de cache para agregar/desagregar dados do parceiro
+        lastFetchedRef.current = null;
+        setTimeout(() => {
+            revalidateRef.current(true);
+        }, 50);
     }, []);
 
     const resetState = useCallback((wipeStorage = false) => {
@@ -224,6 +234,8 @@ export function FinanceDataProvider({ children }: { children: React.ReactNode })
         setTransactions([]);
         setConnections([]);
         setFamilyMembers([]);
+        setActivePartner(null);
+        setSharedConnection(null);
         setAiInsightState(null);
         setSelectedBankSlugState('all');
         setChatMessages([DEFAULT_WELCOME_MESSAGE]);
@@ -276,12 +288,14 @@ export function FinanceDataProvider({ children }: { children: React.ReactNode })
                 currentUserIdRef.current = authUser.id;
                 setUser(authUser);
 
+                let isFamilyActive = false;
                 if (typeof window !== 'undefined') {
                     const savedFamilyPref = window.localStorage.getItem(
                         `kitsune_${authUser.id}_family_mode`
                     );
                     if (savedFamilyPref !== null) {
-                        setIsFamilyModeEnabledState(savedFamilyPref === '1');
+                        isFamilyActive = savedFamilyPref === '1';
+                        setIsFamilyModeEnabledState(isFamilyActive);
                     }
                     const savedBankSlug = window.localStorage.getItem(
                         `kitsune_${authUser.id}_selected_bank`
@@ -290,6 +304,45 @@ export function FinanceDataProvider({ children }: { children: React.ReactNode })
                         setSelectedBankSlugState(savedBankSlug);
                     }
                 }
+
+                // Busca conexão de Espaço Compartilhado ativa com consentimento mútuo
+                let activeConn: any = null;
+                let partnerProfile: any = null;
+                try {
+                    const { data: conn } = await supabase
+                        .from('shared_connections')
+                        .select('*')
+                        .or(`requester_id.eq.${authUser.id},recipient_id.eq.${authUser.id}`)
+                        .eq('status', 'accepted')
+                        .maybeSingle();
+
+                    activeConn = conn || null;
+                    if (conn) {
+                        const partnerId =
+                            conn.requester_id === authUser.id
+                                ? conn.recipient_id
+                                : conn.requester_id;
+                        if (partnerId) {
+                            const { data: pData } = await supabase
+                                .from('users_profile')
+                                .select('id, full_name, display_name, avatar_url')
+                                .eq('id', partnerId)
+                                .maybeSingle();
+                            partnerProfile = pData || { id: partnerId };
+                        }
+                    }
+                } catch (e) {
+                    console.warn('[FinanceDataContext] Consulta shared_connections:', e);
+                }
+
+                setSharedConnection(activeConn);
+                setActivePartner(partnerProfile);
+
+                // Multi-tenant: Se o modo Espaço Compartilhado estiver ativo e houver parceiro conectado, agrega os dois IDs
+                const targetUserIds =
+                    isFamilyActive && partnerProfile?.id
+                        ? [authUser.id, partnerProfile.id]
+                        : [authUser.id];
 
                 const [
                     profileRes,
@@ -314,30 +367,30 @@ export function FinanceDataProvider({ children }: { children: React.ReactNode })
                     supabase
                         .from('bank_accounts')
                         .select('*, family_members(id, name, role)')
-                        .eq('user_id', authUser.id)
+                        .in('user_id', targetUserIds)
                         .order('updated_at', { ascending: false }),
                     supabase
                         .from('investments')
                         .select('*')
-                        .eq('user_id', authUser.id)
+                        .in('user_id', targetUserIds)
                         .order('balance', { ascending: false }),
                     supabase
                         .from('loans')
                         .select('*')
-                        .eq('user_id', authUser.id)
+                        .in('user_id', targetUserIds)
                         .order('updated_at', { ascending: false }),
                     supabase
                         .from('transactions')
                         .select(
                             '*, bank_accounts(bank_name, institution_name, institution_slug, product_name, type, subtype, card_brand), family_members(id, name, role)'
                         )
-                        .eq('user_id', authUser.id)
+                        .in('user_id', targetUserIds)
                         .order('date', { ascending: false })
                         .limit(400),
                     supabase
                         .from('pluggy_connections')
                         .select('*')
-                        .eq('user_id', authUser.id)
+                        .in('user_id', targetUserIds)
                         .order('updated_at', { ascending: false }),
                     supabase
                         .from('ai_insights')
@@ -414,7 +467,26 @@ export function FinanceDataProvider({ children }: { children: React.ReactNode })
                 setAccounts(bankAccRes.data || []);
                 setInvestments(invRes.data || []);
                 setLoans(loansRes.data || []);
-                setTransactions(txnRes.data || []);
+
+                // Reconciliação inteligente: Transações e Pix mútuos entre o casal são marcados como remanejamento interno
+                const rawTxns = txnRes.data || [];
+                const partnerName = (partnerProfile?.display_name || partnerProfile?.full_name || '').toLowerCase();
+                const userName = (profileRes.data?.display_name || profileRes.data?.full_name || '').toLowerCase();
+
+                const reconciledTxns = rawTxns.map((t: any) => {
+                    if (targetUserIds.length > 1 && partnerName && partnerName.length >= 3) {
+                        const desc = (t.description || '').toLowerCase();
+                        if (
+                            (desc.includes(partnerName) || (userName && desc.includes(userName)) || desc.includes('transferência') || desc.includes('pix')) &&
+                            (desc.includes('enviad') || desc.includes('recebid') || desc.includes('entre contas') || desc.includes('mesma titularidade'))
+                        ) {
+                            return { ...t, is_internal_transfer: true };
+                        }
+                    }
+                    return t;
+                });
+
+                setTransactions(reconciledTxns);
                 setConnections(connRes.data || []);
 
                 if (insightRes.data) {
@@ -439,6 +511,8 @@ export function FinanceDataProvider({ children }: { children: React.ReactNode })
         },
         [resetState]
     );
+
+    revalidateRef.current = revalidate;
 
     useEffect(() => {
         revalidate(false);
@@ -522,6 +596,8 @@ export function FinanceDataProvider({ children }: { children: React.ReactNode })
                 formatSensitiveCurrency,
                 isFamilyModeEnabled,
                 setIsFamilyModeEnabled,
+                activePartner,
+                sharedConnection,
                 chatMessages,
                 setChatMessages,
                 selectedAiModel,

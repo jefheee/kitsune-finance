@@ -28,6 +28,27 @@ html {
   scrollbar-gutter: stable;
 }
 
+/* Lenis Smooth Scroll Configuration */
+html.lenis, html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+.lenis.lenis-scrolling iframe {
+  pointer-events: none;
+}
+
 /* Suporte de alto contraste para Tema Claro e Tema Escuro com Transições Fluidas */
 body {
   background-color: #F8FAFC;

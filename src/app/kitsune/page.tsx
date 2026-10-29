@@ -89,12 +89,12 @@ export default function KitsuneAIPage() {
   const [selectedScope, setSelectedScope] = useState<string>("personal");
   const [thinkingStep, setThinkingStep] = useState<number>(0);
 
-  // Etapas de raciocínio da Kitsune AI em tempo real
+  // Etapas de raciocínio da Kitsune AI progressivas e lineares (sem repetição de loop falso)
   const THINKING_STEPS = [
-    { icon: "search", label: "Consultando cofre financeiro e decodificando extratos..." },
-    { icon: "account_balance", label: "Conciliando faturas, limites e taxas Open Finance..." },
-    { icon: "security", label: "Auditando fluxo de caixa e anomalias de consumo..." },
-    { icon: "auto_awesome", label: "Formulando recomendações estratégicas personalizadas..." },
+    { id: 1, icon: "search", title: "Inspecionando Contexto & Contas", detail: "Carregando saldos e instituições Open Finance conectadas..." },
+    { id: 2, icon: "account_balance", title: "Cruzando Faturas & Transações", detail: "Conciliando lançamentos recentes, parcelas e fluxo de caixa..." },
+    { id: 3, icon: "security", title: "Auditando Indicadores & Riscos", detail: "Verificando limites de cartão, liquidez e métricas macroeconômicas..." },
+    { id: 4, icon: "auto_awesome", title: "Sintetizando Estratégia Patrimonial", detail: "Formulando recomendações práticas com inteligência financeira..." },
   ];
 
   useEffect(() => {
@@ -102,11 +102,45 @@ export default function KitsuneAIPage() {
       setThinkingStep(0);
       return;
     }
-    const timer = setInterval(() => {
-      setThinkingStep((prev) => (prev + 1) % THINKING_STEPS.length);
-    }, 1300);
-    return () => clearInterval(timer);
+    const t1 = setTimeout(() => setThinkingStep(1), 1200);
+    const t2 = setTimeout(() => setThinkingStep(2), 2600);
+    const t3 = setTimeout(() => setThinkingStep(3), 4200);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
   }, [isLoading]);
+
+  // Mouse-Drag fluido para a barra de sugestões
+  const isDraggingSuggestions = useRef(false);
+  const startXSuggestions = useRef(0);
+  const scrollLeftSuggestions = useRef(0);
+  const hasMovedSuggestions = useRef(false);
+
+  const handleSuggestionsMouseDown = (e: React.MouseEvent) => {
+    if (!suggestionsScrollRef.current) return;
+    isDraggingSuggestions.current = true;
+    hasMovedSuggestions.current = false;
+    startXSuggestions.current = e.pageX - suggestionsScrollRef.current.offsetLeft;
+    scrollLeftSuggestions.current = suggestionsScrollRef.current.scrollLeft;
+  };
+
+  const handleSuggestionsMouseMove = (e: React.MouseEvent) => {
+    if (!isDraggingSuggestions.current || !suggestionsScrollRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - suggestionsScrollRef.current.offsetLeft;
+    const walk = (x - startXSuggestions.current) * 1.6;
+    if (Math.abs(walk) > 4) {
+      hasMovedSuggestions.current = true;
+    }
+    suggestionsScrollRef.current.scrollLeft = scrollLeftSuggestions.current - walk;
+  };
+
+  const handleSuggestionsMouseUpOrLeave = () => {
+    isDraggingSuggestions.current = false;
+  };
 
   // Imagem anexada para Kitsune Vision integrada
   const [attachedImage, setAttachedImage] = useState<{
@@ -958,7 +992,7 @@ export default function KitsuneAIPage() {
               </span>
             </div>
             <p className="text-[11px] text-slate-500 dark:text-[#94A3B8] truncate hidden sm:block">
-              Consultoria Patrimonial Pessoal • Dados criptografados e somente-leitura
+              Consultoria Patrimonial Pessoal & Estratégia de Ativos
             </p>
           </div>
         </div>
@@ -1197,33 +1231,60 @@ export default function KitsuneAIPage() {
           ))}
         </AnimatePresence>
 
-        {/* Indicador de Raciocínio em Tempo Real com Etapas Transparentes */}
+        {/* Indicador de Raciocínio em Tempo Real com Etapas Transparentes e Lineares */}
         {isLoading && (
           <motion.div
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-start gap-2.5 max-w-[90%]"
+            className="flex flex-col gap-2 max-w-xl self-start w-full"
           >
-            <div className="w-8 h-8 rounded-xl bg-[#FF8216]/10 border border-[#FF8216]/25 flex items-center justify-center shrink-0">
-              <span className="material-symbols-outlined text-[#FF8216] text-[18px] animate-spin" style={{ animationDuration: "3s" }}>
-                {THINKING_STEPS[thinkingStep]?.icon || "auto_awesome"}
-              </span>
-            </div>
-            <div className="px-4 py-3 rounded-2xl rounded-tl-sm bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] text-xs text-slate-600 dark:text-[#94A3B8] flex items-center gap-3 shadow-sm">
-              <div className="flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#FF8216] animate-bounce" style={{ animationDelay: "0ms" }} />
-                <span className="w-1.5 h-1.5 rounded-full bg-[#FF8216] animate-bounce" style={{ animationDelay: "150ms" }} />
-                <span className="w-1.5 h-1.5 rounded-full bg-[#FF8216] animate-bounce" style={{ animationDelay: "300ms" }} />
-              </div>
-              <div className="flex flex-col gap-0.5">
+            <div className="p-3.5 md:p-4 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] shadow-md flex flex-col gap-2.5">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-[#27272A]">
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.2 rounded-md bg-[#FF8216]/15 text-[#FF8216]">
-                    Etapa {thinkingStep + 1}/4
-                  </span>
-                  <span className="font-semibold text-slate-800 dark:text-zinc-200">
-                    {THINKING_STEPS[thinkingStep]?.label}
+                  <div className="w-6 h-6 rounded-lg bg-[#FF8216]/10 text-[#FF8216] flex items-center justify-center">
+                    <span className="material-symbols-outlined text-[15px] animate-spin" style={{ animationDuration: "3s" }}>
+                      psychology
+                    </span>
+                  </div>
+                  <span className="text-xs font-bold text-slate-900 dark:text-white">
+                    Kitsune AI • Processando Diagnóstico Financeiro
                   </span>
                 </div>
+                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-[#FF8216]/15 text-[#FF8216]">
+                  Etapa {thinkingStep + 1} de 4
+                </span>
+              </div>
+
+              {/* Grid das 4 Etapas Progressivas */}
+              <div className="flex flex-col gap-1.5">
+                {THINKING_STEPS.map((step, idx) => {
+                  const isDone = thinkingStep > idx;
+                  const isCurrent = thinkingStep === idx;
+                  return (
+                    <div
+                      key={step.id}
+                      className={`flex items-center gap-2 text-xs transition-colors py-0.5 ${
+                        isDone
+                          ? "text-emerald-500 font-medium"
+                          : isCurrent
+                          ? "text-[#FF8216] font-bold"
+                          : "text-slate-400 dark:text-zinc-600"
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-[15px] shrink-0">
+                        {isDone ? "check_circle" : isCurrent ? "radio_button_checked" : "radio_button_unchecked"}
+                      </span>
+                      <div className="flex items-center gap-1.5 min-w-0 truncate">
+                        <span className="truncate">{step.title}</span>
+                        {isCurrent && (
+                          <span className="text-[10px] text-slate-500 dark:text-[#94A3B8] font-normal truncate hidden sm:inline">
+                            — {step.detail}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </motion.div>
@@ -1239,7 +1300,7 @@ export default function KitsuneAIPage() {
         <div ref={messagesEndRef} className="h-2 shrink-0" />
       </div>
 
-      {/* Carrossel Dinâmico de Sugestões de Alto Valor Agregado com Navegação por Setas */}
+      {/* Carrossel Dinâmico de Sugestões de Alto Valor Agregado com Navegação por Setas e Mouse-Drag */}
       <div className="px-3 md:px-8 max-w-4xl mx-auto w-full pb-2">
         <div className="relative flex items-center gap-1.5">
           {/* Botão Seta Esquerda (Desktop) */}
@@ -1252,10 +1313,14 @@ export default function KitsuneAIPage() {
             <span className="material-symbols-outlined text-[18px]">chevron_left</span>
           </button>
 
-          {/* Container com scroll suave */}
+          {/* Container com scroll suave e suporte a Mouse Drag nativo */}
           <div
             ref={suggestionsScrollRef}
-            className="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-none scroll-smooth flex-1"
+            onMouseDown={handleSuggestionsMouseDown}
+            onMouseMove={handleSuggestionsMouseMove}
+            onMouseUp={handleSuggestionsMouseUpOrLeave}
+            onMouseLeave={handleSuggestionsMouseUpOrLeave}
+            className="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-none scroll-smooth flex-1 cursor-grab active:cursor-grabbing select-none"
           >
             <span className="text-[11px] text-slate-500 dark:text-[#94A3B8] font-bold uppercase tracking-wider shrink-0 flex items-center gap-1 pl-1">
               <span className="material-symbols-outlined text-sm text-[#FF8216]">
@@ -1268,7 +1333,10 @@ export default function KitsuneAIPage() {
                 key={item.id}
                 type="button"
                 disabled={isLoading}
-                onClick={() => handleSelectSuggestedPrompt(item.query)}
+                onClick={() => {
+                  if (hasMovedSuggestions.current) return;
+                  handleSelectSuggestedPrompt(item.query);
+                }}
                 title="Clique para perguntar diretamente à IA"
                 className="group px-3 py-1.5 rounded-full bg-white dark:bg-[#121214] hover:bg-slate-100 dark:hover:bg-[#18181B] border border-slate-200 dark:border-[#27272A] hover:border-[#FF8216]/50 text-slate-700 dark:text-[#F8FAFC] text-xs font-medium transition-all whitespace-nowrap cursor-pointer active:scale-95 shadow-xs flex items-center gap-1.5 shrink-0"
               >
