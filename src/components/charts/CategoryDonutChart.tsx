@@ -58,7 +58,7 @@ export function CategoryDonutChart({
           r={radius}
           fill="transparent"
           stroke="currentColor"
-          className="text-slate-100 dark:text-[#1A202C]"
+          className="text-slate-100 dark:text-[#27272A]"
           strokeWidth={strokeWidth}
         />
 

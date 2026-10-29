@@ -47,6 +47,7 @@
 ---
 
 ## 3. Módulos Implementados
+- [x] Padronização Visual Neutra (Warm Obsidian): Eliminação completa de classes legadas com matiz azul/marinho (`#12161F`, `#262E3D`, `#0E121A`, etc.) em todos os componentes e páginas (`SpotlightCard`, extrato, parcelamentos, assinaturas, gráficos, modais, settings, profile e chat), padronizando no cinza neutro e grafite profundo (`#0A0A0A` / `#121214` / `#18181B` / `#27272A`) idêntico à Landing Page
 - [x] Refatoração Global de Categorias: eliminação da distorção de R$ 40k, exclusão de aportes/resgates de investimento e TEDs próprias, com navegação mensal independente (< / >) e filtro pelo período selecionado
 - [x] Carrossel Apple Wallet de Cartões com interação por Mouse-Drag (`cursor-grab`) e Touch Swipe, barra de limite (usado vs livre), faturas detalhadas, dicas dinâmicas por cartão e seleção interativa
 - [x] Dynamic Style Resolver (`resolveCardTheme`) com reconhecimento inteligente de bancos e cartões (Black, Ultravioleta, Uniclass, Azul Itaú, Inter, C6 Carbon, etc.) com reflexo especular minimalista

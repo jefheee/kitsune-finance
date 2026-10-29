@@ -36,7 +36,7 @@ export function InvoiceBarChart({
         </div>
 
         {/* Bars Container */}
-        <div className="flex-1 flex items-end justify-between h-full gap-2 border-b border-slate-200 dark:border-[#262E3D] pb-1">
+        <div className="flex-1 flex items-end justify-between h-full gap-2 border-b border-slate-200 dark:border-[#27272A] pb-1">
           {invoices.map((inv, idx) => {
             const isSelected = selectedMonthIndex === idx;
             const isHovered = hoveredIdx === idx;
@@ -66,8 +66,8 @@ export function InvoiceBarChart({
                     isSelected
                       ? "bg-white dark:bg-white shadow-[0_0_15px_rgba(255,255,255,0.4)]"
                       : isHovered
-                      ? "bg-slate-400 dark:bg-[#3D4759]"
-                      : "bg-slate-200 dark:bg-[#1E2533]"
+                      ? "bg-slate-400 dark:bg-[#3F3F46]"
+                      : "bg-slate-200 dark:bg-[#27272A]"
                   }`}
                   style={{
                     height: `${Math.max(heightPercent, 4)}%`,

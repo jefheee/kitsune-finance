@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
@@ -10,38 +10,38 @@ import { BankLogo } from "@/components/BankLogo";
 const FINANCIAL_GOALS = [
     {
         id: "emergency_fund",
-        label: "Reserva de Emergência",
+        label: "Reserva de EmergÃªncia",
         desc: "Blindar de 3 a 6 meses de custo de vida para imprevistos.",
         icon: "shield",
     },
     {
         id: "debt_freedom",
-        label: "Zerar Faturas & Dívidas",
-        desc: "Amortizar cartões e viver 100% no positivo sem juros.",
+        label: "Zerar Faturas & DÃ­vidas",
+        desc: "Amortizar cartÃµes e viver 100% no positivo sem juros.",
         icon: "credit_card_off",
     },
     {
         id: "fire_investing",
-        label: "Independência Financeira (FIRE)",
-        desc: "Construir patrimônio gerador de renda passiva mensal.",
+        label: "IndependÃªncia Financeira (FIRE)",
+        desc: "Construir patrimÃ´nio gerador de renda passiva mensal.",
         icon: "rocket_launch",
     },
     {
         id: "asset_growth",
-        label: "Crescimento & Alocação Estratégica",
-        desc: "Otimizar diversificação entre CDI, Ações e Fundos.",
+        label: "Crescimento & AlocaÃ§Ã£o EstratÃ©gica",
+        desc: "Otimizar diversificaÃ§Ã£o entre CDI, AÃ§Ãµes e Fundos.",
         icon: "trending_up",
     },
     {
         id: "real_estate",
-        label: "Conquista de Imóvel / Veículo",
-        desc: "Poupar para entrada ou aquisição planejada de bens.",
+        label: "Conquista de ImÃ³vel / VeÃ­culo",
+        desc: "Poupar para entrada ou aquisiÃ§Ã£o planejada de bens.",
         icon: "home",
     },
     {
         id: "travel_lifestyle",
         label: "Projetos Pessoais & Viagens",
-        desc: "Garantir experiências sem comprometer o fluxo de caixa.",
+        desc: "Garantir experiÃªncias sem comprometer o fluxo de caixa.",
         icon: "flight_takeoff",
     },
 ];
@@ -92,7 +92,7 @@ export default function ProfilePage() {
         if (!file) return;
 
         if (file.size > 2 * 1024 * 1024) {
-            alert("A imagem selecionada é muito grande. O limite máximo é de 2MB.");
+            alert("A imagem selecionada Ã© muito grande. O limite mÃ¡ximo Ã© de 2MB.");
             return;
         }
 
@@ -180,7 +180,7 @@ export default function ProfilePage() {
             setTimeout(() => setSaveSuccess(false), 3500);
         } catch (err: any) {
             console.error("Erro ao salvar perfil:", err);
-            setErrorMessage(err.message || "Erro ao salvar informações do perfil.");
+            setErrorMessage(err.message || "Erro ao salvar informaÃ§Ãµes do perfil.");
         } finally {
             setIsSaving(false);
         }
@@ -191,12 +191,12 @@ export default function ProfilePage() {
     return (
         <div className="flex flex-col gap-6 md:gap-8 p-4 md:p-8 max-w-4xl mx-auto w-full font-sans">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-[#262E3D]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-[#27272A]">
                 <div className="flex flex-col gap-1">
                     <div className="flex items-center gap-2">
                         <span className="material-symbols-outlined text-[#FF8216]">person</span>
                         <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-[#94A3B8]">
-                            Espaço Pessoal & Open Finance
+                            EspaÃ§o Pessoal & Open Finance
                         </span>
                     </div>
                     <h1 className="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-[#F8FAFC]">
@@ -209,10 +209,10 @@ export default function ProfilePage() {
 
                 <Link
                     href="/dashboard"
-                    className="self-start sm:self-auto h-9 px-4 rounded-xl border border-slate-200 dark:border-[#262E3D] hover:bg-slate-100 dark:hover:bg-[#161B26] text-xs font-semibold text-slate-700 dark:text-[#F8FAFC] flex items-center gap-1.5 transition-colors cursor-pointer"
+                    className="self-start sm:self-auto h-9 px-4 rounded-xl border border-slate-200 dark:border-[#27272A] hover:bg-slate-100 dark:hover:bg-[#18181B] text-xs font-semibold text-slate-700 dark:text-[#F8FAFC] flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                     <span className="material-symbols-outlined text-[16px]">arrow_back</span>
-                    Voltar ao Início
+                    Voltar ao InÃ­cio
                 </Link>
             </div>
 
@@ -237,10 +237,10 @@ export default function ProfilePage() {
                 </div>
             )}
 
-            {/* Seção: Perfil Open Finance Consolidado */}
+            {/* SeÃ§Ã£o: Perfil Open Finance Consolidado */}
             {(userProfile?.document_mask ||
                 (userProfile?.bank_sources && userProfile.bank_sources.length > 0)) && (
-                <section className="bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] rounded-2xl p-5 md:p-6 flex flex-col gap-4 shadow-sm">
+                <section className="bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] rounded-2xl p-5 md:p-6 flex flex-col gap-4 shadow-sm">
                     <div className="flex items-center justify-between flex-wrap gap-2">
                         <div className="flex items-center gap-2.5">
                             <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
@@ -253,7 +253,7 @@ export default function ProfilePage() {
                                     Perfil Open Finance Consolidado
                                 </h2>
                                 <span className="text-xs text-slate-500 dark:text-[#94A3B8]">
-                                    Consenso automático entre {userProfile?.bank_sources?.length || 1} instituição(ões) financeira(s) conectada(s).
+                                    Consenso automÃ¡tico entre {userProfile?.bank_sources?.length || 1} instituiÃ§Ã£o(Ãµes) financeira(s) conectada(s).
                                 </span>
                             </div>
                         </div>
@@ -265,30 +265,30 @@ export default function ProfilePage() {
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#0E121A] border border-slate-200 dark:border-[#262E3D]">
+                        <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A]">
                             <span className="text-[10px] font-bold uppercase text-slate-400 block">
                                 Data de Nascimento
                             </span>
                             <span className="text-xs font-bold text-slate-900 dark:text-white mt-0.5 block">
-                                {userProfile?.birth_date || "Não informada"}
+                                {userProfile?.birth_date || "NÃ£o informada"}
                             </span>
                         </div>
-                        <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#0E121A] border border-slate-200 dark:border-[#262E3D]">
+                        <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A]">
                             <span className="text-[10px] font-bold uppercase text-slate-400 block">
-                                Profissão Registrada
+                                ProfissÃ£o Registrada
                             </span>
                             <span className="text-xs font-bold text-slate-900 dark:text-white mt-0.5 block truncate">
-                                {userProfile?.job_title || "Não informada"}
+                                {userProfile?.job_title || "NÃ£o informada"}
                             </span>
                         </div>
-                        <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#0E121A] border border-slate-200 dark:border-[#262E3D]">
+                        <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A]">
                             <span className="text-[10px] font-bold uppercase text-slate-400 block">
                                 Telefones Verificados
                             </span>
                             <span className="text-xs font-bold text-slate-900 dark:text-white mt-0.5 block truncate">
                                 {userProfile?.phones?.length
-                                    ? userProfile.phones.slice(0, 2).join(" • ")
-                                    : "Não informado"}
+                                    ? userProfile.phones.slice(0, 2).join(" â€¢ ")
+                                    : "NÃ£o informado"}
                             </span>
                         </div>
                     </div>
@@ -298,7 +298,7 @@ export default function ProfilePage() {
                             {userProfile.bank_sources.map((src, idx) => (
                                 <div
                                     key={`${src.itemId}_${idx}`}
-                                    className="p-3 rounded-xl bg-slate-50 dark:bg-[#0E121A] border border-slate-200 dark:border-[#262E3D] flex items-center justify-between gap-2"
+                                    className="p-3 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] flex items-center justify-between gap-2"
                                 >
                                     <div className="flex items-center gap-2.5 min-w-0">
                                         <BankLogo
@@ -311,7 +311,7 @@ export default function ProfilePage() {
                                             </span>
                                             <span className="text-[10px] text-slate-400 block truncate">
                                                 {src.fullName}
-                                                {src.cityState ? ` • ${src.cityState}` : ""}
+                                                {src.cityState ? ` â€¢ ${src.cityState}` : ""}
                                             </span>
                                         </div>
                                     </div>
@@ -327,10 +327,10 @@ export default function ProfilePage() {
 
             <form onSubmit={handleSave} className="flex flex-col gap-6">
                 {/* Bloco 1: Foto e Identidade */}
-                <section className="bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] rounded-2xl p-5 md:p-6 flex flex-col md:flex-row items-center md:items-start gap-6 shadow-sm">
+                <section className="bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] rounded-2xl p-5 md:p-6 flex flex-col md:flex-row items-center md:items-start gap-6 shadow-sm">
                     <div className="flex flex-col items-center gap-3 shrink-0">
                         <div className="relative group">
-                            <div className="w-24 h-24 rounded-2xl overflow-hidden bg-slate-100 dark:bg-[#1A202C] border-2 border-slate-200 dark:border-[#262E3D] flex items-center justify-center shadow-sm">
+                            <div className="w-24 h-24 rounded-2xl overflow-hidden bg-slate-100 dark:bg-[#18181B] border-2 border-slate-200 dark:border-[#27272A] flex items-center justify-center shadow-sm">
                                 {avatarUrl ? (
                                     <img
                                         src={avatarUrl}
@@ -398,7 +398,7 @@ export default function ProfilePage() {
                                 value={fullName}
                                 onChange={(e) => setFullName(e.target.value)}
                                 placeholder="Ex: Jefherson Silva"
-                                className="w-full h-11 px-3.5 rounded-xl bg-slate-50 dark:bg-[#0E121A] border border-slate-200 dark:border-[#262E3D] focus:border-[#FF8216] outline-none text-xs md:text-sm text-slate-900 dark:text-[#F8FAFC] transition-colors"
+                                className="w-full h-11 px-3.5 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] focus:border-[#FF8216] outline-none text-xs md:text-sm text-slate-900 dark:text-[#F8FAFC] transition-colors"
                             />
                         </div>
 
@@ -412,7 +412,7 @@ export default function ProfilePage() {
                                 onChange={(e) => setDisplayName(e.target.value)}
                                 placeholder="Ex: Jefherson"
                                 required
-                                className="w-full h-11 px-3.5 rounded-xl bg-slate-50 dark:bg-[#0E121A] border border-slate-200 dark:border-[#262E3D] focus:border-[#FF8216] outline-none text-xs md:text-sm text-slate-900 dark:text-[#F8FAFC] transition-colors"
+                                className="w-full h-11 px-3.5 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] focus:border-[#FF8216] outline-none text-xs md:text-sm text-slate-900 dark:text-[#F8FAFC] transition-colors"
                             />
                         </div>
 
@@ -420,7 +420,7 @@ export default function ProfilePage() {
                             <label className="text-xs font-semibold text-slate-500 dark:text-[#94A3B8]">
                                 E-mail Vinculado (Autenticado)
                             </label>
-                            <div className="w-full h-11 px-3.5 rounded-xl bg-slate-100 dark:bg-[#0E121A]/60 border border-slate-200 dark:border-[#262E3D] text-xs text-slate-600 dark:text-[#94A3B8] flex items-center justify-between select-none">
+                            <div className="w-full h-11 px-3.5 rounded-xl bg-slate-100 dark:bg-[#18181B]/60 border border-slate-200 dark:border-[#27272A] text-xs text-slate-600 dark:text-[#94A3B8] flex items-center justify-between select-none">
                                 <span className="truncate">{user?.email || "carregando..."}</span>
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-semibold shrink-0">
                                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
@@ -432,7 +432,7 @@ export default function ProfilePage() {
                 </section>
 
                 {/* Bloco 2: Renda Mensal Declarada & Regra 50/30/20 */}
-                <section className="bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] rounded-2xl p-5 md:p-6 flex flex-col gap-4 shadow-sm">
+                <section className="bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] rounded-2xl p-5 md:p-6 flex flex-col gap-4 shadow-sm">
                     <div className="flex items-center justify-between flex-wrap gap-2">
                         <div className="flex items-center gap-2.5">
                             <div className="w-9 h-9 rounded-xl bg-[#FF8216]/10 text-[#FF8216] flex items-center justify-center">
@@ -440,7 +440,7 @@ export default function ProfilePage() {
                             </div>
                             <div className="flex flex-col">
                                 <h2 className="text-sm font-bold text-slate-900 dark:text-[#F8FAFC]">
-                                    Renda Mensal Líquida
+                                    Renda Mensal LÃ­quida
                                 </h2>
                                 <span className="text-xs text-slate-500 dark:text-[#94A3B8]">
                                     Usado pela IA para estimar seu teto de gastos e margem de sobra real.
@@ -452,7 +452,7 @@ export default function ProfilePage() {
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-start pt-1">
                         <div className="md:col-span-5 flex flex-col gap-1.5">
                             <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                                Valor Líquido Mensal (R$)
+                                Valor LÃ­quido Mensal (R$)
                             </label>
                             <div className="relative">
                                 <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
@@ -465,18 +465,18 @@ export default function ProfilePage() {
                                     value={monthlyIncome}
                                     onChange={(e) => setMonthlyIncome(e.target.value)}
                                     placeholder="0,00"
-                                    className="w-full h-11 pl-10 pr-4 rounded-xl bg-slate-50 dark:bg-[#0E121A] border border-slate-200 dark:border-[#262E3D] focus:border-[#FF8216] outline-none text-sm text-slate-900 dark:text-[#F8FAFC] font-semibold tabular-nums"
+                                    className="w-full h-11 pl-10 pr-4 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] focus:border-[#FF8216] outline-none text-sm text-slate-900 dark:text-[#F8FAFC] font-semibold tabular-nums"
                                 />
                             </div>
                         </div>
 
-                        <div className="md:col-span-7 flex flex-col gap-2 p-3.5 rounded-xl bg-slate-50 dark:bg-[#0E121A] border border-slate-200 dark:border-[#262E3D]">
+                        <div className="md:col-span-7 flex flex-col gap-2 p-3.5 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A]">
                             <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
-                                Divisão Recomendada (Regra de Ouro 50/30/20)
+                                DivisÃ£o Recomendada (Regra de Ouro 50/30/20)
                             </span>
 
                             <div className="grid grid-cols-3 gap-2 text-center">
-                                <div className="p-2 rounded-lg bg-white dark:bg-[#161B26] border border-slate-200 dark:border-white/5">
+                                <div className="p-2 rounded-lg bg-white dark:bg-[#18181B] border border-slate-200 dark:border-white/5">
                                     <span className="text-[10px] text-slate-400 block">
                                         50% Essencial
                                     </span>
@@ -485,7 +485,7 @@ export default function ProfilePage() {
                                     </span>
                                 </div>
 
-                                <div className="p-2 rounded-lg bg-white dark:bg-[#161B26] border border-slate-200 dark:border-white/5">
+                                <div className="p-2 rounded-lg bg-white dark:bg-[#18181B] border border-slate-200 dark:border-white/5">
                                     <span className="text-[10px] text-slate-400 block">
                                         30% Estilo de Vida
                                     </span>
@@ -494,7 +494,7 @@ export default function ProfilePage() {
                                     </span>
                                 </div>
 
-                                <div className="p-2 rounded-lg bg-white dark:bg-[#161B26] border border-slate-200 dark:border-white/5">
+                                <div className="p-2 rounded-lg bg-white dark:bg-[#18181B] border border-slate-200 dark:border-white/5">
                                     <span className="text-[10px] text-slate-400 block">
                                         20% Futuro / Invest
                                     </span>
@@ -508,7 +508,7 @@ export default function ProfilePage() {
                 </section>
 
                 {/* Bloco 3: Objetivo Financeiro Principal */}
-                <section className="bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] rounded-2xl p-5 md:p-6 flex flex-col gap-4 shadow-sm">
+                <section className="bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] rounded-2xl p-5 md:p-6 flex flex-col gap-4 shadow-sm">
                     <div className="flex items-center gap-2.5">
                         <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
                             <span className="material-symbols-outlined text-xl">flag</span>
@@ -534,7 +534,7 @@ export default function ProfilePage() {
                                     className={`p-3.5 rounded-xl border text-left flex flex-col justify-between gap-2 transition-all cursor-pointer ${
                                         isSelected
                                             ? "border-[#FF8216] bg-[#FF8216]/10 ring-1 ring-[#FF8216]"
-                                            : "border-slate-200 dark:border-[#262E3D] hover:bg-slate-50 dark:hover:bg-[#161B26]"
+                                            : "border-slate-200 dark:border-[#27272A] hover:bg-slate-50 dark:hover:bg-[#18181B]"
                                     }`}
                                 >
                                     <div className="flex items-center justify-between">
@@ -585,7 +585,7 @@ export default function ProfilePage() {
                         ) : (
                             <>
                                 <span className="material-symbols-outlined text-[18px]">save</span>
-                                <span>Salvar Informações</span>
+                                <span>Salvar InformaÃ§Ãµes</span>
                             </>
                         )}
                     </button>
