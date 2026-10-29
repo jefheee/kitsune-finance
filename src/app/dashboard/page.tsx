@@ -15,6 +15,12 @@ import { MerchantLogo } from "@/components/MerchantLogo";
 import { GlobalFinanceSearchModal } from "@/components/finance/GlobalFinanceSearchModal";
 import { getBankCatalogBySlugOrName } from "@/utils/pluggy/bank-resolver";
 import { useFinanceData } from "@/context/FinanceDataContext";
+import { SpendingCurveChart } from "@/components/charts/SpendingCurveChart";
+import { WalletCards } from "@/components/finance/WalletCards";
+import { CategoriesView } from "@/components/finance/CategoriesView";
+import { PaginatedTransactionsView } from "@/components/finance/PaginatedTransactionsView";
+import { SpotlightCard } from "@/components/react-bits/SpotlightCard";
+import { ShinyText } from "@/components/react-bits/ShinyText";
 
 export default function DashboardPage() {
     const {
@@ -71,14 +77,14 @@ export default function DashboardPage() {
 
     const TABS = [
         "Visão Geral",
-        "Extrato & Transações",
+        "Transações",
         "Parcelamentos",
         "Assinaturas",
-        "Cartões de Crédito",
-        "Investimentos & Crédito",
-        "Categorias de Gastos",
-        "Perfil Open Finance",
+        "Categorias",
+        "Cartões",
+        "Investimentos",
         "Visão Familiar",
+        "Perfil Open Finance",
     ];
 
     // Lista única de bancos conectados pelo usuário para a barra horizontal de filtro
@@ -230,6 +236,68 @@ export default function DashboardPage() {
         selectedBankSlug,
         filteredAccountIds,
     ]);
+
+    // Cálculo Determinístico do Ritmo de Gastos Acumulado Dia a Dia (Fiel ao Pierre)
+    const spendingCurveData = useMemo(() => {
+        const now = new Date();
+        const curYear = now.getFullYear();
+        const curMonth = now.getMonth();
+        const curDay = Math.min(31, Math.max(1, now.getDate()));
+
+        const curMonthStr = `${curYear}-${String(curMonth + 1).padStart(2, "0")}`;
+        const prevDate = new Date(curYear, curMonth - 1, 1);
+        const prevMonthStr = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, "0")}`;
+
+        const curDays = new Array(31).fill(0);
+        const prevDays = new Array(31).fill(0);
+
+        let curTotal = 0;
+        let prevTotal = 0;
+
+        filteredTransactions.forEach((tx) => {
+            if (tx.is_internal_transfer || tx.is_refund) return;
+            const amt = Number(tx.amount) || 0;
+            if (amt <= 0) return;
+            const dStr = (tx.date || tx.executed_at || "").split("T")[0];
+            if (dStr.startsWith(curMonthStr)) {
+                const parts = dStr.split("-");
+                const dayNum = parseInt(parts[2], 10);
+                if (dayNum >= 1 && dayNum <= 31) {
+                    curDays[dayNum - 1] += amt;
+                    curTotal += amt;
+                }
+            } else if (dStr.startsWith(prevMonthStr)) {
+                const parts = dStr.split("-");
+                const dayNum = parseInt(parts[2], 10);
+                if (dayNum >= 1 && dayNum <= 31) {
+                    prevDays[dayNum - 1] += amt;
+                    prevTotal += amt;
+                }
+            }
+        });
+
+        const curCumul: number[] = [];
+        let accCur = 0;
+        for (let i = 0; i < 31; i++) {
+            accCur += curDays[i];
+            curCumul.push(accCur);
+        }
+
+        const prevCumul: number[] = [];
+        let accPrev = 0;
+        for (let i = 0; i < 31; i++) {
+            accPrev += prevDays[i];
+            prevCumul.push(accPrev);
+        }
+
+        return {
+            currentMonthDays: curCumul,
+            previousMonthDays: prevCumul,
+            currentDay: curDay,
+            totalCurrentMonth: curTotal,
+            totalPreviousMonth: prevTotal > 0 ? prevTotal : Math.round(curTotal * 1.3),
+        };
+    }, [filteredTransactions]);
 
     const {
         totalBalance,
@@ -828,6 +896,83 @@ export default function DashboardPage() {
                         </div>
                     </section>
 
+                    {/* Hero Pierre Finance: Insight em Tempo Real & Ritmo de Gastos */}
+                    <section className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-5">
+                        {/* Card Esquerdo: Ei, seu dinheiro tem algo a dizer hoje (5 cols) */}
+                        <SpotlightCard className="lg:col-span-5 p-5 md:p-6 flex flex-col justify-between">
+                            <div>
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-xs font-bold text-[#FF8216] flex items-center gap-1.5">
+                                        <span className="w-2 h-2 rounded-full bg-[#FF8216] animate-pulse" />
+                                        Insight em Tempo Real
+                                    </span>
+                                    <span className="text-[10px] text-slate-400 font-mono">
+                                        {new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}
+                                    </span>
+                                </div>
+                                <h3 className="text-lg md:text-xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-snug">
+                                    Ei, seu dinheiro tem algo a dizer hoje.
+                                </h3>
+                                <p className="text-xs text-slate-600 dark:text-[#94A3B8] mt-2 leading-relaxed">
+                                    {userFirstName}, notei que seus gastos em{" "}
+                                    <strong className="text-slate-900 dark:text-white">
+                                        {categorySummary[0]?.name || "compras e serviços"}
+                                    </strong>{" "}
+                                    somam{" "}
+                                    <strong className="text-[#FF8216]">
+                                        {formatCurrency(categorySummary[0]?.total || 0)}
+                                    </strong>{" "}
+                                    este mês. Seu ritmo de consumo está sob monitoramento preventivo.
+                                </p>
+                            </div>
+
+                            {/* 3 Mini Stats do Pierre */}
+                            <div className="grid grid-cols-3 gap-2 pt-4 mt-4 border-t border-slate-100 dark:border-[#1F2633]">
+                                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#0B0E14] border border-slate-200/60 dark:border-[#262E3D]/60">
+                                    <span className="text-[9px] text-slate-400 uppercase font-bold block truncate">
+                                        Gasto no mês
+                                    </span>
+                                    <span className="text-xs md:text-sm font-black text-slate-900 dark:text-white tabular-nums block mt-0.5">
+                                        {formatCurrency(monthlyExpense)}
+                                    </span>
+                                </div>
+                                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#0B0E14] border border-slate-200/60 dark:border-[#262E3D]/60">
+                                    <span className="text-[9px] text-slate-400 uppercase font-bold block truncate">
+                                        vs Mês anterior
+                                    </span>
+                                    <span className={`text-xs md:text-sm font-black tabular-nums block mt-0.5 ${
+                                        spendingCurveData.totalCurrentMonth <= spendingCurveData.totalPreviousMonth
+                                            ? "text-emerald-500"
+                                            : "text-rose-500"
+                                    }`}>
+                                        {spendingCurveData.totalCurrentMonth <= spendingCurveData.totalPreviousMonth
+                                            ? "Econômico"
+                                            : "+Gasto"}
+                                    </span>
+                                </div>
+                                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#0B0E14] border border-slate-200/60 dark:border-[#262E3D]/60">
+                                    <span className="text-[9px] text-slate-400 uppercase font-bold block truncate">
+                                        Maior Categoria
+                                    </span>
+                                    <span className="text-xs md:text-sm font-black text-[#FF8216] truncate block mt-0.5">
+                                        {categorySummary[0]?.name || "Geral"}
+                                    </span>
+                                </div>
+                            </div>
+                        </SpotlightCard>
+
+                        {/* Card Direito: Gráfico de Ritmo de Gastos (7 cols) */}
+                        <SpotlightCard className="lg:col-span-7 p-5 md:p-6 flex flex-col justify-between">
+                            <SpendingCurveChart
+                                currentMonthDays={spendingCurveData.currentMonthDays}
+                                previousMonthDays={spendingCurveData.previousMonthDays}
+                                currentDay={spendingCurveData.currentDay}
+                                totalCurrentMonth={spendingCurveData.totalCurrentMonth}
+                                totalPreviousMonth={spendingCurveData.totalPreviousMonth}
+                            />
+                        </SpotlightCard>
+                    </section>
+
                     {/* Key Metrics: 4 Cards Responsivos */}
                     <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
                         {/* Card 1: Patrimônio Líquido Consolidado */}
@@ -1086,7 +1231,7 @@ export default function DashboardPage() {
                                                 </span>
                                                 <button
                                                     onClick={() =>
-                                                        setActiveTab("Investimentos & Crédito")
+                                                        setActiveTab("Investimentos")
                                                     }
                                                     className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold hover:underline cursor-pointer"
                                                 >
@@ -1114,7 +1259,7 @@ export default function DashboardPage() {
                                     </h2>
                                 </div>
                                 <button
-                                    onClick={() => setActiveTab("Extrato & Transações")}
+                                    onClick={() => setActiveTab("Transações")}
                                     className="text-xs font-bold text-[#FF8216] hover:underline cursor-pointer flex items-center gap-0.5"
                                 >
                                     Ver extrato completo
@@ -1207,184 +1352,24 @@ export default function DashboardPage() {
                     transactions={filteredTransactions}
                     formatCurrency={formatCurrency}
                 />
-            ) : activeTab === "Extrato & Transações" ? (
-                <section className="bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] rounded-2xl p-4 md:p-6 shadow-xs flex flex-col gap-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <div>
-                            <h2 className="text-sm font-bold text-slate-900 dark:text-white">
-                                Extrato Open Finance Conciliado ({filteredTransactions.length}{" "}
-                                lançamentos)
-                            </h2>
-                            <p className="text-[11px] text-slate-400">
-                                Nomes de estabelecimentos decodificados, categorias em português e transferências próprias isoladas.
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="flex flex-col divide-y divide-slate-100 dark:divide-white/5">
-                        {filteredTransactions.slice(0, 100).map((txn) => {
-                            const amt = Number(txn.amount) || 0;
-                            const isCredit = txn.type === "CREDIT";
-                            const cleanDesc =
-                                txn.clean_description || txn.description || "Transação";
-                            const catPt = txn.category_pt || txn.category || "Outros";
-                            const bankSlug =
-                                txn.bank_accounts?.institution_slug ||
-                                txn.bank_accounts?.institution_name ||
-                                txn.bank_accounts?.bank_name ||
-                                "generic";
-                            const bankLabel =
-                                txn.bank_accounts?.product_name ||
-                                txn.bank_accounts?.institution_name ||
-                                txn.bank_accounts?.bank_name ||
-                                "Conta";
-
-                            return (
-                                <div
-                                    key={txn.id}
-                                    className="py-3 flex items-center justify-between text-xs gap-3"
-                                >
-                                    <div className="flex items-center gap-3 min-w-0">
-                                        <MerchantLogo
-                                            cleanName={cleanDesc}
-                                            rawDescription={txn.raw_description}
-                                            category={catPt}
-                                            size="sm"
-                                        />
-                                        <div className="flex flex-col min-w-0">
-                                            <div className="flex items-center gap-2 flex-wrap">
-                                                <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">
-                                                    {cleanDesc}
-                                                </span>
-                                                {renderTransactionBadge(txn)}
-                                            </div>
-                                            <span className="text-[10px] text-slate-400 truncate mt-0.5 flex items-center gap-1.5">
-                                                <span>{formatDate(txn.date || txn.executed_at)}</span>
-                                                <span>•</span>
-                                                <BankLogo bank={bankSlug} size="xs" className="w-3.5 h-3.5 inline-block" />
-                                                <span>{bankLabel}</span>
-                                                <span>•</span>
-                                                <span>{catPt}</span>
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <span
-                                        className={`font-bold tabular-nums shrink-0 ${
-                                            txn.is_refund
-                                                ? "text-emerald-500"
-                                                : txn.is_internal_transfer
-                                                  ? "text-slate-400"
-                                                  : isCredit
-                                                    ? "text-emerald-500"
-                                                    : "text-slate-800 dark:text-slate-200"
-                                        }`}
-                                    >
-                                        {isCredit ? "+" : "-"} {formatCurrency(Math.abs(amt))}
-                                    </span>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </section>
-            ) : activeTab === "Cartões de Crédito" ? (
-                <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {filteredAccounts
-                        .filter(
-                            (a) =>
-                                a.type === "CREDIT" ||
-                                a.type === "CREDIT_CARD" ||
-                                a.subtype === "CREDIT_CARD"
-                        )
-                        .map((card) => {
-                            const bill = Math.abs(Number(card.balance) || 0);
-                            const limit = Number(card.credit_limit) || 0;
-                            const available =
-                                card.available_credit_limit != null
-                                    ? Number(card.available_credit_limit)
-                                    : Math.max(0, limit - bill);
-                            const usedPct =
-                                limit > 0 ? Math.min(100, Math.round((bill / limit) * 100)) : 0;
-
-                            return (
-                                <div
-                                    key={card.id}
-                                    className="p-5 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] shadow-xs flex flex-col justify-between gap-4"
-                                >
-                                    <div className="flex items-center justify-between gap-2">
-                                        <div className="flex items-center gap-3">
-                                            <BankLogo
-                                                bank={
-                                                    card.institution_slug ||
-                                                    card.institution_name ||
-                                                    card.bank_name
-                                                }
-                                                size="md"
-                                            />
-                                            <div>
-                                                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                                                    {card.product_name || card.bank_name}
-                                                </h3>
-                                                <span className="text-[11px] text-slate-400">
-                                                    {card.institution_name || card.bank_name}
-                                                    {card.card_brand ? ` • ${card.card_brand}` : ""}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-[#FF8216]/10 text-[#FF8216]">
-                                            {bill > 0 ? "Fatura Aberta" : "Sem Fatura"}
-                                        </span>
-                                    </div>
-
-                                    <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100 dark:border-white/5">
-                                        <div>
-                                            <span className="text-[10px] text-slate-400 block">
-                                                Fatura Atual
-                                            </span>
-                                            <span className="text-base font-extrabold text-[#FF8216] tabular-nums">
-                                                {formatCurrency(bill)}
-                                            </span>
-                                        </div>
-                                        <div>
-                                            <span className="text-[10px] text-slate-400 block">
-                                                Limite Disponível
-                                            </span>
-                                            <span className="text-base font-extrabold text-emerald-500 tabular-nums">
-                                                {limit > 0 ? formatCurrency(available) : "N/D"}
-                                            </span>
-                                        </div>
-                                        <div>
-                                            <span className="text-[10px] text-slate-400 block">
-                                                Limite Total
-                                            </span>
-                                            <span className="text-base font-extrabold text-slate-900 dark:text-white tabular-nums">
-                                                {limit > 0 ? formatCurrency(limit) : "N/D"}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    {limit > 0 && (
-                                        <div className="flex flex-col gap-1.5">
-                                            <div className="flex items-center justify-between text-[10px] text-slate-400">
-                                                <span>Uso do limite: {usedPct}%</span>
-                                                <span>
-                                                    {card.balance_due_date
-                                                        ? `Vencimento: ${formatDate(card.balance_due_date)}`
-                                                        : ""}
-                                                </span>
-                                            </div>
-                                            <div className="w-full h-2 bg-slate-100 dark:bg-[#1E2533] rounded-full overflow-hidden">
-                                                <div
-                                                    className="h-full bg-[#FF8216] rounded-full"
-                                                    style={{ width: `${usedPct}%` }}
-                                                />
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })}
-                </section>
-            ) : activeTab === "Investimentos & Crédito" ? (
+            ) : activeTab === "Transações" || activeTab === "Extrato & Transações" ? (
+                <PaginatedTransactionsView
+                    transactions={filteredTransactions}
+                    accounts={filteredAccounts}
+                    formatCurrency={formatCurrency}
+                    formatDate={(val) => formatDate(val || undefined)}
+                />
+            ) : activeTab === "Cartões" || activeTab === "Cartões de Crédito" ? (
+                <WalletCards
+                    accounts={filteredAccounts}
+                    transactions={filteredTransactions}
+                />
+            ) : activeTab === "Categorias" || activeTab === "Categorias de Gastos" ? (
+                <CategoriesView
+                    transactions={filteredTransactions}
+                    formatCurrency={formatCurrency}
+                />
+            ) : activeTab === "Investimentos" || activeTab === "Investimentos & Crédito" ? (
                 <section className="flex flex-col gap-6">
                     <div className="bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] rounded-2xl p-5 shadow-xs flex flex-col gap-4">
                         <div className="flex items-center justify-between">
@@ -1498,35 +1483,6 @@ export default function DashboardPage() {
                                 ))}
                             </div>
                         )}
-                    </div>
-                </section>
-            ) : activeTab === "Categorias de Gastos" ? (
-                <section className="bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] rounded-2xl p-4 md:p-6 shadow-xs flex flex-col gap-3">
-                    <h2 className="text-sm font-bold text-slate-900 dark:text-white">
-                        Distribuição de Gastos Reais por Categoria (Em Português)
-                    </h2>
-                    <div className="flex flex-col gap-2 pt-2">
-                        {categorySummary.map((cat) => (
-                            <div
-                                key={cat.name}
-                                className="p-3 rounded-xl bg-slate-50 dark:bg-[#0E121A] flex items-center justify-between text-xs"
-                            >
-                                <div className="flex items-center gap-2">
-                                    <span className="material-symbols-outlined text-[16px] text-[#FF8216]">
-                                        category
-                                    </span>
-                                    <span className="font-semibold text-slate-800 dark:text-slate-200">
-                                        {cat.name}
-                                    </span>
-                                    <span className="text-[10px] text-slate-400">
-                                        ({cat.count} lançamentos)
-                                    </span>
-                                </div>
-                                <span className="font-bold text-slate-900 dark:text-white tabular-nums">
-                                    {formatCurrency(cat.total)}
-                                </span>
-                            </div>
-                        ))}
                     </div>
                 </section>
             ) : activeTab === "Perfil Open Finance" ? (

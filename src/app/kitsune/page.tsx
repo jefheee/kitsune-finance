@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import StreamingMarkdown from "@/components/StreamingMarkdown";
 import Spinner from "@/components/Spinner";
@@ -1213,6 +1214,21 @@ export default function KitsuneAIPage() {
                     <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                       Anexar ao Prompt
                     </div>
+                    {/* Atalho Direto para o Kitsune Vision */}
+                    <Link
+                      href="/vision"
+                      className="w-full px-3 py-2 rounded-xl text-left transition-colors flex items-start gap-2.5 cursor-pointer bg-[#FF8216]/10 hover:bg-[#FF8216]/20 text-[#FF8216] border border-[#FF8216]/30 mb-1"
+                    >
+                      <div className="w-7 h-7 rounded-lg bg-[#FF8216] text-white flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
+                        <span className="material-symbols-outlined text-[16px]">visibility</span>
+                      </div>
+                      <div className="flex flex-col flex-1 min-w-0">
+                        <span className="text-xs font-bold truncate">Kitsune Vision</span>
+                        <span className="text-[11px] text-slate-500 dark:text-[#94A3B8] leading-tight">
+                          Foto da câmera ou galeria (cardápio, compras, simulação)
+                        </span>
+                      </div>
+                    </Link>
                     {CONTEXT_ATTACHMENTS.map((item) => {
                       const isAttached = attachedContexts.includes(item.id);
                       return (
