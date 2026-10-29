@@ -90,11 +90,24 @@ export async function buildUserFinancialDossier(
     const totalLoansDebt = loans.reduce((acc, l) => acc + (Number(l.outstanding_balance) || 0), 0);
     const netWorth = liquidCash + totalInvestments - totalCreditCardBill - totalLoansDebt;
 
-    // Fluxo de Caixa (Excluindo Transferências Internas e Pagamentos de Fatura!)
+    // Fluxo de Caixa (Excluindo Transferências Internas, Pagamentos de Fatura e Pix Familiar!)
+    const now = new Date();
+    const curYear = now.getFullYear();
+    const curMonth = now.getMonth();
+    const currentMonthStr = `${curYear}-${String(curMonth + 1).padStart(2, '0')}`;
+
     let realIncome = 0;
     let realExpenses = 0;
+    let currentMonthIncome = 0;
+    let currentMonthExpenses = 0;
     let internalMovements = 0;
     let refundsTotal = 0;
+
+    const { data: familyMembersData } = await supabase
+        .from('family_members')
+        .select('name')
+        .eq('user_id', userId);
+    const familyNames = (familyMembersData || []).map((f: any) => f.name.toLowerCase().trim()).filter(Boolean);
 
     const categoryTotals: Record<string, number> = {};
     const activeInstallments: string[] = [];
@@ -106,8 +119,14 @@ export async function buildUserFinancialDossier(
         const bankLabel = accInfo?.institution || 'Banco';
         const cleanDesc = tx.clean_description || tx.description || 'Transação';
         const cat = tx.category_pt || tx.category || 'Outros';
+        const txDateStr = (tx.date || tx.executed_at || '').split('T')[0];
+        const isCurrentMonth = txDateStr.startsWith(currentMonthStr);
 
-        if (tx.is_internal_transfer) {
+        // Se for Pix para membro da família cadastrada, trata como remanejamento patrimonial (não despesa da família)
+        const receiverLower = (tx.receiver_name || cleanDesc).toLowerCase();
+        const isFamilyTransfer = familyNames.some((name: string) => receiverLower.includes(name));
+
+        if (tx.is_internal_transfer || isFamilyTransfer) {
             internalMovements += amt;
             continue;
         }
@@ -117,11 +136,16 @@ export async function buildUserFinancialDossier(
             continue;
         }
 
-        if (tx.type === 'CREDIT' && accInfo?.type !== 'CREDIT') {
+        const isExpense = Number(tx.amount) < 0 || tx.type === 'DEBIT' || tx.operation_type === 'CREDIT_CARD';
+        const isRealIncome = !isExpense && (tx.type === 'CREDIT' || Number(tx.amount) > 0) && accInfo?.type !== 'CREDIT';
+
+        if (isRealIncome) {
             realIncome += amt;
-        } else {
+            if (isCurrentMonth) currentMonthIncome += amt;
+        } else if (isExpense) {
             realExpenses += amt;
             categoryTotals[cat] = (categoryTotals[cat] || 0) + amt;
+            if (isCurrentMonth) currentMonthExpenses += amt;
         }
 
         if (tx.total_installments && tx.total_installments > 1) {
@@ -239,10 +263,13 @@ DOSSIÊ OPEN FINANCE CONSOLIDADO DA SESSÃO (FONTE ÚNICA DE VERDADE)
 - **Total em Faturas Abertas de Cartão de Crédito:** ${fmtCurrency(totalCreditCardBill)}
 - **Saldo Devedor de Empréstimos/Financiamentos:** ${fmtCurrency(totalLoansDebt)}
 
-### 2. FLUXO DE CAIXA REAL (SEM TRANSFERÊNCIAS PRÓPRIAS)
-- **Entradas Reais (Excluindo Transferências Mesma Titularidade):** ${fmtCurrency(realIncome)}
-- **Saídas Reais (Excluindo Pagamentos de Fatura e Transferências Próprias):** ${fmtCurrency(realExpenses)}
-- **Movimentações Internas / Pagamentos de Fatura (Neutras no Patrimônio):** ${fmtCurrency(internalMovements)}
+### 2. FLUXO DE CAIXA REAL (SEM TRANSFERÊNCIAS PRÓPRIAS OU FAMILIARES)
+- **Entradas Reais do Mês Atual:** ${fmtCurrency(currentMonthIncome)}
+- **Saídas Reais do Mês Atual:** ${fmtCurrency(currentMonthExpenses)}
+- **Saldo Líquido do Mês Atual:** ${fmtCurrency(currentMonthIncome - currentMonthExpenses)}
+- **Entradas Acumuladas no Período:** ${fmtCurrency(realIncome)}
+- **Saídas Acumuladas no Período:** ${fmtCurrency(realExpenses)}
+- **Movimentações Internas e Pix Familiares:** ${fmtCurrency(internalMovements)}
 - **Estornos e Reembolsos em Cartão:** ${fmtCurrency(refundsTotal)}
 
 ### 3. CONTAS CORRENTES E POUPANÇAS

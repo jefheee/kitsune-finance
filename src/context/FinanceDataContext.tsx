@@ -69,6 +69,11 @@ interface FinanceDataContextValue {
     // Multi-bank global filter ('all' or institution_slug like 'nubank', 'itau', 'santander', 'inter', 'caixa', 'mercadopago')
     selectedBankSlug: string;
     setSelectedBankSlug: (slug: string) => void;
+    // Privacy / Masking sensitive values across the app (default true per user requirement)
+    isPrivacyMode: boolean;
+    setIsPrivacyMode: (val: boolean) => void;
+    togglePrivacyMode: () => void;
+    formatSensitiveCurrency: (val: number) => string;
     // Shared view toggle (optional Family Aggregation)
     isFamilyModeEnabled: boolean;
     setIsFamilyModeEnabled: (enabled: boolean) => void;
@@ -159,6 +164,22 @@ export function FinanceDataProvider({ children }: { children: React.ReactNode })
     const [lastFetchedAt, setLastFetchedAt] = useState<number | null>(null);
     const [selectedBankSlug, setSelectedBankSlugState] = useState<string>('all');
     const [isFamilyModeEnabled, setIsFamilyModeEnabledState] = useState<boolean>(false);
+    // Modo Privacidade: Sempre ativado por padrão conforme solicitado
+    const [isPrivacyMode, setIsPrivacyMode] = useState<boolean>(true);
+
+    const togglePrivacyMode = useCallback(() => {
+        setIsPrivacyMode((prev) => !prev);
+    }, []);
+
+    const formatSensitiveCurrency = useCallback((val: number) => {
+        if (isPrivacyMode) {
+            return "R$ ••••••";
+        }
+        return new Intl.NumberFormat("pt-BR", {
+            style: "currency",
+            currency: "BRL",
+        }).format(val);
+    }, [isPrivacyMode]);
 
     const [selectedAiModel, setSelectedAiModel] = useState<string>('auto');
     const [reasoningLevel, setReasoningLevel] = useState<'fast' | 'standard' | 'deep'>('standard');
@@ -495,6 +516,10 @@ export function FinanceDataProvider({ children }: { children: React.ReactNode })
                 lastFetchedAt,
                 selectedBankSlug,
                 setSelectedBankSlug,
+                isPrivacyMode,
+                setIsPrivacyMode,
+                togglePrivacyMode,
+                formatSensitiveCurrency,
                 isFamilyModeEnabled,
                 setIsFamilyModeEnabled,
                 chatMessages,

@@ -404,7 +404,7 @@ export default function ProfilePage() {
 
                         <div className="flex flex-col gap-1.5">
                             <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                                Como a Kitsune IA deve te chamar
+                                Como a Kitsune AI deve te chamar
                             </label>
                             <input
                                 type="text"
@@ -518,7 +518,7 @@ export default function ProfilePage() {
                                 Objetivo Patrimonial Ativo
                             </h2>
                             <span className="text-xs text-slate-500 dark:text-[#94A3B8]">
-                                A Kitsune IA orienta conselhos priorizando essa meta.
+                                A Kitsune AI orienta conselhos priorizando essa meta.
                             </span>
                         </div>
                     </div>

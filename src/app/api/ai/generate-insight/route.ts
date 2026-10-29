@@ -85,7 +85,7 @@ export async function POST(req: Request) {
 
     let txQuery = supabase
       .from('transactions')
-      .select('account_id, description, clean_description, amount, type, category, category_pt, date, executed_at, is_internal_transfer, is_refund, payer_name')
+      .select('account_id, description, clean_description, amount, type, operation_type, category, category_pt, date, executed_at, is_internal_transfer, is_refund, payer_name')
       .eq('user_id', userId)
       .eq('is_internal_transfer', false)
       .order('executed_at', { ascending: false })
@@ -141,10 +141,11 @@ export async function POST(req: Request) {
           return;
         }
 
-        const isCredit = txn.type === 'CREDIT' || amount > 0;
+        const isExpense = amount < 0 || txn.type === 'DEBIT' || txn.operation_type === 'CREDIT_CARD';
+        const isCredit = !isExpense && (amount > 0 || txn.type === 'CREDIT');
         if (isCredit) {
           monthlyIncome += Math.abs(amount);
-        } else {
+        } else if (isExpense) {
           const absVal = Math.abs(amount);
           monthlyExpense += absVal;
           expenses.push(txn);

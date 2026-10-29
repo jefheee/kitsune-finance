@@ -42,7 +42,10 @@ export async function GET(req: Request) {
     const anomalies: AnomalyItem[] = [];
 
     // 1. Verificação de Cobranças Duplicadas (Mesmo valor e estabelecimento num intervalo de até 48 horas)
+    // ATENÇÃO: Limitado rigorosamente ao período recente (máximo 30 dias / mês atual) conforme diretriz do usuário
     const seenMap = new Map<string, { date: Date; desc: string; amount: number; id: string }>();
+    const now = new Date();
+    const maxAnomalyAgeMs = 30 * 24 * 60 * 60 * 1000; // Máximo 30 dias
 
     for (const t of transactions) {
       if (t.is_refund) continue; // Ignora estornos na checagem de duplicidade
@@ -52,6 +55,9 @@ export async function GET(req: Request) {
 
       const rawDate = t.executed_at || t.date;
       const tDate = rawDate ? new Date(rawDate) : new Date();
+
+      // Ignora transações antigas com mais de 30 dias
+      if (now.getTime() - tDate.getTime() > maxAnomalyAgeMs) continue;
 
       const displayDesc = t.clean_description || t.description || "Despesa";
       // Normaliza o nome do estabelecimento
@@ -86,7 +92,6 @@ export async function GET(req: Request) {
     // 2. Verificação de Picos de Gastos em Categorias
     const categoryWeekSpend: Record<string, number> = {};
     const categoryMonthSpend: Record<string, number> = {};
-    const now = new Date();
     const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 

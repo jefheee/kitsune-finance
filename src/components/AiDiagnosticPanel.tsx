@@ -190,7 +190,7 @@ export function AiDiagnosticPanel({
           <div className="flex flex-col">
             <div className="flex items-center gap-2 flex-wrap">
               <h2 className="text-sm md:text-base font-bold text-slate-900 dark:text-[#F8FAFC]">
-                Diagnóstico & Parecer da Kitsune IA
+                Diagnóstico & Parecer da Kitsune AI
               </h2>
               <span className={`text-[11px] font-extrabold ${kitsuneScore.color}`}>
                 Score: {parsedData.score} • {parsedData.scoreLabel}
@@ -220,7 +220,15 @@ export function AiDiagnosticPanel({
         {/* Botões Superiores */}
         <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
           <Link
-            href="/kitsune"
+            href={`/kitsune?prompt=${encodeURIComponent(
+              `Kitsune AI, gostaria de aprofundar meu diagnóstico financeiro do período. Minhas receitas são de ${formatCurrency(
+                monthlyIncome
+              )}, despesas de ${formatCurrency(
+                monthlyExpense
+              )} e faturas abertas de ${formatCurrency(
+                creditCardBalance
+              )}. Quais são as recomendações mais estratégicas para mim hoje?`
+            )}`}
             className="h-8 px-3 rounded-lg bg-[#FF8216] hover:bg-[#FFA047] active:bg-[#E66E08] text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
           >
             <span className="material-symbols-outlined text-[15px]">chat</span>

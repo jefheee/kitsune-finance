@@ -47,6 +47,13 @@
 ---
 
 ## 3. Módulos Implementados
+- [x] Fusão do Kitsune Vision Multimodal no Chat (/kitsune) com câmera ao vivo WebRTC, galeria, compressão client-side em canvas e OCR de alta fidelidade
+- [x] Criação da Rota Dedicada de Cartões (/cards) estilo Wallet com proporção proporcional, faturas reais por cartão e auditoria de tarifas/anuidade
+- [x] Criação da Rota Dedicada de Investimentos (/investments) com termômetro macroeconômico Brasil (Selic, CDI, IPCA, Juro Real, Ibovespa, Dólar) e alocação estratégica adaptativa
+- [x] Modo Privacidade Global (isPrivacyMode iniciado como true) ocultando valores sensíveis em R$ •••••• com toggle de olho no AppShell
+- [x] Módulo "Gastos de Hoje & Atividade Recente" no Dashboard e janela temporal dinâmica dia/semana/mês/ano ancorada no calendário atual
+- [x] Correção matemática de inversão de compras e despesas no extrato e visualizações de categorias
+- [x] Padronização definitiva de nomenclatura para "Kitsune AI" em 100% do projeto
 - [x] Suíte Completa Pierre Finance & Visual Dinâmico: Ritmo de Gastos (`SpendingCurveChart.tsx`), Donut de Categorias (`CategoryDonutChart.tsx`), Faturas Anteriores (`InvoiceBarChart.tsx`) e Gestão de Cartões Estilo Apple Wallet (`WalletCards.tsx`)
 - [x] Kitsune Vision Multimodal com Câmera e Galeria (`/vision` & `/api/ai/vision`): OCR, análise de cardápios, produtos por impulso e simulação de bens caros (casa/carro) cruzando renda, limite seguro dos 30% e horas de trabalho com compressão no cliente para economia massiva de tokens
 - [x] Paginação Estruturada no Extrato ("1, 2, 3...") com Limite de Scroll (`PaginatedTransactionsView.tsx`) com 4 KPIs, filtros avançados e modal de Nova Transação manual

@@ -12,7 +12,7 @@ import { useFinanceData } from "@/context/FinanceDataContext";
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
-  const { userProfile, user } = useFinanceData();
+  const { userProfile, user, isPrivacyMode, togglePrivacyMode } = useFinanceData();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const router = useRouter();
@@ -40,11 +40,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isSettingsOpen]);
 
-  // Sidebar Desktop: Rotas operacionais dedicadas
+  // Sidebar Desktop: Rotas operacionais dedicadas e organizadas
   const desktopNavItems = [
-    { path: "/dashboard", icon: "dashboard", label: "Visão Geral" },
-    { path: "/kitsune", icon: "auto_awesome", label: "Kitsune IA" },
-    { path: "/vision", icon: "visibility", label: "Vision IA" },
+    { path: "/dashboard", icon: "dashboard", label: "Dashboard" },
+    { path: "/kitsune", icon: "auto_awesome", label: "Kitsune AI" },
+    { path: "/cards", icon: "wallet", label: "Cartões" },
+    { path: "/investments", icon: "trending_up", label: "Investimentos" },
     { path: "/agents", icon: "smart_toy", label: "Agentes" },
     { path: "/connections", icon: "account_balance", label: "Bancos" },
   ];
@@ -52,9 +53,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   // Mobile Bottom Bar
   const mobileNavItems = [
     { path: "/dashboard", icon: "dashboard", label: "Início" },
-    { path: "/kitsune", icon: "auto_awesome", label: "Kitsune IA" },
-    { path: "/vision", icon: "visibility", label: "Vision" },
-    { path: "/agents", icon: "smart_toy", label: "Agentes" },
+    { path: "/kitsune", icon: "auto_awesome", label: "Kitsune AI" },
+    { path: "/cards", icon: "wallet", label: "Cartões" },
+    { path: "/investments", icon: "trending_up", label: "Investir" },
     { path: "/profile", icon: "person", label: "Perfil" },
   ];
 
@@ -123,11 +124,31 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </nav>
         </div>
 
-        {/* Bottom Section: Settings & Avatar do Usuário */}
+        {/* Bottom Section: Privacy, Settings & Avatar do Usuário */}
         <div
           className="flex flex-col items-center justify-center w-full gap-3 relative"
           ref={settingsRefDesktop}
         >
+          {/* Botão Modo Privacidade (Ocultar Valores Sensíveis) */}
+          <button
+            type="button"
+            onClick={togglePrivacyMode}
+            className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all cursor-pointer ${
+              isPrivacyMode
+                ? "text-[#FF8216] bg-[#FF8216]/15 border border-[#FF8216]/30 shadow-xs"
+                : "text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#161B26]"
+            }`}
+            title={
+              isPrivacyMode
+                ? "Modo Privacidade Ativo: Valores ocultos. Clique para exibir."
+                : "Modo Privacidade Desativado: Clique para ocultar valores."
+            }
+          >
+            <span className="material-symbols-outlined text-[20px]">
+              {isPrivacyMode ? "visibility_off" : "visibility"}
+            </span>
+          </button>
+
           {/* Botão de Configurações */}
           <Link
             href="/settings"
@@ -185,6 +206,22 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </Link>
 
           <div className="flex items-center gap-2">
+            {/* Botão Modo Privacidade Mobile */}
+            <button
+              type="button"
+              onClick={togglePrivacyMode}
+              className={`p-1.5 rounded-xl border transition-colors cursor-pointer ${
+                isPrivacyMode
+                  ? "text-[#FF8216] bg-[#FF8216]/15 border-[#FF8216]/30"
+                  : "text-slate-400 border-transparent hover:bg-slate-100 dark:hover:bg-[#161B26]"
+              }`}
+              title={isPrivacyMode ? "Valores ocultos" : "Ocultar valores"}
+            >
+              <span className="material-symbols-outlined text-[18px]">
+                {isPrivacyMode ? "visibility_off" : "visibility"}
+              </span>
+            </button>
+
             <ThemeToggle />
 
             <Link

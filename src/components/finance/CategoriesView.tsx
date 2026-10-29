@@ -7,6 +7,8 @@ import { SpotlightCard } from "@/components/react-bits/SpotlightCard";
 interface TransactionLike {
   id: string;
   amount: number | string;
+  type?: string | null;
+  operation_type?: string | null;
   category?: string | null;
   category_pt?: string | null;
   category_original?: string | null;
@@ -15,6 +17,7 @@ interface TransactionLike {
   is_internal_transfer?: boolean;
   is_refund?: boolean;
   date?: string;
+  executed_at?: string;
 }
 
 interface CategoriesViewProps {
@@ -26,25 +29,188 @@ const CATEGORY_COLORS: Record<string, string> = {
   Compras: "#EC4899", // Pink
   "Saúde e bem-estar": "#F43F5E", // Rose
   "Serviços digitais": "#A855F7", // Purple
-  Outros: "#94A3B8", // Slate
   Alimentação: "#F97316", // Orange
   Moradia: "#06B6D4", // Cyan
   Transporte: "#EAB308", // Yellow
   Educação: "#3B82F6", // Blue
   Lazer: "#10B981", // Emerald
+  "Transferências e Pix": "#6366F1", // Indigo
+  Outros: "#94A3B8", // Slate
 };
 
 const CATEGORY_ICONS: Record<string, string> = {
   Compras: "shopping_bag",
   "Saúde e bem-estar": "medical_services",
   "Serviços digitais": "devices",
-  Outros: "category",
   Alimentação: "restaurant",
   Moradia: "home",
   Transporte: "directions_car",
   Educação: "school",
   Lazer: "sports_esports",
+  "Transferências e Pix": "send_money",
+  Outros: "category",
 };
+
+function categorizeTransaction(tx: any): { parent: string; sub: string } {
+  const text = `${tx.clean_description || ""} ${tx.description || ""} ${tx.category_pt || ""} ${tx.category || ""}`.toLowerCase();
+
+  if (
+    text.includes("supermercado") ||
+    text.includes("padaria") ||
+    text.includes("panificadora") ||
+    text.includes("delivery") ||
+    text.includes("ifood") ||
+    text.includes("restaurante") ||
+    text.includes("alimenta") ||
+    text.includes("lanchonete") ||
+    text.includes("açougue") ||
+    text.includes("hortifruti") ||
+    text.includes("carrefour") ||
+    text.includes("pão de açúcar") ||
+    text.includes("assai") ||
+    text.includes("café") ||
+    text.includes("bar ") ||
+    text.includes("burger") ||
+    text.includes("mcdonald")
+  ) {
+    let sub = "Restaurantes e Bares";
+    if (text.includes("supermercado") || text.includes("carrefour") || text.includes("assai")) sub = "Supermercado";
+    else if (text.includes("padaria") || text.includes("panificadora")) sub = "Padaria e Confeitaria";
+    else if (text.includes("delivery") || text.includes("ifood")) sub = "Delivery de Refeições";
+    return { parent: "Alimentação", sub };
+  }
+
+  if (
+    text.includes("farmácia") ||
+    text.includes("droga") ||
+    text.includes("medicamento") ||
+    text.includes("saúde") ||
+    text.includes("hospital") ||
+    text.includes("médic") ||
+    text.includes("dentist") ||
+    text.includes("academia") ||
+    text.includes("wellhub") ||
+    text.includes("smartfit") ||
+    text.includes("psicolog")
+  ) {
+    let sub = "Farmácia e Medicamentos";
+    if (text.includes("academia") || text.includes("smartfit") || text.includes("wellhub")) sub = "Academia e Bem-Estar";
+    else if (text.includes("médic") || text.includes("hospital") || text.includes("consulta")) sub = "Consultas e Exames";
+    return { parent: "Saúde e bem-estar", sub };
+  }
+
+  if (
+    text.includes("uber") ||
+    text.includes("99") ||
+    text.includes("combustível") ||
+    text.includes("posto") ||
+    text.includes("gasolina") ||
+    text.includes("ipiranga") ||
+    text.includes("shell") ||
+    text.includes("estacionamento") ||
+    text.includes("sem parar") ||
+    text.includes("pedágio") ||
+    text.includes("transporte") ||
+    text.includes("oficina") ||
+    text.includes("mecânic")
+  ) {
+    let sub = "Mobilidade Urbana";
+    if (text.includes("posto") || text.includes("combustível") || text.includes("gasolina") || text.includes("shell") || text.includes("ipiranga")) sub = "Combustível";
+    else if (text.includes("estacionamento") || text.includes("pedágio")) sub = "Pedágio e Estacionamento";
+    return { parent: "Transporte", sub };
+  }
+
+  if (
+    text.includes("netflix") ||
+    text.includes("spotify") ||
+    text.includes("google") ||
+    text.includes("apple") ||
+    text.includes("chatgpt") ||
+    text.includes("openai") ||
+    text.includes("amazon prime") ||
+    text.includes("disney") ||
+    text.includes("youtube") ||
+    text.includes("software") ||
+    text.includes("streaming") ||
+    text.includes("serviços digitais") ||
+    text.includes("nuvem")
+  ) {
+    return { parent: "Serviços digitais", sub: "Streaming e Assinaturas" };
+  }
+
+  if (
+    text.includes("luz") ||
+    text.includes("energia") ||
+    text.includes("enel") ||
+    text.includes("cpfl") ||
+    text.includes("água") ||
+    text.includes("sabesp") ||
+    text.includes("sanepar") ||
+    text.includes("aluguel") ||
+    text.includes("condomínio") ||
+    text.includes("claro") ||
+    text.includes("vivo") ||
+    text.includes("tim") ||
+    text.includes("internet") ||
+    text.includes("telecom") ||
+    text.includes("gás") ||
+    text.includes("moradia")
+  ) {
+    let sub = "Despesas Residenciais";
+    if (text.includes("claro") || text.includes("vivo") || text.includes("tim") || text.includes("internet")) sub = "Internet e Telefonia";
+    else if (text.includes("luz") || text.includes("enel") || text.includes("energia") || text.includes("água")) sub = "Contas de Consumo";
+    return { parent: "Moradia", sub };
+  }
+
+  if (
+    text.includes("amazon") ||
+    text.includes("mercado livre") ||
+    text.includes("shopee") ||
+    text.includes("magalu") ||
+    text.includes("loja") ||
+    text.includes("vestuário") ||
+    text.includes("roupa") ||
+    text.includes("calçado") ||
+    text.includes("tinta") ||
+    text.includes("material") ||
+    text.includes("leroy") ||
+    text.includes("eletrôn") ||
+    text.includes("shopping") ||
+    text.includes("varejo") ||
+    text.includes("compra")
+  ) {
+    let sub = "Varejo e Compras Gerais";
+    if (text.includes("tinta") || text.includes("material") || text.includes("leroy")) sub = "Casa e Construção";
+    else if (text.includes("amazon") || text.includes("mercado livre") || text.includes("shopee")) sub = "E-Commerce / Online";
+    return { parent: "Compras", sub };
+  }
+
+  if (
+    text.includes("cinema") ||
+    text.includes("show") ||
+    text.includes("teatro") ||
+    text.includes("ingresso") ||
+    text.includes("viagem") ||
+    text.includes("hotel") ||
+    text.includes("airbnb") ||
+    text.includes("lazer") ||
+    text.includes("jogos") ||
+    text.includes("steam")
+  ) {
+    return { parent: "Lazer", sub: "Entretenimento e Lazer" };
+  }
+
+  if (
+    text.includes("pix para") ||
+    text.includes("transferência") ||
+    text.includes("ted") ||
+    text.includes("doc")
+  ) {
+    return { parent: "Transferências e Pix", sub: "Pix Enviado a Terceiros" };
+  }
+
+  return { parent: "Outros", sub: tx.category_pt || tx.category || "Outras Despesas" };
+}
 
 export function CategoriesView({ transactions, formatCurrency }: CategoriesViewProps) {
   const [selectedMonth, setSelectedMonth] = useState<string>("Outubro de 2026");
@@ -75,35 +241,13 @@ export function CategoriesView({ transactions, formatCurrency }: CategoriesViewP
     transactions.forEach((tx) => {
       if (tx.is_internal_transfer || tx.is_refund) return;
       const amt = Number(tx.amount) || 0;
-      if (amt <= 0) return; // apenas despesas
+      const isExpense = amt < 0 || tx.type === "DEBIT" || tx.operation_type === "CREDIT_CARD";
+      if (!isExpense) return; // apenas despesas!
+      const absAmt = Math.abs(amt);
+      if (absAmt === 0) return;
 
-      total += amt;
-      const rawCat = tx.category_pt || tx.category || "Outros";
-
-      // Normaliza para categorias pai
-      let parent = "Outros";
-      let sub = rawCat;
-
-      const lower = rawCat.toLowerCase();
-      if (lower.includes("supermercado") || lower.includes("delivery") || lower.includes("restaurante") || lower.includes("alimenta")) {
-        parent = "Alimentação";
-        sub = lower.includes("supermercado") ? "Supermercado" : lower.includes("delivery") ? "Delivery de alimentos" : "Restaurantes";
-      } else if (lower.includes("compra") || lower.includes("loja") || lower.includes("vestuário") || lower.includes("eletrôn") || lower.includes("shopping")) {
-        parent = "Compras";
-        sub = lower.includes("online") || lower.includes("amazon") || lower.includes("mercado livre") ? "Compras online" : "Compras no varejo";
-      } else if (lower.includes("saúde") || lower.includes("academia") || lower.includes("farmácia") || lower.includes("médic")) {
-        parent = "Saúde e bem-estar";
-        sub = lower.includes("academia") || lower.includes("wellhub") ? "Academia e centros de lazer" : "Farmácia e cuidados";
-      } else if (lower.includes("streaming") || lower.includes("serviços digitais") || lower.includes("software") || lower.includes("google") || lower.includes("spotify")) {
-        parent = "Serviços digitais";
-        sub = "Serviços digitais e assinaturas";
-      } else if (lower.includes("telecom") || lower.includes("moradia") || lower.includes("luz") || lower.includes("água") || lower.includes("aluguel") || lower.includes("condomínio")) {
-        parent = "Moradia";
-        sub = lower.includes("telecom") ? "Telecomunicação e internet" : "Despesas residenciais";
-      } else if (lower.includes("transporte") || lower.includes("uber") || lower.includes("combustível") || lower.includes("posto")) {
-        parent = "Transporte";
-        sub = lower.includes("uber") ? "Mobilidade urbana" : "Combustível e manutenção";
-      }
+      total += absAmt;
+      const { parent, sub } = categorizeTransaction(tx);
 
       if (!parentMap.has(parent)) {
         parentMap.set(parent, {
@@ -115,14 +259,14 @@ export function CategoriesView({ transactions, formatCurrency }: CategoriesViewP
       }
 
       const pEntry = parentMap.get(parent)!;
-      pEntry.total += amt;
+      pEntry.total += absAmt;
       pEntry.count += 1;
 
       if (!pEntry.subcategories.has(sub)) {
         pEntry.subcategories.set(sub, { name: sub, total: 0, count: 0 });
       }
       const sEntry = pEntry.subcategories.get(sub)!;
-      sEntry.total += amt;
+      sEntry.total += absAmt;
       sEntry.count += 1;
     });
 
