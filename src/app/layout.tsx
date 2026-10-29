@@ -62,7 +62,7 @@ export default function RootLayout({
         />
       </head>
       <body className="bg-[#F8FAFC] dark:bg-[#0B0E14] text-slate-900 dark:text-[#F8FAFC] antialiased" suppressHydrationWarning>
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem={true}>
           <FinanceDataProvider>
             <ServiceWorkerRegistrar />
             <OnboardingModal />

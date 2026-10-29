@@ -71,6 +71,8 @@ export default function KitsuneAIPage() {
     user,
     userProfile,
     accounts,
+    investments,
+    loans,
     transactions,
     familyMembers,
     chatMessages,
@@ -286,6 +288,118 @@ export default function KitsuneAIPage() {
       currency: "BRL",
     }).format(val);
 
+  // Sugestões Dinâmicas de Alto Valor Agregado geradas com base no perfil financeiro real do usuário
+  const dynamicSuggestions = useMemo(() => {
+    const list: Array<{ id: string; category: string; icon: string; label: string; query: string }> = [];
+
+    const creditAccs = accounts.filter((a) => a.type === "CREDIT" || a.subtype === "CREDIT_CARD");
+    const totalCredit = creditAccs.reduce((sum, a) => sum + Math.abs(Number(a.balance) || 0), 0);
+    const liquidAccs = accounts.filter((a) => a.type !== "CREDIT" && a.subtype !== "CREDIT_CARD");
+    const totalLiquid = liquidAccs.reduce((sum, a) => sum + (Number(a.balance) || 0), 0);
+
+    // 1. Faturas de Cartão e Folga de Caixa
+    if (totalCredit > 0) {
+      const topCard = creditAccs[0];
+      const cardBank = topCard?.institution_name || topCard?.bank_name || "cartão";
+      list.push({
+        id: "cartao_folga",
+        category: "Cartão",
+        icon: "credit_card",
+        label: `Como quitar fatura de ${formatCurrency(totalCredit)} no ${cardBank}?`,
+        query: `Tenho uma fatura atual de ${formatCurrency(totalCredit)} no ${cardBank} e saldo de ${formatCurrency(totalLiquid)} em conta. Como fica minha margem líquida após pagar?`,
+      });
+    }
+
+    // 2. Assinaturas e Recorrências
+    const subs = transactions.filter((t) => t.is_subscription);
+    if (subs.length > 0) {
+      const subNames = Array.from(new Set(subs.map((s) => s.clean_description || s.description))).slice(0, 3).join(", ");
+      list.push({
+        id: "subs_corte",
+        category: "Assinaturas",
+        icon: "sync",
+        label: `Auditar ${subs.length} assinaturas (${subNames})`,
+        query: `Detectei ${subs.length} cobranças recorrentes ativas (${subNames}). Qual o impacto anual dessas assinaturas e onde posso economizar?`,
+      });
+    }
+
+    // 3. Compras Parceladas
+    const installments = transactions.filter((t) => t.total_installments && t.total_installments > 1);
+    if (installments.length > 0) {
+      list.push({
+        id: "parcelas_futuras",
+        category: "Parcelas",
+        icon: "date_range",
+        label: `Quando termino de pagar minhas compras parceladas?`,
+        query: `Audite minhas ${installments.length} compras parceladas ativas. Quanto ainda tenho que pagar nos próximos meses até quitar tudo?`,
+      });
+    }
+
+    // 4. Investimentos e Caixa Parado
+    const totalInv = (investments || []).reduce((sum, i) => sum + (Number(i.balance) || 0), 0);
+    if (totalInv > 0) {
+      list.push({
+        id: "invest_renda",
+        category: "Investimentos",
+        icon: "trending_up",
+        label: `Minha carteira de ${formatCurrency(totalInv)} está batendo o CDI?`,
+        query: `Tenho ${formatCurrency(totalInv)} aplicados em investimentos e CDBs. Minha rentabilidade está protegida contra a inflação? Qual recomendação para novos aportes?`,
+      });
+    } else if (totalLiquid > 1000) {
+      list.push({
+        id: "onde_investir",
+        category: "Investir",
+        icon: "savings",
+        label: `Onde aplicar os ${formatCurrency(totalLiquid)} parados em conta?`,
+        query: `Tenho ${formatCurrency(totalLiquid)} parados em conta corrente. Onde posso investir com liquidez diária (CDB 100% CDI ou Tesouro Selic) com segurança?`,
+      });
+    }
+
+    // 5. Meta Patrimonial Cadastrada
+    if (userProfile?.financial_goal) {
+      list.push({
+        id: "meta_estrategia",
+        category: "Meta",
+        icon: "flag",
+        label: `Plano estratégico para: "${userProfile.financial_goal}"`,
+        query: `Meu principal objetivo patrimonial cadastrado é "${userProfile.financial_goal}". Desenhe um plano prático com missões mensais para eu alcançar essa meta mais rápido.`,
+      });
+    }
+
+    // 6. Principais Despesas Operacionais
+    const operationalExpenses = transactions.filter((t) => !t.is_internal_transfer && (t.type === "DEBIT" || Number(t.amount) < 0));
+    if (operationalExpenses.length > 0) {
+      const topCat = operationalExpenses[0].category_pt || operationalExpenses[0].category || "Gastos Gerais";
+      list.push({
+        id: "cortar_categoria",
+        category: "Economia",
+        icon: "content_cut",
+        label: `Como gastar menos em ${topCat}?`,
+        query: `Identifiquei que minha principal linha de despesas recentes é "${topCat}". Me dê 3 dicas práticas para economizar 20% nessa categoria este mês.`,
+      });
+    }
+
+    // 7. Alocação 50-30-20
+    list.push({
+      id: "regra_50_30_20",
+      category: "Planejamento",
+      icon: "pie_chart",
+      label: `Como dividir minhas contas na regra 50-30-20?`,
+      query: `Com base nas minhas receitas e despesas reais, como seria a divisão ideal do meu orçamento na regra 50% necessidades, 30% desejos e 20% investimentos?`,
+    });
+
+    // 8. Raio-X Patrimonial 360°
+    list.push({
+      id: "raio_x_completo",
+      category: "Auditoria",
+      icon: "analytics",
+      label: `Raio-X de 360° da minha saúde financeira`,
+      query: `Faça uma auditoria completa e sem rodeios de todos os meus bancos, faturas e investimentos. O que estou fazendo certo e qual meu maior risco financeiro hoje?`,
+    });
+
+    return list;
+  }, [accounts, transactions, investments, userProfile?.financial_goal, formatCurrency]);
+
   // Visualizador de Ondas Sonoras em Tempo Real (Web Audio API)
   const startAudioVisualizer = (stream: MediaStream) => {
     try {
@@ -457,14 +571,18 @@ export default function KitsuneAIPage() {
     }
   };
 
-  // Sugestões de Perguntas: Injeta no campo do usuário sem disparar sozinho
+  // Sugestões de Perguntas: Dispara automaticamente para a IA se o campo estiver vazio,
+  // ou anexa ao texto caso o usuário já esteja digitando algo na caixa de texto.
   const handleSelectSuggestedPrompt = (query: string) => {
-    setInput((prev) => {
-      const trimmed = prev.trim();
-      if (!trimmed) return query;
-      return `${trimmed}\n\n${query}`;
-    });
-    textareaRef.current?.focus();
+    const currentInputTrimmed = input.trim();
+    if (currentInputTrimmed.length === 0) {
+      // Caixa vazia: envia imediatamente para a IA
+      sendMessage(query);
+    } else {
+      // Já contém texto: anexa ao conteúdo sem enviar automaticamente
+      setInput((prev) => `${prev.trim()}\n\n${query}`);
+      textareaRef.current?.focus();
+    }
   };
 
   const sendMessage = async (customPrompt?: string) => {
@@ -900,24 +1018,31 @@ export default function KitsuneAIPage() {
         <div ref={messagesEndRef} className="h-2 shrink-0" />
       </div>
 
-      {/* Pílulas de Perguntas Sugeridas (Injetam no Input sem Enviar Direto) */}
+      {/* Carrossel Dinâmico de Sugestões de Alto Valor Agregado */}
       <div className="px-3 md:px-8 max-w-4xl mx-auto w-full pb-2">
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-none">
           <span className="text-[11px] text-slate-500 dark:text-[#94A3B8] font-bold uppercase tracking-wider shrink-0 flex items-center gap-1">
             <span className="material-symbols-outlined text-sm text-[#FF8216]">
-              lightbulb
+              auto_awesome
             </span>
             Sugestões:
           </span>
-          {SUGGESTED_QUICK_PROMPTS.map((item, idx) => (
+          {dynamicSuggestions.map((item) => (
             <button
-              key={idx}
+              key={item.id}
               type="button"
               disabled={isLoading}
               onClick={() => handleSelectSuggestedPrompt(item.query)}
-              className="px-3.5 py-1.5 rounded-full bg-white dark:bg-[#12161F] hover:bg-slate-100 dark:hover:bg-[#1A202C] border border-slate-200 dark:border-[#262E3D] hover:border-[#FF8216]/50 text-slate-700 dark:text-[#F8FAFC] text-xs font-medium transition-colors whitespace-nowrap cursor-pointer active:scale-95 shadow-xs"
+              title="Clique para perguntar diretamente à IA"
+              className="group px-3 py-1.5 rounded-full bg-white dark:bg-[#12161F] hover:bg-slate-100 dark:hover:bg-[#1A202C] border border-slate-200 dark:border-[#262E3D] hover:border-[#FF8216]/50 text-slate-700 dark:text-[#F8FAFC] text-xs font-medium transition-all whitespace-nowrap cursor-pointer active:scale-95 shadow-xs flex items-center gap-1.5 shrink-0"
             >
-              {item.label}
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-[#FF8216]/10 text-[#FF8216] group-hover:bg-[#FF8216] group-hover:text-white transition-colors">
+                {item.category}
+              </span>
+              <span>{item.label}</span>
+              <span className="material-symbols-outlined text-[13px] text-slate-400 group-hover:text-[#FF8216] transition-colors">
+                arrow_forward
+              </span>
             </button>
           ))}
         </div>

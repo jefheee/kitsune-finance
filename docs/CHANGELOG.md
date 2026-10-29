@@ -4,6 +4,19 @@ Todas as alterações notáveis no projeto Kitsune Finance são registradas de f
 
 ---
 
+## [2026-10-29] - Motor de Renda Inteligente, Resolução de 140+ Bancos, Auto-Envio de Sugestões & Blindagem Matemática IA
+- **Arquivos Afetados:** `src/utils/finance/income-detector.ts`, `src/components/BankLogo.tsx`, `src/app/kitsune/page.tsx`, `src/components/AiDiagnosticPanel.tsx`, `src/app/api/ai/generate-insight/route.ts`, `src/app/dashboard/page.tsx`, `src/app/agents/page.tsx`, `src/app/layout.tsx`, `src/app/globals.css`, `src/utils/ai/dossier.ts`, `docs/PROJECT_STATE.md`, `docs/CHANGELOG.md`.
+- **Objetivo:**
+  - Implementação do motor de identificação de padrão de renda (`income-detector.ts`): classificação automática entre Salário Regular CLT/Pró-labore, Renda Variável/Autônomo, Entradas Esporádicas ou Sem Renda Fixa, auditando a coerência com a renda declarada no onboarding.
+  - Resolução universal multi-tier de logos bancárias (`BankLogo.tsx`): suporte aos 16 bancos locais em SVG corporativo + resolução dinâmica via CDN oficial para 140+ bancos brasileiros do Open Finance, com fallback seguro para SVG neutro sem quebra visual.
+  - Auto-envio de prompts sugeridos no chat Kitsune IA quando o campo de texto estiver vazio e carrossel dinâmico rolável com 8 categorias personalizadas geradas a partir da situação patrimonial real do usuário.
+  - Eliminação de alucinações e desacoplamento falso no Diagnóstico IA: amarração direta dos 3 cards de métricas (Cobertura de Liquidez, Gastos Operacionais e Margem Operacional) aos números matemáticos determinísticos calculados por código e suporte a filtro isolado por banco selecionado sem transferências internas.
+  - Ordenação decrescente por relevância patrimonial (saldo em conta + investimentos) nos seletores de banco do Dashboard, na lista de instituições vinculadas (`/agents`) e nas listagens de contas.
+  - Ativação do Objetivo Patrimonial com widget dinâmico de progresso no Dashboard e impacto direto nas diretrizes analíticas da IA.
+  - Correção do tema "Sistema" via `ThemeProvider` (`enableSystem={true}`), saudação pelo primeiro nome ("Olá, Jacson!") e suavização global de transições CSS.
+
+---
+
 ## [2026-10-29] - Refatoração Estrutural Open Finance, Eliminação de Mocks, Logos Oficiais em SVG & Blindagem Total
 - **Arquivos Afetados:** `supabase/migrations/20261029_open_finance_full_restructure.sql`, `supabase/migrations/20261029_open_finance_identity_and_cache_rpcs.sql`, `public/banks/*.svg`, `src/components/BankLogo.tsx`, `src/utils/pluggy/*`, `src/utils/ai/dossier.ts`, `src/app/api/chat/route.ts`, `src/app/api/openfinance/route.ts`, `src/app/api/ai/anomalies/route.ts`, `src/app/api/ai/generate-insight/route.ts`, `src/app/api/export/spreadsheet/route.ts`, `src/context/FinanceDataContext.tsx`, `src/components/finance/SubscriptionsTracker.tsx`, `src/components/finance/InstallmentsTracker.tsx`, `src/app/dashboard/page.tsx`, `src/app/kitsune/page.tsx`, `src/app/agents/page.tsx`, `src/app/profile/page.tsx`, `src/app/settings/page.tsx`, `src/app/page.tsx`, `docs/PROJECT_STATE.md`, `docs/CHANGELOG.md`.
 - **Objetivo:**
