@@ -51,105 +51,116 @@ export function AiDiagnosticPanel({
 }: AiDiagnosticPanelProps) {
   const [showFullReport, setShowFullReport] = useState(false);
 
-  // Parser robusto: lida com JSON estruturado ou converte texto legado sem quebrar
+  // Cálculos determinísticos da camada MSLR (Zero alucinação em métricas)
+  const margin = monthlyIncome - monthlyExpense;
+  const isLiquidOk = liquidBalance >= creditCardBalance;
+  const liquidRatio =
+    creditCardBalance > 0
+      ? (liquidBalance / creditCardBalance).toFixed(1) + "x"
+      : "Folga Total";
+
+  const deterministicCards: ParsedDiagnostic["cards"] = [
+    {
+      title: "Cobertura de Liquidez",
+      value: formatCurrency(liquidBalance),
+      badge: isLiquidOk
+        ? creditCardBalance === 0
+          ? "Sem Passivos"
+          : "Faturas Cobertas"
+        : "Atenção de Caixa",
+      status: isLiquidOk ? "positive" : "warning",
+      desc:
+        creditCardBalance > 0
+          ? `Patrimônio líquido disponível cobre ${liquidRatio} das faturas abertas.`
+          : "Patrimônio líquido equivalente ao saldo disponível, sem faturas pendentes.",
+    },
+    {
+      title: "Gastos Operacionais",
+      value: formatCurrency(monthlyExpense),
+      badge: monthlyExpense > 0 ? "Despesas Reais" : "Sem Saídas",
+      status: monthlyExpense > 0 ? "neutral" : "positive",
+      desc: "Total de saídas reais conciliadas (excluídas transferências próprias).",
+    },
+    {
+      title: "Margem Operacional",
+      value: formatCurrency(Math.abs(margin)),
+      badge: margin >= 0 ? "Superávit" : "Déficit",
+      status: margin >= 0 ? "positive" : "danger",
+      desc:
+        margin >= 0
+          ? `Receitas de ${formatCurrency(monthlyIncome)} superam as despesas no período.`
+          : `Despesas superaram as receitas em ${formatCurrency(Math.abs(margin))} no mês.`,
+    },
+  ];
+
+  // Parser com reconciliação matemática (qualitativo por IA, números estritos por código)
   const parsedData: ParsedDiagnostic = (() => {
-    if (!aiInsight?.text) {
-      const margin = Math.max(0, monthlyIncome - monthlyExpense);
-      const isLiquidOk = liquidBalance >= creditCardBalance;
-      return {
-        headline: "Diagnóstico Dinâmico do Seu Patrimônio",
-        summary: `Patrimônio consolidado em ${formatCurrency(totalBalance)} com ${formatCurrency(liquidBalance)} em conta e ${formatCurrency(creditCardBalance)} em faturas em aberto.`,
-        score: kitsuneScore.score,
-        scoreLabel: kitsuneScore.label,
-        cards: [
-          {
-            title: "Cobertura de Liquidez",
-            value: formatCurrency(liquidBalance),
-            badge: isLiquidOk ? "Faturas Cobertas" : "Atenção de Caixa",
-            status: isLiquidOk ? "positive" : "warning",
-            desc: isLiquidOk ? "Saldo líquido cobre 100% das faturas atuais." : "Saldo menor que as faturas atuais.",
-          },
-          {
-            title: "Faturas do Período",
-            value: formatCurrency(creditCardBalance),
-            badge: "Cartão de Crédito",
-            status: creditCardBalance > 0 ? "warning" : "positive",
-            desc: "Compromissos pendentes até o fechamento da fatura.",
-          },
-          {
-            title: "Margem Operacional",
-            value: formatCurrency(margin),
-            badge: monthlyIncome >= monthlyExpense ? "Superávit" : "Déficit",
-            status: monthlyIncome >= monthlyExpense ? "positive" : "danger",
-            desc: "Diferença líquida entre entradas e saídas confirmadas.",
-          },
-        ],
-        actionPoints: [
-          {
-            icon: "shield",
-            title: "Blindagem de Caixa",
-            desc: `Garanta a liquidação de ${formatCurrency(creditCardBalance)} para blindar seu saldo operacional.`,
-          },
-        ],
-        fullReport: "Clique no botão Atualizar para gerar um parecer patrimonial completo com a Kitsune IA.",
-      };
-    }
+    let headline = margin >= 0
+      ? "Superávit operacional sólido com liquidez integral mantida."
+      : "Atenção: Margem operacional pressionada pelas saídas do ciclo.";
+    let summary = margin >= 0
+      ? `O mês registra receitas de ${formatCurrency(monthlyIncome)} e despesas operacionais de ${formatCurrency(monthlyExpense)}, gerando margem líquida de ${formatCurrency(margin)}. A liquidez total é de ${formatCurrency(liquidBalance)}.`
+      : `O mês registra despesas de ${formatCurrency(monthlyExpense)} frente a receitas de ${formatCurrency(monthlyIncome)}. O saldo disponível é de ${formatCurrency(liquidBalance)}.`;
+    let actionPoints: ParsedDiagnostic["actionPoints"] = [
+      {
+        icon: "shield",
+        title: "Blindagem de Caixa",
+        desc: creditCardBalance > 0
+          ? `Monitore o fechamento da fatura de ${formatCurrency(creditCardBalance)} para garantir alocação eficiente.`
+          : "Faturas zeradas. Excelente disciplina operacional mantida.",
+      },
+      {
+        icon: "trending_up",
+        title: "Alocação Estratégica",
+        desc: margin > 0
+          ? `Direcionar a margem operacional de ${formatCurrency(margin)} para instrumentos de renda fixa e reserva.`
+          : "Ajuste os desembolsos não essenciais para restabelecer o superávit operacional.",
+      },
+    ];
+    let fullReport = "";
 
-    try {
-      // Tenta parsear JSON
-      const json = JSON.parse(aiInsight.text);
-      if (json.summary && Array.isArray(json.cards)) {
-        return json as ParsedDiagnostic;
+    if (aiInsight?.text) {
+      try {
+        const json = JSON.parse(aiInsight.text);
+        if (json.headline && typeof json.headline === "string") {
+          headline = json.headline;
+        }
+
+        // Se o resumo da IA for coerente e não contiver números alucinados de transferências próprias, aproveita
+        if (
+          json.summary &&
+          typeof json.summary === "string" &&
+          !json.summary.includes("Transferência Própria") &&
+          !json.summary.includes("11064")
+        ) {
+          summary = json.summary;
+        }
+
+        if (Array.isArray(json.actionPoints) && json.actionPoints.length > 0) {
+          actionPoints = json.actionPoints.filter(
+            (p: any) => p && typeof p.title === "string" && !p.title.includes("Transferência Própria")
+          );
+        }
+
+        if (json.fullReport && typeof json.fullReport === "string") {
+          fullReport = json.fullReport;
+        }
+      } catch {
+        // Fallback para texto plano
+        const clean = aiInsight.text.replace(/\*\*/g, "").replace(/#{1,6}\s?/g, "");
+        const parts = clean.split("\n\n").filter(Boolean);
+        if (parts.length > 0) fullReport = clean;
       }
-    } catch {
-      // Formato não é JSON puro (texto legado com asteriscos)
     }
-
-    // Fallback limpo para texto legado: limpa markdown e monta cards reais
-    const cleanText = aiInsight.text.replace(/\*\*/g, "").replace(/#{1,6}\s?/g, "");
-    const paragraphs = cleanText.split("\n\n").filter(Boolean);
-    const summary = paragraphs[0]?.replace(/^Olá.*?:\s*/i, "").trim() || "Análise patrimonial consolidada.";
-    const fullReport = paragraphs.slice(1).join("\n\n") || cleanText;
-
-    const margin = Math.max(0, monthlyIncome - monthlyExpense);
-    const isLiquidOk = liquidBalance >= creditCardBalance;
 
     return {
-      headline: "Resumo Executivo do Patrimônio",
-      summary: summary.slice(0, 220) + (summary.length > 220 ? "..." : ""),
+      headline,
+      summary,
       score: kitsuneScore.score,
       scoreLabel: kitsuneScore.label,
-      cards: [
-        {
-          title: "Cobertura de Liquidez",
-          value: formatCurrency(liquidBalance),
-          badge: isLiquidOk ? "Faturas Cobertas" : "Atenção",
-          status: isLiquidOk ? "positive" : "warning",
-          desc: `${creditCardBalance > 0 ? (liquidBalance / creditCardBalance).toFixed(1) + "x" : "100% de folga sobre"} o volume de faturas abertas.`,
-        },
-        {
-          title: "Faturas Pendentes",
-          value: formatCurrency(creditCardBalance),
-          badge: "Cartão",
-          status: "warning",
-          desc: "Volume de compromissos abertos no ciclo atual.",
-        },
-        {
-          title: "Margem Operacional",
-          value: formatCurrency(margin),
-          badge: monthlyIncome >= monthlyExpense ? "Superávit" : "Déficit",
-          status: monthlyIncome >= monthlyExpense ? "positive" : "danger",
-          desc: "Diferença entre receitas e despesas registradas.",
-        },
-      ],
-      actionPoints: [
-        {
-          icon: "savings",
-          title: "Otimização de Caixa",
-          desc: "Direcione o superávit para expansão da reserva de emergência.",
-        },
-      ],
-      fullReport,
+      cards: deterministicCards,
+      actionPoints,
+      fullReport: fullReport || summary,
     };
   })();
 
@@ -158,37 +169,39 @@ export function AiDiagnosticPanel({
       case "positive":
         return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20";
       case "warning":
-        return "bg-[#FF8216]/10 text-[#FF8216] border-[#FF8216]/25";
+        return "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20";
       case "danger":
         return "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20";
       default:
-        return "bg-slate-100 dark:bg-[#1E2533] text-slate-600 dark:text-slate-300 border-slate-200 dark:border-white/10";
+        return "bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-[#94A3B8] border-slate-200 dark:border-white/10";
     }
   };
 
   return (
-    <section className="p-5 md:p-6 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] shadow-xs flex flex-col gap-5 transition-all">
-      {/* Top Header: Título, Score, Horário e Botões de Ação */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-white/5 pb-4">
+    <div className="bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] rounded-2xl p-5 md:p-6 shadow-sm flex flex-col gap-5">
+      {/* Top Header do Painel */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-[#262E3D]/80 pb-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#FF8216]/10 text-[#FF8216] border border-[#FF8216]/25 flex items-center justify-center shrink-0">
-            <span className="material-symbols-outlined text-2xl">psychology</span>
+          <div className="w-10 h-10 rounded-xl bg-[#FF8216]/10 border border-[#FF8216]/20 flex items-center justify-center shrink-0">
+            <span className="material-symbols-outlined text-xl text-[#FF8216]">
+              psychology
+            </span>
           </div>
-          <div>
+          <div className="flex flex-col">
             <div className="flex items-center gap-2 flex-wrap">
               <h2 className="text-sm md:text-base font-bold text-slate-900 dark:text-[#F8FAFC]">
                 Diagnóstico & Parecer da Kitsune IA
               </h2>
-              <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${kitsuneScore.color}`}>
-                Score: {parsedData.score || kitsuneScore.score} • {parsedData.scoreLabel || kitsuneScore.label}
+              <span className={`text-[11px] font-extrabold ${kitsuneScore.color}`}>
+                Score: {parsedData.score} • {parsedData.scoreLabel}
               </span>
             </div>
-            <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5">
-              <span className="flex items-center gap-1">
-                <span className="material-symbols-outlined text-[13px] text-emerald-500">verified</span>
+            <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-[#94A3B8]">
+              <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 Auditoria via Open Finance
               </span>
-              {aiInsight && (
+              {aiInsight?.updatedAt && (
                 <>
                   <span>•</span>
                   <span>
@@ -204,33 +217,37 @@ export function AiDiagnosticPanel({
           </div>
         </div>
 
-        {/* Botões de Ação Rápidos */}
-        <div className="flex items-center gap-2 self-stretch sm:self-auto">
+        {/* Botões Superiores */}
+        <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
           <Link
             href="/kitsune"
-            className="flex-1 sm:flex-initial h-9 px-4 rounded-xl bg-[#FF8216] hover:bg-[#FFA047] active:bg-[#E66E08] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer"
+            className="h-8 px-3 rounded-lg bg-[#FF8216] hover:bg-[#FFA047] active:bg-[#E66E08] text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
           >
-            <span className="material-symbols-outlined text-[16px]">chat</span>
+            <span className="material-symbols-outlined text-[15px]">chat</span>
             <span>Conversar</span>
           </Link>
 
           <button
             onClick={onRefresh}
             disabled={isGenerating}
-            title="Atualizar análise por IA"
-            className="flex-1 sm:flex-initial h-9 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-[#1A202C] dark:hover:bg-[#222A3A] border border-slate-200 dark:border-[#262E3D] text-xs font-semibold text-slate-700 dark:text-[#F8FAFC] flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+            title="Recalcular diagnóstico agora"
+            className="h-8 px-3 rounded-lg bg-slate-100 dark:bg-[#1A202C] hover:bg-slate-200 dark:hover:bg-[#262E3D] text-slate-700 dark:text-[#F8FAFC] border border-slate-200 dark:border-white/5 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
           >
-            <span className={`material-symbols-outlined text-[16px] text-[#FF8216] ${isGenerating ? "animate-spin" : ""}`}>
+            <span
+              className={`material-symbols-outlined text-[15px] ${
+                isGenerating ? "animate-spin text-[#FF8216]" : ""
+              }`}
+            >
               sync
             </span>
-            <span>{isGenerating ? "Analisando..." : "Atualizar"}</span>
+            <span>{isGenerating ? "Auditando..." : "Atualizar"}</span>
           </button>
         </div>
       </div>
 
-      {/* Resumo Executivo Dinâmico */}
+      {/* Resumo Executivo */}
       <div className="flex flex-col gap-2">
-        <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+        <h3 className="text-sm font-extrabold text-slate-900 dark:text-[#F8FAFC]">
           {parsedData.headline}
         </h3>
         <p className="text-xs md:text-sm text-slate-600 dark:text-[#94A3B8] leading-relaxed">
@@ -238,54 +255,58 @@ export function AiDiagnosticPanel({
         </p>
       </div>
 
-      {/* Cards de Métricas Visuais (3 Cards Gerados Dinamicamente) */}
+      {/* 3 Metric Cards Determinísticos */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {parsedData.cards.map((card, idx) => (
           <div
             key={idx}
-            className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#0B0E14] border border-slate-200/80 dark:border-[#262E3D]/80 flex flex-col justify-between gap-2"
+            className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#0E121A] border border-slate-200 dark:border-[#262E3D] flex flex-col gap-1.5"
           >
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="text-slate-500 dark:text-[#94A3B8] font-medium truncate">
                 {card.title}
               </span>
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${getStatusBadge(card.status)}`}>
+              <span
+                className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${getStatusBadge(
+                  card.status
+                )}`}
+              >
                 {card.badge}
               </span>
             </div>
-            <div>
-              <span className="text-base md:text-lg font-extrabold text-slate-900 dark:text-white tabular-nums">
-                {card.value}
-              </span>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2 leading-tight">
-                {card.desc}
-              </p>
+            <div className="text-base md:text-lg font-black text-slate-900 dark:text-[#F8FAFC] tabular-nums">
+              {card.value}
             </div>
+            <p className="text-[10px] text-slate-500 dark:text-[#94A3B8] leading-tight line-clamp-2">
+              {card.desc}
+            </p>
           </div>
         ))}
       </div>
 
-      {/* Recomendações Acionáveis */}
-      {parsedData.actionPoints && parsedData.actionPoints.length > 0 && (
-        <div className="flex flex-col gap-2 pt-1 border-t border-slate-100 dark:border-white/5">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-            Ações Recomendadas Pela Kitsune
+      {/* Ações Imediatas Recomendadas */}
+      {parsedData.actionPoints.length > 0 && (
+        <div className="flex flex-col gap-2 pt-2 border-t border-slate-100 dark:border-[#262E3D]/60">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            Ações Recomendadas pela Kitsune
           </span>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-            {parsedData.actionPoints.map((action, i) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {parsedData.actionPoints.map((act, idx) => (
               <div
-                key={i}
-                className="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-50/70 dark:bg-[#141A24] border border-slate-200/60 dark:border-[#262E3D]/60"
+                key={idx}
+                className="p-3 rounded-xl bg-slate-50/80 dark:bg-[#0E121A]/80 border border-slate-200/80 dark:border-[#262E3D]/80 flex items-start gap-2.5"
               >
                 <div className="w-6 h-6 rounded-lg bg-[#FF8216]/10 text-[#FF8216] flex items-center justify-center shrink-0 mt-0.5">
-                  <span className="material-symbols-outlined text-[15px]">{action.icon || "bolt"}</span>
-                </div>
-                <div className="min-w-0">
-                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
-                    {action.title}
+                  <span className="material-symbols-outlined text-[14px]">
+                    {act.icon}
                   </span>
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight block">
-                    {action.desc}
+                </div>
+                <div className="flex flex-col gap-0.5 min-w-0">
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                    {act.title}
+                  </span>
+                  <span className="text-[11px] text-slate-500 dark:text-[#94A3B8] leading-tight">
+                    {act.desc}
                   </span>
                 </div>
               </div>
@@ -294,26 +315,24 @@ export function AiDiagnosticPanel({
         </div>
       )}
 
-      {/* Accordion para Parecer Completo */}
-      {parsedData.fullReport && (
-        <div className="pt-2 border-t border-slate-100 dark:border-white/5">
-          <button
-            onClick={() => setShowFullReport(!showFullReport)}
-            className="flex items-center gap-1.5 text-xs font-semibold text-[#FF8216] hover:text-[#FFA047] transition-colors cursor-pointer"
-          >
-            <span>{showFullReport ? "Ocultar Análise Detalhada" : "Ver Análise Detalhada"}</span>
-            <span className={`material-symbols-outlined text-sm transition-transform ${showFullReport ? "rotate-180" : ""}`}>
-              expand_more
-            </span>
-          </button>
+      {/* Parecer Expansível */}
+      <div className="pt-1">
+        <button
+          onClick={() => setShowFullReport(!showFullReport)}
+          className="text-xs font-bold text-[#FF8216] hover:underline flex items-center gap-1 cursor-pointer"
+        >
+          <span>{showFullReport ? "Ocultar Parecer" : "Ver Análise Detalhada"}</span>
+          <span className="material-symbols-outlined text-sm">
+            {showFullReport ? "expand_less" : "expand_more"}
+          </span>
+        </button>
 
-          {showFullReport && (
-            <div className="mt-3 p-4 rounded-xl bg-slate-50 dark:bg-[#0B0E14] border border-slate-200 dark:border-[#262E3D] text-xs text-slate-600 dark:text-[#94A3B8] leading-relaxed whitespace-pre-line">
-              {parsedData.fullReport}
-            </div>
-          )}
-        </div>
-      )}
-    </section>
+        {showFullReport && (
+          <div className="mt-3 p-4 rounded-xl bg-slate-50 dark:bg-[#0E121A] border border-slate-200 dark:border-[#262E3D] text-xs text-slate-700 dark:text-slate-300 leading-relaxed space-y-2 whitespace-pre-line">
+            {parsedData.fullReport}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

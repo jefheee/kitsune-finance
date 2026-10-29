@@ -64,21 +64,45 @@ export default function DashboardPage() {
     ];
 
     // Lista única de bancos conectados pelo usuário para a barra horizontal de filtro
+    // ORDENADA POR IMPORTÂNCIA FINANCEIRA: maior volume consolidado (saldo líquido + investimentos) em primeiro
     const connectedBanks = useMemo(() => {
-        const map = new Map<string, { slug: string; name: string; accountCount: number }>();
+        const map = new Map<string, { slug: string; name: string; accountCount: number; totalAssets: number }>();
 
         accounts.forEach((acc) => {
             const entry = getBankCatalogBySlugOrName(
                 acc.institution_slug || acc.institution_name || acc.bank_name
             );
+            const bal = Number(acc.balance) || 0;
+            const isCredit = acc.type === "CREDIT" || acc.subtype === "CREDIT_CARD";
+            const assetVal = isCredit ? 0 : bal;
+
             const existing = map.get(entry.slug);
             if (existing) {
                 existing.accountCount += 1;
+                existing.totalAssets += assetVal;
             } else {
                 map.set(entry.slug, {
                     slug: entry.slug,
                     name: entry.shortName,
                     accountCount: 1,
+                    totalAssets: assetVal,
+                });
+            }
+        });
+
+        // Adiciona e soma volume de investimentos por instituição
+        investments.forEach((inv) => {
+            const entry = getBankCatalogBySlugOrName(inv.institution_name);
+            const bal = Number(inv.balance) || 0;
+            const existing = map.get(entry.slug);
+            if (existing) {
+                existing.totalAssets += bal;
+            } else if (entry.slug !== "generic") {
+                map.set(entry.slug, {
+                    slug: entry.slug,
+                    name: entry.shortName,
+                    accountCount: 0,
+                    totalAssets: bal,
                 });
             }
         });
@@ -92,12 +116,14 @@ export default function DashboardPage() {
                     slug: entry.slug,
                     name: entry.shortName,
                     accountCount: 0,
+                    totalAssets: 0,
                 });
             }
         });
 
-        return Array.from(map.values());
-    }, [accounts, connections]);
+        // Ordena estritamente por relevância financeira decrescente (maior valor total primeiro)
+        return Array.from(map.values()).sort((a, b) => b.totalAssets - a.totalAssets);
+    }, [accounts, investments, connections]);
 
     // Garante que se o banco selecionado foi desconectado, volta para 'all'
     useEffect(() => {
@@ -110,22 +136,24 @@ export default function DashboardPage() {
         }
     }, [selectedBankSlug, connectedBanks, setSelectedBankSlug]);
 
-    // Filtragem Global Combinada (Membro da Família + Banco Selecionado)
+    // Filtragem Global Combinada (Membro da Família + Banco Selecionado) ordenada por saldo decrescente
     const filteredAccounts = useMemo(() => {
-        return accounts.filter((a) => {
-            if (isFamilyModeEnabled && selectedMemberId !== "all") {
-                if (selectedMemberId === "personal" && a.family_member_id) return false;
-                if (selectedMemberId !== "personal" && a.family_member_id !== selectedMemberId)
-                    return false;
-            }
-            if (selectedBankSlug !== "all") {
-                const slug = getBankCatalogBySlugOrName(
-                    a.institution_slug || a.institution_name || a.bank_name
-                ).slug;
-                if (slug !== selectedBankSlug) return false;
-            }
-            return true;
-        });
+        return accounts
+            .filter((a) => {
+                if (isFamilyModeEnabled && selectedMemberId !== "all") {
+                    if (selectedMemberId === "personal" && a.family_member_id) return false;
+                    if (selectedMemberId !== "personal" && a.family_member_id !== selectedMemberId)
+                        return false;
+                }
+                if (selectedBankSlug !== "all") {
+                    const slug = getBankCatalogBySlugOrName(
+                        a.institution_slug || a.institution_name || a.bank_name
+                    ).slug;
+                    if (slug !== selectedBankSlug) return false;
+                }
+                return true;
+            })
+            .sort((a, b) => Math.abs(Number(b.balance) || 0) - Math.abs(Number(a.balance) || 0));
     }, [accounts, isFamilyModeEnabled, selectedMemberId, selectedBankSlug]);
 
     const filteredAccountIds = useMemo(
@@ -134,15 +162,17 @@ export default function DashboardPage() {
     );
 
     const filteredInvestments = useMemo(() => {
-        return investments.filter((inv) => {
-            if (selectedBankSlug !== "all") {
-                const slug = getBankCatalogBySlugOrName(
-                    inv.institution_slug || inv.institution_name || inv.issuer
-                ).slug;
-                if (slug !== selectedBankSlug) return false;
-            }
-            return true;
-        });
+        return investments
+            .filter((inv) => {
+                if (selectedBankSlug !== "all") {
+                    const slug = getBankCatalogBySlugOrName(
+                        inv.institution_slug || inv.institution_name || inv.issuer
+                    ).slug;
+                    if (slug !== selectedBankSlug) return false;
+                }
+                return true;
+            })
+            .sort((a, b) => (Number(b.balance) || 0) - (Number(a.balance) || 0));
     }, [investments, selectedBankSlug]);
 
     const filteredLoans = useMemo(() => {
@@ -305,6 +335,21 @@ export default function DashboardPage() {
         };
     }, [filteredAccounts, filteredInvestments, filteredLoans, filteredTransactions]);
 
+    const formatCurrency = (value: number) => {
+        return new Intl.NumberFormat("pt-BR", {
+            style: "currency",
+            currency: "BRL",
+        }).format(value);
+    };
+
+    const formatDate = (dateString?: string) => {
+        if (!dateString) return "-";
+        const clean = dateString.split("T")[0];
+        const parts = clean.split("-");
+        if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        return dateString;
+    };
+
     const kitsuneScore = useMemo(() => {
         if (accounts.length === 0)
             return { score: 500, label: "Aguardando Conexões", color: "text-slate-400" };
@@ -339,6 +384,39 @@ export default function DashboardPage() {
         monthlyExpense,
     ]);
 
+    // Diagnóstico Matemático Acionável do Objetivo Patrimonial Selecionado
+    const goalDiagnostics = useMemo(() => {
+        const goal = userProfile?.financial_goal || "Construir reserva";
+        let progress = 50;
+        let text = "Acompanhamento da sua meta patrimonial.";
+
+        if (goal.toLowerCase().includes("reserva")) {
+            const monthlyCost = monthlyExpense > 0 ? monthlyExpense : 2500;
+            const target = monthlyCost * 6;
+            const months = (liquidBalance / monthlyCost).toFixed(1);
+            progress = Math.min(100, Math.max(5, Math.round((liquidBalance / target) * 100)));
+            text = `Você possui ${months} meses de custo de vida garantidos em liquidez imediata (Meta: 6 meses ou ${formatCurrency(target)}).`;
+        } else if (goal.toLowerCase().includes("gasto")) {
+            const limit = monthlyIncome > 0 ? monthlyIncome * 0.7 : 3000;
+            const usedRatio = monthlyExpense / limit;
+            progress = Math.min(100, Math.max(0, Math.round((1 - usedRatio) * 100)));
+            text = `Você utilizou ${formatCurrency(monthlyExpense)} do teto orçamentário seguro previsto de ${formatCurrency(limit)}.`;
+        } else if (goal.toLowerCase().includes("invest")) {
+            const ratio = totalBalance > 0 ? Math.round((investmentsBalance / totalBalance) * 100) : 0;
+            progress = Math.min(100, Math.max(10, ratio));
+            text = `${ratio}% do seu patrimônio está alocado em investimentos (${formatCurrency(investmentsBalance)} de ${formatCurrency(totalBalance)}).`;
+        } else if (goal.toLowerCase().includes("dívida") || goal.toLowerCase().includes("divida")) {
+            const ratio = creditCardBalance > 0 ? liquidBalance / creditCardBalance : 10;
+            progress = creditCardBalance === 0 ? 100 : Math.min(100, Math.round(ratio * 50));
+            text = creditCardBalance === 0 ? "Parabéns! Suas faturas de cartão de crédito estão 100% quitadas." : `Faturas em aberto somam ${formatCurrency(creditCardBalance)}, cobertas ${ratio.toFixed(1)}x pelo seu saldo disponível.`;
+        } else {
+            progress = 75;
+            text = `Consolidação e alocação compartilhada em andamento com ${accounts.length} contas monitoradas.`;
+        }
+
+        return { goal, progress, text };
+    }, [userProfile?.financial_goal, liquidBalance, monthlyExpense, monthlyIncome, totalBalance, investmentsBalance, creditCardBalance, accounts.length, formatCurrency]);
+
     useEffect(() => {
         if (!aiInsight && !isGeneratingAi && accounts.length > 0 && transactions.length > 0) {
             generateAiInsight();
@@ -353,6 +431,7 @@ export default function DashboardPage() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
+                    bankSlug: selectedBankSlug !== "all" ? selectedBankSlug : null,
                     familyMemberId: isFamilyModeEnabled ? selectedMemberId : "all",
                 }),
             });
@@ -418,29 +497,17 @@ export default function DashboardPage() {
         setTimeout(() => setCopiedMemberId(null), 3000);
     };
 
-    const formatCurrency = (value: number) => {
-        return new Intl.NumberFormat("pt-BR", {
-            style: "currency",
-            currency: "BRL",
-        }).format(value);
-    };
-
-    const formatDate = (dateString?: string) => {
-        if (!dateString) return "-";
-        const clean = dateString.split("T")[0];
-        const parts = clean.split("-");
-        if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
-        const d = new Date(dateString);
-        if (isNaN(d.getTime())) return dateString;
-        return d.toLocaleDateString("pt-BR");
-    };
-
-    const userDisplayName =
-        userProfile?.full_name ||
-        userProfile?.display_name ||
-        user?.user_metadata?.full_name ||
-        user?.email?.split("@")[0] ||
-        "Investidor";
+    const userFirstName = (() => {
+        if (userProfile?.display_name && userProfile.display_name.trim().length > 0) {
+            return userProfile.display_name.trim().split(" ")[0];
+        }
+        if (userProfile?.full_name && userProfile.full_name.trim().length > 0) {
+            return userProfile.full_name.trim().split(" ")[0];
+        }
+        const metaName = user?.user_metadata?.full_name || user?.user_metadata?.name;
+        if (metaName) return String(metaName).split(" ")[0];
+        return user?.email?.split("@")[0] || "Investidor";
+    })();
 
     if (isInitialLoading && accounts.length === 0 && transactions.length === 0) {
         return (
@@ -502,7 +569,7 @@ export default function DashboardPage() {
                     </div>
 
                     <h1 className="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-[#F8FAFC] tracking-tight">
-                        Olá, {userDisplayName}!
+                        Olá, {userFirstName}!
                     </h1>
 
                     <p className="text-xs md:text-sm text-slate-500 dark:text-[#94A3B8] max-w-xl leading-relaxed">
@@ -646,6 +713,40 @@ export default function DashboardPage() {
                 <>
                     {/* Alerta Preventivo de Anomalias */}
                     <AnomalyAlertCard />
+
+                    {/* Meta Patrimonial Ativa com Progresso Real */}
+                    <section className="p-4 md:p-5 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
+                        <div className="flex items-center gap-3.5 min-w-0">
+                            <div className="w-10 h-10 rounded-xl bg-[#FF8216]/10 text-[#FF8216] border border-[#FF8216]/20 flex items-center justify-center shrink-0">
+                                <span className="material-symbols-outlined text-xl">flag</span>
+                            </div>
+                            <div className="flex flex-col gap-0.5 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                        Meta Patrimonial em Foco
+                                    </span>
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FF8216]/10 text-[#FF8216] border border-[#FF8216]/20">
+                                        {goalDiagnostics.goal}
+                                    </span>
+                                </div>
+                                <p className="text-xs text-slate-700 dark:text-slate-300 font-medium leading-relaxed">
+                                    {goalDiagnostics.text}
+                                </p>
+                            </div>
+                        </div>
+                        <div className="w-full sm:w-48 flex flex-col gap-1.5 shrink-0 self-stretch sm:self-auto">
+                            <div className="flex items-center justify-between text-[11px] font-bold">
+                                <span className="text-slate-400">Progresso</span>
+                                <span className="text-emerald-500 font-black">{goalDiagnostics.progress}%</span>
+                            </div>
+                            <div className="w-full h-2 rounded-full bg-slate-100 dark:bg-[#1A202C] overflow-hidden">
+                                <div
+                                    className="h-full bg-gradient-to-r from-[#FF8216] to-emerald-500 rounded-full transition-all duration-700"
+                                    style={{ width: `${goalDiagnostics.progress}%` }}
+                                />
+                            </div>
+                        </div>
+                    </section>
 
                     {/* Key Metrics: 4 Cards Responsivos */}
                     <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">

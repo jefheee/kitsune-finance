@@ -24,7 +24,7 @@
   --sar: env(safe-area-inset-right, 0px);
 }
 
-/* Suporte de alto contraste para Tema Claro e Tema Escuro */
+/* Suporte de alto contraste para Tema Claro e Tema Escuro com Transições Fluidas */
 body {
   background-color: #F8FAFC;
   color: #0F172A;
@@ -33,7 +33,23 @@ body {
   padding-left: var(--sal);
   padding-right: var(--sar);
   font-family: var(--font-sans);
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition: background-color 0.5s cubic-bezier(0.16, 1, 0.3, 1), color 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Transições fluidas e amortecidas (sem acelerações abruptas) */
+.transition-all {
+  transition-duration: 0.45s !important;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.transition-colors {
+  transition-duration: 0.4s !important;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.transition-transform {
+  transition-duration: 0.5s !important;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 .dark body {

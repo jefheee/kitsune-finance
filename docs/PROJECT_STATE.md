@@ -27,7 +27,16 @@
   - Expansão de `transactions` com conciliação rica: `clean_description`, `category_pt`, `operation_type`, `is_internal_transfer`, `is_refund`, `is_subscription`, `installment_number`, `total_installments`.
   - Tabelas de `investments` (renda fixa, fundos, ações), `loans` (financiamentos e empréstimos) e identidade consolidada multi-banco em `users_profile` (`consolidated_identity` com CPF mascarado).
 - **Resolução de Marcas & Logos Oficiais em SVG:**
-  - Integração com vetores oficiais dos repositórios `rzmt/logos-bancos-br`, `Tgentil/Bancos-em-SVG` e `henriquezolini/react-bancos` para 16 bancos brasileiros (Nubank, Itaú, Santander, Inter, Caixa, Mercado Pago, Bradesco, BB, C6, BTG, Safra, PicPay, XP, Rico, Sicredi, Sicoob).
+  - Arquitetura multi-tier em `BankLogo.tsx`: 1) SVGs locais otimizados de alta fidelidade para os 16 maiores bancos nacionais; 2) Resolução automática via CDN oficial (`react-bancos` / `rzmt`) para os mais de 140 bancos e cooperativas homologados no Open Finance Brasil; 3) Fallback seguro para vetor neutro `generic.svg`.
+- **Motor de Detecção de Renda & Auditoria Declaratória:**
+  - Módulo `src/utils/finance/income-detector.ts` que analisa o fluxo histórico de depósitos, frequência, desvio padrão e datas para classificar o perfil em: CLT/Salário Regular, Renda Variável/Autônomo, Entradas Esporádicas ou Sem Renda Regular. Compara com a renda declarada no cadastro para auditar coerência ou alertar subnotificação/outliers.
+- **Diagnóstico IA com Camada MSLR Determinística:**
+  - Eliminação de alucinações numéricas: os 3 cards do diagnóstico executivo (Liquidez, Gastos e Margem) são calculados deterministicamente por TypeScript e acoplados diretamente ao banco filtrado ou à visão consolidada, nunca pelo texto gerado pelo LLM.
+- **Experiência de Usuário e Fluidez:**
+  - Saudação personalizada pelo primeiro nome (`userFirstName`).
+  - Ordenação patrimonial decrescente por relevância financeira (saldo + investimentos) em todos os seletores e listas de conexões.
+  - Widget interativo de Objetivo Patrimonial com metas reais calculadas por liquidez e custos.
+  - Auto-disparo de sugestões dinâmicas na Kitsune IA e suporte completo ao tema do SO (`prefers-color-scheme`).
 - **Conciliação e Fluxo de Caixa Matemático:**
   - Transferências entre contas da mesma titularidade e pagamentos de fatura são marcadas como `is_internal_transfer = true` e excluídas da soma de receitas/despesas, evitando inflação artificial do fluxo financeiro.
   - Estornos de cartão (`is_refund = true`) abatem diretamente as despesas ao invés de constarem como rendimentos.

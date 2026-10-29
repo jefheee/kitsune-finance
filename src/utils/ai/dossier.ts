@@ -1,4 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js';
+import { detectUserIncomePattern } from '@/utils/finance/income-detector';
 
 export interface FinancialDossierResult {
     systemPrompt: string;
@@ -27,7 +28,7 @@ export async function buildUserFinancialDossier(
     ] = await Promise.all([
         supabase
             .from('users_profile')
-            .select('full_name, birth_date, document_mask, job_title, emails, phones, addresses, bank_sources, consolidated_identity')
+            .select('full_name, display_name, financial_goal, monthly_income, birth_date, document_mask, job_title, emails, phones, addresses, bank_sources, consolidated_identity')
             .eq('id', userId)
             .maybeSingle(),
         supabase
@@ -57,7 +58,7 @@ export async function buildUserFinancialDossier(
             )
             .eq('user_id', userId)
             .order('date', { ascending: false })
-            .limit(120),
+            .limit(160),
     ]);
 
     const profile = profileRes.data;
@@ -75,6 +76,9 @@ export async function buildUserFinancialDossier(
             type: acc.type || 'BANK',
         });
     }
+
+    // Identificação do padrão de renda e compatibilidade com valor declarado
+    const incomeProfile = detectUserIncomePattern(transactions, profile?.monthly_income);
 
     // Cálculo de Saldos Reais
     const checkingAndSavings = accounts.filter((a) => (a.type || '').toUpperCase() !== 'CREDIT');
@@ -197,22 +201,36 @@ export async function buildUserFinancialDossier(
         })
         .join('\n');
 
-    const userName = profile?.full_name || userEmail || 'Investidor(a)';
+    const userFirstName = (profile?.display_name || profile?.full_name || userEmail || 'Investidor')
+        .split(' ')[0]
+        .split('@')[0];
+
+    const userName = profile?.full_name || profile?.display_name || userEmail || 'Investidor(a)';
     const userJob = profile?.job_title || 'Não informada';
     const userDoc = profile?.document_mask || 'Protegido';
+    const userGoal = profile?.financial_goal || 'Construir reserva de emergência e manter liquidez';
     const connectedBanksList = Array.from(
         new Set(connections.map((c) => c.institution_name || c.provider_name).filter(Boolean))
     ).join(', ');
 
     const systemPrompt = `Você é a **Kitsune AI**, estrategista financeira pessoal e especialista em Open Finance Brasil do ecossistema **Kitsune Finance**.
-Você atua com precisão matemática, linguagem clara em Português do Brasil (pt-BR), formatação Markdown elegante (tabelas, listas, destaques em negrito) e foco absoluto na construção de patrimônio e eficiência de fluxo de caixa.
+Você atua com precisão matemática, linguagem humanizada e profissional em Português do Brasil (pt-BR), formatação Markdown elegante (tabelas, listas, destaques) e foco absoluto na consecução dos objetivos patrimoniais do usuário.
+
+REGRA DE TRATAMENTO PESSOAL:
+- Chame sempre o usuário cordialmente pelo primeiro nome: **${userFirstName}**.
 
 =====================================================================
 DOSSIÊ OPEN FINANCE CONSOLIDADO DA SESSÃO (FONTE ÚNICA DE VERDADE)
 =====================================================================
 - **Titular Consolidado:** ${userName} (CPF: ${userDoc})
-- **Profissão Registrada nos Bancos:** ${userJob}
+- **Profissão:** ${userJob}
 - **Instituições Conectadas (${connections.length}):** ${connectedBanksList || 'Nenhuma conexão ativa'}
+- **🎯 OBJETIVO PATRIMONIAL DO USUÁRIO:** "${userGoal}"
+- **💼 PERFIL DE RENDA AUDITADO:** ${incomeProfile.typeLabel}
+  * Diagnóstico: ${incomeProfile.description}
+  * Renda Média Mensal Real: ${fmtCurrency(incomeProfile.monthlyAverageIncome)}
+  ${incomeProfile.recurringSalaryAmount ? `* Salário Fixo Identificado: ${fmtCurrency(incomeProfile.recurringSalaryAmount)} (Previsão: Dia ${incomeProfile.expectedPayDay})` : ''}
+  ${incomeProfile.comparisonWithDeclared ? `* Auditoria com Valor Declarado: ${incomeProfile.comparisonWithDeclared.explanation}` : ''}
 
 ### 1. PATRIMÔNIO E LIQUIDEZ CONSOLIDADA
 - **Patrimônio Líquido Estimado:** ${fmtCurrency(netWorth)}
@@ -253,16 +271,20 @@ ${recentTxSummary || 'Nenhuma transação recente.'}
 =====================================================================
 
 DIRETRIZES MANDATÓRIAS DE RESPOSTA:
-1. **Proibição de Dados Fictícios:** Jamais invente bancos, transações, assinaturas ou valores que não estejam neste dossiê.
-2. **Distinção de Fluxo de Caixa:** Nunca some transferências para a mesma titularidade ou pagamento de fatura de cartão como se fossem gastos duplicados ou receitas novas.
-3. **Respostas Práticas e Diretas:** Ao analisar gastos, cite os nomes reais dos estabelecimentos, os bancos correspondentes (ex: Nubank, Itaú, Santander, Banco Inter, Caixa, Mercado Pago) e valores exatos em R$.`;
+1. **Fidelidade ao Objetivo Patrimonial:** Todo conselho, meta de corte ou simulação DEVE ser orientado para ajudar ${userFirstName} a atingir seu objetivo: "${userGoal}".
+2. **Proibição de Dados Fictícios:** Jamais invente bancos, transações, assinaturas ou valores que não estejam neste dossiê.
+3. **Distinção de Fluxo de Caixa:** Nunca compute transferências para a mesma titularidade ou pagamento de fatura como gastos duplicados.
+4. **Respostas Práticas e Diretas:** Cite os nomes reais dos estabelecimentos, bancos correspondentes (ex: Nubank, Itaú, Santander, Banco Inter, Caixa, Mercado Pago) e valores exatos em R$.`;
 
     const contextSnapshot = {
         generatedAt: new Date().toISOString(),
         holder: {
             fullName: userName,
+            firstName: userFirstName,
             documentMask: userDoc,
             jobTitle: userJob,
+            financialGoal: userGoal,
+            incomeProfile,
             connectedBanks: connectedBanksList,
         },
         summary: {
@@ -275,13 +297,6 @@ DIRETRIZES MANDATÓRIAS DE RESPOSTA:
             realExpenses,
             internalMovements,
             refundsTotal,
-        },
-        counts: {
-            connections: connections.length,
-            accounts: accounts.length,
-            investments: investments.length,
-            loans: loans.length,
-            transactionsSampled: transactions.length,
         },
     };
 

@@ -111,6 +111,26 @@ export default function AgentsPage() {
         };
     };
 
+    // Ordena as conexões por relevância patrimonial (maior volume em contas e investimentos no topo)
+    const sortedConnections = useMemo(() => {
+        return [...connections].sort((a, b) => {
+            const aAccs = accountsByItem.get(a.item_id) || [];
+            const bAccs = accountsByItem.get(b.item_id) || [];
+            const aInvs = investmentsByItem.get(a.item_id) || [];
+            const bInvs = investmentsByItem.get(b.item_id) || [];
+
+            const aTotal =
+                aAccs.reduce((sum, acc) => sum + (acc.type !== "CREDIT" ? Number(acc.balance) || 0 : 0), 0) +
+                aInvs.reduce((sum, inv) => sum + (Number(inv.balance) || 0), 0);
+
+            const bTotal =
+                bAccs.reduce((sum, acc) => sum + (acc.type !== "CREDIT" ? Number(acc.balance) || 0 : 0), 0) +
+                bInvs.reduce((sum, inv) => sum + (Number(inv.balance) || 0), 0);
+
+            return bTotal - aTotal;
+        });
+    }, [connections, accountsByItem, investmentsByItem]);
+
     const handleAddConnection = async () => {
         setIsLoadingToken(true);
         setError(null);
@@ -462,9 +482,9 @@ export default function AgentsPage() {
                             Carregando conexões do Open Finance...
                         </p>
                     </div>
-                ) : connections.length > 0 ? (
+                ) : sortedConnections.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {connections.map((conn) => {
+                        {sortedConnections.map((conn) => {
                             const { name: institutionName, slug: institutionSlug } =
                                 resolveDisplayInstitution(conn);
                             const linkedAccounts = accountsByItem.get(conn.item_id) || [];
