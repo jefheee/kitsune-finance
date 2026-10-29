@@ -1,235 +1,269 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
+import { BankLogo } from "@/components/BankLogo";
 
 interface TransactionLike {
-  id: string;
-  description?: string;
-  amount: number | string;
-  category?: string | null;
-  type?: string;
-  date?: string;
-  executed_at?: string;
-  value_date?: string;
-  bank_accounts?: { bank_name?: string };
+    id: string;
+    description?: string;
+    clean_description?: string | null;
+    amount: number | string;
+    category?: string | null;
+    category_pt?: string | null;
+    type?: string;
+    is_subscription?: boolean;
+    is_internal_transfer?: boolean;
+    is_refund?: boolean;
+    total_installments?: number | null;
+    date?: string;
+    executed_at?: string;
+    value_date?: string;
+    bank_accounts?: {
+        bank_name?: string;
+        institution_name?: string;
+        institution_slug?: string;
+        product_name?: string;
+    };
 }
 
 interface SubscriptionsTrackerProps {
-  transactions: TransactionLike[];
-  formatCurrency: (val: number) => string;
+    transactions: TransactionLike[];
+    formatCurrency: (val: number) => string;
 }
 
 interface SubscriptionItem {
-  id: string;
-  name: string;
-  category: string;
-  amount: number;
-  bankName: string;
-  nextBillingDate: string;
-  paymentCount: number;
-  icon: string;
+    id: string;
+    name: string;
+    category: string;
+    amount: number;
+    bankName: string;
+    bankSlug: string;
+    lastBillingDate: string;
+    nextBillingDate: string;
+    paymentCount: number;
+    icon: string;
 }
 
-const KNOWN_SUBS: Record<string, { name: string; category: string; icon: string }> = {
-  spotify: { name: "Spotify", category: "Serviços Digitais", icon: "music_note" },
-  netflix: { name: "Netflix", category: "Streaming", icon: "movie" },
-  google: { name: "Google One", category: "Armazenamento & Nuvem", icon: "cloud" },
-  youtube: { name: "YouTube Premium", category: "Vídeo & Música", icon: "play_circle" },
-  amazon: { name: "Amazon Prime", category: "Compras & Vídeo", icon: "shopping_bag" },
-  wellhub: { name: "Wellhub", category: "Academia & Bem-Estar", icon: "fitness_center" },
-  gympass: { name: "Wellhub (Gympass)", category: "Academia & Bem-Estar", icon: "fitness_center" },
-  apple: { name: "Apple Services", category: "Serviços Digitais", icon: "phone_iphone" },
-  chatgpt: { name: "OpenAI ChatGPT", category: "Inteligência Artificial", icon: "smart_toy" },
-  claude: { name: "Anthropic Claude", category: "Inteligência Artificial", icon: "auto_awesome" },
-  github: { name: "GitHub Pro", category: "Desenvolvimento", icon: "code" },
-  cursor: { name: "Cursor Pro", category: "Desenvolvimento", icon: "terminal" },
+const KNOWN_SUB_META: Record<string, { name: string; category: string; icon: string }> = {
+    spotify: { name: "Spotify", category: "Streaming de Música", icon: "music_note" },
+    netflix: { name: "Netflix", category: "Streaming de Vídeo", icon: "movie" },
+    "google one": { name: "Google One", category: "Armazenamento em Nuvem", icon: "cloud" },
+    youtube: { name: "YouTube (Google)", category: "Vídeo & Streaming", icon: "play_circle" },
+    "ifood club": { name: "iFood Club", category: "Clube de Benefícios", icon: "restaurant" },
+    "meli+": { name: "Meli+ (Mercado Livre)", category: "Assinatura & Streaming", icon: "shopping_bag" },
+    melimais: { name: "Meli+ (Mercado Livre)", category: "Assinatura & Streaming", icon: "shopping_bag" },
+    "amazon prime": { name: "Amazon Prime", category: "Compras & Streaming", icon: "shopping_bag" },
+    wellhub: { name: "Wellhub (Gympass)", category: "Academia & Bem-Estar", icon: "fitness_center" },
+    gympass: { name: "Wellhub (Gympass)", category: "Academia & Bem-Estar", icon: "fitness_center" },
+    apple: { name: "Apple Services", category: "Serviços Digitais", icon: "phone_iphone" },
+    chatgpt: { name: "ChatGPT Plus (OpenAI)", category: "Inteligência Artificial", icon: "smart_toy" },
+    openai: { name: "OpenAI", category: "Inteligência Artificial", icon: "smart_toy" },
+    claude: { name: "Anthropic Claude", category: "Inteligência Artificial", icon: "auto_awesome" },
+    disney: { name: "Disney+", category: "Streaming de Vídeo", icon: "movie" },
+    globoplay: { name: "Globoplay", category: "Streaming de Vídeo", icon: "live_tv" },
+    canva: { name: "Canva Pro", category: "Design & Criatividade", icon: "palette" },
 };
 
 export function SubscriptionsTracker({ transactions, formatCurrency }: SubscriptionsTrackerProps) {
-  const [filterAccount, setFilterAccount] = useState("all");
+    const subscriptions: SubscriptionItem[] = useMemo(() => {
+        const subsMap = new Map<string, SubscriptionItem>();
 
-  const subscriptions: SubscriptionItem[] = useMemo(() => {
-    const subsMap = new Map<string, SubscriptionItem>();
+        transactions.forEach((t) => {
+            if (t.is_internal_transfer || t.is_refund) return;
+            if (t.total_installments && t.total_installments > 1) return;
 
-    transactions.forEach((t) => {
-      const desc = (t.description || "").toLowerCase();
-      const amt = Math.abs(Number(t.amount) || 0);
-      const isExpense = t.type === "DEBIT" || t.type === "OUTFLOW" || Number(t.amount) < 0;
-      if (!isExpense || amt === 0) return;
+            const rawLabel = t.clean_description || t.description || "";
+            const descLower = rawLabel.toLowerCase();
+            const amt = Math.abs(Number(t.amount) || 0);
+            const isExpense = t.type === "DEBIT" || t.type === "OUTFLOW" || Number(t.amount) < 0;
+            if (!isExpense || amt === 0) return;
 
-      // Detecta assinaturas conhecidas ou padrões recorrentes
-      let matchedKey: string | null = null;
-      for (const key of Object.keys(KNOWN_SUBS)) {
-        if (desc.includes(key)) {
-          matchedKey = key;
-          break;
-        }
-      }
+            let matchedKey: string | null = null;
+            for (const key of Object.keys(KNOWN_SUB_META)) {
+                if (descLower.includes(key)) {
+                    matchedKey = key;
+                    break;
+                }
+            }
 
-      const rawDate = t.executed_at || t.date || t.value_date;
-      const tDate = rawDate ? new Date(rawDate) : new Date();
+            const isFlaggedSub = Boolean(t.is_subscription || matchedKey);
+            if (!isFlaggedSub) return;
 
-      if (matchedKey) {
-        const info = KNOWN_SUBS[matchedKey];
-        if (subsMap.has(matchedKey)) {
-          const current = subsMap.get(matchedKey)!;
-          current.paymentCount += 1;
-        } else {
-          // Calcula próxima cobrança aproximada (próximo mês no mesmo dia)
-          const nextDate = new Date(tDate);
-          nextDate.setMonth(nextDate.getMonth() + 1);
+            const groupKey = matchedKey || rawLabel.trim().toLowerCase();
+            const meta = matchedKey
+                ? KNOWN_SUB_META[matchedKey]
+                : {
+                      name: rawLabel.trim() || "Assinatura Recorrente",
+                      category: t.category_pt || t.category || "Serviços Digitais",
+                      icon: "autorenew",
+                  };
 
-          subsMap.set(matchedKey, {
-            id: matchedKey,
-            name: info.name,
-            category: info.category,
-            amount: amt,
-            bankName: t.bank_accounts?.bank_name || "Nubank",
-            nextBillingDate: nextDate.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }),
-            paymentCount: 1,
-            icon: info.icon,
-          });
-        }
-      }
-    });
+            const rawDate = t.date || t.executed_at || t.value_date;
+            const tDate = rawDate ? new Date(rawDate) : new Date();
 
-    // Se nenhuma conhecida foi detectada no extrato limitado, gera a partir dos maiores serviços recorrentes
-    if (subsMap.size === 0) {
-      const fallbackList: SubscriptionItem[] = [
-        {
-          id: "sub-1",
-          name: "Spotify Individual",
-          category: "Serviços Digitais",
-          amount: 21.9,
-          bankName: "Nubank",
-          nextBillingDate: "15 de nov.",
-          paymentCount: 12,
-          icon: "music_note",
-        },
-        {
-          id: "sub-2",
-          name: "Google One 100GB",
-          category: "Armazenamento",
-          amount: 9.99,
-          bankName: "Nubank",
-          nextBillingDate: "20 de nov.",
-          paymentCount: 6,
-          icon: "cloud",
-        },
-      ];
-      return fallbackList;
-    }
+            const bankName =
+                t.bank_accounts?.institution_name ||
+                t.bank_accounts?.bank_name ||
+                "Instituição Conectada";
+            const bankSlug = t.bank_accounts?.institution_slug || bankName;
 
-    return Array.from(subsMap.values());
-  }, [transactions]);
+            if (subsMap.has(groupKey)) {
+                const current = subsMap.get(groupKey)!;
+                current.paymentCount += 1;
+            } else {
+                const nextDate = new Date(tDate);
+                nextDate.setMonth(nextDate.getMonth() + 1);
 
-  const totalMonthly = subscriptions.reduce((acc, s) => acc + s.amount, 0);
-  const annualProjection = totalMonthly * 12;
-  const averagePerService = subscriptions.length > 0 ? totalMonthly / subscriptions.length : 0;
+                subsMap.set(groupKey, {
+                    id: groupKey,
+                    name: meta.name,
+                    category: meta.category,
+                    amount: amt,
+                    bankName,
+                    bankSlug,
+                    lastBillingDate: tDate.toLocaleDateString("pt-BR", {
+                        day: "2-digit",
+                        month: "short",
+                    }),
+                    nextBillingDate: nextDate.toLocaleDateString("pt-BR", {
+                        day: "2-digit",
+                        month: "short",
+                    }),
+                    paymentCount: 1,
+                    icon: meta.icon,
+                });
+            }
+        });
 
-  return (
-    <div className="flex flex-col gap-5">
-      {/* 4 Cards de Métricas de Assinaturas (Estilo Pierre) */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-        <div className="p-4 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] shadow-xs">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            Assinaturas
-          </span>
-          <div className="flex items-baseline gap-1.5 mt-1">
-            <span className="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-white">
-              {subscriptions.length}
-            </span>
-            <span className="text-[11px] text-slate-400">ativas</span>
-          </div>
-        </div>
+        return Array.from(subsMap.values()).sort((a, b) => b.amount - a.amount);
+    }, [transactions]);
 
-        <div className="p-4 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] shadow-xs">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            Gasto Mensal
-          </span>
-          <div className="mt-1">
-            <span className="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-white tabular-nums">
-              {formatCurrency(totalMonthly)}
-            </span>
-          </div>
-        </div>
+    const totalMonthly = subscriptions.reduce((acc, s) => acc + s.amount, 0);
+    const annualProjection = totalMonthly * 12;
+    const averagePerService = subscriptions.length > 0 ? totalMonthly / subscriptions.length : 0;
 
-        <div className="p-4 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] shadow-xs">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            Projeção Anual
-          </span>
-          <div className="mt-1">
-            <span className="text-xl md:text-2xl font-extrabold text-[#FF8216] tabular-nums">
-              {formatCurrency(annualProjection)}
-            </span>
-          </div>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] shadow-xs">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            Média / Serviço
-          </span>
-          <div className="mt-1">
-            <span className="text-xl md:text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums">
-              {formatCurrency(averagePerService)}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Lista de Assinaturas */}
-      <div className="flex flex-col gap-2.5">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-            Serviços Recorrentes Identificados ({subscriptions.length})
-          </h3>
-          <span className="text-[11px] text-slate-400">
-            Auditoria Contínua com Agente Albert
-          </span>
-        </div>
-
-        {subscriptions.map((sub) => (
-          <div
-            key={sub.id}
-            className="p-3.5 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] hover:border-[#FF8216]/40 transition-colors flex items-center justify-between gap-3 shadow-xs"
-          >
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-xl bg-[#FF8216]/10 text-[#FF8216] border border-[#FF8216]/20 flex items-center justify-center shrink-0">
-                <span className="material-symbols-outlined text-xl">{sub.icon}</span>
-              </div>
-              <div className="min-w-0">
-                <span className="text-sm font-bold text-slate-900 dark:text-white truncate block">
-                  {sub.name}
-                </span>
-                <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5">
-                  <span>Próximo: {sub.nextBillingDate}</span>
-                  <span>•</span>
-                  <span>{sub.paymentCount} pagamento(s)</span>
-                  <span>•</span>
-                  <span className="text-[#FF8216] font-medium">{sub.bankName}</span>
+    return (
+        <div className="flex flex-col gap-5">
+            {/* 4 Cards de Métricas Reais de Assinaturas */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+                <div className="p-4 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] shadow-xs">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        Assinaturas Reais
+                    </span>
+                    <div className="flex items-baseline gap-1.5 mt-1">
+                        <span className="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-white">
+                            {subscriptions.length}
+                        </span>
+                        <span className="text-[11px] text-slate-400">detectadas</span>
+                    </div>
                 </div>
-              </div>
+
+                <div className="p-4 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] shadow-xs">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        Gasto Mensal
+                    </span>
+                    <div className="mt-1">
+                        <span className="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-white tabular-nums">
+                            {formatCurrency(totalMonthly)}
+                        </span>
+                    </div>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] shadow-xs">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        Projeção Anual
+                    </span>
+                    <div className="mt-1">
+                        <span className="text-xl md:text-2xl font-extrabold text-[#FF8216] tabular-nums">
+                            {formatCurrency(annualProjection)}
+                        </span>
+                    </div>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] shadow-xs">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        Média / Serviço
+                    </span>
+                    <div className="mt-1">
+                        <span className="text-xl md:text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums">
+                            {formatCurrency(averagePerService)}
+                        </span>
+                    </div>
+                </div>
             </div>
 
-            <div className="flex items-center gap-3 shrink-0">
-              <div className="text-right">
-                <span className="text-sm md:text-base font-extrabold text-slate-900 dark:text-white tabular-nums block">
-                  {formatCurrency(sub.amount)}
-                </span>
-                <span className="text-[10px] text-slate-400">/mês</span>
-              </div>
-              <Link
-                href={`/kitsune`}
-                title="Auditar assinatura com a Kitsune IA"
-                className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-[#1A202C] dark:hover:bg-[#242C3D] flex items-center justify-center text-slate-500 hover:text-[#FF8216] transition-colors"
-              >
-                <span className="material-symbols-outlined text-[16px]">more_vert</span>
-              </Link>
+            {/* Lista de Assinaturas Reais ou Empty State */}
+            <div className="flex flex-col gap-2.5">
+                <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                        Serviços Recorrentes Identificados ({subscriptions.length})
+                    </h3>
+                    <span className="text-[11px] text-slate-400">
+                        100% baseado nas suas transações Open Finance
+                    </span>
+                </div>
+
+                {subscriptions.length === 0 ? (
+                    <div className="p-8 text-center rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D]">
+                        <span className="material-symbols-outlined text-3xl text-slate-400">
+                            subscriptions
+                        </span>
+                        <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 mt-2">
+                            Nenhuma assinatura recorrente detectada neste filtro
+                        </p>
+                        <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+                            Quando cobranças recorrentes (como Spotify, Netflix, Google One, Wellhub, iFood Club ou Meli+) aparecerem nas suas contas ou cartões conectados, elas serão listadas automaticamente aqui.
+                        </p>
+                    </div>
+                ) : (
+                    subscriptions.map((sub) => (
+                        <div
+                            key={sub.id}
+                            className="p-3.5 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] hover:border-[#FF8216]/40 transition-colors flex items-center justify-between gap-3 shadow-xs"
+                        >
+                            <div className="flex items-center gap-3 min-w-0">
+                                <BankLogo bank={sub.bankSlug} size="sm" />
+                                <div className="min-w-0">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm font-bold text-slate-900 dark:text-white truncate block">
+                                            {sub.name}
+                                        </span>
+                                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-[#1E2533] text-slate-500 dark:text-slate-300 font-medium">
+                                            {sub.category}
+                                        </span>
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-400 mt-0.5">
+                                        <span>Última: {sub.lastBillingDate}</span>
+                                        <span>•</span>
+                                        <span>Próxima est.: {sub.nextBillingDate}</span>
+                                        <span>•</span>
+                                        <span>{sub.paymentCount} cobrança(s) no histórico</span>
+                                        <span>•</span>
+                                        <span className="text-[#FF8216] font-semibold">{sub.bankName}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-3 shrink-0">
+                                <div className="text-right">
+                                    <span className="text-sm md:text-base font-extrabold text-slate-900 dark:text-white tabular-nums block">
+                                        {formatCurrency(sub.amount)}
+                                    </span>
+                                    <span className="text-[10px] text-slate-400">/cobrança</span>
+                                </div>
+                                <Link
+                                    href="/kitsune"
+                                    title="Auditar assinatura com a Kitsune IA"
+                                    className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-[#1A202C] dark:hover:bg-[#242C3D] flex items-center justify-center text-slate-500 hover:text-[#FF8216] transition-colors"
+                                >
+                                    <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
+                                </Link>
+                            </div>
+                        </div>
+                    ))
+                )}
             </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+        </div>
+    );
 }
