@@ -147,7 +147,7 @@ export function SubscriptionsTracker({ transactions, formatCurrency }: Subscript
         <div className="flex flex-col gap-5">
             {/* 4 Cards de Métricas Reais de Assinaturas */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-                <div className="p-4 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] shadow-xs">
+                <div className="p-4 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] shadow-xs">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                         Assinaturas Reais
                     </span>
@@ -159,7 +159,7 @@ export function SubscriptionsTracker({ transactions, formatCurrency }: Subscript
                     </div>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] shadow-xs">
+                <div className="p-4 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] shadow-xs">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                         Gasto Mensal
                     </span>
@@ -170,7 +170,7 @@ export function SubscriptionsTracker({ transactions, formatCurrency }: Subscript
                     </div>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] shadow-xs">
+                <div className="p-4 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] shadow-xs">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                         Projeção Anual
                     </span>
@@ -181,7 +181,7 @@ export function SubscriptionsTracker({ transactions, formatCurrency }: Subscript
                     </div>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] shadow-xs">
+                <div className="p-4 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] shadow-xs">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                         Média / Serviço
                     </span>
@@ -205,7 +205,7 @@ export function SubscriptionsTracker({ transactions, formatCurrency }: Subscript
                 </div>
 
                 {subscriptions.length === 0 ? (
-                    <div className="p-8 text-center rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D]">
+                    <div className="p-8 text-center rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A]">
                         <span className="material-symbols-outlined text-3xl text-slate-400">
                             subscriptions
                         </span>
@@ -220,7 +220,7 @@ export function SubscriptionsTracker({ transactions, formatCurrency }: Subscript
                     subscriptions.map((sub) => (
                         <div
                             key={sub.id}
-                            className="p-3.5 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] hover:border-[#FF8216]/40 transition-colors flex items-center justify-between gap-3 shadow-xs"
+                            className="p-3.5 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] hover:border-[#FF8216]/40 transition-colors flex items-center justify-between gap-3 shadow-xs"
                         >
                             <div className="flex items-center gap-3 min-w-0">
                                 <BankLogo bank={sub.bankSlug} size="sm" />
@@ -229,7 +229,7 @@ export function SubscriptionsTracker({ transactions, formatCurrency }: Subscript
                                         <span className="text-sm font-bold text-slate-900 dark:text-white truncate block">
                                             {sub.name}
                                         </span>
-                                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-[#1E2533] text-slate-500 dark:text-slate-300 font-medium">
+                                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-[#18181B] text-slate-500 dark:text-slate-300 font-medium">
                                             {sub.category}
                                         </span>
                                     </div>
@@ -261,7 +261,7 @@ export function SubscriptionsTracker({ transactions, formatCurrency }: Subscript
                                         )}). Vale a pena manter esse serviço ou cortar/otimizar?`
                                     )}`}
                                     title="Auditar assinatura com a Kitsune AI"
-                                    className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-[#1A202C] dark:hover:bg-[#242C3D] flex items-center justify-center text-slate-500 hover:text-[#FF8216] transition-colors"
+                                    className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-[#18181B] dark:hover:bg-[#27272A] flex items-center justify-center text-slate-500 hover:text-[#FF8216] transition-colors"
                                 >
                                     <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
                                 </Link>

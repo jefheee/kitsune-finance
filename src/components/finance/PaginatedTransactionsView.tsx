@@ -209,7 +209,7 @@ export function PaginatedTransactionsView({
       {/* 4 Cards de Métricas (Fiel ao Pierre Screenshot 014) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         {/* Total */}
-        <div className="p-4 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] shadow-xs">
+        <div className="p-4 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] shadow-xs">
           <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400">
             <span className="material-symbols-outlined text-[15px]">tag</span>
             <span>Total</span>
@@ -220,7 +220,7 @@ export function PaginatedTransactionsView({
         </div>
 
         {/* Despesas */}
-        <div className="p-4 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] shadow-xs">
+        <div className="p-4 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] shadow-xs">
           <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400">
             <span className="material-symbols-outlined text-[15px] text-rose-500">
               arrow_downward
@@ -233,7 +233,7 @@ export function PaginatedTransactionsView({
         </div>
 
         {/* Receitas */}
-        <div className="p-4 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] shadow-xs">
+        <div className="p-4 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] shadow-xs">
           <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400">
             <span className="material-symbols-outlined text-[15px] text-emerald-500">
               arrow_upward
@@ -246,7 +246,7 @@ export function PaginatedTransactionsView({
         </div>
 
         {/* Saldo Líquido */}
-        <div className="p-4 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] shadow-xs">
+        <div className="p-4 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] shadow-xs">
           <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400">
             <span className="material-symbols-outlined text-[15px] text-[#FF8216]">
               sync_alt
@@ -274,7 +274,7 @@ export function PaginatedTransactionsView({
                 setPeriodFilter(e.target.value as any);
                 setCurrentPage(1);
               }}
-              className="h-9 px-3 rounded-xl bg-slate-50 dark:bg-[#0B0E14] border border-slate-200 dark:border-[#262E3D] text-xs font-semibold text-slate-700 dark:text-[#CBD5E1] focus:outline-none focus:border-[#FF8216] cursor-pointer"
+              className="h-9 px-3 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] text-xs font-semibold text-slate-700 dark:text-[#CBD5E1] focus:outline-none focus:border-[#FF8216] cursor-pointer"
             >
               <option value="this_month">📅 Este mês</option>
               <option value="last_month">📅 Mês anterior</option>
@@ -288,7 +288,7 @@ export function PaginatedTransactionsView({
                 setTypeFilter(e.target.value as any);
                 setCurrentPage(1);
               }}
-              className="h-9 px-3 rounded-xl bg-slate-50 dark:bg-[#0B0E14] border border-slate-200 dark:border-[#262E3D] text-xs font-semibold text-slate-700 dark:text-[#CBD5E1] focus:outline-none focus:border-[#FF8216] cursor-pointer"
+              className="h-9 px-3 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] text-xs font-semibold text-slate-700 dark:text-[#CBD5E1] focus:outline-none focus:border-[#FF8216] cursor-pointer"
             >
               <option value="all">Todas Transações</option>
               <option value="expenses">Apenas Despesas</option>
@@ -299,7 +299,7 @@ export function PaginatedTransactionsView({
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
-              className="h-9 px-3 rounded-xl bg-slate-50 dark:bg-[#0B0E14] border border-slate-200 dark:border-[#262E3D] text-xs font-semibold text-slate-700 dark:text-[#CBD5E1] focus:outline-none focus:border-[#FF8216] cursor-pointer"
+              className="h-9 px-3 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] text-xs font-semibold text-slate-700 dark:text-[#CBD5E1] focus:outline-none focus:border-[#FF8216] cursor-pointer"
             >
               <option value="date_desc">Data (mais recentes)</option>
               <option value="amount_desc">Maior valor</option>
@@ -313,7 +313,7 @@ export function PaginatedTransactionsView({
                 setCategoryFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="h-9 px-3 rounded-xl bg-slate-50 dark:bg-[#0B0E14] border border-slate-200 dark:border-[#262E3D] text-xs font-semibold text-slate-700 dark:text-[#CBD5E1] focus:outline-none focus:border-[#FF8216] cursor-pointer"
+              className="h-9 px-3 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] text-xs font-semibold text-slate-700 dark:text-[#CBD5E1] focus:outline-none focus:border-[#FF8216] cursor-pointer"
             >
               <option value="all">Todas as Categorias</option>
               {uniqueCategories.map((c) => (
@@ -330,7 +330,7 @@ export function PaginatedTransactionsView({
               type="checkbox"
               checked={showHidden}
               onChange={(e) => setShowHidden(e.target.checked)}
-              className="rounded border-slate-300 dark:border-[#262E3D] text-[#FF8216] focus:ring-0 cursor-pointer"
+              className="rounded border-slate-300 dark:border-[#27272A] text-[#FF8216] focus:ring-0 cursor-pointer"
             />
             <span className="material-symbols-outlined text-[16px]">visibility</span>
             <span>Mostrar ocultos / transferências</span>
@@ -338,7 +338,7 @@ export function PaginatedTransactionsView({
         </div>
 
         {/* Linha de Busca & Ação + Nova Transação */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-slate-100 dark:border-[#1E2533]">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-slate-100 dark:border-[#27272A]">
           <div className="relative w-full sm:w-80">
             <input
               type="text"
@@ -348,7 +348,7 @@ export function PaginatedTransactionsView({
                 setSearchTerm(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-50 dark:bg-[#0B0E14] border border-slate-200 dark:border-[#262E3D] text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[#FF8216]"
+              className="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[#FF8216]"
             />
             <span className="material-symbols-outlined absolute left-2.5 top-2.5 text-[18px] text-slate-400">
               search
@@ -379,7 +379,7 @@ export function PaginatedTransactionsView({
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-slate-100 dark:border-[#1F2633] text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50/50 dark:bg-[#0B0E14]/50">
+                <tr className="border-b border-slate-100 dark:border-[#27272A] text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50/50 dark:bg-[#18181B]/50">
                   <th className="py-3 px-4">Descrição</th>
                   <th className="py-3 px-3">Categoria</th>
                   <th className="py-3 px-3">Conta</th>
@@ -387,7 +387,7 @@ export function PaginatedTransactionsView({
                   <th className="py-3 px-4 text-right">Valor</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-[#1F2633]">
+              <tbody className="divide-y divide-slate-100 dark:divide-[#27272A]">
                 {paginatedItems.map((tx) => {
                   const amt = Number(tx.amount) || 0;
                   const isExpense = amt < 0 || tx.type === "DEBIT" || tx.operation_type === "CREDIT_CARD";
@@ -404,7 +404,7 @@ export function PaginatedTransactionsView({
                   return (
                     <tr
                       key={tx.id}
-                      className="hover:bg-slate-50/60 dark:hover:bg-[#161B26]/60 transition-colors"
+                      className="hover:bg-slate-50/60 dark:hover:bg-[#18181B]/60 transition-colors"
                     >
                       {/* Descrição */}
                       <td className="py-3.5 px-4 min-w-[200px]">
@@ -429,7 +429,7 @@ export function PaginatedTransactionsView({
 
                       {/* Categoria */}
                       <td className="py-3.5 px-3">
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-slate-100 dark:bg-[#1E2533] text-slate-700 dark:text-[#CBD5E1]">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-slate-100 dark:bg-[#18181B] text-slate-700 dark:text-[#CBD5E1]">
                           {cat}
                         </span>
                       </td>
@@ -470,7 +470,7 @@ export function PaginatedTransactionsView({
         )}
 
         {/* Rodapé de Paginação ("1, 2, 3..." e "Por página: 10 / 25 / 50") */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 border-t border-slate-100 dark:border-[#1F2633] text-xs text-slate-500 dark:text-[#94A3B8]">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 border-t border-slate-100 dark:border-[#27272A] text-xs text-slate-500 dark:text-[#94A3B8]">
           {/* Seletor Por página */}
           <div className="flex items-center gap-2">
             <span>Por página:</span>
@@ -480,7 +480,7 @@ export function PaginatedTransactionsView({
                 setItemsPerPage(Number(e.target.value));
                 setCurrentPage(1);
               }}
-              className="h-8 px-2 rounded-lg bg-slate-50 dark:bg-[#0B0E14] border border-slate-200 dark:border-[#262E3D] text-xs font-semibold focus:outline-none focus:border-[#FF8216] cursor-pointer"
+              className="h-8 px-2 rounded-lg bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] text-xs font-semibold focus:outline-none focus:border-[#FF8216] cursor-pointer"
             >
               <option value={10}>10</option>
               <option value={25}>25</option>
@@ -499,7 +499,7 @@ export function PaginatedTransactionsView({
               type="button"
               disabled={validPage <= 1}
               onClick={() => handlePageChange(validPage - 1)}
-              className="p-1.5 rounded-lg border border-slate-200 dark:border-[#262E3D] hover:bg-slate-100 dark:hover:bg-[#1E2533] disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed transition-colors"
+              className="p-1.5 rounded-lg border border-slate-200 dark:border-[#27272A] hover:bg-slate-100 dark:hover:bg-[#27272A] disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed transition-colors"
             >
               <span className="material-symbols-outlined text-[16px]">chevron_left</span>
             </button>
@@ -515,7 +515,7 @@ export function PaginatedTransactionsView({
                   className={`w-8 h-8 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     isCurrent
                       ? "bg-[#FF8216] text-white shadow-xs"
-                      : "border border-slate-200 dark:border-[#262E3D] hover:bg-slate-100 dark:hover:bg-[#1E2533] text-slate-700 dark:text-[#CBD5E1]"
+                      : "border border-slate-200 dark:border-[#27272A] hover:bg-slate-100 dark:hover:bg-[#27272A] text-slate-700 dark:text-[#CBD5E1]"
                   }`}
                 >
                   {p}
@@ -529,7 +529,7 @@ export function PaginatedTransactionsView({
                 <button
                   type="button"
                   onClick={() => handlePageChange(totalPages)}
-                  className={`w-8 h-8 rounded-lg text-xs font-bold border border-slate-200 dark:border-[#262E3D] hover:bg-slate-100 dark:hover:bg-[#1E2533] text-slate-700 dark:text-[#CBD5E1] cursor-pointer`}
+                  className={`w-8 h-8 rounded-lg text-xs font-bold border border-slate-200 dark:border-[#27272A] hover:bg-slate-100 dark:hover:bg-[#27272A] text-slate-700 dark:text-[#CBD5E1] cursor-pointer`}
                 >
                   {totalPages}
                 </button>
@@ -540,7 +540,7 @@ export function PaginatedTransactionsView({
               type="button"
               disabled={validPage >= totalPages}
               onClick={() => handlePageChange(validPage + 1)}
-              className="p-1.5 rounded-lg border border-slate-200 dark:border-[#262E3D] hover:bg-slate-100 dark:hover:bg-[#1E2533] disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed transition-colors"
+              className="p-1.5 rounded-lg border border-slate-200 dark:border-[#27272A] hover:bg-slate-100 dark:hover:bg-[#27272A] disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed transition-colors"
             >
               <span className="material-symbols-outlined text-[16px]">chevron_right</span>
             </button>
@@ -551,11 +551,11 @@ export function PaginatedTransactionsView({
       {/* Modal de Nova Transação */}
       {isNewTxModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-md bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] rounded-3xl p-6 shadow-2xl relative">
+          <div className="w-full max-w-md bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] rounded-3xl p-6 shadow-2xl relative">
             <button
               type="button"
               onClick={() => setIsNewTxModalOpen(false)}
-              className="absolute top-4 right-4 p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-[#1A202C] text-slate-400 cursor-pointer"
+              className="absolute top-4 right-4 p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-[#27272A] text-slate-400 cursor-pointer"
             >
               <span className="material-symbols-outlined text-[18px]">close</span>
             </button>
@@ -574,7 +574,7 @@ export function PaginatedTransactionsView({
                   className={`py-2 rounded-xl font-bold cursor-pointer transition-all ${
                     newTxType === "DEBIT"
                       ? "bg-rose-500 text-white shadow-md"
-                      : "bg-slate-100 dark:bg-[#1A202C] text-slate-600 dark:text-slate-400"
+                      : "bg-slate-100 dark:bg-[#18181B] text-slate-600 dark:text-slate-400"
                   }`}
                 >
                   Despesa (-)
@@ -585,7 +585,7 @@ export function PaginatedTransactionsView({
                   className={`py-2 rounded-xl font-bold cursor-pointer transition-all ${
                     newTxType === "CREDIT"
                       ? "bg-emerald-500 text-white shadow-md"
-                      : "bg-slate-100 dark:bg-[#1A202C] text-slate-600 dark:text-slate-400"
+                      : "bg-slate-100 dark:bg-[#18181B] text-slate-600 dark:text-slate-400"
                   }`}
                 >
                   Receita (+)
@@ -601,7 +601,7 @@ export function PaginatedTransactionsView({
                   placeholder="Ex: Padaria, Salário, Uber..."
                   value={newTxDesc}
                   onChange={(e) => setNewTxDesc(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#0B0E14] border border-slate-200 dark:border-[#262E3D] text-slate-900 dark:text-white focus:outline-none focus:border-[#FF8216]"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] text-slate-900 dark:text-white focus:outline-none focus:border-[#FF8216]"
                 />
               </div>
 
@@ -614,7 +614,7 @@ export function PaginatedTransactionsView({
                   placeholder="0,00"
                   value={newTxAmount}
                   onChange={(e) => setNewTxAmount(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#0B0E14] border border-slate-200 dark:border-[#262E3D] text-slate-900 dark:text-white tabular-nums font-bold focus:outline-none focus:border-[#FF8216]"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] text-slate-900 dark:text-white tabular-nums font-bold focus:outline-none focus:border-[#FF8216]"
                 />
               </div>
 
@@ -624,7 +624,7 @@ export function PaginatedTransactionsView({
                 <select
                   value={newTxCategory}
                   onChange={(e) => setNewTxCategory(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#0B0E14] border border-slate-200 dark:border-[#262E3D] text-slate-900 dark:text-white focus:outline-none focus:border-[#FF8216] cursor-pointer"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] text-slate-900 dark:text-white focus:outline-none focus:border-[#FF8216] cursor-pointer"
                 >
                   <option value="Alimentação">Alimentação</option>
                   <option value="Compras">Compras</option>
@@ -644,7 +644,7 @@ export function PaginatedTransactionsView({
                   type="date"
                   value={newTxDate}
                   onChange={(e) => setNewTxDate(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#0B0E14] border border-slate-200 dark:border-[#262E3D] text-slate-900 dark:text-white focus:outline-none focus:border-[#FF8216]"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] text-slate-900 dark:text-white focus:outline-none focus:border-[#FF8216]"
                 />
               </div>
 

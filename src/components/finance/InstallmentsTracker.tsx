@@ -172,7 +172,7 @@ export function InstallmentsTracker({ transactions, formatCurrency }: Installmen
         <div className="flex flex-col gap-5">
             {/* 4 Cards de Métricas de Parcelamento Reais */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-                <div className="p-4 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] shadow-xs">
+                <div className="p-4 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] shadow-xs">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                         Em Andamento
                     </span>
@@ -184,7 +184,7 @@ export function InstallmentsTracker({ transactions, formatCurrency }: Installmen
                     </div>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] shadow-xs">
+                <div className="p-4 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] shadow-xs">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                         Valor Contratado
                     </span>
@@ -195,7 +195,7 @@ export function InstallmentsTracker({ transactions, formatCurrency }: Installmen
                     </div>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] shadow-xs">
+                <div className="p-4 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] shadow-xs">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                         Já Amortizado
                     </span>
@@ -206,7 +206,7 @@ export function InstallmentsTracker({ transactions, formatCurrency }: Installmen
                     </div>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] shadow-xs">
+                <div className="p-4 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] shadow-xs">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                         Saldo Vincendo
                     </span>
@@ -219,7 +219,7 @@ export function InstallmentsTracker({ transactions, formatCurrency }: Installmen
             </div>
 
             {/* Barra de Progresso Geral */}
-            <div className="p-4 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] shadow-xs flex flex-col gap-2">
+            <div className="p-4 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] shadow-xs flex flex-col gap-2">
                 <div className="flex items-center justify-between text-xs">
                     <span className="font-semibold text-slate-700 dark:text-slate-300">
                         Progresso Geral de Quitação das Parcelas Ativas
@@ -228,7 +228,7 @@ export function InstallmentsTracker({ transactions, formatCurrency }: Installmen
                         {generalProgress}% quitado
                     </span>
                 </div>
-                <div className="w-full h-2.5 bg-slate-100 dark:bg-[#1E2533] rounded-full overflow-hidden">
+                <div className="w-full h-2.5 bg-slate-100 dark:bg-[#18181B] rounded-full overflow-hidden">
                     <div
                         className="h-full bg-emerald-500 rounded-full transition-all duration-500"
                         style={{ width: `${Math.min(100, generalProgress)}%` }}
@@ -243,7 +243,7 @@ export function InstallmentsTracker({ transactions, formatCurrency }: Installmen
                     className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                         activeTab === "ongoing"
                             ? "bg-[#FF8216] text-white shadow-xs"
-                            : "bg-white dark:bg-[#12161F] text-slate-600 dark:text-[#94A3B8] border border-slate-200 dark:border-[#262E3D]"
+                            : "bg-white dark:bg-[#121214] text-slate-600 dark:text-[#94A3B8] border border-slate-200 dark:border-[#27272A]"
                     }`}
                 >
                     Parceladas em andamento ({ongoingList.length})
@@ -253,7 +253,7 @@ export function InstallmentsTracker({ transactions, formatCurrency }: Installmen
                     className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                         activeTab === "finished"
                             ? "bg-[#FF8216] text-white shadow-xs"
-                            : "bg-white dark:bg-[#12161F] text-slate-600 dark:text-[#94A3B8] border border-slate-200 dark:border-[#262E3D]"
+                            : "bg-white dark:bg-[#121214] text-slate-600 dark:text-[#94A3B8] border border-slate-200 dark:border-[#27272A]"
                     }`}
                 >
                     Última parcela / Concluídas ({finishedList.length})
@@ -263,7 +263,7 @@ export function InstallmentsTracker({ transactions, formatCurrency }: Installmen
                     className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                         activeTab === "single"
                             ? "bg-[#FF8216] text-white shadow-xs"
-                            : "bg-white dark:bg-[#12161F] text-slate-600 dark:text-[#94A3B8] border border-slate-200 dark:border-[#262E3D]"
+                            : "bg-white dark:bg-[#121214] text-slate-600 dark:text-[#94A3B8] border border-slate-200 dark:border-[#27272A]"
                     }`}
                 >
                     Compras à Vista 1x ({singleInstallments.length})
@@ -273,7 +273,7 @@ export function InstallmentsTracker({ transactions, formatCurrency }: Installmen
             {/* Lista de Parcelas Reais ou Empty State */}
             <div className="flex flex-col gap-2.5">
                 {displayList.length === 0 ? (
-                    <div className="p-8 text-center rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D]">
+                    <div className="p-8 text-center rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A]">
                         <span className="material-symbols-outlined text-3xl text-slate-400">
                             credit_card
                         </span>
@@ -296,7 +296,7 @@ export function InstallmentsTracker({ transactions, formatCurrency }: Installmen
                         return (
                             <div
                                 key={item.id}
-                                className="p-4 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] hover:border-[#FF8216]/40 transition-colors flex flex-col gap-3 shadow-xs"
+                                className="p-4 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] hover:border-[#FF8216]/40 transition-colors flex flex-col gap-3 shadow-xs"
                             >
                                 <div className="flex items-start justify-between gap-3">
                                     <div className="flex items-center gap-3 min-w-0">
@@ -306,7 +306,7 @@ export function InstallmentsTracker({ transactions, formatCurrency }: Installmen
                                                 <span className="text-sm font-bold text-slate-900 dark:text-white block truncate">
                                                     {item.description}
                                                 </span>
-                                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-[#1E2533] text-slate-500 dark:text-slate-300 font-semibold">
+                                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-[#18181B] text-slate-500 dark:text-slate-300 font-semibold">
                                                     {item.totalInstallments === 1
                                                         ? "À vista (1x)"
                                                         : `Parcela ${item.currentInstallment}/${item.totalInstallments}`}
@@ -344,7 +344,7 @@ export function InstallmentsTracker({ transactions, formatCurrency }: Installmen
 
                                 {item.totalInstallments > 1 && (
                                     <div className="flex items-center gap-3">
-                                        <div className="flex-1 h-1.5 bg-slate-100 dark:bg-[#1E2533] rounded-full overflow-hidden">
+                                        <div className="flex-1 h-1.5 bg-slate-100 dark:bg-[#18181B] rounded-full overflow-hidden">
                                             <div
                                                 className="h-full bg-[#FF8216] rounded-full transition-all duration-300"
                                                 style={{ width: `${pct}%` }}

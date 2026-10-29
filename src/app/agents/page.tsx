@@ -186,9 +186,9 @@ export default function AgentsHubPage() {
             role: "Investigador de Extratos & Categorias",
             personality: "Analítico, minucioso, mestre em decodificar abreviações bancárias.",
             tagline: "Corrige suas categorias, rastreia cobranças estranhas e aprende sua rotina.",
-            avatarBg: "from-blue-600/30 to-cyan-600/20",
+            avatarBg: "from-zinc-700/40 to-zinc-800/30",
             avatarEmoji: "🐱‍👓",
-            accentColor: "#2563EB",
+            accentColor: "#FF8216",
             suggestedPrompt: "Kenji, examine meu extrato recente e aponte quaisquer transações anormais ou estabelecimentos não identificados.",
             calculateDiagnostic: (data) => {
                 return {
@@ -348,13 +348,13 @@ export default function AgentsHubPage() {
                         success: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
                         warning: "bg-amber-500/10 text-amber-400 border-amber-500/20",
                         danger: "bg-red-500/10 text-red-400 border-red-500/20",
-                        info: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+                        info: "bg-zinc-800/60 text-zinc-200 border-zinc-700/70",
                     }[diag.alertLevel];
 
                     return (
                         <div
                             key={agent.id}
-                            className="group relative flex flex-col justify-between p-5 rounded-2xl bg-gradient-to-b from-[#18181B] to-[#121215] border border-white/10 shadow-lg hover:border-white/20 transition-all duration-300 hover:-translate-y-1"
+                            className="group relative flex flex-col justify-between p-5 rounded-2xl bg-[#121214] border border-[#27272A] shadow-lg hover:border-[#FF8216]/40 transition-all duration-300 hover:-translate-y-1"
                         >
                             <div className="space-y-4">
                                 {/* Topo: Avatar e Identidade */}
