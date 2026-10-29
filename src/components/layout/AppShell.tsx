@@ -20,7 +20,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const handleLogout = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push("/login");
+    router.push("/");
     router.refresh();
   };
 
@@ -40,18 +40,20 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isSettingsOpen]);
 
-  // Sidebar Desktop: Apenas as seções operacionais (Perfil fica exclusivamente no avatar inferior)
+  // Sidebar Desktop: Rotas operacionais dedicadas
   const desktopNavItems = [
     { path: "/dashboard", icon: "dashboard", label: "Visão Geral" },
     { path: "/kitsune", icon: "auto_awesome", label: "Kitsune IA" },
-    { path: "/agents", icon: "hub", label: "Conexões" },
+    { path: "/agents", icon: "smart_toy", label: "Agentes" },
+    { path: "/connections", icon: "account_balance", label: "Bancos" },
   ];
 
   // Mobile Bottom Bar
   const mobileNavItems = [
     { path: "/dashboard", icon: "dashboard", label: "Início" },
     { path: "/kitsune", icon: "auto_awesome", label: "Kitsune IA" },
-    { path: "/agents", icon: "hub", label: "Conexões" },
+    { path: "/agents", icon: "smart_toy", label: "Agentes" },
+    { path: "/connections", icon: "account_balance", label: "Bancos" },
     { path: "/profile", icon: "person", label: "Perfil" },
   ];
 

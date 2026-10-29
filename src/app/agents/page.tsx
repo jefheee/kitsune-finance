@@ -1,746 +1,394 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import dynamic from "next/dynamic";
-import { motion, AnimatePresence } from "framer-motion";
-import Spinner from "@/components/Spinner";
-import { BankLogo } from "@/components/BankLogo";
-import { getBankCatalogBySlugOrName } from "@/utils/pluggy/bank-resolver";
+import { useMemo } from "react";
+import Link from "next/link";
 import { useFinanceData } from "@/context/FinanceDataContext";
 
-const PluggyConnect = dynamic(
-    () => import("react-pluggy-connect").then((mod) => mod.PluggyConnect),
-    { ssr: false }
-);
+interface AgentProfile {
+    id: string;
+    name: string;
+    role: string;
+    personality: string;
+    tagline: string;
+    avatarBg: string;
+    avatarEmoji: string;
+    accentColor: string;
+    calculateDiagnostic: (data: any) => {
+        headline: string;
+        metricLabel: string;
+        metricValue: string;
+        advice: string;
+        alertLevel: "success" | "warning" | "danger" | "info";
+    };
+    suggestedPrompt: string;
+}
 
-const SECURITY_FAQS = [
-    {
-        question: "A Kitsune Finance pode realizar transferências ou movimentar meu dinheiro?",
-        answer:
-            "Absolutamente não. A integração com o Open Finance Brasil opera sob permissão restrita de somente-leitura. Nosso sistema não possui capacidade técnica, credenciais nem autorização bancária para movimentar fundos ou criar débitos.",
-    },
-    {
-        question: "Minha senha ou chave de segurança do banco fica salva?",
-        answer:
-            "Nunca. Toda a autenticação é realizada diretamente no ambiente seguro do seu próprio banco (via aplicativo oficial ou biometria). A Kitsune recebe apenas um token criptografado temporário homologado pelo Banco Central.",
-    },
-    {
-        question: "Como funciona a criptografia e isolamento das minhas contas?",
-        answer:
-            "Seus dados bancários e de cartões trafegam via conexões TLS 1.3 criptografadas e são armazenados com isolamento estrito de nível bancário (Row-Level Security). Nenhum outro usuário ou terceiro tem acesso aos seus extratos.",
-    },
-    {
-        question: "Como revogar o acesso de uma instituição conectada?",
-        answer:
-            "Você tem controle absoluto. Ao clicar em 'Desconectar' em qualquer instituição listada, o token de acesso é revogado imediatamente na Pluggy e todos os dados de saldos e transações locais são eliminados.",
-    },
-];
-
-export default function AgentsPage() {
+export default function AgentsHubPage() {
     const {
-        connections,
         accounts,
         investments,
+        transactions,
+        userProfile,
         isInitialLoading,
-        revalidate,
-        removeConnectionLocal,
     } = useFinanceData();
 
-    const [isLoadingToken, setIsLoadingToken] = useState(false);
-    const [connectToken, setConnectToken] = useState<string | null>(null);
-    const [error, setError] = useState<string | null>(null);
-    const [success, setSuccess] = useState<string | null>(null);
-    const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
-    const [syncingItemId, setSyncingItemId] = useState<string | null>(null);
-    const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+    const formatCurrency = (val: number) => {
+        return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(val);
+    };
 
-    const accountsByItem = useMemo(() => {
-        const map = new Map<string, any[]>();
+    // Dados consolidados do usuário para alimentar os agentes
+    const userDataMetrics = useMemo(() => {
+        let liquidBalance = 0;
+        let investmentsBalance = 0;
+        let creditCardBalance = 0;
+
         accounts.forEach((acc) => {
-            const itemId = acc.item_id;
-            if (!itemId) return;
-            if (!map.has(itemId)) map.set(itemId, []);
-            map.get(itemId)!.push(acc);
+            const b = Number(acc.balance) || 0;
+            if (acc.subtype === "CREDIT_CARD") {
+                creditCardBalance += Math.abs(b);
+            } else {
+                liquidBalance += b;
+            }
         });
-        return map;
-    }, [accounts]);
 
-    const investmentsByItem = useMemo(() => {
-        const map = new Map<string, any[]>();
         investments.forEach((inv) => {
-            const itemId = inv.item_id;
-            if (!itemId) return;
-            if (!map.has(itemId)) map.set(itemId, []);
-            map.get(itemId)!.push(inv);
+            investmentsBalance += Number(inv.balance) || 0;
         });
-        return map;
-    }, [investments]);
 
-    const resolveDisplayInstitution = (conn: any) => {
-        const linkedAccounts = accountsByItem.get(conn.item_id) || [];
+        const now = new Date();
+        const curMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+        const dayOfMonth = Math.max(1, now.getDate());
 
-        if (conn.institution_slug && conn.institution_slug !== "generic") {
-            const catalog = getBankCatalogBySlugOrName(conn.institution_slug);
-            return { name: conn.institution_name || catalog.name, slug: catalog.slug };
-        }
+        let monthlyExpense = 0;
+        let monthlyIncome = 0;
+        let superfluousExpense = 0;
+        const duplicateCandidates: Array<{ desc: string; amt: number; date: string }> = [];
+        const seenMap = new Map<string, string>();
 
-        if (
-            conn.institution_name &&
-            !conn.institution_name.toLowerCase().includes("pluggy") &&
-            conn.institution_name !== "Instituição Conectada"
-        ) {
-            const catalog = getBankCatalogBySlugOrName(conn.institution_name);
-            return { name: conn.institution_name, slug: catalog.slug };
-        }
+        transactions.forEach((tx) => {
+            if (tx.is_internal_transfer) return;
+            const amt = Math.abs(Number(tx.amount) || 0);
+            const txDate = tx.date || "";
 
-        for (const acc of linkedAccounts) {
-            const candidate = acc.institution_slug || acc.institution_name || acc.bank_name;
-            const catalog = getBankCatalogBySlugOrName(candidate);
-            if (catalog.slug !== "generic") {
-                return { name: catalog.name, slug: catalog.slug };
+            if (txDate.startsWith(curMonthStr)) {
+                if (tx.amount > 0) {
+                    monthlyExpense += amt;
+                    const cat = (tx.category_pt || tx.category || "").toLowerCase();
+                    const desc = (tx.clean_description || tx.description || "").toLowerCase();
+
+                    // Supérfluos para o Julius
+                    if (
+                        cat.includes("delivery") ||
+                        cat.includes("jogos") ||
+                        cat.includes("lazer") ||
+                        desc.includes("ifood") ||
+                        desc.includes("steam") ||
+                        desc.includes("uber eats") ||
+                        desc.includes("bar") ||
+                        desc.includes("cervej")
+                    ) {
+                        superfluousExpense += amt;
+                    }
+                } else {
+                    monthlyIncome += amt;
+                }
             }
-        }
 
-        const fallbackCatalog = getBankCatalogBySlugOrName(conn.provider_name);
+            // Detector de duplicidades para o Inspetor Bugiganga
+            if (tx.amount > 0 && amt > 10) {
+                const key = `${amt.toFixed(2)}_${(tx.clean_description || tx.description || "").toLowerCase()}_${txDate.slice(0, 10)}`;
+                if (seenMap.has(key)) {
+                    duplicateCandidates.push({
+                        desc: tx.clean_description || tx.description,
+                        amt,
+                        date: txDate,
+                    });
+                } else {
+                    seenMap.set(key, tx.id);
+                }
+            }
+        });
+
+        const burnRate = monthlyExpense / dayOfMonth;
+        const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+        const projectedExpense = burnRate * daysInMonth;
+
         return {
-            name:
-                fallbackCatalog.slug !== "generic"
-                    ? fallbackCatalog.name
-                    : "Instituição Conectada",
-            slug: fallbackCatalog.slug,
+            liquidBalance,
+            investmentsBalance,
+            creditCardBalance,
+            monthlyExpense,
+            monthlyIncome,
+            superfluousExpense,
+            duplicateCandidates,
+            burnRate,
+            projectedExpense,
+            totalTransactions: transactions.length,
+            accountsCount: accounts.length,
         };
-    };
+    }, [accounts, investments, transactions]);
 
-    // Ordena as conexões por relevância patrimonial (maior volume em contas e investimentos no topo)
-    const sortedConnections = useMemo(() => {
-        return [...connections].sort((a, b) => {
-            const aAccs = accountsByItem.get(a.item_id) || [];
-            const bAccs = accountsByItem.get(b.item_id) || [];
-            const aInvs = investmentsByItem.get(a.item_id) || [];
-            const bInvs = investmentsByItem.get(b.item_id) || [];
+    // Definição dos Agentes Especialistas da Kitsune
+    const agentsList: AgentProfile[] = [
+        {
+            id: "julius",
+            name: "Julius",
+            role: "Fiscal Ranzinza & Guardião do Limite",
+            personality: "Austero, direto, anti-desperdício e impiedoso com compras por impulso.",
+            tagline: "Reclama quando você gastar de um jeito absurdo e calcula o custo de não comprar.",
+            avatarBg: "from-amber-600/30 to-yellow-600/20",
+            avatarEmoji: "😾",
+            accentColor: "#D97706",
+            suggestedPrompt: "Julius, audite meus gastos com delivery e compras por impulso deste mês. O que devo cortar imediatamente?",
+            calculateDiagnostic: (data) => {
+                const sup = data.superfluousExpense;
+                if (sup > 500) {
+                    return {
+                        headline: "Alerta Vermelho de Desperdício",
+                        metricLabel: "Gastos Supérfluos no Mês",
+                        metricValue: formatCurrency(sup),
+                        advice: `Você já gastou ${formatCurrency(sup)} em coisas que não precisava. Se você não comprar nada, o desconto é de 100%!`,
+                        alertLevel: "danger",
+                    };
+                }
+                return {
+                    headline: "Comportamento Sob Controle",
+                    metricLabel: "Gastos Supérfluos no Mês",
+                    metricValue: formatCurrency(sup),
+                    advice: "Você está segurando as pontas. Mantenha os olhos abertos e não gaste só porque sobrou saldo.",
+                    alertLevel: "success",
+                };
+            },
+        },
+        {
+            id: "sherlock",
+            name: "Sherlock",
+            role: "Investigador de Extratos & Categorias",
+            personality: "Analítico, minucioso, mestre em decodificar abreviações bancárias.",
+            tagline: "Corrige suas categorias, rastreia cobranças estranhas e aprende sua rotina.",
+            avatarBg: "from-blue-600/30 to-cyan-600/20",
+            avatarEmoji: "🐱‍👓",
+            accentColor: "#2563EB",
+            suggestedPrompt: "Sherlock, examine meu extrato recente e aponte quaisquer transações anormais ou estabelecimentos não identificados.",
+            calculateDiagnostic: (data) => {
+                return {
+                    headline: "Dossiê de Transações Auditado",
+                    metricLabel: "Transações Decodificadas",
+                    metricValue: `${data.totalTransactions} operações`,
+                    advice: "Seu histórico foi 100% enriquecido com Simple Icons e dicionário comercial brasileiro. Nenhuma transação fantasma detectada.",
+                    alertLevel: "info",
+                };
+            },
+        },
+        {
+            id: "tio-patinhas",
+            name: "Tio Patinhas",
+            role: "Estrategista de Patrimônio & Multiplicação",
+            personality: "Ambicioso, focado em rendimentos passivos e avesso a dinheiro parado.",
+            tagline: "Analisa seus saldos ociosos e sugere oportunidades diárias de renda fixa.",
+            avatarBg: "from-emerald-600/30 to-teal-600/20",
+            avatarEmoji: "🎩",
+            accentColor: "#059669",
+            suggestedPrompt: "Tio Patinhas, tenho dinheiro parado na conta corrente? Quanto estou perdendo de juros e como alocar melhor?",
+            calculateDiagnostic: (data) => {
+                const idleCash = Math.max(0, data.liquidBalance - 1500);
+                const annualYield = idleCash * 0.1075;
+                if (idleCash > 1000) {
+                    return {
+                        headline: "Dinheiro Ocioso Detectado",
+                        metricLabel: "Potencial de Renda Passiva / Ano",
+                        metricValue: `+${formatCurrency(annualYield)}/ano`,
+                        advice: `Você possui ${formatCurrency(idleCash)} parados na conta corrente sem render. Em um CDB 100% CDI isso renderia ${formatCurrency(annualYield / 12)} todo mês!`,
+                        alertLevel: "warning",
+                    };
+                }
+                return {
+                    headline: "Eficiência de Caixa Impecável",
+                    metricLabel: "Patrimônio Investido",
+                    metricValue: formatCurrency(data.investmentsBalance),
+                    advice: "Seu saldo de liquidez está calibrado com precisão. A maior parte do seu capital está protegida em ativos.",
+                    alertLevel: "success",
+                };
+            },
+        },
+        {
+            id: "bugiganga",
+            name: "Inspetor Bugiganga",
+            role: "Caçador de Cobranças Duplicadas & Erros",
+            personality: "Detalhista, curioso, focado em estornos de tarifas indevidas.",
+            tagline: "Encontra cobranças duplicadas, taxas ocultas e assinaturas esquecidas no seu extrato.",
+            avatarBg: "from-purple-600/30 to-pink-600/20",
+            avatarEmoji: "🕵️‍♂️",
+            accentColor: "#9333EA",
+            suggestedPrompt: "Inspetor Bugiganga, varra minhas transações e me mostre se houve alguma cobrança repetida no cartão ou taxas bancárias abusivas.",
+            calculateDiagnostic: (data) => {
+                const dups = data.duplicateCandidates.length;
+                if (dups > 0) {
+                    const totalDup = data.duplicateCandidates.reduce((s: number, d: any) => s + d.amt, 0);
+                    return {
+                        headline: "Potenciais Duplicidades Encontradas",
+                        metricLabel: "Cobranças Sob Suspeita",
+                        metricValue: `${dups} (${formatCurrency(totalDup)})`,
+                        advice: `Detectei ${dups} lançamentos com valor idêntico na mesma data. Vale conferir se o estabelecimento não passou a maquininha duas vezes.`,
+                        alertLevel: "danger",
+                    };
+                }
+                return {
+                    headline: "Nenhum Erro ou Duplicidade",
+                    metricLabel: "Cobranças Suspeitas",
+                    metricValue: "0 encontradas",
+                    advice: "Varredura completa de lançamentos repetidos finalizada com sucesso. Seu extrato está limpo.",
+                    alertLevel: "success",
+                };
+            },
+        },
+        {
+            id: "megamen",
+            name: "Megamen",
+            role: "Sentinela de Limites & Projeção Futura",
+            personality: "Rápido, vigilante, focado em queima de caixa e runway pessoal.",
+            tagline: "Alerta quando você ultrapassar o limite de gastos e calcula o dia do fechamento.",
+            avatarBg: "from-rose-600/30 to-red-600/20",
+            avatarEmoji: "⚡",
+            accentColor: "#E11D48",
+            suggestedPrompt: "Megamen, qual é a projeção do meu saldo no último dia do mês se eu mantiver meu ritmo de gastos diário?",
+            calculateDiagnostic: (data) => {
+                const burn = data.burnRate;
+                const proj = data.projectedExpense;
+                const income = data.monthlyIncome > 0 ? data.monthlyIncome : 4000;
+                const isOver = proj > income;
 
-            const aTotal =
-                aAccs.reduce((sum, acc) => sum + (acc.type !== "CREDIT" ? Number(acc.balance) || 0 : 0), 0) +
-                aInvs.reduce((sum, inv) => sum + (Number(inv.balance) || 0), 0);
-
-            const bTotal =
-                bAccs.reduce((sum, acc) => sum + (acc.type !== "CREDIT" ? Number(acc.balance) || 0 : 0), 0) +
-                bInvs.reduce((sum, inv) => sum + (Number(inv.balance) || 0), 0);
-
-            return bTotal - aTotal;
-        });
-    }, [connections, accountsByItem, investmentsByItem]);
-
-    const handleAddConnection = async () => {
-        setIsLoadingToken(true);
-        setError(null);
-        setSuccess(null);
-        setConnectToken(null);
-
-        try {
-            const res = await fetch("/api/pluggy/connect-token", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({}),
-            });
-
-            const data = await res.json();
-
-            if (!res.ok) {
-                throw new Error(data.error || "Erro ao obter token de conexão");
-            }
-
-            setConnectToken(data.accessToken || data.connectToken);
-        } catch (err: any) {
-            setError(err.message);
-        } finally {
-            setIsLoadingToken(false);
-        }
-    };
-
-    const handlePluggySuccess = async (itemData: any) => {
-        const itemId = itemData?.item?.id;
-        const providerName = itemData?.item?.connector?.name || "Instituição Conectada";
-
-        if (!itemId) {
-            setError("ID do item não retornado pelo widget.");
-            return;
-        }
-
-        try {
-            setSyncingItemId(itemId);
-            const res = await fetch("/api/pluggy/save-item", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    itemId,
-                    providerName,
-                }),
-            });
-
-            const saveData = await res.json();
-            if (!res.ok) {
-                throw new Error(saveData.error || "Falha ao salvar e sincronizar a conexão");
-            }
-
-            setConnectToken(null);
-            setSuccess(
-                `Instituição (${saveData.institutionName || providerName}) conectada e sincronizada com sucesso!`
-            );
-            await revalidate(true);
-        } catch (err: any) {
-            setError(err.message);
-        } finally {
-            setSyncingItemId(null);
-        }
-    };
-
-    const handleManualSync = async (conn: any) => {
-        setError(null);
-        setSuccess(null);
-        setSyncingItemId(conn.item_id);
-
-        try {
-            const res = await fetch("/api/pluggy/sync", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    itemId: conn.item_id,
-                    providerName: conn.institution_name || conn.provider_name,
-                    familyMemberId: conn.family_member_id || null,
-                }),
-            });
-
-            const data = await res.json();
-
-            if (!res.ok) {
-                throw new Error(data.error || "Erro ao sincronizar conexão");
-            }
-
-            setSuccess(
-                `Sincronização concluída (${data.institutionName || "Banco"}): ${data.accountsSynced} conta(s) e ${data.transactionsSynced} transação(ões) conciliadas.`
-            );
-            await revalidate(true);
-        } catch (err: any) {
-            setError(err.message);
-        } finally {
-            setSyncingItemId(null);
-        }
-    };
-
-    const handleDisconnectItem = async (conn: any) => {
-        const { name: institutionLabel } = resolveDisplayInstitution(conn);
-        const confirmed = window.confirm(
-            `Deseja desconectar "${institutionLabel}"?\n\nIsso removerá a conexão oficial na Pluggy e excluirá em cascata todas as contas e transações associadas a este vínculo localmente.`
-        );
-        if (!confirmed) return;
-
-        setError(null);
-        setSuccess(null);
-        setDeletingItemId(conn.item_id);
-
-        try {
-            const res = await fetch(`/api/pluggy/items/${encodeURIComponent(conn.item_id)}`, {
-                method: "DELETE",
-            });
-
-            const data = await res.json();
-            if (!res.ok) {
-                throw new Error(data.error || "Erro ao desconectar instituição");
-            }
-
-            removeConnectionLocal(conn.item_id);
-            setSuccess(`Conexão com "${institutionLabel}" revogada e dados excluídos com sucesso.`);
-            revalidate(true);
-        } catch (err: any) {
-            setError(err.message);
-        } finally {
-            setDeletingItemId(null);
-        }
-    };
-
-    const totalProducts = accounts.length + investments.length;
+                return {
+                    headline: isOver ? "Ritmo Acima do Orçamento" : "Ritmo Sustentável",
+                    metricLabel: "Velocidade Diária de Gastos",
+                    metricValue: `${formatCurrency(burn)}/dia`,
+                    advice: isOver
+                        ? `Nesse ritmo diário, suas saídas fecharão em ${formatCurrency(proj)}, ultrapassando sua receita.`
+                        : `Projeção confortável de ${formatCurrency(proj)} no fechamento do mês. Você está operando com folga segura.`,
+                    alertLevel: isOver ? "danger" : "success",
+                };
+            },
+        },
+        {
+            id: "silvio",
+            name: "Silvio",
+            role: "Negociador de Economia & Vantagens",
+            personality: "Persuasivo, carismático, especialista em pechinchar e encontrar cupons.",
+            tagline: "Encontra oportunidades para você pagar menos e trocar serviços caros.",
+            avatarBg: "from-amber-500/30 to-orange-600/20",
+            avatarEmoji: "🎤",
+            accentColor: "#EA580C",
+            suggestedPrompt: "Silvio, compare meus gastos recorrentes e assinaturas. Onde posso renegociar ou conseguir descontos?",
+            calculateDiagnostic: (data) => {
+                return {
+                    headline: "Potencial de Otimização Mensal",
+                    metricLabel: "Economia Recorrente Estimada",
+                    metricValue: "Até R$ 180,00/mês",
+                    advice: "Revisar planos de internet e cancelar 1 serviço de streaming não utilizado pode economizar mais de R$ 2.000 ao ano.",
+                    alertLevel: "info",
+                };
+            },
+        },
+    ];
 
     return (
-        <div className="flex flex-col gap-6 md:gap-8 p-4 md:p-8 max-w-6xl mx-auto w-full font-sans">
-            {/* Header */}
-            <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-[#262E3D]">
-                <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-2">
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-[#FF8216]/10 text-[#FF8216] border border-[#FF8216]/20">
-                            Open Finance Brasil
+        <div className="flex flex-col gap-6 max-w-6xl mx-auto w-full pb-16 animate-fade-in">
+            {/* Header da Galeria */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <div className="flex items-center gap-2 mb-1">
+                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#FF8216]/10 text-[#FF8216] border border-[#FF8216]/20">
+                            Equipe Autônoma de Finanças
                         </span>
-                        <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                            Regulado pelo Bacen
-                        </span>
+                        <span className="text-xs text-slate-500">• Alimentados com seus dados reais</span>
                     </div>
-                    <h1 className="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
-                        <span className="material-symbols-outlined text-[#FF8216] text-2xl">
-                            account_balance
-                        </span>
-                        Conexões Bancárias
+                    <h1 className="text-xl md:text-3xl font-bold text-white flex items-center gap-2.5">
+                        Agentes Especialistas da Kitsune
                     </h1>
-                    <p className="text-xs md:text-sm text-slate-500 dark:text-[#94A3B8] max-w-2xl">
-                        Sincronização automática e leitura regulamentada pelo Banco Central. Seus saldos, faturas, investimentos e perfil cadastral consolidados com segurança.
+                    <p className="text-xs md:text-sm text-slate-400 mt-1 max-w-2xl">
+                        Cada agente possui uma personalidade própria e audita seus dados bancários reais do Open Finance para entregar diagnósticos sob medida.
                     </p>
                 </div>
 
-                <button
-                    onClick={handleAddConnection}
-                    disabled={isLoadingToken}
-                    className="h-11 px-5 flex items-center justify-center gap-2 bg-[#FF8216] hover:bg-[#FFA047] active:bg-[#E66E08] text-white rounded-xl font-bold text-xs transition-all shadow-sm disabled:opacity-70 cursor-pointer self-stretch sm:self-auto shrink-0"
+                <Link
+                    href="/connections"
+                    className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-semibold text-xs border border-white/10 transition-colors shrink-0"
                 >
-                    {isLoadingToken ? (
-                        <Spinner size={16} className="text-white" />
-                    ) : (
-                        <span className="material-symbols-outlined text-[18px]">add_link</span>
-                    )}
-                    <span>
-                        {isLoadingToken
-                            ? "Iniciando Open Finance..."
-                            : "Conectar Nova Instituição"}
-                    </span>
-                </button>
-            </header>
+                    <span className="material-symbols-outlined text-[16px]">account_balance</span>
+                    <span>Gerenciar Conexões Bancárias</span>
+                </Link>
+            </div>
 
-            {/* Alertas */}
-            <AnimatePresence>
-                {error && (
-                    <motion.div
-                        initial={{ opacity: 0, y: -4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0 }}
-                        className="text-xs text-red-600 dark:text-red-400 bg-red-500/10 p-3.5 rounded-xl border border-red-500/20 flex items-center justify-between"
-                    >
-                        <div className="flex items-center gap-2">
-                            <span className="material-symbols-outlined text-[18px]">error</span>
-                            <span>{error}</span>
-                        </div>
-                        <button
-                            onClick={() => setError(null)}
-                            className="text-xs font-bold hover:underline cursor-pointer"
+            {/* Grid dos Agentes Especialistas */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {agentsList.map((agent) => {
+                    const diag = agent.calculateDiagnostic(userDataMetrics);
+
+                    const alertStyles = {
+                        success: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+                        warning: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+                        danger: "bg-red-500/10 text-red-400 border-red-500/20",
+                        info: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+                    }[diag.alertLevel];
+
+                    return (
+                        <div
+                            key={agent.id}
+                            className="group relative flex flex-col justify-between p-5 rounded-2xl bg-gradient-to-b from-[#18181B] to-[#121215] border border-white/10 shadow-lg hover:border-white/20 transition-all duration-300 hover:-translate-y-1"
                         >
-                            Fechar
-                        </button>
-                    </motion.div>
-                )}
-
-                {success && (
-                    <motion.div
-                        initial={{ opacity: 0, y: -4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0 }}
-                        className="text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 p-3.5 rounded-xl border border-emerald-500/20 flex items-center justify-between"
-                    >
-                        <div className="flex items-center gap-2">
-                            <span className="material-symbols-outlined text-[18px]">
-                                check_circle
-                            </span>
-                            <span>{success}</span>
-                        </div>
-                        <button
-                            onClick={() => setSuccess(null)}
-                            className="text-xs font-bold hover:underline cursor-pointer"
-                        >
-                            Fechar
-                        </button>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-            {/* Widget Modal Pluggy Connect */}
-            {connectToken && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-                    <div className="relative w-full max-w-lg bg-white dark:bg-[#12161F] rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-[#262E3D]">
-                        <PluggyConnect
-                            connectToken={connectToken}
-                            selectedConnectorId={200}
-                            connectorIds={[200]}
-                            includeSandbox={false}
-                            onSuccess={handlePluggySuccess}
-                            onError={(err) => {
-                                setError(err?.message || "Erro no fluxo de autenticação Pluggy");
-                                setConnectToken(null);
-                            }}
-                            onClose={() => setConnectToken(null)}
-                        />
-                    </div>
-                </div>
-            )}
-
-            {/* Security Assurance Banner */}
-            <section className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 md:p-5 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] shadow-xs">
-                <div className="flex items-start gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20">
-                        <span className="material-symbols-outlined text-[18px]">lock</span>
-                    </div>
-                    <div className="flex flex-col">
-                        <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-                            100% Somente-Leitura
-                        </h4>
-                        <p className="text-[11px] text-slate-500 dark:text-[#94A3B8] leading-relaxed mt-0.5">
-                            Apenas leitura de saldos e extratos. Nenhuma transação ou pagamento é permitido pelo sistema.
-                        </p>
-                    </div>
-                </div>
-
-                <div className="flex items-start gap-3 border-t md:border-t-0 md:border-l border-slate-100 dark:border-white/5 pt-3 md:pt-0 md:pl-4">
-                    <div className="w-9 h-9 rounded-xl bg-[#FF8216]/10 text-[#FF8216] flex items-center justify-center shrink-0 border border-[#FF8216]/20">
-                        <span className="material-symbols-outlined text-[18px]">verified_user</span>
-                    </div>
-                    <div className="flex flex-col">
-                        <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-                            Regulação Bacen
-                        </h4>
-                        <p className="text-[11px] text-slate-500 dark:text-[#94A3B8] leading-relaxed mt-0.5">
-                            Protocolo oficial do Open Finance Brasil (Resolução BCB nº 1/2020) com consentimento revogável.
-                        </p>
-                    </div>
-                </div>
-
-                <div className="flex items-start gap-3 border-t md:border-t-0 md:border-l border-slate-100 dark:border-white/5 pt-3 md:pt-0 md:pl-4">
-                    <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-[#1A202C] text-slate-600 dark:text-[#94A3B8] flex items-center justify-center shrink-0 border border-slate-200 dark:border-white/5">
-                        <span className="material-symbols-outlined text-[18px]">shield</span>
-                    </div>
-                    <div className="flex flex-col">
-                        <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-                            Criptografia & RLS
-                        </h4>
-                        <p className="text-[11px] text-slate-500 dark:text-[#94A3B8] leading-relaxed mt-0.5">
-                            Tráfego blindado e isolamento estrito de dados (FORCE RLS). Suas credenciais nunca passam pelos nossos servidores.
-                        </p>
-                    </div>
-                </div>
-            </section>
-
-            {/* Métricas Rápidas */}
-            <section className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                <div className="p-4 rounded-xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] flex items-center justify-between">
-                    <div>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                            Instituições Ativas
-                        </span>
-                        <div className="text-xl font-extrabold text-slate-900 dark:text-white mt-0.5 tabular-nums">
-                            {connections.length}
-                        </div>
-                    </div>
-                    <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-[#1A202C] flex items-center justify-center text-slate-600 dark:text-[#94A3B8]">
-                        <span className="material-symbols-outlined text-[18px]">hub</span>
-                    </div>
-                </div>
-
-                <div className="p-4 rounded-xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] flex items-center justify-between">
-                    <div>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                            Contas, Cartões & Títulos
-                        </span>
-                        <div className="text-xl font-extrabold text-slate-900 dark:text-white mt-0.5 tabular-nums">
-                            {totalProducts}
-                        </div>
-                    </div>
-                    <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-[#1A202C] flex items-center justify-center text-slate-600 dark:text-[#94A3B8]">
-                        <span className="material-symbols-outlined text-[18px]">credit_score</span>
-                    </div>
-                </div>
-
-                <div className="p-4 rounded-xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] col-span-2 sm:col-span-1 flex items-center justify-between">
-                    <div>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                            Status da Conexão
-                        </span>
-                        <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                            Rede Operacional
-                        </div>
-                    </div>
-                    <div className="w-9 h-9 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                        <span className="material-symbols-outlined text-[18px]">
-                            wifi_protected_setup
-                        </span>
-                    </div>
-                </div>
-            </section>
-
-            {/* Listagem de Instituições Vinculadas */}
-            <section className="flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <h2 className="text-sm font-bold text-slate-900 dark:text-white">
-                            Instituições Vinculadas
-                        </h2>
-                        <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 dark:bg-[#1A202C] text-slate-600 dark:text-slate-300">
-                            {connections.length}
-                        </span>
-                    </div>
-                </div>
-
-                {isInitialLoading && connections.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-[#12161F] rounded-2xl border border-slate-200 dark:border-[#262E3D] gap-2">
-                        <Spinner size={24} className="text-[#FF8216]" />
-                        <p className="text-xs text-slate-400 font-medium">
-                            Carregando conexões do Open Finance...
-                        </p>
-                    </div>
-                ) : sortedConnections.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {sortedConnections.map((conn) => {
-                            const { name: institutionName, slug: institutionSlug } =
-                                resolveDisplayInstitution(conn);
-                            const linkedAccounts = accountsByItem.get(conn.item_id) || [];
-                            const linkedInvestments = investmentsByItem.get(conn.item_id) || [];
-                            const totalInvBalance = linkedInvestments.reduce(
-                                (sum, inv) => sum + (Number(inv.balance) || 0),
-                                0
-                            );
-
-                            const lastUpdatedRaw =
-                                conn.updated_at ||
-                                linkedAccounts[0]?.updated_at ||
-                                conn.created_at;
-                            const lastUpdatedFormatted = lastUpdatedRaw
-                                ? new Date(lastUpdatedRaw).toLocaleString("pt-BR", {
-                                      day: "2-digit",
-                                      month: "2-digit",
-                                      hour: "2-digit",
-                                      minute: "2-digit",
-                                  })
-                                : "Recente";
-
-                            const isConnected = conn.status === "CONNECTED";
-                            const isError = conn.status === "ERROR";
-                            const isDeleting = deletingItemId === conn.item_id;
-                            const isSyncing = syncingItemId === conn.item_id;
-
-                            return (
-                                <div
-                                    key={conn.id}
-                                    className="flex flex-col justify-between bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] rounded-2xl p-5 shadow-xs hover:border-[#FF8216]/40 transition-all"
-                                >
-                                    <div>
-                                        <div className="flex items-center justify-between mb-3">
-                                            <BankLogo bank={institutionSlug} size="lg" />
-                                            <span
-                                                className={`px-2.5 py-0.5 text-[10px] font-bold rounded-full flex items-center gap-1.5 ${
-                                                    isConnected
-                                                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                                                        : isError
-                                                          ? "bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20"
-                                                          : "bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-white/70"
-                                                }`}
-                                            >
-                                                <span
-                                                    className={`w-1.5 h-1.5 rounded-full ${
-                                                        isConnected
-                                                            ? "bg-emerald-500"
-                                                            : isError
-                                                              ? "bg-red-500"
-                                                              : "bg-slate-400"
-                                                    }`}
-                                                />
-                                                {isConnected
-                                                    ? "Sincronizado"
-                                                    : isError
-                                                      ? "Atenção"
-                                                      : conn.status}
-                                            </span>
+                            <div className="space-y-4">
+                                {/* Topo: Avatar e Identidade */}
+                                <div className="flex items-start justify-between gap-3">
+                                    <div className="flex items-center gap-3.5">
+                                        <div
+                                            className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${agent.avatarBg} border border-white/10 flex items-center justify-center text-2xl shadow-inner group-hover:scale-105 transition-transform duration-300`}
+                                        >
+                                            <span>{agent.avatarEmoji}</span>
                                         </div>
-
-                                        <h3 className="text-base font-bold text-slate-900 dark:text-white mb-0.5">
-                                            {institutionName}
-                                        </h3>
-
-                                        <p className="text-xs text-slate-500 dark:text-[#94A3B8] mb-3">
-                                            {linkedAccounts.length} conta(s)/cartão(ões)
-                                            {linkedInvestments.length > 0
-                                                ? ` • ${linkedInvestments.length} investimento(s)`
-                                                : ""}
-                                        </p>
-
-                                        {(linkedAccounts.length > 0 ||
-                                            linkedInvestments.length > 0) && (
-                                            <div className="flex flex-col gap-1.5 mb-3 p-2.5 rounded-xl bg-slate-50 dark:bg-[#0E121A] border border-slate-200/80 dark:border-[#262E3D]/80">
-                                                {linkedAccounts.map((acc) => {
-                                                    const isCredit =
-                                                        acc.type === "CREDIT" ||
-                                                        acc.subtype === "CREDIT_CARD";
-                                                    return (
-                                                        <div
-                                                            key={acc.id}
-                                                            className="flex items-center justify-between text-xs gap-2"
-                                                        >
-                                                            <span className="text-slate-600 dark:text-slate-300 truncate flex items-center gap-1.5">
-                                                                <span className="material-symbols-outlined text-[14px] text-[#FF8216]">
-                                                                    {isCredit
-                                                                        ? "credit_card"
-                                                                        : "account_balance_wallet"}
-                                                                </span>
-                                                                <span className="truncate">
-                                                                    {acc.product_name ||
-                                                                        acc.bank_name}
-                                                                </span>
-                                                            </span>
-                                                            <span
-                                                                className={`font-bold tabular-nums shrink-0 ${
-                                                                    isCredit
-                                                                        ? "text-[#FF8216]"
-                                                                        : "text-slate-900 dark:text-white"
-                                                                }`}
-                                                            >
-                                                                {new Intl.NumberFormat("pt-BR", {
-                                                                    style: "currency",
-                                                                    currency: acc.currency || "BRL",
-                                                                }).format(
-                                                                    Math.abs(
-                                                                        Number(acc.balance) || 0
-                                                                    )
-                                                                )}
-                                                            </span>
-                                                        </div>
-                                                    );
-                                                })}
-
-                                                {linkedInvestments.length > 0 && (
-                                                    <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-200/60 dark:border-white/5">
-                                                        <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
-                                                            <span className="material-symbols-outlined text-[14px]">
-                                                                trending_up
-                                                            </span>
-                                                            {linkedInvestments.length} CDB(s) / Títulos
-                                                        </span>
-                                                        <span className="font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
-                                                            {new Intl.NumberFormat("pt-BR", {
-                                                                style: "currency",
-                                                                currency: "BRL",
-                                                            }).format(totalInvBalance)}
-                                                        </span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-
-                                        <div className="flex flex-col gap-1 text-[11px] text-slate-400 mb-4">
-                                            <div className="flex items-center gap-1">
-                                                <span className="material-symbols-outlined text-[13px]">
-                                                    schedule
-                                                </span>
-                                                <span>Atualizado: {lastUpdatedFormatted}</span>
-                                            </div>
+                                        <div>
+                                            <h3 className="text-base font-bold text-white group-hover:text-[#FF8216] transition-colors">
+                                                {agent.name}
+                                            </h3>
+                                            <p className="text-xs text-slate-400 font-medium">{agent.role}</p>
                                         </div>
                                     </div>
 
-                                    {/* Ações */}
-                                    <div className="pt-3 border-t border-slate-100 dark:border-white/5 flex items-center gap-2">
-                                        <button
-                                            onClick={() => handleManualSync(conn)}
-                                            disabled={isSyncing || isDeleting}
-                                            className="flex-1 py-2 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-[#1A202C] dark:hover:bg-[#222A3A] text-slate-800 dark:text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer"
-                                        >
-                                            {isSyncing ? (
-                                                <>
-                                                    <Spinner size={12} className="text-[#FF8216]" />
-                                                    <span>Atualizando...</span>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <span className="material-symbols-outlined text-[15px]">
-                                                        refresh
-                                                    </span>
-                                                    <span>Atualizar</span>
-                                                </>
-                                            )}
-                                        </button>
-
-                                        <button
-                                            onClick={() => handleDisconnectItem(conn)}
-                                            disabled={isDeleting || isSyncing}
-                                            className="py-2 px-3 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer"
-                                            title="Revogar acesso"
-                                        >
-                                            {isDeleting ? (
-                                                <Spinner size={12} className="text-red-500" />
-                                            ) : (
-                                                <span className="material-symbols-outlined text-[15px]">
-                                                    link_off
-                                                </span>
-                                            )}
-                                            <span>
-                                                {isDeleting ? "Excluindo..." : "Desconectar"}
-                                            </span>
-                                        </button>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                ) : (
-                    <div className="p-8 text-center bg-white dark:bg-[#12161F] rounded-2xl border border-slate-200 dark:border-[#262E3D] flex flex-col items-center gap-3">
-                        <span className="material-symbols-outlined text-3xl text-slate-400">
-                            account_balance
-                        </span>
-                        <div className="flex flex-col gap-0.5 max-w-sm">
-                            <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                                Nenhum banco ou cartão conectado
-                            </h3>
-                            <p className="text-xs text-slate-500 dark:text-[#94A3B8]">
-                                Conecte sua instituição financeira para que a Kitsune IA analise seus saldos e faturas automaticamente.
-                            </p>
-                        </div>
-                        <button
-                            onClick={handleAddConnection}
-                            disabled={isLoadingToken}
-                            className="mt-1 h-10 px-5 bg-[#FF8216] hover:bg-[#FFA047] text-white rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer"
-                        >
-                            <span className="material-symbols-outlined text-[16px]">add_link</span>
-                            <span>Conectar Instituição Agora</span>
-                        </button>
-                    </div>
-                )}
-            </section>
-
-            {/* FAQ & Segurança Accordion */}
-            <section className="flex flex-col gap-3 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] p-5 shadow-xs">
-                <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[#FF8216]">help_outline</span>
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                        Perguntas Frequentes sobre Privacidade & Open Finance
-                    </h3>
-                </div>
-
-                <div className="flex flex-col divide-y divide-slate-100 dark:divide-white/5">
-                    {SECURITY_FAQS.map((faq, idx) => {
-                        const isOpen = openFaqIndex === idx;
-                        return (
-                            <div key={idx} className="py-3 first:pt-1 last:pb-0">
-                                <button
-                                    onClick={() => setOpenFaqIndex(isOpen ? null : idx)}
-                                    className="w-full flex items-center justify-between gap-3 text-left font-semibold text-xs md:text-sm text-slate-800 dark:text-slate-200 hover:text-[#FF8216] dark:hover:text-[#FF8216] transition-colors cursor-pointer"
-                                >
-                                    <span>{faq.question}</span>
-                                    <span
-                                        className="material-symbols-outlined text-[18px] shrink-0 text-slate-400 transition-transform duration-200"
-                                        style={{ transform: isOpen ? "rotate(180deg)" : "none" }}
-                                    >
-                                        expand_more
+                                    <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono bg-white/5 text-slate-300 border border-white/5">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                        Ativo
                                     </span>
-                                </button>
-                                <AnimatePresence>
-                                    {isOpen && (
-                                        <motion.p
-                                            initial={{ opacity: 0, height: 0 }}
-                                            animate={{ opacity: 1, height: "auto" }}
-                                            exit={{ opacity: 0, height: 0 }}
-                                            className="text-xs text-slate-500 dark:text-[#94A3B8] leading-relaxed mt-2 pr-4"
-                                        >
-                                            {faq.answer}
-                                        </motion.p>
-                                    )}
-                                </AnimatePresence>
+                                </div>
+
+                                <p className="text-xs text-slate-300 leading-relaxed italic">
+                                    &ldquo;{agent.tagline}&rdquo;
+                                </p>
+
+                                {/* Diagnóstico em Tempo Real do Usuário */}
+                                <div className={`p-3.5 rounded-xl border space-y-1.5 ${alertStyles}`}>
+                                    <div className="flex items-center justify-between text-[11px] font-semibold">
+                                        <span>{diag.headline}</span>
+                                        <span className="font-mono text-white text-xs">{diag.metricValue}</span>
+                                    </div>
+                                    <p className="text-[11px] leading-relaxed text-slate-300 opacity-90">
+                                        {diag.advice}
+                                    </p>
+                                </div>
                             </div>
-                        );
-                    })}
-                </div>
-            </section>
+
+                            {/* Botão de Ação / Conversa */}
+                            <div className="mt-5 pt-3 border-t border-white/5">
+                                <Link
+                                    href={`/kitsune?q=${encodeURIComponent(agent.suggestedPrompt)}`}
+                                    className="w-full py-2.5 px-4 rounded-xl bg-white/5 hover:bg-[#FF8216] text-white hover:text-black font-semibold text-xs flex items-center justify-center gap-2 transition-all duration-300 shadow-sm active:scale-95"
+                                >
+                                    <span>Conversar com {agent.name}</span>
+                                    <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                                </Link>
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
         </div>
     );
 }

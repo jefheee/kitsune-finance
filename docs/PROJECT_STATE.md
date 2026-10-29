@@ -47,6 +47,14 @@
 ---
 
 ## 3. Módulos Implementados
+- [x] Motor de Resolução de Marcas Simple Icons & Decodificação Brasileira (`src/utils/finance/merchant-resolver.ts` e `src/components/MerchantLogo.tsx`)
+- [x] Mecanismo de Pesquisa Financeira Global 360° com Dossiê de Estabelecimento (`GlobalFinanceSearchModal.tsx` via `Ctrl+K`)
+- [x] Central de Agentes Especialistas da Kitsune Dinâmicos (`src/app/agents/page.tsx` com Julius, Sherlock, Tio Patinhas, Inspetor Bugiganga, Megamen e Silvio)
+- [x] Rota Dedicada de Conexões Bancárias & Open Finance sem FAQ redundante (`src/app/connections/page.tsx`)
+- [x] Granularidade Temporal no Dashboard (Dia a Dia, Semana a Semana, Mês a Mês, Ano a Ano)
+- [x] Carrossel de Sugestões com Navegação por Setas `<` e `>` no Desktop e touch no mobile em `kitsune/page.tsx`
+- [x] Marquee Infinito Fluido com Logos Oficiais de mais de 20 Bancos na Landing Page (`animate-marquee`)
+- [x] Fluxo de Logout Direcionado para Landing Page e Botão de Retorno no Login/Signup
 - [x] Blindagem 100% de segurança, eliminação de mocks e isolamento de cache `kitsune_${user.id}_...`
 - [x] Reestruturação do Supabase (drop `accounts`, expansão de `bank_accounts`, `transactions`, `investments`, criação de `loans` e tabelas de chat)
 - [x] Motor de Resolução de Bancos e Logos Oficiais em SVG (`src/components/BankLogo.tsx` e `public/banks/*.svg`)

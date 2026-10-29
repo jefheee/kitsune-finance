@@ -4,6 +4,19 @@ Todas as alterações notáveis no projeto Kitsune Finance são registradas de f
 
 ---
 
+## [2026-10-29] - Motor Simple-Icons & Decodificação BR, Pesquisa 360°, Central de Agentes Dinâmicos & Marquee Infinito
+- **Arquivos Afetados:** `src/utils/finance/merchant-resolver.ts`, `src/components/MerchantLogo.tsx`, `src/components/finance/GlobalFinanceSearchModal.tsx`, `src/app/connections/page.tsx`, `src/app/agents/page.tsx`, `src/app/dashboard/page.tsx`, `src/app/kitsune/page.tsx`, `src/components/layout/AppShell.tsx`, `src/app/login/page.tsx`, `src/app/signup/page.tsx`, `src/app/settings/page.tsx`, `src/app/page.tsx`, `src/app/globals.css`, `package.json`, `docs/PROJECT_STATE.md`, `docs/CHANGELOG.md`.
+- **Objetivo:**
+  - Integração do repositório Simple Icons com motor de decodificação comercial brasileiro (`merchant-resolver.ts`): limpeza de ruídos de maquininhas e adquirentes (`PAG*`, `MP*`, `CIELO*`, `COMPRA NO DEBITO|`), expansão heurística de abreviações brasileiras (ex: `TRENTO MAT CONST` -> `Trento Materiais de Construção`, `AUTO POSTO` -> `Posto de Combustíveis`) e logos oficiais via CDN Simple Icons (`<MerchantLogo />`).
+  - Criação do Mecanismo de Pesquisa Global de Gastos e Estabelecimentos (`GlobalFinanceSearchModal.tsx`): atalho `Ctrl+K` / `Cmd+K` para buscar termos como iFood ou Uber, gerando dossiê 360° com total gasto, ticket médio, dia de pico, meio de pagamento preferido e histórico com ação direta de IA.
+  - Implementação de Granularidade Temporal no Dashboard: visão Dia a Dia (últimos 7 dias), Semana a Semana (últimas 2 semanas), Mês a Mês (padrão consolidado) e Ano a Ano (acumulado de 12 meses), com recálculo matemático de patrimônio, receitas e despesas.
+  - Reestruturação de Rotas e Hub de Agentes Especialistas da Kitsune: transferência das conexões bancárias para `/connections` (sem accordion de FAQ de privacidade) e transformação de `/agents` na galeria oficial de Agentes Inteligentes (Julius, Sherlock, Tio Patinhas, Inspetor Bugiganga, Megamen, Silvio) inspirados no design do Pierre com métricas dinâmicas calculadas em tempo real da base real do usuário.
+  - Carrossel de Sugestões com Navegação por Setas `<` e `>` no Desktop e touch no mobile em `kitsune/page.tsx`, com perguntas instigantes dos agentes.
+  - Experiência de Autenticação Segura & Retorno à Landing Page: redirecionamento de logout diretamente para `/`, adição de botão de retorno e logo clicável em `/login` e `/signup`.
+  - Marquee Infinito de Bancos na Landing Page com animação CSS suave (`@keyframes marquee`) contendo mais de 20 instituições financeiras e vitrine de Agentes.
+
+---
+
 ## [2026-10-29] - Motor de Renda Inteligente, Resolução de 140+ Bancos, Auto-Envio de Sugestões & Blindagem Matemática IA
 - **Arquivos Afetados:** `src/utils/finance/income-detector.ts`, `src/components/BankLogo.tsx`, `src/app/kitsune/page.tsx`, `src/components/AiDiagnosticPanel.tsx`, `src/app/api/ai/generate-insight/route.ts`, `src/app/dashboard/page.tsx`, `src/app/agents/page.tsx`, `src/app/layout.tsx`, `src/app/globals.css`, `src/utils/ai/dossier.ts`, `docs/PROJECT_STATE.md`, `docs/CHANGELOG.md`.
 - **Objetivo:**
