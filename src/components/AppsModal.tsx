@@ -102,7 +102,7 @@ export function AppsModal({ isOpen, onClose }: AppsModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="w-full max-w-lg bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-150">
+      <div className="w-full max-w-lg bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-150">
         {/* Modal Header */}
         <div className="p-5 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
@@ -115,14 +115,14 @@ export function AppsModal({ isOpen, onClose }: AppsModalProps) {
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#1A202C] transition-colors cursor-pointer"
+            className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#27272A] transition-colors cursor-pointer"
           >
             <span className="material-symbols-outlined text-lg">close</span>
           </button>
         </div>
 
         {/* Search */}
-        <div className="p-4 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-[#0E121A]/50">
+        <div className="p-4 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-[#18181B]/50">
           <div className="relative">
             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">
               search
@@ -132,7 +132,7 @@ export function AppsModal({ isOpen, onClose }: AppsModalProps) {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar aplicativo..."
-              className="w-full pl-9 pr-4 py-2 rounded-xl bg-white dark:bg-[#161B26] border border-slate-200 dark:border-[#262E3D] text-xs text-slate-900 dark:text-white placeholder:text-slate-400 outline-none focus:border-[#FF8216]"
+              className="w-full pl-9 pr-4 py-2 rounded-xl bg-white dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] text-xs text-slate-900 dark:text-white placeholder:text-slate-400 outline-none focus:border-[#FF8216]"
             />
           </div>
         </div>
@@ -144,10 +144,10 @@ export function AppsModal({ isOpen, onClose }: AppsModalProps) {
             return (
               <div
                 key={app.id}
-                className="p-3 rounded-2xl bg-slate-50/70 dark:bg-[#161B26]/70 border border-slate-200/70 dark:border-[#262E3D]/70 flex items-center justify-between gap-3 hover:border-[#FF8216]/30 transition-colors"
+                className="p-3 rounded-2xl bg-slate-50/70 dark:bg-[#18181B]/70 border border-slate-200/70 dark:border-[#27272A]/70 flex items-center justify-between gap-3 hover:border-[#FF8216]/30 transition-colors"
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-white dark:bg-[#1E2533] border border-slate-200 dark:border-white/10 flex items-center justify-center text-[#FF8216] shrink-0">
+                  <div className="w-10 h-10 rounded-xl bg-white dark:bg-[#27272A] border border-slate-200 dark:border-white/10 flex items-center justify-center text-[#FF8216] shrink-0">
                     <span className="material-symbols-outlined text-xl">{app.icon}</span>
                   </div>
                   <div className="min-w-0">
@@ -168,7 +168,7 @@ export function AppsModal({ isOpen, onClose }: AppsModalProps) {
                       ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
                       : app.id === "sheets"
                       ? "bg-[#FF8216] hover:bg-[#FFA047] text-white"
-                      : "bg-white dark:bg-[#1E2533] hover:bg-slate-100 dark:hover:bg-[#252E3E] text-slate-700 dark:text-white border border-slate-200 dark:border-[#262E3D]"
+                      : "bg-white dark:bg-[#18181B] hover:bg-slate-100 dark:hover:bg-[#27272A] text-slate-700 dark:text-white border border-slate-200 dark:border-[#27272A]"
                   }`}
                 >
                   {isConnected

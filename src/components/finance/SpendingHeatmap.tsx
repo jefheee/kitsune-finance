@@ -69,7 +69,7 @@ export function SpendingHeatmap({ transactions, formatCurrency }: SpendingHeatma
   }, [transactions]);
 
   const getIntensityClass = (amount: number) => {
-    if (amount === 0) return "bg-slate-100 dark:bg-[#161B26] text-slate-400";
+    if (amount === 0) return "bg-slate-100 dark:bg-[#18181B] text-slate-400";
     if (amount < dailyAverage * 0.5) return "bg-[#FF8216]/20 text-[#FF8216] dark:text-[#FF8216]";
     if (amount <= dailyAverage * 1.2) return "bg-[#FF8216]/40 text-white font-semibold";
     if (amount <= dailyAverage * 2) return "bg-[#FF8216]/70 text-white font-bold";
@@ -80,7 +80,7 @@ export function SpendingHeatmap({ transactions, formatCurrency }: SpendingHeatma
   const weekdays = ["D", "S", "T", "Q", "Q", "S", "S"];
 
   return (
-    <div className="p-5 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] shadow-xs flex flex-col justify-between gap-4">
+    <div className="p-5 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] shadow-xs flex flex-col justify-between gap-4">
       <div className="flex items-start justify-between gap-2">
         <div>
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
@@ -132,7 +132,7 @@ export function SpendingHeatmap({ transactions, formatCurrency }: SpendingHeatma
       <div className="pt-2 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-[11px] text-slate-400">
         <div className="flex items-center gap-1.5">
           <span>Menos</span>
-          <span className="w-2.5 h-2.5 rounded bg-slate-100 dark:bg-[#161B26]" />
+          <span className="w-2.5 h-2.5 rounded bg-slate-100 dark:bg-[#18181B]" />
           <span className="w-2.5 h-2.5 rounded bg-[#FF8216]/30" />
           <span className="w-2.5 h-2.5 rounded bg-[#FF8216]/70" />
           <span className="w-2.5 h-2.5 rounded bg-[#FF8216]" />

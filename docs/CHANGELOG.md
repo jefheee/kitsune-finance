@@ -4,6 +4,16 @@ Todas as alterações notáveis no projeto Kitsune Finance são registradas de f
 
 ---
 
+## [2026-10-29] - Padronização Visual Neutra: Eliminação Completa de Tons Azulados em Todo o App
+- **Arquivos Afetados:** src/components/react-bits/SpotlightCard.tsx, src/components/finance/PaginatedTransactionsView.tsx, src/components/finance/InstallmentsTracker.tsx, src/components/finance/SubscriptionsTracker.tsx, src/components/finance/SpendingHeatmap.tsx, src/components/charts/InvoiceBarChart.tsx, src/components/charts/CategoryDonutChart.tsx, src/components/charts/SpendingCurveChart.tsx, src/components/AppsModal.tsx, src/components/vision/VisionAnalyzer.tsx, src/components/layout/AppShell.tsx, src/app/connections/page.tsx, src/app/profile/page.tsx, src/app/settings/page.tsx, src/app/dashboard/page.tsx, src/app/kitsune/page.tsx, src/app/investments/page.tsx, src/app/agents/page.tsx, src/app/globals.css.
+- **Objetivo:**
+  - Remoção de todos os resquícios de tokens azulados/marinho herdados (#12161F, #262E3D, #0E121A, #161B26, #1A202C, #1E2533, #0B0E14, etc.).
+  - Padronização 100% alinhada com o Warm Obsidian / Grafite do Design System da Landing Page: fundo #0A0A0A, cards #121214, subcontainers/inputs #18181B, bordas #27272A, e realces em Laranja Kitsune #FF8216.
+  - Correção na raiz do SpotlightCard, unificando a aparência de todos os cards do Dashboard, Extrato, Carteira, Investimentos e Kitsune AI.
+  - Verificação de build com TypeScript e Turbopack concluída com sucesso (28 rotas).
+
+---
+
 ## [2026-10-29] - Refatoração Global de Categorias, Carrossel Wallet Touch/Mouse, Espaço Compartilhado & Identidade Kitsune
 - **Arquivos Afetados:** `src/app/dashboard/page.tsx`, `src/components/finance/CategoriesView.tsx`, `src/components/finance/WalletCards.tsx`, `src/utils/finance/card-theme-resolver.ts`, `src/app/investments/page.tsx`, `src/app/kitsune/page.tsx`, `src/app/agents/page.tsx`, `src/app/page.tsx`, `src/components/AiDiagnosticPanel.tsx`, `src/components/AnomalyAlertCard.tsx`, `src/app/globals.css`, `src/utils/finance/income-detector.ts`, `docs/PROJECT_STATE.md`, `docs/CHANGELOG.md`.
 - **Objetivo:**

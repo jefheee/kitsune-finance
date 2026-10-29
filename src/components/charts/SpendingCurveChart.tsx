@@ -209,7 +209,7 @@ export function SpendingCurveChart({
                 cy={lastCurPoint.y}
                 r="4.5"
                 fill="#10B981"
-                stroke="#0B0E14"
+                stroke="#121214"
                 strokeWidth="2"
               />
             </g>
@@ -253,7 +253,7 @@ export function SpendingCurveChart({
                 width="90"
                 height="24"
                 rx="6"
-                className="fill-slate-900 dark:fill-[#1A202C] stroke-slate-700/50"
+                className="fill-slate-900 dark:fill-[#18181B] stroke-slate-700/50"
                 strokeWidth="1"
               />
               <text

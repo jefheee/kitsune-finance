@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { useTheme } from "next-themes";
@@ -89,14 +89,14 @@ export default function SettingsPage() {
 
   const handleClearChatHistory = async () => {
     const confirmed = window.confirm(
-      "Deseja realmente limpar o histórico de conversas com a Kitsune AI (local e no servidor)?"
+      "Deseja realmente limpar o histÃ³rico de conversas com a Kitsune AI (local e no servidor)?"
     );
     if (!confirmed) return;
 
     try {
       await fetch('/api/chat', { method: 'DELETE' });
     } catch (err) {
-      console.warn("Falha ao limpar histórico no servidor:", err);
+      console.warn("Falha ao limpar histÃ³rico no servidor:", err);
     }
 
     if (typeof window !== "undefined" && user?.id) {
@@ -108,12 +108,12 @@ export default function SettingsPage() {
         id: "welcome-reset",
         role: "assistant",
         content:
-          "Histórico reiniciado. Como posso te auxiliar no seu planejamento patrimonial hoje?",
+          "HistÃ³rico reiniciado. Como posso te auxiliar no seu planejamento patrimonial hoje?",
         timestamp: new Date().toISOString(),
         modelUsed: selectedAiModel,
       },
     ]);
-    setSuccessMessage("Histórico de conversas reiniciado.");
+    setSuccessMessage("HistÃ³rico de conversas reiniciado.");
     setTimeout(() => setSuccessMessage(null), 4000);
   };
 
@@ -127,15 +127,15 @@ export default function SettingsPage() {
   return (
     <div className="flex flex-col gap-6 p-4 md:p-8 max-w-4xl mx-auto w-full font-sans">
       {/* Header */}
-      <header className="flex flex-col gap-1 pb-4 border-b border-slate-200 dark:border-[#262E3D]">
+      <header className="flex flex-col gap-1 pb-4 border-b border-slate-200 dark:border-[#27272A]">
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-[#FF8216]">settings</span>
           <h1 className="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-[#F8FAFC]">
-            Configurações & Preferências
+            ConfiguraÃ§Ãµes & PreferÃªncias
           </h1>
         </div>
         <p className="text-xs md:text-sm text-slate-500 dark:text-[#94A3B8]">
-          Personalize sua experiência visual, parâmetros do assistente de inteligência e segurança.
+          Personalize sua experiÃªncia visual, parÃ¢metros do assistente de inteligÃªncia e seguranÃ§a.
         </p>
       </header>
 
@@ -151,8 +151,8 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* Seção 1: Tema & Aparência */}
-      <section className="bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] rounded-2xl p-5 md:p-6 flex flex-col gap-4 shadow-sm">
+      {/* SeÃ§Ã£o 1: Tema & AparÃªncia */}
+      <section className="bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] rounded-2xl p-5 md:p-6 flex flex-col gap-4 shadow-sm">
         <div className="flex flex-col gap-0.5">
           <h2 className="text-sm font-bold text-slate-900 dark:text-[#F8FAFC] flex items-center gap-2">
             <span className="material-symbols-outlined text-[18px] text-[#FF8216]">palette</span>
@@ -170,7 +170,7 @@ export default function SettingsPage() {
             className={`p-3.5 rounded-xl border flex flex-col items-center gap-2 transition-all cursor-pointer ${
               theme === "dark"
                 ? "border-[#FF8216] bg-[#FF8216]/10 text-slate-900 dark:text-white font-bold ring-1 ring-[#FF8216]"
-                : "border-slate-200 dark:border-[#262E3D] hover:bg-slate-50 dark:hover:bg-[#161B26] text-slate-600 dark:text-[#94A3B8]"
+                : "border-slate-200 dark:border-[#27272A] hover:bg-slate-50 dark:hover:bg-[#18181B] text-slate-600 dark:text-[#94A3B8]"
             }`}
           >
             <span className="material-symbols-outlined text-2xl text-[#FF8216]">dark_mode</span>
@@ -183,7 +183,7 @@ export default function SettingsPage() {
             className={`p-3.5 rounded-xl border flex flex-col items-center gap-2 transition-all cursor-pointer ${
               theme === "light"
                 ? "border-[#FF8216] bg-[#FF8216]/10 text-slate-900 font-bold ring-1 ring-[#FF8216]"
-                : "border-slate-200 dark:border-[#262E3D] hover:bg-slate-50 dark:hover:bg-[#161B26] text-slate-600 dark:text-[#94A3B8]"
+                : "border-slate-200 dark:border-[#27272A] hover:bg-slate-50 dark:hover:bg-[#18181B] text-slate-600 dark:text-[#94A3B8]"
             }`}
           >
             <span className="material-symbols-outlined text-2xl text-[#FF8216]">light_mode</span>
@@ -196,7 +196,7 @@ export default function SettingsPage() {
             className={`p-3.5 rounded-xl border flex flex-col items-center gap-2 transition-all cursor-pointer col-span-2 sm:col-span-1 ${
               theme === "system"
                 ? "border-[#FF8216] bg-[#FF8216]/10 text-slate-900 dark:text-white font-bold ring-1 ring-[#FF8216]"
-                : "border-slate-200 dark:border-[#262E3D] hover:bg-slate-50 dark:hover:bg-[#161B26] text-slate-600 dark:text-[#94A3B8]"
+                : "border-slate-200 dark:border-[#27272A] hover:bg-slate-50 dark:hover:bg-[#18181B] text-slate-600 dark:text-[#94A3B8]"
             }`}
           >
             <span className="material-symbols-outlined text-2xl text-slate-400">devices</span>
@@ -205,15 +205,15 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      {/* Seção 2: Preferências da Kitsune AI */}
-      <section className="bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] rounded-2xl p-5 md:p-6 flex flex-col gap-4 shadow-sm">
+      {/* SeÃ§Ã£o 2: PreferÃªncias da Kitsune AI */}
+      <section className="bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] rounded-2xl p-5 md:p-6 flex flex-col gap-4 shadow-sm">
         <div className="flex flex-col gap-0.5">
           <h2 className="text-sm font-bold text-slate-900 dark:text-[#F8FAFC] flex items-center gap-2">
             <span className="material-symbols-outlined text-[18px] text-[#FF8216]">auto_awesome</span>
-            Inteligência Artificial & Consultoria
+            InteligÃªncia Artificial & Consultoria
           </h2>
           <p className="text-xs text-slate-500 dark:text-[#94A3B8]">
-            Defina o comportamento analítico padrão para suas sessões com a Kitsune AI.
+            Defina o comportamento analÃ­tico padrÃ£o para suas sessÃµes com a Kitsune AI.
           </p>
         </div>
 
@@ -221,22 +221,22 @@ export default function SettingsPage() {
           {/* Seletor de Modelo */}
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-              Modelo Padrão de Raciocínio
+              Modelo PadrÃ£o de RaciocÃ­nio
             </label>
             <select
               value={selectedAiModel}
               onChange={(e) => setSelectedAiModel(e.target.value)}
-              className="p-3 bg-slate-50 dark:bg-[#0E121A] border border-slate-200 dark:border-[#262E3D] rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-[#FF8216] cursor-pointer"
+              className="p-3 bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-[#FF8216] cursor-pointer"
             >
-              <option value="auto">✨ Automático (Roteamento Dinâmico por Complexidade)</option>
-              <option value="gemini-3.8-flash">Gemini 3.8 Flash (Equilíbrio & Velocidade)</option>
-              <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash-Lite (Ultra Rápido & Baixo Consumo)</option>
-              <option value="gemini-4-argon">Gemini 4 Argon (Raciocínio Profundo & Cenários)</option>
+              <option value="auto">âœ¨ AutomÃ¡tico (Roteamento DinÃ¢mico por Complexidade)</option>
+              <option value="gemini-3.8-flash">Gemini 3.8 Flash (EquilÃ­brio & Velocidade)</option>
+              <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash-Lite (Ultra RÃ¡pido & Baixo Consumo)</option>
+              <option value="gemini-4-argon">Gemini 4 Argon (RaciocÃ­nio Profundo & CenÃ¡rios)</option>
               <option value="llama-3.3-70b-versatile">Llama 3.3 70B Versatile (Groq LPU)</option>
             </select>
           </div>
 
-          {/* Nível de Raciocínio */}
+          {/* NÃ­vel de RaciocÃ­nio */}
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
               Profundidade das Respostas
@@ -245,8 +245,8 @@ export default function SettingsPage() {
               {(["fast", "standard", "deep"] as const).map((level) => {
                 const isSelected = reasoningLevel === level;
                 const labels = {
-                  fast: "Rápido",
-                  standard: "Padrão",
+                  fast: "RÃ¡pido",
+                  standard: "PadrÃ£o",
                   deep: "Profundo",
                 };
                 return (
@@ -257,7 +257,7 @@ export default function SettingsPage() {
                     className={`py-2 px-3 rounded-xl border text-xs font-medium transition-all cursor-pointer ${
                       isSelected
                         ? "border-[#FF8216] bg-[#FF8216]/10 text-[#FF8216] font-bold"
-                        : "border-slate-200 dark:border-[#262E3D] text-slate-600 dark:text-[#94A3B8] hover:bg-slate-50 dark:hover:bg-[#161B26]"
+                        : "border-slate-200 dark:border-[#27272A] text-slate-600 dark:text-[#94A3B8] hover:bg-slate-50 dark:hover:bg-[#18181B]"
                     }`}
                   >
                     {labels[level]}
@@ -269,15 +269,15 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      {/* Seção 3: Dados, Privacidade & Backup */}
-      <section className="bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] rounded-2xl p-5 md:p-6 flex flex-col gap-4 shadow-sm">
+      {/* SeÃ§Ã£o 3: Dados, Privacidade & Backup */}
+      <section className="bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] rounded-2xl p-5 md:p-6 flex flex-col gap-4 shadow-sm">
         <div className="flex flex-col gap-0.5">
           <h2 className="text-sm font-bold text-slate-900 dark:text-[#F8FAFC] flex items-center gap-2">
             <span className="material-symbols-outlined text-[18px] text-[#FF8216]">shield</span>
-            Privacidade & Gestão de Dados
+            Privacidade & GestÃ£o de Dados
           </h2>
           <p className="text-xs text-slate-500 dark:text-[#94A3B8]">
-            Baixe seus lançamentos estruturados ou limpe históricos locais do navegador.
+            Baixe seus lanÃ§amentos estruturados ou limpe histÃ³ricos locais do navegador.
           </p>
         </div>
 
@@ -286,7 +286,7 @@ export default function SettingsPage() {
             type="button"
             onClick={handleExportData}
             disabled={isExporting}
-            className="flex-1 py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-[#1A202C] dark:hover:bg-[#222A3A] border border-slate-200 dark:border-[#262E3D] text-slate-900 dark:text-white text-xs font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer"
+            className="flex-1 py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-[#18181B] dark:hover:bg-[#27272A] border border-slate-200 dark:border-[#27272A] text-slate-900 dark:text-white text-xs font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer"
           >
             {isExporting ? (
               <Spinner size={14} className="text-[#FF8216]" />
@@ -299,34 +299,34 @@ export default function SettingsPage() {
           <button
             type="button"
             onClick={handleClearChatHistory}
-            className="flex-1 py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-[#1A202C] dark:hover:bg-[#222A3A] border border-slate-200 dark:border-[#262E3D] text-slate-900 dark:text-white text-xs font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer"
+            className="flex-1 py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-[#18181B] dark:hover:bg-[#27272A] border border-slate-200 dark:border-[#27272A] text-slate-900 dark:text-white text-xs font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer"
           >
             <span className="material-symbols-outlined text-[18px] text-amber-500">delete_sweep</span>
-            <span>Limpar Histórico do Chat</span>
+            <span>Limpar HistÃ³rico do Chat</span>
           </button>
         </div>
 
-        <div className="pt-2 border-t border-slate-200 dark:border-[#262E3D] flex items-center justify-between text-xs text-slate-500 dark:text-[#94A3B8]">
-          <span>Conexões Bancárias Open Finance</span>
+        <div className="pt-2 border-t border-slate-200 dark:border-[#27272A] flex items-center justify-between text-xs text-slate-500 dark:text-[#94A3B8]">
+          <span>ConexÃµes BancÃ¡rias Open Finance</span>
           <Link
             href="/agents"
             className="text-[#FF8216] font-bold hover:underline flex items-center gap-1"
           >
-            Gerenciar Instituições
+            Gerenciar InstituiÃ§Ãµes
             <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
           </Link>
         </div>
       </section>
 
-      {/* Seção 4: Conta & Sessão */}
-      <section className="bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] rounded-2xl p-5 md:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+      {/* SeÃ§Ã£o 4: Conta & SessÃ£o */}
+      <section className="bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] rounded-2xl p-5 md:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
         <div className="flex flex-col gap-0.5">
           <span className="text-xs text-slate-500 dark:text-[#94A3B8]">Conectado como</span>
           <span className="text-sm font-bold text-slate-900 dark:text-[#F8FAFC]">
-            {user?.email || "Usuário Autenticado"}
+            {user?.email || "UsuÃ¡rio Autenticado"}
           </span>
           <span className="text-[11px] text-slate-400">
-            Kitsune Finance v0.2.0 • Código Aberto sob Licença MIT
+            Kitsune Finance v0.2.0 â€¢ CÃ³digo Aberto sob LicenÃ§a MIT
           </span>
         </div>
 
@@ -336,7 +336,7 @@ export default function SettingsPage() {
           className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/20 text-xs font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer"
         >
           <span className="material-symbols-outlined text-[16px]">logout</span>
-          <span>Encerrar Sessão</span>
+          <span>Encerrar SessÃ£o</span>
         </button>
       </section>
     </div>

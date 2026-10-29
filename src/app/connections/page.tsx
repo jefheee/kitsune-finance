@@ -225,7 +225,7 @@ export default function ConnectionsPage() {
             {/* Modal do Pluggy Connect */}
             {connectToken && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-                    <div className="w-full max-w-lg bg-[#12161F] border border-white/10 rounded-2xl p-6 shadow-2xl relative">
+                    <div className="w-full max-w-lg bg-[#121214] border border-[#27272A] rounded-2xl p-6 shadow-2xl relative">
                         <button
                             onClick={() => setConnectToken(null)}
                             className="absolute top-4 right-4 text-slate-400 hover:text-white"
@@ -270,7 +270,7 @@ export default function ConnectionsPage() {
                 </div>
 
                 {isInitialLoading ? (
-                    <div className="p-12 text-center bg-[#12161F] rounded-2xl border border-white/5 flex flex-col items-center gap-3">
+                    <div className="p-12 text-center bg-[#121214] rounded-2xl border border-[#27272A] flex flex-col items-center gap-3">
                         <Spinner size={24} />
                         <span className="text-xs text-slate-400">Carregando suas conexões bancárias...</span>
                     </div>
@@ -374,7 +374,7 @@ export default function ConnectionsPage() {
                         })}
                     </div>
                 ) : (
-                    <div className="p-10 text-center bg-[#12161F] rounded-2xl border border-white/5 flex flex-col items-center gap-3">
+                    <div className="p-10 text-center bg-[#121214] rounded-2xl border border-[#27272A] flex flex-col items-center gap-3">
                         <span className="material-symbols-outlined text-4xl text-slate-500">account_balance</span>
                         <h3 className="text-base font-bold text-white">Nenhum banco ou cartão conectado</h3>
                         <p className="text-xs text-slate-400 max-w-sm">

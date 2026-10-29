@@ -246,7 +246,7 @@ export function VisionAnalyzer() {
               className={`flex flex-col items-start p-3.5 rounded-2xl border text-left transition-all duration-200 cursor-pointer relative overflow-hidden ${
                 isSelected
                   ? "bg-[#FF8216]/10 border-[#FF8216] text-[#FF8216] ring-1 ring-[#FF8216]"
-                  : "bg-white/60 dark:bg-[#12161F]/80 border-slate-200 dark:border-[#262E3D] text-slate-700 dark:text-[#94A3B8] hover:border-slate-300 dark:hover:border-slate-600"
+                  : "bg-white/60 dark:bg-[#121214]/80 border-slate-200 dark:border-[#27272A] text-slate-700 dark:text-[#94A3B8] hover:border-slate-300 dark:hover:border-slate-600"
               }`}
             >
               <div className="flex items-center justify-between w-full mb-2">
@@ -299,7 +299,7 @@ export function VisionAnalyzer() {
         ) : imagePreview ? (
           /* Preview da Imagem Selecionada */
           <div className="flex flex-col items-center gap-4 w-full">
-            <div className="relative w-full max-w-md max-h-[380px] rounded-2xl overflow-hidden border border-slate-200 dark:border-[#262E3D] shadow-lg group">
+            <div className="relative w-full max-w-md max-h-[380px] rounded-2xl overflow-hidden border border-slate-200 dark:border-[#27272A] shadow-lg group">
               <img
                 src={imagePreview}
                 alt="Foto para Análise"
@@ -326,7 +326,7 @@ export function VisionAnalyzer() {
                   placeholder="Instrução adicional (opcional, ex: 'Posso dar R$ 20k de entrada?')"
                   value={customPrompt}
                   onChange={(e) => setCustomPrompt(e.target.value)}
-                  className="w-full pl-4 pr-10 py-3 rounded-xl bg-slate-50 dark:bg-[#0B0E14] border border-slate-200 dark:border-[#262E3D] text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[#FF8216]"
+                  className="w-full pl-4 pr-10 py-3 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[#FF8216]"
                 />
                 <span className="material-symbols-outlined absolute right-3 top-3 text-[18px] text-slate-400">
                   edit_note
@@ -359,7 +359,7 @@ export function VisionAnalyzer() {
         ) : (
           /* Empty State com botões de Ação */
           <div className="flex flex-col items-center text-center p-6 max-w-md">
-            <div className="w-16 h-16 rounded-3xl bg-slate-100 dark:bg-[#1A202C] border border-slate-200 dark:border-[#262E3D] flex items-center justify-center text-slate-400 mb-4">
+            <div className="w-16 h-16 rounded-3xl bg-slate-100 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] flex items-center justify-center text-slate-400 mb-4">
               <span className="material-symbols-outlined text-3xl">add_a_photo</span>
             </div>
             <h3 className="text-base font-bold text-slate-900 dark:text-white">
@@ -382,7 +382,7 @@ export function VisionAnalyzer() {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-[#1A202C] hover:bg-slate-200 dark:hover:bg-[#252D3D] text-slate-800 dark:text-white font-bold text-xs border border-slate-200 dark:border-[#262E3D] transition-all cursor-pointer"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-[#18181B] hover:bg-slate-200 dark:hover:bg-[#27272A] text-slate-800 dark:text-white font-bold text-xs border border-slate-200 dark:border-[#27272A] transition-all cursor-pointer"
               >
                 <span className="material-symbols-outlined text-[18px]">collections</span>
                 <span>Escolher da Galeria</span>
@@ -405,7 +405,7 @@ export function VisionAnalyzer() {
         <div className="flex flex-col gap-6 animate-fadeIn">
           {/* Card de Veredito Executivo */}
           <SpotlightCard className="p-6 md:p-8">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 dark:border-[#262E3D] pb-5">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 dark:border-[#27272A] pb-5">
               <div>
                 <div className="flex items-center gap-2.5 mb-1.5">
                   <span
@@ -430,7 +430,7 @@ export function VisionAnalyzer() {
 
               {/* Impacto Financeiro Principal */}
               {analysisResult.financialImpact && (
-                <div className="flex items-center gap-4 bg-slate-50 dark:bg-[#0B0E14] p-3.5 rounded-2xl border border-slate-200 dark:border-[#262E3D]">
+                <div className="flex items-center gap-4 bg-slate-50 dark:bg-[#18181B] p-3.5 rounded-2xl border border-slate-200 dark:border-[#27272A]">
                   <div>
                     <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
                       Valor Total
@@ -442,7 +442,7 @@ export function VisionAnalyzer() {
                       )}
                     </div>
                   </div>
-                  <div className="h-8 w-px bg-slate-200 dark:bg-[#262E3D]" />
+                  <div className="h-8 w-px bg-slate-200 dark:bg-[#27272A]" />
                   <div>
                     <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
                       Horas de Trabalho
@@ -464,7 +464,7 @@ export function VisionAnalyzer() {
 
             {/* Recomendações em Cards */}
             {analysisResult.recommendations && analysisResult.recommendations.length > 0 && (
-              <div className="mt-5 pt-4 border-t border-slate-100 dark:border-[#1E2533]">
+              <div className="mt-5 pt-4 border-t border-slate-100 dark:border-[#27272A]">
                 <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2.5">
                   Recomendações Práticas
                 </h4>
@@ -472,7 +472,7 @@ export function VisionAnalyzer() {
                   {analysisResult.recommendations.map((rec: string, idx: number) => (
                     <div
                       key={idx}
-                      className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-50 dark:bg-[#161B26] border border-slate-200/60 dark:border-[#262E3D]/60 text-xs text-slate-800 dark:text-[#CBD5E1]"
+                      className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200/60 dark:border-[#27272A]/60 text-xs text-slate-800 dark:text-[#CBD5E1]"
                     >
                       <span className="material-symbols-outlined text-[#FF8216] text-[18px] shrink-0 mt-0.5">
                         check_circle
@@ -501,7 +501,7 @@ export function VisionAnalyzer() {
 
             {/* Análise Aprofundada / Cálculos */}
             {analysisResult.deepAnalysis && (
-              <div className="mt-6 pt-5 border-t border-slate-200 dark:border-[#262E3D]">
+              <div className="mt-6 pt-5 border-t border-slate-200 dark:border-[#27272A]">
                 <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
                   Detalhamento e Cálculos Financeiros
                 </h4>
