@@ -44,6 +44,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const desktopNavItems = [
     { path: "/dashboard", icon: "dashboard", label: "Visão Geral" },
     { path: "/kitsune", icon: "auto_awesome", label: "Kitsune IA" },
+    { path: "/vision", icon: "visibility", label: "Vision IA" },
     { path: "/agents", icon: "smart_toy", label: "Agentes" },
     { path: "/connections", icon: "account_balance", label: "Bancos" },
   ];
@@ -52,8 +53,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const mobileNavItems = [
     { path: "/dashboard", icon: "dashboard", label: "Início" },
     { path: "/kitsune", icon: "auto_awesome", label: "Kitsune IA" },
+    { path: "/vision", icon: "visibility", label: "Vision" },
     { path: "/agents", icon: "smart_toy", label: "Agentes" },
-    { path: "/connections", icon: "account_balance", label: "Bancos" },
     { path: "/profile", icon: "person", label: "Perfil" },
   ];
 

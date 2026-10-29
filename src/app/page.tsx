@@ -6,6 +6,9 @@ import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { LandingQrCode } from "@/components/landing/LandingQrCode";
 import { BankLogo } from "@/components/BankLogo";
+import { SpotlightCard } from "@/components/react-bits/SpotlightCard";
+import { ShinyText } from "@/components/react-bits/ShinyText";
+import { CountUp } from "@/components/react-bits/CountUp";
 
 const FAQ_ITEMS = [
   {
@@ -116,6 +119,10 @@ export default function LandingPage() {
           <a href="#agentes" className="hover:text-white transition-colors">
             Agentes
           </a>
+          <Link href="/vision" className="text-[#FF8216] font-bold hover:text-[#FFA047] transition-colors flex items-center gap-1">
+            <span className="material-symbols-outlined text-[16px]">visibility</span>
+            Vision IA
+          </Link>
           <a href="#faq" className="hover:text-white transition-colors">
             FAQ
           </a>
@@ -326,11 +333,11 @@ export default function LandingPage() {
           </motion.div>
         </div>
 
-        {/* 3 Metrics Strip */}
+        {/* 3 Metrics Strip com CountUp */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-4xl mx-auto mt-20 pt-12 border-t border-white/10 w-full text-center">
           <div className="flex flex-col items-center">
             <span className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-              100+ Bancos
+              <CountUp to={140} decimals={0} suffix="+" /> Bancos
             </span>
             <span className="text-xs text-zinc-400 mt-1">
               Conexão Open Finance regulada pelo BACEN
@@ -680,6 +687,77 @@ export default function LandingPage() {
               </div>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* Seção Exclusiva: Kitsune Vision & Apple Wallet (Inspirados no Pierre) */}
+      <section className="py-24 px-4 max-w-6xl mx-auto border-t border-white/10">
+        <div className="flex flex-col items-center text-center gap-3 mb-12">
+          <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-[#FF8216]/10 text-[#FF8216] border border-[#FF8216]/20">
+            Inovação Multimodal & Cartões
+          </span>
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white tracking-tight">
+            Kitsune Vision & Gestão de Cartões
+          </h2>
+          <p className="text-xs sm:text-base text-zinc-400 max-w-xl">
+            Tire fotos de cardápios, comprovantes ou simulações de financiamento e visualize todos os seus cartões organizados como uma Apple Wallet.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Card 1: Kitsune Vision */}
+          <SpotlightCard className="p-8 flex flex-col justify-between gap-6 border-white/10 bg-[#121214]">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="w-12 h-12 rounded-2xl bg-[#FF8216]/10 text-[#FF8216] border border-[#FF8216]/25 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-2xl">visibility</span>
+                </div>
+                <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  Câmera & Galeria
+                </span>
+              </div>
+              <h3 className="text-xl font-bold text-white">
+                Kitsune Vision Multimodal
+              </h3>
+              <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
+                Aponte a câmera para a página de um cardápio, para a etiqueta de um produto ou para uma proposta de financiamento imobiliário/veicular. Nossa IA cruza com seu saldo livre, calcula horas de trabalho e dá um veredito financeiro em segundos.
+              </p>
+            </div>
+            <Link
+              href="/vision"
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-[#FF8216] hover:bg-[#FFA047] text-white font-bold text-xs tracking-tight transition-transform active:scale-95 shadow-md shadow-[#FF8216]/20 self-start cursor-pointer"
+            >
+              <span>Experimentar Kitsune Vision</span>
+              <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+            </Link>
+          </SpotlightCard>
+
+          {/* Card 2: Wallet Cards */}
+          <SpotlightCard className="p-8 flex flex-col justify-between gap-6 border-white/10 bg-[#121214]">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="w-12 h-12 rounded-2xl bg-purple-500/10 text-purple-400 border border-purple-500/25 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-2xl">wallet</span>
+                </div>
+                <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-purple-500/10 text-purple-300 border border-purple-500/20">
+                  Estilo Apple Wallet
+                </span>
+              </div>
+              <h3 className="text-xl font-bold text-white">
+                Carteira de Cartões & Faturas
+              </h3>
+              <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
+                Todos os cartões dos seus bancos sincronizados no mesmo lugar. Limites em barras dinâmicas (usado vs disponível), faturas estimadas antes do fechamento oficial e gráficos históricos dos últimos 6 meses.
+              </p>
+            </div>
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-white/10 hover:bg-white/20 text-white font-bold text-xs tracking-tight transition-colors border border-white/10 self-start cursor-pointer"
+            >
+              <span>Ver Minha Carteira</span>
+              <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+            </Link>
+          </SpotlightCard>
         </div>
       </section>
 

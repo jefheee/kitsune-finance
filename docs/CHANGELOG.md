@@ -4,6 +4,17 @@ Todas as alterações notáveis no projeto Kitsune Finance são registradas de f
 
 ---
 
+## [2026-10-29] - Suíte Pierre Design System, Kitsune Vision Multimodal, Carteira Wallet 3D & Paginação Estruturada
+- **Arquivos Afetados:** `src/app/api/ai/vision/route.ts`, `src/app/vision/page.tsx`, `src/components/vision/VisionAnalyzer.tsx`, `src/components/finance/WalletCards.tsx`, `src/components/finance/PaginatedTransactionsView.tsx`, `src/components/finance/CategoriesView.tsx`, `src/components/charts/SpendingCurveChart.tsx`, `src/components/charts/CategoryDonutChart.tsx`, `src/components/charts/InvoiceBarChart.tsx`, `src/components/react-bits/*`, `src/app/dashboard/page.tsx`, `src/components/layout/AppShell.tsx`, `src/app/kitsune/page.tsx`, `src/app/page.tsx`, `src/utils/ai/gemini.ts`, `docs/PROJECT_STATE.md`, `docs/CHANGELOG.md`.
+- **Objetivo:**
+  - Implementação do Kitsune Vision Multimodal (`/vision`) com captura direta via câmera (WebRTC) e upload da galeria, compressão client-side em Canvas (~85% economia de tokens) e 5 modos analíticos (Cardápios, Compras por Impulso, Bens Caros/Financiamentos de Casa/Carro com regra dos 30% da renda, Comprovantes/Notas Fiscais e Modo Livre) cruzando com o dossiê financeiro real do usuário.
+  - Carteira de Cartões estilo Apple Wallet (`WalletCards.tsx`) com alternância Stack 3D e Grade moderna, gradientes bancários oficiais, faturas acumuladas, limites e gráficos de histórico de fatura.
+  - Paginação estruturada de transações sem scroll infinito (`PaginatedTransactionsView.tsx`) com seletor 10/25/50 por página, botões `< 1 2 3 ... >`, 4 KPIs de resumo e filtros avançados.
+  - Visualização dinâmica inspirada no Pierre: Curva do Ritmo de Gastos dia a dia (`SpendingCurveChart.tsx`), Gráfico Donut de Categorias com acordeão interativo (`CategoriesView.tsx`) e barras de fatura (`InvoiceBarChart.tsx`).
+  - Hero humanizado do Pierre no Dashboard, componentes interativos React Bits (SpotlightCard, ShinyText, CountUp, DecryptedText) na Landing Page e no App, com total fidelidade ao Design System Warm Obsidian.
+
+---
+
 ## [2026-10-29] - Motor Simple-Icons & Decodificação BR, Pesquisa 360°, Central de Agentes Dinâmicos & Marquee Infinito
 - **Arquivos Afetados:** `src/utils/finance/merchant-resolver.ts`, `src/components/MerchantLogo.tsx`, `src/components/finance/GlobalFinanceSearchModal.tsx`, `src/app/connections/page.tsx`, `src/app/agents/page.tsx`, `src/app/dashboard/page.tsx`, `src/app/kitsune/page.tsx`, `src/components/layout/AppShell.tsx`, `src/app/login/page.tsx`, `src/app/signup/page.tsx`, `src/app/settings/page.tsx`, `src/app/page.tsx`, `src/app/globals.css`, `package.json`, `docs/PROJECT_STATE.md`, `docs/CHANGELOG.md`.
 - **Objetivo:**

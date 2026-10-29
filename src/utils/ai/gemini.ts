@@ -127,6 +127,7 @@ export interface GenerateKitsuneResponseOptions {
   preferredModel?: string;
   reasoningLevel?: 'fast' | 'standard' | 'deep';
   temperature?: number;
+  images?: Array<{ mimeType: string; data: string }>;
 }
 
 export interface GenerateKitsuneResponseResult {
@@ -144,10 +145,11 @@ export async function generateWithGeminiPool(
     history = [],
     preferredModel = 'gemini-3.5-flash-lite',
     temperature = 0.35,
+    images = [],
   } = options;
 
-  // Se o modelo selecionado for da Groq (Llama), roteia diretamente para o serviço Groq
-  if (preferredModel.startsWith('llama-')) {
+  // Se o modelo selecionado for da Groq (Llama) e houver imagens, redireciona para Gemini multimodal
+  if (preferredModel.startsWith('llama-') && images.length === 0) {
     const groqRes = await generateWithGroq({
       systemInstruction,
       prompt,
@@ -164,19 +166,34 @@ export async function generateWithGeminiPool(
 
   const keys = getRotatedGeminiKeys();
 
-  // Cadeia de modelos estáveis da Geração 3 + fallback oficial
-  // Nota: se um modelo flagship (ex: gemini-4-argon ou gemini-3.1-pro-preview) retornar 429 (quota 0 no free tier)
-  // ou se gemini-3.8-flash retornar 503 (alta demanda), faz failover imediato para gemini-3.5-flash-lite / gemini-3.6-flash / gemini-3.1-flash-lite!
+  // Se contiver imagens, prioriza modelos com excelência multimodal comprovada
+  const preferred = images.length > 0 && preferredModel.startsWith('llama-') 
+    ? 'gemini-3.8-flash' 
+    : preferredModel;
+
   const modelChain = Array.from(
     new Set([
-      preferredModel,
-      'gemini-3.5-flash-lite',
-      'gemini-3.6-flash',
-      'gemini-3.1-flash-lite',
+      preferred,
       'gemini-3.8-flash',
+      'gemini-3.6-flash',
+      'gemini-3.5-flash-lite',
+      'gemini-3.1-flash-lite',
       'gemini-2.5-flash',
     ])
   );
+
+  const userParts: any[] = [];
+  if (images && images.length > 0) {
+    images.forEach((img) => {
+      userParts.push({
+        inline_data: {
+          mime_type: img.mimeType,
+          data: img.data,
+        },
+      });
+    });
+  }
+  userParts.push({ text: prompt });
 
   const contents = [
     ...history.map((msg) => ({
@@ -185,7 +202,7 @@ export async function generateWithGeminiPool(
     })),
     {
       role: 'user',
-      parts: [{ text: prompt }],
+      parts: userParts,
     },
   ];
 

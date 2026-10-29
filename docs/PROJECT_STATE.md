@@ -47,6 +47,10 @@
 ---
 
 ## 3. Módulos Implementados
+- [x] Suíte Completa Pierre Finance & Visual Dinâmico: Ritmo de Gastos (`SpendingCurveChart.tsx`), Donut de Categorias (`CategoryDonutChart.tsx`), Faturas Anteriores (`InvoiceBarChart.tsx`) e Gestão de Cartões Estilo Apple Wallet (`WalletCards.tsx`)
+- [x] Kitsune Vision Multimodal com Câmera e Galeria (`/vision` & `/api/ai/vision`): OCR, análise de cardápios, produtos por impulso e simulação de bens caros (casa/carro) cruzando renda, limite seguro dos 30% e horas de trabalho com compressão no cliente para economia massiva de tokens
+- [x] Paginação Estruturada no Extrato ("1, 2, 3...") com Limite de Scroll (`PaginatedTransactionsView.tsx`) com 4 KPIs, filtros avançados e modal de Nova Transação manual
+- [x] Biblioteca de Micro-Interações React Bits (`SpotlightCard.tsx`, `ShinyText.tsx`, `CountUp.tsx`, `DecryptedText.tsx`) integrados na Landing Page e Dashboard
 - [x] Motor de Resolução de Marcas Simple Icons & Decodificação Brasileira (`src/utils/finance/merchant-resolver.ts` e `src/components/MerchantLogo.tsx`)
 - [x] Mecanismo de Pesquisa Financeira Global 360° com Dossiê de Estabelecimento (`GlobalFinanceSearchModal.tsx` via `Ctrl+K`)
 - [x] Central de Agentes Especialistas da Kitsune Dinâmicos (`src/app/agents/page.tsx` com Julius, Sherlock, Tio Patinhas, Inspetor Bugiganga, Megamen e Silvio)
