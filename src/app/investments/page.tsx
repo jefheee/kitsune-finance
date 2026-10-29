@@ -348,58 +348,58 @@ export default function InvestmentsPage() {
         </div>
 
         {/* Painel Macroeconômico Brasil em Tempo Real */}
-        <div className="p-5 rounded-2xl bg-gradient-to-r from-slate-900 to-[#12161F] border border-slate-800 text-white shadow-md">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
+        <div className="p-5 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] text-slate-900 dark:text-white shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-[#27272A]">
             <div className="flex items-center gap-2">
               <span className="text-lg">🇧🇷</span>
               <div>
-                <h2 className="text-sm font-bold tracking-tight">
+                <h2 className="text-sm font-bold tracking-tight text-slate-900 dark:text-white">
                   Termômetro Macroeconômico do Brasil (Mercado Financeiro)
                 </h2>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px] text-slate-500 dark:text-[#94A3B8]">
                   Taxas de referência oficiais para rentabilidade da sua carteira
                 </p>
               </div>
             </div>
-            <span className="text-[11px] px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30">
+            <span className="text-[11px] px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/20">
               Juro Real: +{BRAZIL_MACRO_DATA.realInterestRate} a.a.
             </span>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-4">
-            <div className="p-3 rounded-xl bg-white/5 border border-white/10">
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A]">
               <span className="text-[10px] text-slate-400 font-bold block uppercase">Taxa Selic</span>
-              <span className="text-base font-extrabold text-emerald-400">{BRAZIL_MACRO_DATA.selic}</span>
+              <span className="text-base font-extrabold text-emerald-500">{BRAZIL_MACRO_DATA.selic}</span>
               <span className="text-[10px] text-slate-400 block mt-0.5">Meta Copom</span>
             </div>
 
-            <div className="p-3 rounded-xl bg-white/5 border border-white/10">
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A]">
               <span className="text-[10px] text-slate-400 font-bold block uppercase">CDI Anual</span>
-              <span className="text-base font-extrabold text-emerald-400">{BRAZIL_MACRO_DATA.cdi}</span>
+              <span className="text-base font-extrabold text-emerald-500">{BRAZIL_MACRO_DATA.cdi}</span>
               <span className="text-[10px] text-slate-400 block mt-0.5">100% CDI</span>
             </div>
 
-            <div className="p-3 rounded-xl bg-white/5 border border-white/10">
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A]">
               <span className="text-[10px] text-slate-400 font-bold block uppercase">IPCA 12 Meses</span>
               <span className="text-base font-extrabold text-[#FF8216]">{BRAZIL_MACRO_DATA.ipca12m}</span>
               <span className="text-[10px] text-slate-400 block mt-0.5">Inflação Oficial</span>
             </div>
 
-            <div className="p-3 rounded-xl bg-white/5 border border-white/10">
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A]">
               <span className="text-[10px] text-slate-400 font-bold block uppercase">Juro Real Líquido</span>
-              <span className="text-base font-extrabold text-blue-400">+{BRAZIL_MACRO_DATA.realInterestRate}</span>
+              <span className="text-base font-extrabold text-emerald-500">+{BRAZIL_MACRO_DATA.realInterestRate}</span>
               <span className="text-[10px] text-slate-400 block mt-0.5">Ganho Real</span>
             </div>
 
-            <div className="p-3 rounded-xl bg-white/5 border border-white/10">
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A]">
               <span className="text-[10px] text-slate-400 font-bold block uppercase">Ibovespa</span>
-              <span className="text-base font-extrabold text-white">{BRAZIL_MACRO_DATA.ibovespa}</span>
+              <span className="text-base font-extrabold text-slate-900 dark:text-white">{BRAZIL_MACRO_DATA.ibovespa}</span>
               <span className="text-[10px] text-slate-400 block mt-0.5">Bolsa B3</span>
             </div>
 
-            <div className="p-3 rounded-xl bg-white/5 border border-white/10">
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A]">
               <span className="text-[10px] text-slate-400 font-bold block uppercase">Dólar PTAX</span>
-              <span className="text-base font-extrabold text-white">{BRAZIL_MACRO_DATA.dolar}</span>
+              <span className="text-base font-extrabold text-slate-900 dark:text-white">{BRAZIL_MACRO_DATA.dolar}</span>
               <span className="text-[10px] text-slate-400 block mt-0.5">Câmbio USD</span>
             </div>
           </div>
@@ -459,7 +459,7 @@ export default function InvestmentsPage() {
             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               activeCategoryFilter === "all"
                 ? "bg-[#FF8216] text-white shadow-xs"
-                : "bg-white dark:bg-[#12161F] text-slate-600 dark:text-[#94A3B8] border border-slate-200 dark:border-[#262E3D] hover:bg-slate-100 dark:hover:bg-[#1A202C]"
+                : "bg-white dark:bg-[#121214] text-slate-600 dark:text-[#94A3B8] border border-slate-200 dark:border-[#27272A] hover:bg-slate-100 dark:hover:bg-[#18181B]"
             }`}
           >
             Todos ({filteredInvestments.length})
@@ -474,7 +474,7 @@ export default function InvestmentsPage() {
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                   isActive
                     ? "bg-[#FF8216] text-white shadow-xs"
-                    : "bg-white dark:bg-[#12161F] text-slate-600 dark:text-[#94A3B8] border border-slate-200 dark:border-[#262E3D] hover:bg-slate-100 dark:hover:bg-[#1A202C]"
+                    : "bg-white dark:bg-[#121214] text-slate-600 dark:text-[#94A3B8] border border-slate-200 dark:border-[#27272A] hover:bg-slate-100 dark:hover:bg-[#18181B]"
                 }`}
               >
                 <span className="material-symbols-outlined text-[14px]">{cat.icon}</span>

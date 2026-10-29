@@ -1027,7 +1027,7 @@ export default function DashboardPage() {
                                 <span className="text-slate-400">Progresso</span>
                                 <span className="text-emerald-500 font-black">{goalDiagnostics.progress}%</span>
                             </div>
-                            <div className="w-full h-2 rounded-full bg-slate-100 dark:bg-[#1A202C] overflow-hidden">
+                            <div className="w-full h-2 rounded-full bg-slate-100 dark:bg-[#18181B] overflow-hidden">
                                 <div
                                     className="h-full bg-gradient-to-r from-[#FF8216] to-emerald-500 rounded-full transition-all duration-700"
                                     style={{ width: `${goalDiagnostics.progress}%` }}
@@ -1038,7 +1038,7 @@ export default function DashboardPage() {
 
                     {/* Widget: Gastos de Hoje & Atividade Recente (Fiel ao pedido do usuário) */}
                     <section className="p-4 md:p-5 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] shadow-xs">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-[#1E2533]">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-[#27272A]">
                             <div className="flex items-center gap-2.5">
                                 <div className="w-8 h-8 rounded-xl bg-[#FF8216]/10 text-[#FF8216] flex items-center justify-center">
                                     <span className="material-symbols-outlined text-[18px]">

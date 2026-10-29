@@ -41,7 +41,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: 'cover',
-  themeColor: '#0B0E14',
+  themeColor: '#0A0A0A',
 };
 
 export default function RootLayout({
@@ -61,7 +61,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="bg-[#F8FAFC] dark:bg-[#0B0E14] text-slate-900 dark:text-[#F8FAFC] antialiased" suppressHydrationWarning>
+      <body className="bg-[#F8FAFC] dark:bg-[#0A0A0A] text-slate-900 dark:text-[#F8FAFC] antialiased" suppressHydrationWarning>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem={true}>
           <FinanceDataProvider>
             <ServiceWorkerRegistrar />

@@ -213,7 +213,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               className={`p-1.5 rounded-xl border transition-colors cursor-pointer ${
                 isPrivacyMode
                   ? "text-[#FF8216] bg-[#FF8216]/15 border-[#FF8216]/30"
-                  : "text-slate-400 border-transparent hover:bg-slate-100 dark:hover:bg-[#161B26]"
+                  : "text-slate-400 border-transparent hover:bg-slate-100 dark:hover:bg-[#161618]"
               }`}
               title={isPrivacyMode ? "Valores ocultos" : "Ocultar valores"}
             >

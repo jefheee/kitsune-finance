@@ -941,7 +941,7 @@ export default function KitsuneAIPage() {
   return (
     <div className="flex flex-col h-[calc(100dvh-3.5rem)] md:h-dvh w-full max-w-full overflow-hidden bg-slate-50 dark:bg-[#0A0A0A] text-slate-900 dark:text-[#F8FAFC] font-sans">
       {/* Top Header */}
-      <header className="px-3 md:px-8 py-2.5 md:py-3.5 border-b border-slate-200 dark:border-[#262E3D] bg-white/95 dark:bg-[#0E121A]/95 backdrop-blur-md flex items-center justify-between gap-3 shrink-0 z-30">
+      <header className="px-3 md:px-8 py-2.5 md:py-3.5 border-b border-slate-200 dark:border-[#27272A] bg-white/95 dark:bg-[#121214]/95 backdrop-blur-md flex items-center justify-between gap-3 shrink-0 z-30">
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="w-8 h-8 md:w-9 md:h-9 rounded-xl bg-[#FF8216]/10 border border-[#FF8216]/25 flex items-center justify-center text-[#FF8216] shrink-0">
             <span className="material-symbols-outlined text-lg md:text-xl">auto_awesome</span>
@@ -967,7 +967,7 @@ export default function KitsuneAIPage() {
         <div className="flex items-center gap-1.5 shrink-0">
           <button
             onClick={() => setIsHistoryOpen(true)}
-            className="h-8 px-2.5 rounded-xl border border-slate-200 dark:border-[#262E3D] hover:bg-slate-100 dark:hover:bg-[#161B26] text-xs font-semibold text-slate-700 dark:text-[#F8FAFC] flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="h-8 px-2.5 rounded-xl border border-slate-200 dark:border-[#27272A] hover:bg-slate-100 dark:hover:bg-[#18181B] text-xs font-semibold text-slate-700 dark:text-[#F8FAFC] flex items-center gap-1.5 transition-colors cursor-pointer"
             title="Ver sessões anteriores"
           >
             <span className="material-symbols-outlined text-[16px]">history</span>
@@ -976,7 +976,7 @@ export default function KitsuneAIPage() {
 
           <button
             onClick={handleExportMarkdown}
-            className="h-8 px-2.5 rounded-xl border border-slate-200 dark:border-[#262E3D] hover:bg-slate-100 dark:hover:bg-[#161B26] text-xs font-semibold text-slate-700 dark:text-[#F8FAFC] flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="h-8 px-2.5 rounded-xl border border-slate-200 dark:border-[#27272A] hover:bg-slate-100 dark:hover:bg-[#18181B] text-xs font-semibold text-slate-700 dark:text-[#F8FAFC] flex items-center gap-1.5 transition-colors cursor-pointer"
             title="Exportar conversa em Markdown"
           >
             <span className="material-symbols-outlined text-[16px] text-[#FF8216]">download</span>
@@ -1009,9 +1009,9 @@ export default function KitsuneAIPage() {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 220 }}
-              className="relative w-full max-w-xs md:max-w-sm h-full bg-white dark:bg-[#12161F] border-l border-slate-200 dark:border-[#262E3D] p-5 flex flex-col gap-4 z-10 shadow-2xl"
+              className="relative w-full max-w-xs md:max-w-sm h-full bg-white dark:bg-[#121214] border-l border-slate-200 dark:border-[#27272A] p-5 flex flex-col gap-4 z-10 shadow-2xl"
             >
-              <div className="flex items-center justify-between border-b border-slate-200 dark:border-[#262E3D] pb-3">
+              <div className="flex items-center justify-between border-b border-slate-200 dark:border-[#27272A] pb-3">
                 <div className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-[#FF8216]">history</span>
                   <h3 className="font-bold text-sm text-slate-900 dark:text-white">
@@ -1062,7 +1062,7 @@ export default function KitsuneAIPage() {
                         }
                         setIsHistoryOpen(false);
                       }}
-                      className="group p-3 rounded-xl border border-slate-200 dark:border-[#262E3D] hover:border-[#FF8216]/50 bg-slate-50 dark:bg-[#0E121A] text-left flex items-center justify-between gap-2 transition-colors cursor-pointer"
+                      className="group p-3 rounded-xl border border-slate-200 dark:border-[#27272A] hover:border-[#FF8216]/50 bg-slate-50 dark:bg-[#18181B] text-left flex items-center justify-between gap-2 transition-colors cursor-pointer"
                     >
                       <div className="flex flex-col gap-1 min-w-0 flex-1">
                         <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
@@ -1138,7 +1138,7 @@ export default function KitsuneAIPage() {
                 className={`border rounded-2xl px-4 py-3 md:px-5 md:py-3.5 max-w-[92%] sm:max-w-[85%] shadow-sm flex flex-col gap-2 ${
                   msg.role === "user"
                     ? "bg-[#FF8216] text-white border-[#FF8216] rounded-tr-sm"
-                    : "bg-white dark:bg-[#12161F] border-slate-200 dark:border-[#262E3D] rounded-tl-sm text-slate-900 dark:text-[#F8FAFC]"
+                    : "bg-white dark:bg-[#121214] border-slate-200 dark:border-[#27272A] rounded-tl-sm text-slate-900 dark:text-[#F8FAFC]"
                 }`}
               >
                 {msg.role === "assistant" ? (
@@ -1246,7 +1246,7 @@ export default function KitsuneAIPage() {
           <button
             type="button"
             onClick={() => scrollSuggestions("left")}
-            className="hidden md:flex w-7 h-7 rounded-full bg-white dark:bg-[#12161F] hover:bg-slate-100 dark:hover:bg-[#1A202C] border border-slate-200 dark:border-[#262E3D] hover:border-[#FF8216] text-slate-400 hover:text-[#FF8216] items-center justify-center shrink-0 transition-all shadow-xs cursor-pointer active:scale-95 z-10"
+            className="hidden md:flex w-7 h-7 rounded-full bg-white dark:bg-[#121214] hover:bg-slate-100 dark:hover:bg-[#18181B] border border-slate-200 dark:border-[#27272A] hover:border-[#FF8216] text-slate-400 hover:text-[#FF8216] items-center justify-center shrink-0 transition-all shadow-xs cursor-pointer active:scale-95 z-10"
             title="Rolar sugestões para a esquerda"
           >
             <span className="material-symbols-outlined text-[18px]">chevron_left</span>
@@ -1270,7 +1270,7 @@ export default function KitsuneAIPage() {
                 disabled={isLoading}
                 onClick={() => handleSelectSuggestedPrompt(item.query)}
                 title="Clique para perguntar diretamente à IA"
-                className="group px-3 py-1.5 rounded-full bg-white dark:bg-[#12161F] hover:bg-slate-100 dark:hover:bg-[#1A202C] border border-slate-200 dark:border-[#262E3D] hover:border-[#FF8216]/50 text-slate-700 dark:text-[#F8FAFC] text-xs font-medium transition-all whitespace-nowrap cursor-pointer active:scale-95 shadow-xs flex items-center gap-1.5 shrink-0"
+                className="group px-3 py-1.5 rounded-full bg-white dark:bg-[#121214] hover:bg-slate-100 dark:hover:bg-[#18181B] border border-slate-200 dark:border-[#27272A] hover:border-[#FF8216]/50 text-slate-700 dark:text-[#F8FAFC] text-xs font-medium transition-all whitespace-nowrap cursor-pointer active:scale-95 shadow-xs flex items-center gap-1.5 shrink-0"
               >
                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-[#FF8216]/10 text-[#FF8216] group-hover:bg-[#FF8216] group-hover:text-white transition-colors">
                   {item.category}
@@ -1287,7 +1287,7 @@ export default function KitsuneAIPage() {
           <button
             type="button"
             onClick={() => scrollSuggestions("right")}
-            className="hidden md:flex w-7 h-7 rounded-full bg-white dark:bg-[#12161F] hover:bg-slate-100 dark:hover:bg-[#1A202C] border border-slate-200 dark:border-[#262E3D] hover:border-[#FF8216] text-slate-400 hover:text-[#FF8216] items-center justify-center shrink-0 transition-all shadow-xs cursor-pointer active:scale-95 z-10"
+            className="hidden md:flex w-7 h-7 rounded-full bg-white dark:bg-[#121214] hover:bg-slate-100 dark:hover:bg-[#18181B] border border-slate-200 dark:border-[#27272A] hover:border-[#FF8216] text-slate-400 hover:text-[#FF8216] items-center justify-center shrink-0 transition-all shadow-xs cursor-pointer active:scale-95 z-10"
             title="Rolar sugestões para a direita"
           >
             <span className="material-symbols-outlined text-[18px]">chevron_right</span>
@@ -1299,7 +1299,7 @@ export default function KitsuneAIPage() {
       <div className="p-3 md:p-4 bg-white dark:bg-[#0A0A0A] border-t border-slate-200 dark:border-[#27272A] z-20 shrink-0">
         <form
           onSubmit={handleSubmit}
-          className="max-w-4xl mx-auto bg-slate-50 dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] focus-within:border-[#FF8216] rounded-2xl p-2.5 md:p-3 shadow-md flex flex-col gap-2 transition-colors"
+          className="max-w-4xl mx-auto bg-slate-50 dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] focus-within:border-[#FF8216] rounded-2xl p-2.5 md:p-3 shadow-md flex flex-col gap-2 transition-colors"
         >
           {/* Badges de Contexto Anexados */}
           {attachedContexts.length > 0 && (
@@ -1368,7 +1368,7 @@ export default function KitsuneAIPage() {
           )}
 
           {isTranscribingAudio && (
-            <div className="flex items-center gap-2 px-3 py-1.5 mb-2 rounded-xl bg-slate-100 dark:bg-[#1E2533] border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 text-xs">
+            <div className="flex items-center gap-2 px-3 py-1.5 mb-2 rounded-xl bg-slate-100 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] text-slate-700 dark:text-slate-300 text-xs">
               <Spinner size={13} className="text-[#FF8216]" />
               <span>Transcrevendo áudio com IA Whisper...</span>
             </div>
@@ -1423,7 +1423,7 @@ export default function KitsuneAIPage() {
           />
 
           {/* Barra de Ações: [+] Anexar | Escopo | Microfone | Modelo | Enviar */}
-          <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-200/60 dark:border-[#262E3D]/60">
+          <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-200/60 dark:border-[#27272A]/60">
             <div className="flex items-center gap-1.5 flex-wrap">
               {/* Botão [+] Anexar Contexto ou Imagem */}
               <div ref={attachRef} className="relative">
@@ -1438,7 +1438,7 @@ export default function KitsuneAIPage() {
                   className={`w-8 h-8 rounded-xl flex items-center justify-center border transition-all cursor-pointer ${
                     isAttachOpen || attachedContexts.length > 0 || attachedImage
                       ? "bg-[#FF8216]/20 border-[#FF8216]/50 text-[#FF8216]"
-                      : "bg-white dark:bg-[#1A202C] hover:bg-slate-100 dark:hover:bg-[#222A3A] border-slate-200 dark:border-[#262E3D] text-slate-600 dark:text-[#94A3B8]"
+                      : "bg-white dark:bg-[#18181B] hover:bg-slate-100 dark:hover:bg-[#27272A] border-slate-200 dark:border-[#27272A] text-slate-600 dark:text-[#94A3B8]"
                   }`}
                 >
                   <span className="material-symbols-outlined text-[18px]">
@@ -1447,7 +1447,7 @@ export default function KitsuneAIPage() {
                 </button>
 
                 {isAttachOpen && (
-                  <div className="absolute bottom-full left-0 mb-2.5 w-80 max-h-96 overflow-y-auto bg-white dark:bg-[#141A24] border border-slate-200 dark:border-[#262E3D] rounded-2xl shadow-2xl p-2.5 flex flex-col gap-1.5 z-50">
+                  <div className="absolute bottom-full left-0 mb-2.5 w-80 max-h-96 overflow-y-auto bg-white dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] rounded-2xl shadow-2xl p-2.5 flex flex-col gap-1.5 z-50">
                     <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#FF8216]">
                       Kitsune Vision • Multimodal
                     </div>
@@ -1471,7 +1471,7 @@ export default function KitsuneAIPage() {
                           setIsAttachOpen(false);
                           fileInputRef.current?.click();
                         }}
-                        className="p-2.5 rounded-xl bg-slate-100 dark:bg-[#1C2331] hover:bg-slate-200 dark:hover:bg-[#222B3D] text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-white/10 flex flex-col items-center gap-1 text-center transition-all cursor-pointer"
+                        className="p-2.5 rounded-xl bg-slate-100 dark:bg-[#27272A] hover:bg-slate-200 dark:hover:bg-[#323238] text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-white/10 flex flex-col items-center gap-1 text-center transition-all cursor-pointer"
                       >
                         <span className="material-symbols-outlined text-xl">photo_library</span>
                         <span className="text-[11px] font-bold">Escolher da Galeria</span>
@@ -1489,7 +1489,7 @@ export default function KitsuneAIPage() {
                         setInput("Estou enviando a foto deste cardápio. Analise os pratos com melhor custo-benefício e compare com minha média de gastos com alimentação.");
                         fileInputRef.current?.click();
                       }}
-                      className="w-full px-3 py-2 rounded-xl text-left transition-colors flex items-center gap-2.5 cursor-pointer hover:bg-slate-100 dark:hover:bg-[#1C2331] text-slate-800 dark:text-slate-100"
+                      className="w-full px-3 py-2 rounded-xl text-left transition-colors flex items-center gap-2.5 cursor-pointer hover:bg-slate-100 dark:hover:bg-[#27272A] text-slate-800 dark:text-slate-100"
                     >
                       <span className="p-1.5 rounded-lg bg-[#FF8216]/10 text-[#FF8216] material-symbols-outlined text-sm">restaurant_menu</span>
                       <div className="flex flex-col min-w-0 flex-1">
@@ -1505,7 +1505,7 @@ export default function KitsuneAIPage() {
                         setInput("Estou considerando comprar este produto. Calcule com precisão quantas horas de trabalho minhas ele custa com base na minha renda mensal e me diga se cabe no meu saldo livre.");
                         fileInputRef.current?.click();
                       }}
-                      className="w-full px-3 py-2 rounded-xl text-left transition-colors flex items-center gap-2.5 cursor-pointer hover:bg-slate-100 dark:hover:bg-[#1C2331] text-slate-800 dark:text-slate-100"
+                      className="w-full px-3 py-2 rounded-xl text-left transition-colors flex items-center gap-2.5 cursor-pointer hover:bg-slate-100 dark:hover:bg-[#27272A] text-slate-800 dark:text-slate-100"
                     >
                       <span className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-500 material-symbols-outlined text-sm">schedule</span>
                       <div className="flex flex-col min-w-0 flex-1">
@@ -1521,7 +1521,7 @@ export default function KitsuneAIPage() {
                         setInput("Audite esta proposta de financiamento de imóvel ou carro: taxa de juros CET real, custo total dos juros e se a parcela compromete mais de 30% da minha renda mensal.");
                         fileInputRef.current?.click();
                       }}
-                      className="w-full px-3 py-2 rounded-xl text-left transition-colors flex items-center gap-2.5 cursor-pointer hover:bg-slate-100 dark:hover:bg-[#1C2331] text-slate-800 dark:text-slate-100"
+                      className="w-full px-3 py-2 rounded-xl text-left transition-colors flex items-center gap-2.5 cursor-pointer hover:bg-slate-100 dark:hover:bg-[#27272A] text-slate-800 dark:text-slate-100"
                     >
                       <span className="p-1.5 rounded-lg bg-blue-500/10 text-blue-500 material-symbols-outlined text-sm">home</span>
                       <div className="flex flex-col min-w-0 flex-1">
@@ -1537,7 +1537,7 @@ export default function KitsuneAIPage() {
                         setInput("Audite esta nota fiscal / comprovante de pagamento: verifique valores, tributos e taxas embutidas.");
                         fileInputRef.current?.click();
                       }}
-                      className="w-full px-3 py-2 rounded-xl text-left transition-colors flex items-center gap-2.5 cursor-pointer hover:bg-slate-100 dark:hover:bg-[#1C2331] text-slate-800 dark:text-slate-100"
+                      className="w-full px-3 py-2 rounded-xl text-left transition-colors flex items-center gap-2.5 cursor-pointer hover:bg-slate-100 dark:hover:bg-[#27272A] text-slate-800 dark:text-slate-100"
                     >
                       <span className="p-1.5 rounded-lg bg-purple-500/10 text-purple-500 material-symbols-outlined text-sm">receipt</span>
                       <div className="flex flex-col min-w-0 flex-1">
@@ -1567,7 +1567,7 @@ export default function KitsuneAIPage() {
                           className={`w-full px-3 py-2 rounded-xl text-left transition-colors flex items-start gap-2.5 cursor-pointer ${
                             isAttached
                               ? "bg-[#FF8216]/15 text-[#FF8216]"
-                              : "hover:bg-slate-100 dark:hover:bg-[#1C2331] text-slate-800 dark:text-slate-100"
+                              : "hover:bg-slate-100 dark:hover:bg-[#27272A] text-slate-800 dark:text-slate-100"
                           }`}
                         >
                           <div
@@ -1610,7 +1610,7 @@ export default function KitsuneAIPage() {
                     setIsAttachOpen(false);
                     setIsModelOpen(false);
                   }}
-                  className="h-8 px-2.5 rounded-xl bg-white dark:bg-[#1A202C] hover:bg-slate-100 dark:hover:bg-[#222A3A] border border-slate-200 dark:border-[#262E3D] text-xs font-medium text-slate-700 dark:text-[#F8FAFC] flex items-center gap-1.5 transition-colors cursor-pointer"
+                  className="h-8 px-2.5 rounded-xl bg-white dark:bg-[#18181B] hover:bg-slate-100 dark:hover:bg-[#27272A] border border-slate-200 dark:border-[#27272A] text-xs font-medium text-slate-700 dark:text-[#F8FAFC] flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-[15px] text-[#FF8216]">
                     {selectedScope === "personal" ? "person" : "groups"}
@@ -1621,7 +1621,7 @@ export default function KitsuneAIPage() {
                 </button>
 
                 {isScopeOpen && (
-                  <div className="absolute bottom-full left-0 mb-2.5 w-56 bg-white dark:bg-[#141A24] border border-slate-200 dark:border-[#262E3D] rounded-2xl shadow-xl p-1.5 flex flex-col gap-0.5 z-50">
+                  <div className="absolute bottom-full left-0 mb-2.5 w-56 bg-white dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] rounded-2xl shadow-xl p-1.5 flex flex-col gap-0.5 z-50">
                     <button
                       type="button"
                       onClick={() => {
@@ -1631,7 +1631,7 @@ export default function KitsuneAIPage() {
                       className={`w-full px-3 py-2 rounded-xl text-left text-xs cursor-pointer ${
                         selectedScope === "personal"
                           ? "bg-[#FF8216]/15 text-[#FF8216] font-semibold"
-                          : "text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#1C2331]"
+                          : "text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#27272A]"
                       }`}
                     >
                       Meu Patrimônio Pessoal
@@ -1645,7 +1645,7 @@ export default function KitsuneAIPage() {
                       className={`w-full px-3 py-2 rounded-xl text-left text-xs cursor-pointer ${
                         selectedScope === "all"
                           ? "bg-[#FF8216]/15 text-[#FF8216] font-semibold"
-                          : "text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#1C2331]"
+                          : "text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#27272A]"
                       }`}
                     >
                       Consolidado Familiar
@@ -1665,7 +1665,7 @@ export default function KitsuneAIPage() {
                 className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
                   isListening
                     ? "bg-[#FF8216] text-white shadow-sm ring-2 ring-[#FF8216]/40 scale-105"
-                    : "bg-white dark:bg-[#1A202C] hover:bg-slate-100 dark:hover:bg-[#222A3A] border border-slate-200 dark:border-[#262E3D] text-slate-600 dark:text-[#94A3B8] hover:text-[#FF8216]"
+                    : "bg-white dark:bg-[#18181B] hover:bg-slate-100 dark:hover:bg-[#27272A] border border-slate-200 dark:border-[#27272A] text-slate-600 dark:text-[#94A3B8] hover:text-[#FF8216]"
                 }`}
               >
                 <span className="material-symbols-outlined text-[18px]">
@@ -1682,7 +1682,7 @@ export default function KitsuneAIPage() {
                     setIsAttachOpen(false);
                     setIsScopeOpen(false);
                   }}
-                  className="h-8 px-2.5 rounded-xl bg-white dark:bg-[#1A202C] hover:bg-slate-100 dark:hover:bg-[#222A3A] border border-slate-200 dark:border-[#262E3D] text-xs font-medium text-slate-700 dark:text-[#F8FAFC] flex items-center gap-1.5 transition-colors cursor-pointer"
+                  className="h-8 px-2.5 rounded-xl bg-white dark:bg-[#18181B] hover:bg-slate-100 dark:hover:bg-[#27272A] border border-slate-200 dark:border-[#27272A] text-xs font-medium text-slate-700 dark:text-[#F8FAFC] flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <span className="text-[11px] font-semibold text-[#FF8216] truncate max-w-[90px] sm:max-w-none">
                     {currentModelObj.name}
@@ -1693,7 +1693,7 @@ export default function KitsuneAIPage() {
                 </button>
 
                 {isModelOpen && (
-                  <div className="absolute bottom-full right-0 mb-2.5 w-64 bg-white dark:bg-[#141A24] border border-slate-200 dark:border-[#262E3D] rounded-2xl shadow-xl p-2 flex flex-col gap-1 z-50">
+                  <div className="absolute bottom-full right-0 mb-2.5 w-64 bg-white dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] rounded-2xl shadow-xl p-2 flex flex-col gap-1 z-50">
                     <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                       Modelo do Assistente
                     </div>
@@ -1708,7 +1708,7 @@ export default function KitsuneAIPage() {
                         className={`w-full p-2 rounded-xl text-left flex items-start justify-between cursor-pointer ${
                           selectedAiModel === m.id
                             ? "bg-[#FF8216]/15 text-[#FF8216] font-semibold"
-                            : "hover:bg-slate-100 dark:hover:bg-[#1C2331] text-slate-800 dark:text-slate-200"
+                            : "hover:bg-slate-100 dark:hover:bg-[#27272A] text-slate-800 dark:text-slate-200"
                         }`}
                       >
                         <div className="flex flex-col">
