@@ -27,15 +27,16 @@ export async function GET(req: Request) {
 
     const { data: accounts } = await supabase
       .from("bank_accounts")
-      .select("balance, type, bank_name")
+      .select("balance, type, subtype, institution_name, bank_name")
       .eq("user_id", user.id);
 
     const { data: rawTransactions } = await supabase
       .from("transactions")
-      .select("id, description, amount, type, category, date, executed_at")
+      .select("id, description, clean_description, amount, type, category, category_pt, date, executed_at, is_internal_transfer, is_refund")
       .eq("user_id", user.id)
+      .eq("is_internal_transfer", false)
       .order("executed_at", { ascending: false })
-      .limit(200);
+      .limit(300);
 
     const transactions = rawTransactions || [];
     const anomalies: AnomalyItem[] = [];
@@ -44,6 +45,7 @@ export async function GET(req: Request) {
     const seenMap = new Map<string, { date: Date; desc: string; amount: number; id: string }>();
 
     for (const t of transactions) {
+      if (t.is_refund) continue; // Ignora estornos na checagem de duplicidade
       const amt = Math.abs(Number(t.amount) || 0);
       const isExpense = t.type === "DEBIT" || Number(t.amount) < 0;
       if (!isExpense || amt === 0) continue;
@@ -51,8 +53,9 @@ export async function GET(req: Request) {
       const rawDate = t.executed_at || t.date;
       const tDate = rawDate ? new Date(rawDate) : new Date();
 
+      const displayDesc = t.clean_description || t.description || "Despesa";
       // Normaliza o nome do estabelecimento
-      const normalizedDesc = (t.description || "")
+      const normalizedDesc = displayDesc
         .toLowerCase()
         .replace(/[^a-z0-9]/g, "")
         .slice(0, 10);
@@ -68,15 +71,15 @@ export async function GET(req: Request) {
             id: `dup_${t.id}`,
             type: "duplicate",
             title: "Possível Cobrança Duplicada Detectada",
-            description: `Identificamos 2 lançamentos de R$ ${amt.toFixed(2).replace(".", ",")} em "${t.description}" em menos de 48h.`,
+            description: `Identificamos 2 lançamentos de R$ ${amt.toFixed(2).replace(".", ",")} em "${displayDesc}" em menos de 48h.`,
             severity: "danger",
             amount: amt,
-            merchant: t.description,
+            merchant: displayDesc,
             detectedAt: new Date().toISOString(),
           });
         }
       } else {
-        seenMap.set(key, { date: tDate, desc: t.description, amount: amt, id: t.id });
+        seenMap.set(key, { date: tDate, desc: displayDesc, amount: amt, id: t.id });
       }
     }
 
@@ -88,13 +91,14 @@ export async function GET(req: Request) {
     const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
     transactions.forEach((t) => {
+      if (t.is_refund) return;
       const amt = Math.abs(Number(t.amount) || 0);
       const isExpense = t.type === "DEBIT" || Number(t.amount) < 0;
       if (!isExpense) return;
 
       const rawDate = t.executed_at || t.date;
       const tDate = rawDate ? new Date(rawDate) : new Date();
-      const cat = t.category || "Outros";
+      const cat = t.category_pt || t.category || "Outros";
 
       if (tDate >= oneMonthAgo) {
         categoryMonthSpend[cat] = (categoryMonthSpend[cat] || 0) + amt;
@@ -128,7 +132,7 @@ export async function GET(req: Request) {
     let debt = 0;
     (accounts || []).forEach((acc) => {
       const b = Number(acc.balance) || 0;
-      if (acc.type === "CREDIT" || acc.type === "CREDIT_CARD") {
+      if (acc.type === "CREDIT" || acc.type === "CREDIT_CARD" || acc.subtype === "CREDIT_CARD") {
         debt += Math.abs(b);
       } else {
         liquid += b;

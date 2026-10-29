@@ -39,16 +39,29 @@ export default function SettingsPage() {
           financialGoal: userProfile?.financial_goal,
         },
         accountsSummary: accounts.map((a) => ({
-          bankName: a.bank_name,
+          institutionName: a.institution_name || a.bank_name,
+          institutionSlug: a.institution_slug,
+          productName: a.product_name,
           type: a.type,
+          subtype: a.subtype,
           balance: a.balance,
+          creditLimit: a.credit_limit,
+          availableCreditLimit: a.available_credit_limit,
+          accountNumber: a.account_number,
           currency: a.currency,
         })),
         transactions: transactions.map((t) => ({
-          description: t.description,
+          description: t.clean_description || t.description,
+          rawDescription: t.raw_description,
           amount: t.amount,
           type: t.type,
-          category: t.category,
+          operationType: t.operation_type,
+          categoryPt: t.category_pt || t.category,
+          isInternalTransfer: t.is_internal_transfer,
+          isRefund: t.is_refund,
+          isSubscription: t.is_subscription,
+          installmentNumber: t.installment_number,
+          totalInstallments: t.total_installments,
           date: t.executed_at || t.date,
         })),
       };
@@ -65,7 +78,7 @@ export default function SettingsPage() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      setSuccessMessage("Backup JSON baixado com sucesso!");
+      setSuccessMessage("Backup JSON com dados Open Finance baixado com sucesso!");
       setTimeout(() => setSuccessMessage(null), 4000);
     } catch (err: any) {
       alert("Erro ao exportar dados: " + err.message);
@@ -74,14 +87,21 @@ export default function SettingsPage() {
     }
   };
 
-  const handleClearChatHistory = () => {
+  const handleClearChatHistory = async () => {
     const confirmed = window.confirm(
-      "Deseja realmente limpar o histórico de conversas com a Kitsune AI no navegador?"
+      "Deseja realmente limpar o histórico de conversas com a Kitsune AI (local e no servidor)?"
     );
     if (!confirmed) return;
 
-    if (typeof window !== "undefined") {
-      window.localStorage.removeItem("kitsune_chat_sessions");
+    try {
+      await fetch('/api/chat', { method: 'DELETE' });
+    } catch (err) {
+      console.warn("Falha ao limpar histórico no servidor:", err);
+    }
+
+    if (typeof window !== "undefined" && user?.id) {
+      window.localStorage.removeItem(`kitsune_${user.id}_saved_sessions_v2`);
+      window.localStorage.removeItem(`kitsune_${user.id}_chat_sessions`);
     }
     setChatMessages([
       {

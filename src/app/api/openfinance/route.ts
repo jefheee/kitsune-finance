@@ -1,135 +1,109 @@
 import { NextResponse } from 'next/server';
+import { createClient } from '@/utils/supabase/server';
 
 /**
- * Kitsune Finance — Open Finance API Route
- * Skeleton for Pluggy SDK integration.
- * 
- * Future: Replace mock data with:
- *   import { PluggyClient } from 'pluggy-sdk';
- *   const client = new PluggyClient({ clientId: process.env.PLUGGY_CLIENT_ID!, clientSecret: process.env.PLUGGY_CLIENT_SECRET! });
+ * Kitsune Finance — Open Finance API Route (100% Real Open Finance Data)
+ * Returns the authenticated user's portfolio: accounts, investments, loans, and transactions.
  */
-
-const PLUGGY_FREE_TIER_LINK_LIMIT = 25;
-
-// ── Mock Data ──
-const MOCK_ACCOUNTS = [
-  {
-    id: 'acc_001',
-    name: 'Conta Corrente',
-    type: 'CHECKING' as const,
-    number: '****1234',
-    balance: { current: 15420.5, available: 14890.0 },
-    institution: { name: 'Nubank', type: 'DIGITAL_BANK' },
-    currency: 'BRL',
-    last_accessed_at: new Date().toISOString(),
-  },
-  {
-    id: 'acc_002',
-    name: 'Poupança',
-    type: 'SAVINGS' as const,
-    number: '****5678',
-    balance: { current: 8230.0, available: 8230.0 },
-    institution: { name: 'Itaú', type: 'TRADITIONAL_BANK' },
-    currency: 'BRL',
-    last_accessed_at: new Date().toISOString(),
-  },
-];
-
-const MOCK_INVESTMENTS = [
-  {
-    id: 'inv_001',
-    name: 'CDB 120% CDI',
-    type: 'FIXED_INCOME' as const,
-    balance: 25000.0,
-    profitability: 13.65,
-    annual_rate: 13.65,
-    institution: { name: 'XP Investimentos', type: 'BROKER' },
-    currency: 'BRL',
-    open_date: '2025-01-15',
-    due_date: '2027-01-15',
-  },
-  {
-    id: 'inv_002',
-    name: 'IVVB11 - S&P 500 ETF',
-    type: 'ETF' as const,
-    balance: 12500.0,
-    profitability: 18.2,
-    institution: { name: 'Clear Corretora', type: 'BROKER' },
-    currency: 'BRL',
-  },
-];
-
-const MOCK_TRANSACTIONS = [
-  {
-    id: 'tx_001',
-    amount: -89.9,
-    currency: 'BRL',
-    description: 'iFood',
-    category: 'Alimentação',
-    type: 'OUTFLOW' as const,
-    status: 'PROCESSED' as const,
-    value_date: new Date().toISOString(),
-    merchant: { name: 'iFood' },
-  },
-  {
-    id: 'tx_002',
-    amount: 4500.0,
-    currency: 'BRL',
-    description: 'Salário',
-    category: 'Receita',
-    type: 'INFLOW' as const,
-    status: 'PROCESSED' as const,
-    value_date: new Date().toISOString(),
-  },
-  {
-    id: 'tx_003',
-    amount: -250.0,
-    currency: 'BRL',
-    description: 'Energia CPFL',
-    category: 'Moradia',
-    type: 'OUTFLOW' as const,
-    status: 'PENDING' as const,
-    value_date: new Date().toISOString(),
-    merchant: { name: 'CPFL Energia' },
-  },
-];
-
 export async function GET() {
   try {
-    // Tier check (Free tier limit: 25 links)
-    const activeLinks = 12;
-    if (activeLinks >= PLUGGY_FREE_TIER_LINK_LIMIT) {
-      return NextResponse.json(
-        { error: 'Pluggy free tier link limit reached.' },
-        { status: 403 }
-      );
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
     }
 
-    const totalBalance =
-      MOCK_ACCOUNTS.reduce((sum, acc) => sum + acc.balance.current, 0) +
-      MOCK_INVESTMENTS.reduce((sum, inv) => sum + inv.balance, 0);
+    // 1. Fetch real bank accounts
+    const { data: accounts, error: accError } = await supabase
+      .from('bank_accounts')
+      .select('*')
+      .eq('user_id', user.id);
 
-    const totalInvested = MOCK_INVESTMENTS.reduce(
-      (sum, inv) => sum + inv.balance,
-      0
-    );
+    if (accError) {
+      console.error('[OpenFinance API] Erro ao buscar contas:', accError);
+    }
+
+    // 2. Fetch real investments
+    const { data: investments, error: invError } = await supabase
+      .from('investments')
+      .select('*')
+      .eq('user_id', user.id);
+
+    if (invError) {
+      console.error('[OpenFinance API] Erro ao buscar investimentos:', invError);
+    }
+
+    // 3. Fetch real loans
+    const { data: loans, error: loanError } = await supabase
+      .from('loans')
+      .select('*')
+      .eq('user_id', user.id);
+
+    if (loanError) {
+      console.error('[OpenFinance API] Erro ao buscar empréstimos:', loanError);
+    }
+
+    // 4. Fetch recent transactions
+    const { data: transactions, error: txError } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('executed_at', { ascending: false })
+      .limit(50);
+
+    if (txError) {
+      console.error('[OpenFinance API] Erro ao buscar transações:', txError);
+    }
+
+    // 5. Fetch connections count
+    const { count: connectionsCount } = await supabase
+      .from('pluggy_connections')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id);
+
+    const safeAccounts = accounts || [];
+    const safeInvestments = investments || [];
+    const safeLoans = loans || [];
+    const safeTransactions = transactions || [];
+
+    // Calculations
+    const liquidBalance = safeAccounts
+      .filter((a) => a.type === 'CHECKING' || a.type === 'SAVINGS' || a.subtype === 'CHECKING_ACCOUNT' || a.subtype === 'SAVINGS_ACCOUNT')
+      .reduce((sum, a) => sum + (Number(a.balance) || 0), 0);
+
+    const creditCardDebt = safeAccounts
+      .filter((a) => a.type === 'CREDIT' || a.subtype === 'CREDIT_CARD')
+      .reduce((sum, a) => sum + Math.abs(Number(a.balance) || 0), 0);
+
+    const totalInvested = safeInvestments.reduce((sum, inv) => sum + (Number(inv.balance) || 0), 0);
+    const totalLoanDebt = safeLoans.reduce((sum, l) => sum + (Number(l.balance_due) || 0), 0);
+    const totalDebt = creditCardDebt + totalLoanDebt;
+    const netWorth = liquidBalance + totalInvested - totalDebt;
 
     const portfolio = {
-      total_balance: totalBalance,
+      user_id: user.id,
+      connections_count: connectionsCount || 0,
+      total_balance: liquidBalance,
       total_invested: totalInvested,
-      total_debt: 0,
-      net_worth: totalBalance,
-      accounts: MOCK_ACCOUNTS,
-      investments: MOCK_INVESTMENTS,
-      transactions: MOCK_TRANSACTIONS,
+      total_debt: totalDebt,
+      credit_card_debt: creditCardDebt,
+      net_worth: netWorth,
+      accounts: safeAccounts,
+      investments: safeInvestments,
+      loans: safeLoans,
+      transactions: safeTransactions,
       last_sync: new Date().toISOString(),
     };
 
     return NextResponse.json(portfolio);
-  } catch (error) {
+  } catch (error: any) {
     console.error('[OpenFinance API Error]', error);
     return NextResponse.json(
-      { error: 'Internal Server Error' },
+      { error: error.message || 'Internal Server Error' },
       { status: 500 }
     );
   }

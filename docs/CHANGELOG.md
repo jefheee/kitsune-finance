@@ -4,6 +4,17 @@ Todas as alterações notáveis no projeto Kitsune Finance são registradas de f
 
 ---
 
+## [2026-10-29] - Refatoração Estrutural Open Finance, Eliminação de Mocks, Logos Oficiais em SVG & Blindagem Total
+- **Arquivos Afetados:** `supabase/migrations/20261029_open_finance_full_restructure.sql`, `supabase/migrations/20261029_open_finance_identity_and_cache_rpcs.sql`, `public/banks/*.svg`, `src/components/BankLogo.tsx`, `src/utils/pluggy/*`, `src/utils/ai/dossier.ts`, `src/app/api/chat/route.ts`, `src/app/api/openfinance/route.ts`, `src/app/api/ai/anomalies/route.ts`, `src/app/api/ai/generate-insight/route.ts`, `src/app/api/export/spreadsheet/route.ts`, `src/context/FinanceDataContext.tsx`, `src/components/finance/SubscriptionsTracker.tsx`, `src/components/finance/InstallmentsTracker.tsx`, `src/app/dashboard/page.tsx`, `src/app/kitsune/page.tsx`, `src/app/agents/page.tsx`, `src/app/profile/page.tsx`, `src/app/settings/page.tsx`, `src/app/page.tsx`, `docs/PROJECT_STATE.md`, `docs/CHANGELOG.md`.
+- **Objetivo:**
+  - Blindagem 100% de segurança: remoção de todos os mocks em frontend e backend (`MOCK_ACCOUNTS`, `MOCK_INVESTMENTS`, `MOCK_TRANSACTIONS`), isolamento total de cache client-side com prefixo `kitsune_${user.id}_...` e limpeza em logout/troca de usuário.
+  - Reestruturação completa do Supabase: remoção definitiva de `accounts`, expansão de `bank_accounts`, `pluggy_connections`, `transactions`, `investments`, criação de `loans`, `ai_chat_sessions`, `ai_chat_messages`, FORCE RLS e revogação de acessos `anon`.
+  - Resolução inteligente de bancos e logos oficiais vetoriais em SVG dos repositórios de referência (`rzmt/logos-bancos-br`, `Tgentil/Bancos-em-SVG` e `henriquezolini/react-bancos`), substituindo vetores manuais por marcas oficiais corporativas (Nubank, Itaú, Santander, Inter, Caixa, Mercado Pago, Bradesco, BB, C6, BTG, Safra, PicPay, XP, Rico, Sicredi, Sicoob).
+  - Backfill e sincronização de 10 conexões reais Pluggy (22 contas ativas, 37 investimentos em renda fixa/CDB, 2.438 transações enriquecidas com limpeza comercial, tradução PT-BR, identificação de transferências internas e estornos, e consolidação de identidade multi-banco com CPF mascarado).
+  - Contexto por sessão na Kitsune AI com dossiê financeiro montado 1x por sessão e reaproveitado nas mensagens subsequentes, com invalidação pós-sync.
+
+---
+
 ## [2026-10-28] - Landing Page Stitch, Untitled UI QR Code, Painel IA Executivo, Audio Visualizer & Pierre Suite
 - **Arquivos Afetados:** `src/app/page.tsx`, `src/components/landing/LandingQrCode.tsx`, `src/components/AiDiagnosticPanel.tsx`, `src/app/kitsune/page.tsx`, `src/app/api/ai/generate-insight/route.ts`, `src/app/api/ai/anomalies/route.ts`, `src/components/AnomalyAlertCard.tsx`, `src/app/api/export/spreadsheet/route.ts`, `src/components/finance/SpendingHeatmap.tsx`, `src/components/finance/SubscriptionsTracker.tsx`, `src/components/finance/InstallmentsTracker.tsx`, `src/components/AppsModal.tsx`, `src/app/dashboard/page.tsx`, `src/components/layout/AppShell.tsx`, `docs/PROJECT_STATE.md`, `docs/CHANGELOG.md`.
 - **Objetivo:**
