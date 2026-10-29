@@ -75,9 +75,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const userInitials = userDisplayName.slice(0, 2).toUpperCase();
 
   return (
-    <div className="flex h-dvh w-full bg-slate-50 dark:bg-[#0B0E14] text-slate-900 dark:text-[#F8FAFC] overflow-hidden font-sans">
+    <div className="flex h-dvh w-full bg-slate-50 dark:bg-[#0A0A0A] text-slate-900 dark:text-[#F8FAFC] overflow-hidden font-sans">
       {/* Desktop Sidebar (>= 768px): Minimalista & Elegante */}
-      <aside className="hidden md:flex flex-col w-20 border-r border-slate-200 dark:border-[#262E3D] bg-white dark:bg-[#0E121A] pt-6 pb-4 items-center justify-between relative z-40 shrink-0 select-none">
+      <aside className="hidden md:flex flex-col w-20 border-r border-slate-200 dark:border-[#27272A] bg-white dark:bg-[#101012] pt-6 pb-4 items-center justify-between relative z-40 shrink-0 select-none">
         <div className="flex flex-col items-center gap-7 w-full">
           {/* Logo Kitsune */}
           <Link
@@ -106,7 +106,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   className={`flex items-center justify-center w-full h-12 rounded-2xl transition-all duration-200 cursor-pointer ${
                     isActive
                       ? "text-[#FF8216] bg-[#FF8216]/12 border border-[#FF8216]/25"
-                      : "text-slate-500 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-[#F8FAFC] hover:bg-slate-100 dark:hover:bg-[#161B26]"
+                      : "text-slate-500 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-[#F8FAFC] hover:bg-slate-100 dark:hover:bg-[#161618]"
                   }`}
                   title={item.label}
                 >
@@ -136,7 +136,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all cursor-pointer ${
               isPrivacyMode
                 ? "text-[#FF8216] bg-[#FF8216]/15 border border-[#FF8216]/30 shadow-xs"
-                : "text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#161B26]"
+                : "text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#161618]"
             }`}
             title={
               isPrivacyMode
@@ -155,21 +155,21 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             className={`w-10 h-10 flex items-center justify-center rounded-xl transition-colors cursor-pointer ${
               pathname === "/settings"
                 ? "text-[#FF8216] bg-[#FF8216]/12 border border-[#FF8216]/25"
-                : "text-slate-500 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-[#F8FAFC] hover:bg-slate-100 dark:hover:bg-[#161B26]"
+                : "text-slate-500 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-[#F8FAFC] hover:bg-slate-100 dark:hover:bg-[#161618]"
             }`}
             title="Configurações & Preferências"
           >
             <span className="material-symbols-outlined text-[20px]">settings</span>
           </Link>
 
-          {/* Avatar com link para /profile (Único acesso ao perfil na barra) */}
+          {/* Avatar com link para /profile */}
           <Link
             href="/profile"
             title={`Meu Perfil: ${userDisplayName}`}
             className={`w-10 h-10 rounded-xl overflow-hidden border transition-all cursor-pointer group flex items-center justify-center ${
               pathname === "/profile"
                 ? "border-[#FF8216] ring-2 ring-[#FF8216]/30"
-                : "border-slate-200 dark:border-[#262E3D] hover:border-[#FF8216] bg-slate-100 dark:bg-[#141A24]"
+                : "border-slate-200 dark:border-[#27272A] hover:border-[#FF8216] bg-slate-100 dark:bg-[#18181B]"
             }`}
           >
             {userProfile?.avatar_url ? (
@@ -188,9 +188,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col h-full overflow-y-auto pb-24 md:pb-0 relative bg-slate-50 dark:bg-[#0B0E14]">
+      <main className="flex-1 flex flex-col h-full overflow-y-auto pb-24 md:pb-0 relative bg-slate-50 dark:bg-[#0A0A0A] animate-page-enter">
         {/* Mobile Header Compacto (< 768px) */}
-        <div className="md:hidden flex items-center justify-between px-4 py-2.5 border-b border-slate-200 dark:border-[#262E3D] bg-white/90 dark:bg-[#0B0E14]/90 backdrop-blur-md sticky top-0 z-40 pt-safe">
+        <div className="md:hidden flex items-center justify-between px-4 py-2.5 border-b border-slate-200 dark:border-[#27272A] bg-white/90 dark:bg-[#0A0A0A]/90 backdrop-blur-md sticky top-0 z-40 pt-safe">
           <Link href="/dashboard" className="flex items-center gap-2">
             <Image
               src="/assets/logo/logo_sem_fundo.png"
@@ -226,7 +226,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
             <Link
               href="/profile"
-              className="w-8 h-8 rounded-xl overflow-hidden border border-slate-200 dark:border-[#262E3D] bg-slate-100 dark:bg-[#141A24] flex items-center justify-center"
+              className="w-8 h-8 rounded-xl overflow-hidden border border-slate-200 dark:border-[#27272A] bg-slate-100 dark:bg-[#18181B] flex items-center justify-center"
             >
               {userProfile?.avatar_url ? (
                 <img
@@ -243,7 +243,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
             <Link
               href="/settings"
-              className="text-slate-500 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-[#F8FAFC] p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-[#161B26] transition-colors"
+              className="text-slate-500 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-[#F8FAFC] p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-[#161618] transition-colors"
               title="Configurações"
             >
               <span className="material-symbols-outlined text-[20px]">
@@ -257,7 +257,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </main>
 
       {/* Mobile Floating Bottom Navigation (< 768px) */}
-      <nav className="md:hidden fixed bottom-3 left-1/2 -translate-x-1/2 w-[calc(100%-1.5rem)] max-w-sm h-14 bg-white/95 dark:bg-[#12161F]/95 backdrop-blur-xl border border-slate-200 dark:border-[#262E3D] rounded-2xl shadow-xl flex items-center justify-around px-2 z-50 pb-safe select-none">
+      <nav className="md:hidden fixed bottom-3 left-1/2 -translate-x-1/2 w-[calc(100%-1.5rem)] max-w-sm h-14 bg-white/95 dark:bg-[#121214]/95 backdrop-blur-xl border border-slate-200 dark:border-[#27272A] rounded-2xl shadow-xl flex items-center justify-around px-2 z-50 pb-safe select-none">
         {mobileNavItems.map((item) => {
           const isActive = pathname.startsWith(item.path);
           return (

@@ -1,13 +1,11 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import Link from "next/link";
 import { BankLogo } from "@/components/BankLogo";
 import { MerchantLogo } from "@/components/MerchantLogo";
-import { InvoiceBarChart, InvoiceBarItem } from "@/components/charts/InvoiceBarChart";
 import { SpotlightCard } from "@/components/react-bits/SpotlightCard";
-import { ShinyText } from "@/components/react-bits/ShinyText";
-import { getBankCatalogBySlugOrName } from "@/utils/pluggy/bank-resolver";
+import { resolveCardTheme, CardTheme } from "@/utils/finance/card-theme-resolver";
 
 interface WalletCardsProps {
   accounts: any[];
@@ -20,7 +18,6 @@ export function getCardInvoiceAmount(card: any, transactions: any[]): number {
   if (!isNaN(rawBal) && rawBal !== 0) {
     return Math.abs(rawBal);
   }
-  // Soma lançamentos a débito deste cartão
   const cardTxns = transactions.filter(
     (t) => t.account_id === card.id || t.bank_accounts?.id === card.id
   );
@@ -36,7 +33,7 @@ export function WalletCards({ accounts, transactions, formatCurrency: propFormat
 
   const formatCurrency = propFormatCurrency || defaultFormat;
 
-  // Filtra e organiza cartões com ordenação por importância
+  // Filtra e organiza cartões com ordenação inteligente
   const creditCards = useMemo(() => {
     const list = accounts.filter(
       (acc) =>
@@ -50,17 +47,16 @@ export function WalletCards({ accounts, transactions, formatCurrency: propFormat
     const baseList =
       list.length > 0
         ? list
-        : accounts.slice(0, 3).map((acc) => ({
+        : accounts.slice(0, 3).map((acc, i) => ({
             ...acc,
             isDerivedCard: true,
             credit_limit: 5000,
             available_credit_limit: 4200,
-            card_brand: "Mastercard",
+            card_brand: i % 2 === 0 ? "Mastercard" : "Visa",
             product_name: `${acc.bank_name || acc.institution_name} Gold`,
-            balance_due_date: "13/11",
+            balance_due_date: "10/11",
           }));
 
-    // Ordenação estrita por importância: 1. Maior fatura; 2. Maior limite; 3. Nome
     return [...baseList].sort((a, b) => {
       const invA = getCardInvoiceAmount(a, transactions);
       const invB = getCardInvoiceAmount(b, transactions);
@@ -71,61 +67,55 @@ export function WalletCards({ accounts, transactions, formatCurrency: propFormat
     });
   }, [accounts, transactions]);
 
-  const [selectedCardId, setSelectedCardId] = useState<string>(
-    creditCards[0]?.id || ""
-  );
+  const [selectedCardIndex, setSelectedCardIndex] = useState<number>(0);
+  const carouselRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
 
-  const [walletViewMode, setWalletViewMode] = useState<"stack" | "grid">("stack");
+  // Cartão ativo selecionado
+  const activeCard = creditCards[selectedCardIndex] || creditCards[0] || null;
 
-  // Cartão ativo
-  const activeCard = useMemo(() => {
-    return creditCards.find((c) => c.id === selectedCardId) || creditCards[0] || null;
-  }, [creditCards, selectedCardId]);
+  // Sincroniza scroll com o cartão selecionado
+  const scrollToCard = (index: number) => {
+    setSelectedCardIndex(index);
+    if (carouselRef.current) {
+      const cardEl = carouselRef.current.children[index] as HTMLElement;
+      if (cardEl) {
+        cardEl.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+      }
+    }
+  };
+
+  // Suporte a Mouse Drag no Carrossel de Cartões
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!carouselRef.current) return;
+    setIsDragging(true);
+    setStartX(e.pageX - carouselRef.current.offsetLeft);
+    setScrollLeft(carouselRef.current.scrollLeft);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || !carouselRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - carouselRef.current.offsetLeft;
+    const walk = (x - startX) * 1.5;
+    carouselRef.current.scrollLeft = scrollLeft - walk;
+  };
+
+  const handleMouseUpOrLeave = () => {
+    setIsDragging(false);
+  };
 
   // Transações associadas exclusivamente a este cartão
   const cardTransactions = useMemo(() => {
     if (!activeCard) return [];
     return transactions
       .filter((t) => t.account_id === activeCard.id || t.bank_accounts?.id === activeCard.id)
-      .slice(0, 10);
+      .slice(0, 8);
   }, [transactions, activeCard]);
 
-  // Auditoria Inteligente de Tarifas / Anuidade neste cartão
-  const feeAudit = useMemo(() => {
-    if (!activeCard) return null;
-    const txns = transactions.filter(
-      (t) => t.account_id === activeCard.id || t.bank_accounts?.id === activeCard.id
-    );
-
-    const feeTxn = txns.find((t) => {
-      const desc = (t.clean_description || t.description || "").toLowerCase();
-      return (
-        desc.includes("anuidade") ||
-        desc.includes("tarifa") ||
-        desc.includes("taxa cartao") ||
-        (desc.includes("taxa") && Math.abs(Number(t.amount)) >= 40)
-      );
-    });
-
-    if (!feeTxn) return null;
-    const feeAmt = Math.abs(Number(feeTxn.amount) || 0);
-
-    const hasReversal = txns.some((t) => {
-      const desc = (t.clean_description || t.description || "").toLowerCase();
-      return (
-        (t.is_refund || desc.includes("estorno") || desc.includes("isencao") || desc.includes("credito")) &&
-        Math.abs(Number(t.amount) || 0) >= feeAmt * 0.8
-      );
-    });
-
-    return {
-      description: feeTxn.clean_description || feeTxn.description,
-      amount: feeAmt,
-      hasReversal,
-    };
-  }, [activeCard, transactions]);
-
-  // Totais consolidados de TODOS os cartões
+  // Totais consolidados de faturas e limites
   const { totalLimitConsolidated, totalAvailableConsolidated, totalCurrentInvoices } = useMemo(() => {
     let lim = 0;
     let avail = 0;
@@ -151,81 +141,38 @@ export function WalletCards({ accounts, transactions, formatCurrency: propFormat
     };
   }, [creditCards, transactions]);
 
-  // Faturas anteriores calculadas especificamente para o cartão ativo
-  const invoiceHistory: InvoiceBarItem[] = useMemo(() => {
-    const months = ["Jun", "Jul", "Ago", "Set", "Out", "Nov"];
-    const baseVal = activeCard ? getCardInvoiceAmount(activeCard, transactions) : 0;
+  // Métricas do Cartão Ativo
+  const activeCardInvoice = activeCard ? getCardInvoiceAmount(activeCard, transactions) : 0;
+  const activeCardLimit = Number(activeCard?.credit_limit) || (activeCardInvoice > 0 ? activeCardInvoice * 2.5 : 5000);
+  const activeCardAvailable =
+    Number(activeCard?.available_credit_limit) != null
+      ? Number(activeCard?.available_credit_limit)
+      : Math.max(0, activeCardLimit - activeCardInvoice);
+  const limitUsagePercent = activeCardLimit > 0 ? Math.min(100, Math.round((activeCardInvoice / activeCardLimit) * 100)) : 0;
+
+  // Faturas anteriores e abertas do cartão ativo (Estilo print 5)
+  const activeInvoicesList = useMemo(() => {
+    const base = activeCardInvoice > 0 ? activeCardInvoice : 420;
     return [
-      { month: "2026-06", label: "Jun", amount: Math.round(baseVal * 1.4) },
-      { month: "2026-07", label: "Jul", amount: Math.round(baseVal * 1.2) },
-      { month: "2026-08", label: "Ago", amount: Math.round(baseVal * 1.5) },
-      { month: "2026-09", label: "Set", amount: Math.round(baseVal * 0.9) },
-      { month: "2026-10", label: "Out", amount: Math.round(baseVal * 1.1) },
-      { month: "2026-11", label: "Nov", amount: Math.round(baseVal) },
+      { month: "Novembro", amount: base, status: "Aberta", isCurrent: true },
+      { month: "Outubro", amount: Math.round(base * 1.15), status: "Fechada", isCurrent: false },
+      { month: "Setembro", amount: Math.round(base * 0.9), status: "Paga", isCurrent: false },
+      { month: "Dezembro", amount: Math.round(base * 0.4), status: "Futura", isCurrent: false },
     ];
-  }, [activeCard, transactions]);
+  }, [activeCardInvoice]);
 
-  const getCardTheme = (card: any) => {
-    const slug: string = getBankCatalogBySlugOrName(
-      card.institution_slug || card.institution_name || card.bank_name
-    ).slug;
-
-    switch (slug) {
-      case "nubank":
-        return {
-          bg: "from-[#820AD1] via-[#5C0699] to-[#36025C]",
-          border: "border-purple-400/30",
-          accent: "#A435F0",
-          pill: "bg-purple-500/20 text-purple-300",
-        };
-      case "itau":
-        return {
-          bg: "from-[#EC7000] via-[#003399] to-[#0A192F]",
-          border: "border-orange-400/30",
-          accent: "#EC7000",
-          pill: "bg-orange-500/20 text-orange-300",
-        };
-      case "inter":
-        return {
-          bg: "from-[#FF7A00] via-[#2A1E14] to-[#141414]",
-          border: "border-orange-500/30",
-          accent: "#FF7A00",
-          pill: "bg-orange-500/20 text-orange-300",
-        };
-      case "santander":
-        return {
-          bg: "from-[#CC0000] via-[#660000] to-[#1A0505]",
-          border: "border-red-500/30",
-          accent: "#EA1D2C",
-          pill: "bg-red-500/20 text-red-300",
-        };
-      case "c6":
-        return {
-          bg: "from-[#2C2C2C] via-[#1A1A1A] to-[#0D0D0D]",
-          border: "border-slate-500/30",
-          accent: "#E2E8F0",
-          pill: "bg-slate-500/20 text-slate-300",
-        };
-      case "bradesco":
-        return {
-          bg: "from-[#CC092F] via-[#75051B] to-[#2E020A]",
-          border: "border-red-400/30",
-          accent: "#CC092F",
-          pill: "bg-red-500/20 text-red-300",
-        };
-      default:
-        return {
-          bg: "from-[#1E293B] via-[#0F172A] to-[#05070A]",
-          border: "border-slate-600/30",
-          accent: "#FF8216",
-          pill: "bg-[#FF8216]/20 text-[#FF8216]",
-        };
-    }
-  };
+  // Tema resolvido dinamicamente para o cartão ativo
+  const activeTheme: CardTheme = useMemo(() => {
+    if (!activeCard) return resolveCardTheme("Cartão");
+    return resolveCardTheme(
+      activeCard.product_name || activeCard.name || activeCard.bank_name,
+      activeCard.institution_slug || activeCard.institution_name
+    );
+  }, [activeCard]);
 
   if (creditCards.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 text-center rounded-2xl border border-dashed border-slate-200 dark:border-[#262E3D]">
+      <div className="flex flex-col items-center justify-center p-12 text-center rounded-2xl border border-dashed border-slate-200 dark:border-[#27272A] bg-white dark:bg-[#121214]">
         <span className="material-symbols-outlined text-4xl text-slate-400 mb-2">
           credit_card_off
         </span>
@@ -244,7 +191,7 @@ export function WalletCards({ accounts, transactions, formatCurrency: propFormat
       {/* 3 KPIs Consolidados de Cartões */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
         {/* Fatura Total Consolidada */}
-        <div className="p-4 md:p-5 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] shadow-xs flex flex-col justify-between">
+        <div className="p-4 md:p-5 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
               Fatura Atual Consolidada
@@ -258,376 +205,346 @@ export function WalletCards({ accounts, transactions, formatCurrency: propFormat
               {formatCurrency(totalCurrentInvoices)}
             </span>
             <span className="text-[11px] text-slate-500 dark:text-[#94A3B8] mt-0.5 block">
-              Soma de {creditCards.length} cartão(ões)
+              Soma de todas as faturas abertas do ciclo
             </span>
           </div>
         </div>
 
-        {/* Limite de Crédito Total */}
-        <div className="p-4 md:p-5 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] shadow-xs flex flex-col justify-between">
+        {/* Limite Total Concedido */}
+        <div className="p-4 md:p-5 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              Crédito Total Consolidado
+              Limite Total Concedido
             </span>
-            <div className="w-7 h-7 rounded-lg bg-[#FF8216]/10 flex items-center justify-center text-[#FF8216]">
-              <span className="material-symbols-outlined text-[16px]">account_balance_wallet</span>
+            <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+              <span className="material-symbols-outlined text-[16px]">credit_card</span>
             </div>
           </div>
           <div className="mt-2">
-            <span className="text-2xl font-extrabold text-[#FF8216] tabular-nums tracking-tight block">
+            <span className="text-2xl font-extrabold text-slate-900 dark:text-white tabular-nums tracking-tight block">
               {formatCurrency(totalLimitConsolidated)}
             </span>
             <span className="text-[11px] text-slate-500 dark:text-[#94A3B8] mt-0.5 block">
-              Poder de compra total outorgado
+              Poder de crédito total em {creditCards.length} cartões
             </span>
           </div>
         </div>
 
-        {/* Limite Disponível */}
-        <div className="p-4 md:p-5 rounded-2xl bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] shadow-xs flex flex-col justify-between">
+        {/* Limite Disponível Consolidado */}
+        <div className="p-4 md:p-5 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              Limite Disponível Livre
+              Limite Livre para Compras
             </span>
-            <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
-              <span className="material-symbols-outlined text-[16px]">check_circle</span>
+            <div className="w-7 h-7 rounded-lg bg-[#FF8216]/10 flex items-center justify-center text-[#FF8216]">
+              <span className="material-symbols-outlined text-[16px]">verified</span>
             </div>
           </div>
           <div className="mt-2">
-            <span className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums tracking-tight block">
+            <span className="text-2xl font-extrabold text-emerald-500 tabular-nums tracking-tight block">
               {formatCurrency(totalAvailableConsolidated)}
             </span>
             <span className="text-[11px] text-slate-500 dark:text-[#94A3B8] mt-0.5 block">
-              {totalLimitConsolidated > 0
-                ? `${Math.round((totalAvailableConsolidated / totalLimitConsolidated) * 100)}% do crédito livre`
-                : "Sem limite contratado"}
+              Disponível para novos lançamentos imediatos
             </span>
           </div>
         </div>
       </div>
 
-      {/* Controles de Visualização: Stack 3D vs Grade */}
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-          <span className="material-symbols-outlined text-base text-[#FF8216]">wallet</span>
-          <span>Seus Cartões ({creditCards.length})</span>
-        </h3>
-
-        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-[#161B26] border border-slate-200 dark:border-[#262E3D]">
-          <button
-            type="button"
-            onClick={() => setWalletViewMode("stack")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-              walletViewMode === "stack"
-                ? "bg-white dark:bg-[#202736] text-slate-900 dark:text-white shadow-sm font-bold"
-                : "text-slate-500 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white"
-            }`}
-          >
-            <span className="material-symbols-outlined text-[16px]">view_agenda</span>
-            <span>Wallet Stack</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setWalletViewMode("grid")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-              walletViewMode === "grid"
-                ? "bg-white dark:bg-[#202736] text-slate-900 dark:text-white shadow-sm font-bold"
-                : "text-slate-500 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white"
-            }`}
-          >
-            <span className="material-symbols-outlined text-[16px]">grid_view</span>
-            <span>Grade Proporcional</span>
-          </button>
+      {/* Carrossel Interativo de Cartões com Arraste (Drag to Scroll) */}
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between px-1">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-lg text-[#FF8216]">wallet</span>
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+              Meus Cartões ({creditCards.length})
+            </h2>
+          </div>
+          <div className="flex items-center gap-1 text-[11px] text-slate-400">
+            <span className="material-symbols-outlined text-[14px]">swipe</span>
+            <span>Arraste ou clique para alternar</span>
+          </div>
         </div>
-      </div>
 
-      {/* Visualização dos Cartões (Wallet Stack ou Grid Proporcional) */}
-      {walletViewMode === "stack" ? (
-        <div className="flex flex-col gap-[-45px] pt-2 pb-8">
+        {/* Container Horizontal com Arraste pelo Mouse e Touch */}
+        <div
+          ref={carouselRef}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUpOrLeave}
+          onMouseLeave={handleMouseUpOrLeave}
+          className={`flex gap-4 overflow-x-auto py-2 px-1 scrollbar-none snap-x snap-mandatory ${
+            isDragging ? "cursor-grabbing select-none" : "cursor-grab"
+          }`}
+          style={{ scrollBehavior: isDragging ? "auto" : "smooth" }}
+        >
           {creditCards.map((card, idx) => {
-            const theme = getCardTheme(card);
-            const isSelected = activeCard?.id === card.id;
-            const cardBal = getCardInvoiceAmount(card, transactions);
-            const totalLimit = Number(card.credit_limit) || (cardBal > 0 ? cardBal * 2.5 : 5000);
-            const availLimit =
-              Number(card.available_credit_limit) != null
-                ? Number(card.available_credit_limit)
-                : Math.max(0, totalLimit - cardBal);
+            const isSelected = selectedCardIndex === idx;
+            const theme = resolveCardTheme(
+              card.product_name || card.name || card.bank_name,
+              card.institution_slug || card.institution_name
+            );
+            const cardInv = getCardInvoiceAmount(card, transactions);
+            const digits = card.account_number?.slice(-4) || "8903";
 
             return (
               <div
                 key={card.id || idx}
-                onClick={() => setSelectedCardId(card.id)}
-                style={{
-                  transform: isSelected
-                    ? "translateY(0px) scale(1)"
-                    : `translateY(${idx * 16}px) scale(${0.98 - idx * 0.02})`,
-                  zIndex: isSelected ? 30 : 20 - idx,
-                }}
-                className={`relative w-full max-w-lg mx-auto aspect-[1.586/1] rounded-3xl p-6 bg-gradient-to-br ${
-                  theme.bg
+                onClick={() => setSelectedCardIndex(idx)}
+                className={`snap-center shrink-0 w-[280px] sm:w-[320px] aspect-[1.586/1] rounded-3xl p-5 bg-gradient-to-br ${
+                  theme.bgGradient
                 } ${
                   theme.border
-                } border shadow-2xl transition-all duration-300 cursor-pointer text-white overflow-hidden flex flex-col justify-between ${
-                  isSelected ? "ring-2 ring-[#FF8216] shadow-[0_15px_30px_rgba(0,0,0,0.6)]" : "opacity-90 hover:opacity-100"
+                } border relative overflow-hidden transition-all duration-300 cursor-pointer flex flex-col justify-between ${
+                  isSelected
+                    ? "ring-2 ring-[#FF8216] shadow-xl scale-[1.02]"
+                    : "opacity-75 hover:opacity-95 scale-100"
                 }`}
               >
-                <div className="absolute -right-16 -top-16 w-60 h-60 rounded-full bg-white/5 blur-2xl pointer-events-none" />
+                {/* Efeito de Reflexo Minimalista e Sofisticado */}
+                <div className="absolute inset-0 bg-gradient-to-tr from-white/[0.08] via-white/[0.02] to-transparent pointer-events-none rounded-3xl" />
 
-                {/* Header do Cartão */}
+                {/* Topo do Cartão: Logo da Instituição e Contactless */}
                 <div className="flex items-center justify-between relative z-10">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md p-1.5 flex items-center justify-center">
-                      <BankLogo
-                        bank={card.institution_slug || card.institution_name || card.bank_name}
-                        size="xs"
-                        className="drop-shadow"
-                      />
-                    </div>
-                    <div>
-                      <div className="text-sm font-extrabold tracking-tight">
-                        {card.product_name || `${card.bank_name || "Banco"} Cartão`}
-                      </div>
-                      <div className="text-[11px] text-white/70 font-mono tracking-wider">
-                        •••• {card.account_number?.slice(-4) || "8903"}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[20px] text-white/70">
-                      contactless
-                    </span>
-                    <div className="w-8 h-6 rounded-md bg-amber-400/80 border border-amber-300 flex items-center justify-center">
-                      <div className="w-5 h-4 border border-amber-600/60 rounded-sm" />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Fatura deste Cartão */}
-                <div className="relative z-10">
-                  <div className="text-[11px] text-white/70 flex items-center gap-1 font-medium">
-                    <span>Fatura estimada</span>
-                  </div>
-                  <div className="text-2xl font-black tabular-nums tracking-tight mt-0.5">
-                    {formatCurrency(cardBal)}
-                  </div>
-                  <div className="text-[11px] text-white/75 mt-0.5 font-medium">
-                    Vence em {card.balance_due_date || "13 de nov."}
-                  </div>
-                </div>
-
-                {/* Barra de Limite */}
-                <div className="pt-2 border-t border-white/10 relative z-10">
-                  <div className="flex items-center justify-between text-[11px] text-white/80 mb-1 font-medium">
-                    <span>Limite total: {formatCurrency(totalLimit)}</span>
-                    <span className="font-bold text-emerald-300">
-                      Disponível: {formatCurrency(availLimit)}
-                    </span>
-                  </div>
-
-                  <div className="h-2 w-full rounded-full bg-white/10 overflow-hidden flex">
-                    <div
-                      className="h-full bg-sky-400 rounded-l-full"
-                      style={{
-                        width: `${Math.min((cardBal / (totalLimit || 1)) * 100, 100)}%`,
-                      }}
-                    />
-                    <div
-                      className="h-full bg-emerald-400"
-                      style={{
-                        width: `${Math.min((availLimit / (totalLimit || 1)) * 100, 100)}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        /* Grid Proporcional */
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {creditCards.map((card, idx) => {
-            const theme = getCardTheme(card);
-            const isSelected = activeCard?.id === card.id;
-            const cardBal = getCardInvoiceAmount(card, transactions);
-            const totalLimit = Number(card.credit_limit) || (cardBal > 0 ? cardBal * 2.5 : 5000);
-            const availLimit =
-              Number(card.available_credit_limit) != null
-                ? Number(card.available_credit_limit)
-                : Math.max(0, totalLimit - cardBal);
-
-            return (
-              <div
-                key={card.id || idx}
-                onClick={() => setSelectedCardId(card.id)}
-                className={`w-full aspect-[1.586/1] rounded-3xl p-5 bg-gradient-to-br ${theme.bg} ${
-                  theme.border
-                } border shadow-lg cursor-pointer text-white transition-all duration-200 flex flex-col justify-between ${
-                  isSelected ? "ring-2 ring-[#FF8216] scale-[1.02]" : "hover:scale-[1.01]"
-                }`}
-              >
-                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-white/10 p-1 flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-xl bg-white/10 backdrop-blur-md p-1 flex items-center justify-center">
                       <BankLogo
                         bank={card.institution_slug || card.institution_name || card.bank_name}
                         size="xs"
                       />
                     </div>
                     <div>
-                      <div className="text-xs font-bold leading-tight line-clamp-1">
-                        {card.product_name || `${card.bank_name || "Banco"} Cartão`}
-                      </div>
-                      <div className="text-[10px] text-white/70 font-mono">
-                        •••• {card.account_number?.slice(-4) || "8903"}
-                      </div>
+                      <span className="text-xs font-bold text-white block truncate max-w-[140px]">
+                        {card.product_name || card.bank_name || "Cartão"}
+                      </span>
+                      <span className={`text-[10px] ${theme.subtextColor} font-mono tracking-wider`}>
+                        •••• {digits}
+                      </span>
                     </div>
                   </div>
-                  <span className="material-symbols-outlined text-base text-white/70">
+
+                  <span className="material-symbols-outlined text-[18px] text-white/60">
                     contactless
                   </span>
                 </div>
 
-                <div>
-                  <span className="text-[10px] text-white/70">Fatura estimada</span>
-                  <div className="text-xl font-bold tabular-nums">
-                    {formatCurrency(cardBal)}
+                {/* Centro do Cartão: Chip Dourado/Prata Minimalista */}
+                <div className="relative z-10 flex items-center justify-between">
+                  <div
+                    className="w-10 h-7 rounded-md border border-white/20 flex items-center justify-center opacity-85"
+                    style={{ backgroundColor: theme.chipColor + "30" }}
+                  >
+                    <div className="w-5 h-4 rounded-xs border border-white/30" />
                   </div>
+                  <span
+                    className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${theme.badgeStyle}`}
+                  >
+                    {theme.brandFallback}
+                  </span>
                 </div>
 
-                <div className="pt-2 border-t border-white/10">
-                  <div className="flex justify-between text-[10px] text-white/80 mb-1">
-                    <span>Disponível</span>
-                    <span className="font-bold text-emerald-300">{formatCurrency(availLimit)}</span>
+                {/* Rodapé do Cartão: Fatura Atual e Indicador */}
+                <div className="flex items-end justify-between relative z-10">
+                  <div>
+                    <span className="text-[9px] text-white/60 uppercase font-bold tracking-wider block">
+                      Fatura Atual
+                    </span>
+                    <span className="text-base sm:text-lg font-black text-white tabular-nums tracking-tight">
+                      {formatCurrency(cardInv)}
+                    </span>
                   </div>
-                  <div className="h-1.5 w-full rounded-full bg-white/10 overflow-hidden flex">
-                    <div
-                      className="h-full bg-emerald-400"
-                      style={{
-                        width: `${Math.min((availLimit / (totalLimit || 1)) * 100, 100)}%`,
-                      }}
-                    />
+
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#EB001B] inline-block opacity-90" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#F79E1B] inline-block -ml-2 opacity-90" />
                   </div>
                 </div>
               </div>
             );
           })}
         </div>
-      )}
 
-      {/* Detalhes do Cartão Selecionado */}
-      {activeCard && (
-        <div className="flex flex-col gap-6">
-          {/* Card de Auditoria Inteligente de Taxas / Anuidade (Fiel ao pedido do usuário) */}
-          {feeAudit && (
-            <div className="p-4 rounded-2xl bg-[#FF8216]/10 border border-[#FF8216]/25 flex items-start justify-between gap-3 text-xs">
-              <div className="flex items-start gap-3">
-                <span className="material-symbols-outlined text-[#FF8216] text-[20px] shrink-0 mt-0.5">
-                  policy
-                </span>
-                <div>
-                  <strong className="text-[#FF8216] font-bold block mb-0.5">
-                    Auditoria de Taxas & Anuidade: {activeCard.product_name}
-                  </strong>
-                  <p className="text-slate-700 dark:text-[#E2E8F0] leading-relaxed">
-                    Identificamos o lançamento de <strong>{formatCurrency(feeAudit.amount)}</strong> em &quot;{feeAudit.description}&quot;.
-                    {feeAudit.hasReversal ? (
-                      <span className="text-emerald-500 font-semibold ml-1">
-                        Constatamos estorno/isenção aplicada na fatura! Você não precisou pagar esta tarifa.
-                      </span>
-                    ) : (
-                      <span className="text-amber-500 font-semibold ml-1">
-                        Não encontramos estorno registrado ainda. Se você possui benefício de anuidade grátis, solicite a contestação.
-                      </span>
-                    )}
-                  </p>
-                </div>
-              </div>
+        {/* Indicadores de Pontos (Dots) */}
+        <div className="flex items-center justify-center gap-1.5 py-1">
+          {creditCards.map((_, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => scrollToCard(idx)}
+              className={`h-1.5 rounded-full transition-all cursor-pointer ${
+                selectedCardIndex === idx
+                  ? "w-6 bg-[#FF8216]"
+                  : "w-1.5 bg-slate-300 dark:bg-[#27272A] hover:bg-slate-400"
+              }`}
+              title={`Ver cartão ${idx + 1}`}
+            />
+          ))}
+        </div>
+      </div>
 
-              <Link
-                href={`/kitsune?prompt=${encodeURIComponent(
-                  `Kitsune AI, analise a cobrança de tarifa/anuidade de ${formatCurrency(
-                    feeAudit.amount
-                  )} no meu cartão ${activeCard.product_name}. Devo solicitar o estorno ou há justificativa para essa cobrança?`
-                )}`}
-                className="px-3 py-1.5 rounded-xl bg-[#FF8216] hover:bg-[#FFA047] text-white font-bold text-xs shrink-0 self-start cursor-pointer shadow-xs"
+      {/* Detalhamento Dinâmico do Cartão Ativo (Inspirado no Print 5) */}
+      <SpotlightCard className="p-5 md:p-7 flex flex-col gap-6">
+        {/* Barra de Limite do Cartão Ativo */}
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+              <span>Limite Total Concedido:</span>
+              <strong className="text-slate-900 dark:text-white tabular-nums">
+                {formatCurrency(activeCardLimit)}
+              </strong>
+            </span>
+            <span className="text-emerald-500 font-bold tabular-nums">
+              Livre: {formatCurrency(activeCardAvailable)}
+            </span>
+          </div>
+
+          <div className="w-full h-3 rounded-full bg-slate-100 dark:bg-[#18181B] overflow-hidden p-0.5 border border-slate-200/60 dark:border-[#27272A]">
+            <div
+              className="h-full rounded-full transition-all duration-500"
+              style={{
+                width: `${Math.max(limitUsagePercent, 4)}%`,
+                backgroundColor: activeTheme.accentColor || "#FF8216",
+              }}
+            />
+          </div>
+
+          <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-[#94A3B8]">
+            <span>
+              Utilizado na Fatura:{" "}
+              <strong className="text-slate-900 dark:text-white tabular-nums font-bold">
+                {formatCurrency(activeCardInvoice)}
+              </strong>{" "}
+              ({limitUsagePercent}%)
+            </span>
+            <span>
+              Vencimento:{" "}
+              <strong className="text-slate-900 dark:text-white font-mono">
+                {activeCard?.balance_due_date || "Dia 10"}
+              </strong>
+            </span>
+          </div>
+        </div>
+
+        {/* Faturas Mensais do Cartão (Estilo Print 5) */}
+        <div>
+          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-3 block">
+            Histórico e Faturas Deste Cartão
+          </span>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {activeInvoicesList.map((inv, i) => (
+              <div
+                key={i}
+                className={`p-3 rounded-xl border flex flex-col justify-between gap-1 transition-all ${
+                  inv.isCurrent
+                    ? "bg-[#18181B] dark:bg-[#18181B] border-[#FF8216]/50 text-white shadow-sm"
+                    : "bg-slate-50 dark:bg-[#121214] border-slate-200 dark:border-[#27272A] text-slate-800 dark:text-zinc-200"
+                }`}
               >
-                Pedir Orientação à IA
-              </Link>
-            </div>
-          )}
-
-          {/* Gráfico de Faturas Anteriores deste Cartão */}
-          <SpotlightCard className="p-6">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-[#FF8216] text-[18px]">
-                  bar_chart
-                </span>
-                <h4 className="text-sm font-bold text-slate-900 dark:text-white">
-                  Histórico de Faturas: {activeCard.product_name || "Cartão"}
-                </h4>
-              </div>
-              <span className="text-xs font-semibold text-slate-500 dark:text-[#94A3B8]">
-                Últimos 6 meses
-              </span>
-            </div>
-
-            <InvoiceBarChart invoices={invoiceHistory} />
-          </SpotlightCard>
-
-          {/* Lançamentos Recentes no Cartão Ativo */}
-          <SpotlightCard className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <span className="material-symbols-outlined text-base text-slate-400">
-                  receipt_long
-                </span>
-                <span>Últimos lançamentos de {activeCard.product_name || "deste cartão"}</span>
-              </h4>
-              <span className="text-xs text-slate-500 dark:text-[#94A3B8]">
-                {cardTransactions.length} lançamentos
-              </span>
-            </div>
-
-            {cardTransactions.length === 0 ? (
-              <p className="text-xs text-slate-400 py-4 text-center">
-                Nenhuma compra recente registrada para este cartão no período.
-              </p>
-            ) : (
-              <div className="divide-y divide-slate-100 dark:divide-[#1F2633]">
-                {cardTransactions.map((tx: any) => (
-                  <div
-                    key={tx.id}
-                    className="flex items-center justify-between py-3 hover:bg-slate-50/50 dark:hover:bg-[#161B26]/50 px-2 rounded-xl transition-colors"
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="font-semibold text-slate-400">{inv.month}</span>
+                  <span
+                    className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-md ${
+                      inv.status === "Aberta"
+                        ? "bg-[#FF8216]/20 text-[#FF8216]"
+                        : inv.status === "Fechada"
+                        ? "bg-rose-500/20 text-rose-400"
+                        : "bg-emerald-500/20 text-emerald-400"
+                    }`}
                   >
-                    <div className="flex items-center gap-3">
-                      <MerchantLogo
-                        cleanName={tx.merchant_name || tx.clean_description || tx.description}
-                        category={tx.category_pt}
-                        size="sm"
-                      />
-                      <div>
-                        <div className="text-xs font-bold text-slate-900 dark:text-white line-clamp-1">
-                          {tx.clean_description || tx.description}
-                        </div>
-                        <div className="text-[10px] text-slate-400 font-mono">
-                          {tx.date} · {tx.category_pt || "Geral"}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-xs font-extrabold text-slate-900 dark:text-white tabular-nums">
-                      - {formatCurrency(Math.abs(Number(tx.amount) || 0))}
+                    {inv.status}
+                  </span>
+                </div>
+                <span className="text-base font-black tabular-nums mt-1">
+                  {formatCurrency(inv.amount)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Dicas Estratégicas Inteligentes para este Cartão */}
+        <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-lg bg-[#FF8216]/10 text-[#FF8216] flex items-center justify-center shrink-0 mt-0.5">
+              <span className="material-symbols-outlined text-base">lightbulb</span>
+            </div>
+            <div>
+              <span className="text-xs font-bold text-slate-900 dark:text-white block">
+                Dica de Otimização: {activeCard?.product_name || "Cartão Selecionado"}
+              </span>
+              <p className="text-[11px] text-slate-500 dark:text-[#94A3B8] mt-0.5 leading-relaxed">
+                O melhor dia para novas compras neste cartão é{" "}
+                <strong className="text-slate-900 dark:text-white font-semibold">
+                  5 dias antes do vencimento
+                </strong>
+                . Compras feitas no dia do fechamento entram apenas no ciclo seguinte, concedendo até 40 dias de prazo sem juros.
+              </p>
+            </div>
+          </div>
+
+          <Link
+            href={`/kitsune?prompt=${encodeURIComponent(
+              `Kitsune AI, por favor audite minuciosamente o cartão ${activeCard?.product_name || "selecionado"} (fatura atual de ${formatCurrency(
+                activeCardInvoice
+              )}). Há risco de anuidade oculta? Como posso obter isenção ou melhorar meu limite?`
+            )}`}
+            className="shrink-0 px-3 py-1.5 rounded-lg bg-[#FF8216] hover:bg-[#FFA047] text-white text-xs font-bold transition-colors cursor-pointer"
+          >
+            Consultar Kitsune AI
+          </Link>
+        </div>
+
+        {/* Últimas Transações Deste Cartão */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              Últimos Lançamentos Vinculados ({cardTransactions.length})
+            </span>
+            <Link
+              href="/dashboard?tab=Transações"
+              className="text-xs text-[#FF8216] hover:underline font-semibold"
+            >
+              Ver extrato completo
+            </Link>
+          </div>
+
+          {cardTransactions.length === 0 ? (
+            <div className="p-6 text-center text-xs text-slate-400 border border-dashed border-slate-200 dark:border-[#27272A] rounded-xl">
+              Nenhuma transação recente encontrada especificamente para este cartão.
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100 dark:divide-[#27272A]">
+              {cardTransactions.map((tx) => (
+                <div
+                  key={tx.id}
+                  className="py-2.5 flex items-center justify-between gap-3 text-xs"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <MerchantLogo
+                      cleanName={tx.clean_description}
+                      rawDescription={tx.description}
+                      category={tx.category_pt || tx.category}
+                      size="sm"
+                    />
+                    <div className="min-w-0">
+                      <span className="font-semibold text-slate-900 dark:text-white block truncate">
+                        {tx.clean_description || tx.description}
+                      </span>
+                      <span className="text-[10px] text-slate-400 block">
+                        {tx.date || tx.executed_at?.split("T")[0]} • {tx.category_pt || tx.category || "Cartão"}
+                      </span>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </SpotlightCard>
+
+                  <span className="font-black text-slate-900 dark:text-white tabular-nums">
+                    - {formatCurrency(Math.abs(Number(tx.amount) || 0))}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-      )}
+      </SpotlightCard>
     </div>
   );
 }

@@ -7,8 +7,18 @@
  * 4. Conciliação com a "Renda Mensal Líquida" declarada pelo usuário
  */
 
+export interface IncomeSourceItem {
+    id: string;
+    sourceName: string;
+    type: 'SALARY' | 'INSS_BENEFIT' | 'VARIABLE' | 'INVESTMENT' | 'OTHER';
+    typeLabel: string;
+    amount: number;
+    accountName?: string;
+    date?: string;
+}
+
 export interface DetectedIncomeProfile {
-    type: 'CLT_SALARIED' | 'VARIABLE_FREELANCE' | 'INFORMAL_SPORADIC' | 'NO_REGULAR_INCOME';
+    type: 'CLT_SALARIED' | 'GOVERNMENT_BENEFIT_INSS' | 'VARIABLE_FREELANCE' | 'INFORMAL_SPORADIC' | 'NO_REGULAR_INCOME';
     typeLabel: string;
     description: string;
     badgeColor: string;
@@ -18,6 +28,7 @@ export interface DetectedIncomeProfile {
     salaryPayerName?: string;
     confidence: 'ALTA' | 'MÉDIA' | 'ESTIMADA';
     inflowCount90Days: number;
+    sources: IncomeSourceItem[];
     comparisonWithDeclared?: {
         declaredIncome: number;
         detectedIncome: number;
@@ -55,6 +66,7 @@ export function detectUserIncomePattern(
             monthlyAverageIncome: 0,
             confidence: 'ALTA',
             inflowCount90Days: 0,
+            sources: [],
             comparisonWithDeclared: declared > 0
                 ? {
                       declaredIncome: declared,
@@ -83,18 +95,29 @@ export function detectUserIncomePattern(
     const monthsSpan = Math.max(1, Math.min(3, Math.ceil(targetList.length / 5)));
     const monthlyAverage = totalInflow / monthsSpan;
 
-    // 2. Busca padrões de Salário CLT / Formal / Pró-labore
-    // Agrupa lançamentos por pagador ou descrição aproximada e valor
-    const salaryKeywords = ['salario', 'folha', 'pro-labore', 'vencimento', 'remuneracao', 'ted recebida', 'pix recebido'];
+    // 2. Busca padrões de Salário CLT / Formal / Pró-labore ou Benefício Previdenciário (INSS)
+    const inssKeywords = ['inss', 'previdencia', 'beneficio', 'aposentad', 'pensao', 'gov.br', 'bolsa familia', 'auxilio', 'bpc', 'loas'];
     const candidatesByPayer = new Map<string, Array<{ amount: number; date: Date; raw: any }>>();
+    let isBenefitDetected = false;
+    let benefitDetails: { payer: string; amount: number; day: number } | null = null;
 
     targetList.forEach((t) => {
         const amt = Number(t.amount) || 0;
-        if (amt < 300) return; // Salários no Brasil são maiores que R$ 300
+        if (amt < 100) return;
 
         const desc = (t.clean_description || t.payer_name || t.description || '').toLowerCase();
         const rawDate = t.executed_at || t.date;
         const date = rawDate ? new Date(rawDate) : new Date();
+
+        // Checagem de INSS / Benefício Social
+        if (inssKeywords.some((k) => desc.includes(k))) {
+            isBenefitDetected = true;
+            benefitDetails = {
+                payer: t.clean_description || t.payer_name || 'INSS / Previdência Social',
+                amount: amt,
+                day: date.getDate(),
+            };
+        }
 
         // Normaliza chave de pagador
         const key = desc.slice(0, 16).trim();
@@ -111,11 +134,11 @@ export function detectUserIncomePattern(
 
     for (const [payer, entries] of candidatesByPayer.entries()) {
         if (entries.length >= 2) {
-            // Verifica consistência de valor (+/- 15%)
+            // Verifica consistência de valor (+/- 18%)
             const baseAmount = entries[0].amount;
             const isConsistent = entries.every((e) => Math.abs(e.amount - baseAmount) / baseAmount < 0.18);
 
-            if (isConsistent) {
+            if (isConsistent && baseAmount >= 500) {
                 const day = entries[0].date.getDate();
                 detectedSalaryCandidate = {
                     payer: entries[0].raw.clean_description || entries[0].raw.payer_name || payer,
@@ -135,10 +158,16 @@ export function detectUserIncomePattern(
     let badgeColor = 'text-amber-500 bg-amber-500/10 border-amber-500/20';
     let confidence: DetectedIncomeProfile['confidence'] = 'MÉDIA';
 
-    if (detectedSalaryCandidate && detectedSalaryCandidate.amount > 600) {
+    if (isBenefitDetected && benefitDetails) {
+        profileType = 'GOVERNMENT_BENEFIT_INSS';
+        typeLabel = 'Benefício Previdenciário (INSS / Aposentadoria / Pensão)';
+        description = `Entrada previdenciária identificada no valor de R$ ${(benefitDetails as any).amount.toFixed(2).replace('.', ',')} recebida por volta do dia ${(benefitDetails as any).day}.`;
+        badgeColor = 'text-sky-500 bg-sky-500/10 border-sky-500/20';
+        confidence = 'ALTA';
+    } else if (detectedSalaryCandidate && detectedSalaryCandidate.amount > 600) {
         profileType = 'CLT_SALARIED';
         typeLabel = 'Salário Recorrente (CLT / Pró-labore)';
-        description = `Padrão salarial consistente identificado de aproximadamente R$ ${detectedSalaryCandidate.amount.toFixed(2).replace('.', ',')} recebido por volta do dia ${detectedSalaryCandidate.day}.`;
+        description = `Padrão salarial consistente identificado de aproximadamente R$ ${detectedSalaryCandidate.amount.toFixed(2).replace('.', ',')} recebido por volta do dia ${detectedSalaryCandidate.day} de ${detectedSalaryCandidate.payer}.`;
         badgeColor = 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20';
         confidence = 'ALTA';
     } else if (monthlyAverage < 800 || targetList.length <= 2) {
@@ -149,11 +178,45 @@ export function detectUserIncomePattern(
         confidence = 'ESTIMADA';
     }
 
-    // 4. Comparação e Auditoria com a Renda Declarada
+    // 4. Mapeamento das Principais Fontes de Entrada (Transparência de Origem)
+    const sources: IncomeSourceItem[] = targetList.slice(0, 10).map((t, idx) => {
+        const desc = (t.clean_description || t.payer_name || t.description || 'Entrada').trim();
+        const amt = Number(t.amount) || 0;
+        let sType: IncomeSourceItem['type'] = 'VARIABLE';
+        let sLabel = 'Renda Variável';
+
+        const descLower = desc.toLowerCase();
+        if (inssKeywords.some((k) => descLower.includes(k))) {
+            sType = 'INSS_BENEFIT';
+            sLabel = 'Benefício INSS';
+        } else if (detectedSalaryCandidate && descLower.includes(detectedSalaryCandidate.payer.toLowerCase().slice(0, 8))) {
+            sType = 'SALARY';
+            sLabel = 'Salário Formal';
+        } else if (descLower.includes('rend') || descLower.includes('dividendo') || descLower.includes('cdb')) {
+            sType = 'INVESTMENT';
+            sLabel = 'Rendimentos';
+        }
+
+        return {
+            id: t.id || `src-${idx}`,
+            sourceName: desc,
+            type: sType,
+            typeLabel: sLabel,
+            amount: amt,
+            accountName: t.bank_accounts?.bank_name || t.bank_accounts?.institution_name || 'Conta Bancária',
+            date: t.executed_at || t.date,
+        };
+    });
+
+    // 5. Comparação e Auditoria com a Renda Declarada
     let comparisonWithDeclared: DetectedIncomeProfile['comparisonWithDeclared'];
 
     if (declared > 0) {
-        const effectiveDetected = detectedSalaryCandidate ? detectedSalaryCandidate.amount : monthlyAverage;
+        const effectiveDetected = benefitDetails
+            ? (benefitDetails as any).amount
+            : detectedSalaryCandidate
+            ? detectedSalaryCandidate.amount
+            : monthlyAverage;
         const diff = effectiveDetected - declared;
         const diffPercent = Math.round((diff / declared) * 100);
 
@@ -187,11 +250,12 @@ export function detectUserIncomePattern(
         description,
         badgeColor,
         monthlyAverageIncome: monthlyAverage,
-        recurringSalaryAmount: detectedSalaryCandidate?.amount,
-        expectedPayDay: detectedSalaryCandidate?.day,
-        salaryPayerName: detectedSalaryCandidate?.payer,
+        recurringSalaryAmount: benefitDetails ? (benefitDetails as any).amount : detectedSalaryCandidate?.amount,
+        expectedPayDay: benefitDetails ? (benefitDetails as any).day : detectedSalaryCandidate?.day,
+        salaryPayerName: benefitDetails ? (benefitDetails as any).payer : detectedSalaryCandidate?.payer,
         confidence,
         inflowCount90Days: targetList.length,
+        sources,
         comparisonWithDeclared,
     };
 }

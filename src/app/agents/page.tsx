@@ -131,15 +131,35 @@ export default function AgentsHubPage() {
     // Definição dos Agentes Especialistas da Kitsune
     const agentsList: AgentProfile[] = [
         {
-            id: "julius",
-            name: "Julius",
+            id: "sentinela",
+            name: "Sentinela Kitsune",
+            role: "Guardião Antifraude & Alerta Preventivo",
+            personality: "Vigilante, protetor, focado em segurança de ponta a ponta e anomalias de transação.",
+            tagline: "Detecta cobranças indevidas, fraudes e tarifas surpresa antes de você perceber.",
+            avatarBg: "from-orange-600/30 to-amber-600/20",
+            avatarEmoji: "🦊",
+            accentColor: "#FF8216",
+            suggestedPrompt: "Sentinela Kitsune, faça uma varredura preventiva em todas as minhas contas e aponte qualquer movimentação suspeita.",
+            calculateDiagnostic: (data) => {
+                return {
+                    headline: "Escudo Ativo em 100% das Contas",
+                    metricLabel: "Status do Cofre",
+                    metricValue: "Blindado",
+                    advice: "Nenhuma fraude ou invasão detectada. Suas conexões Open Finance estão criptografadas sob RLS e monitoradas em tempo real.",
+                    alertLevel: "success",
+                };
+            },
+        },
+        {
+            id: "kuro",
+            name: "Kuro",
             role: "Fiscal Ranzinza & Guardião do Limite",
             personality: "Austero, direto, anti-desperdício e impiedoso com compras por impulso.",
             tagline: "Reclama quando você gastar de um jeito absurdo e calcula o custo de não comprar.",
             avatarBg: "from-amber-600/30 to-yellow-600/20",
             avatarEmoji: "😾",
             accentColor: "#D97706",
-            suggestedPrompt: "Julius, audite meus gastos com delivery e compras por impulso deste mês. O que devo cortar imediatamente?",
+            suggestedPrompt: "Kuro, audite meus gastos com delivery e compras por impulso deste mês. O que devo cortar imediatamente?",
             calculateDiagnostic: (data) => {
                 const sup = data.superfluousExpense;
                 if (sup > 500) {
@@ -161,15 +181,15 @@ export default function AgentsHubPage() {
             },
         },
         {
-            id: "sherlock",
-            name: "Sherlock",
+            id: "kenji",
+            name: "Kenji",
             role: "Investigador de Extratos & Categorias",
             personality: "Analítico, minucioso, mestre em decodificar abreviações bancárias.",
             tagline: "Corrige suas categorias, rastreia cobranças estranhas e aprende sua rotina.",
             avatarBg: "from-blue-600/30 to-cyan-600/20",
             avatarEmoji: "🐱‍👓",
             accentColor: "#2563EB",
-            suggestedPrompt: "Sherlock, examine meu extrato recente e aponte quaisquer transações anormais ou estabelecimentos não identificados.",
+            suggestedPrompt: "Kenji, examine meu extrato recente e aponte quaisquer transações anormais ou estabelecimentos não identificados.",
             calculateDiagnostic: (data) => {
                 return {
                     headline: "Dossiê de Transações Auditado",
@@ -181,15 +201,15 @@ export default function AgentsHubPage() {
             },
         },
         {
-            id: "tio-patinhas",
-            name: "Tio Patinhas",
+            id: "daiko",
+            name: "Daiko",
             role: "Estrategista de Patrimônio & Multiplicação",
             personality: "Ambicioso, focado em rendimentos passivos e avesso a dinheiro parado.",
             tagline: "Analisa seus saldos ociosos e sugere oportunidades diárias de renda fixa.",
             avatarBg: "from-emerald-600/30 to-teal-600/20",
             avatarEmoji: "🎩",
             accentColor: "#059669",
-            suggestedPrompt: "Tio Patinhas, tenho dinheiro parado na conta corrente? Quanto estou perdendo de juros e como alocar melhor?",
+            suggestedPrompt: "Daiko, tenho dinheiro parado na conta corrente? Quanto estou perdendo de juros e como alocar melhor?",
             calculateDiagnostic: (data) => {
                 const idleCash = Math.max(0, data.liquidBalance - 1500);
                 const annualYield = idleCash * 0.1075;
@@ -212,15 +232,15 @@ export default function AgentsHubPage() {
             },
         },
         {
-            id: "bugiganga",
-            name: "Inspetor Bugiganga",
+            id: "kage",
+            name: "Kage",
             role: "Caçador de Cobranças Duplicadas & Erros",
             personality: "Detalhista, curioso, focado em estornos de tarifas indevidas.",
             tagline: "Encontra cobranças duplicadas, taxas ocultas e assinaturas esquecidas no seu extrato.",
             avatarBg: "from-purple-600/30 to-pink-600/20",
             avatarEmoji: "🕵️‍♂️",
             accentColor: "#9333EA",
-            suggestedPrompt: "Inspetor Bugiganga, varra minhas transações e me mostre se houve alguma cobrança repetida no cartão ou taxas bancárias abusivas.",
+            suggestedPrompt: "Kage, varra minhas transações e me mostre se houve alguma cobrança repetida no cartão ou taxas bancárias abusivas.",
             calculateDiagnostic: (data) => {
                 const dups = data.duplicateCandidates.length;
                 if (dups > 0) {
@@ -243,15 +263,15 @@ export default function AgentsHubPage() {
             },
         },
         {
-            id: "megamen",
-            name: "Megamen",
+            id: "ren",
+            name: "Ren",
             role: "Sentinela de Limites & Projeção Futura",
             personality: "Rápido, vigilante, focado em queima de caixa e runway pessoal.",
             tagline: "Alerta quando você ultrapassar o limite de gastos e calcula o dia do fechamento.",
             avatarBg: "from-rose-600/30 to-red-600/20",
             avatarEmoji: "⚡",
             accentColor: "#E11D48",
-            suggestedPrompt: "Megamen, qual é a projeção do meu saldo no último dia do mês se eu mantiver meu ritmo de gastos diário?",
+            suggestedPrompt: "Ren, qual é a projeção do meu saldo no último dia do mês se eu mantiver meu ritmo de gastos diário?",
             calculateDiagnostic: (data) => {
                 const burn = data.burnRate;
                 const proj = data.projectedExpense;
@@ -270,21 +290,21 @@ export default function AgentsHubPage() {
             },
         },
         {
-            id: "silvio",
-            name: "Silvio",
+            id: "takeshi",
+            name: "Takeshi",
             role: "Negociador de Economia & Vantagens",
             personality: "Persuasivo, carismático, especialista em pechinchar e encontrar cupons.",
             tagline: "Encontra oportunidades para você pagar menos e trocar serviços caros.",
             avatarBg: "from-amber-500/30 to-orange-600/20",
             avatarEmoji: "🎤",
             accentColor: "#EA580C",
-            suggestedPrompt: "Silvio, compare meus gastos recorrentes e assinaturas. Onde posso renegociar ou conseguir descontos?",
+            suggestedPrompt: "Takeshi, quais assinaturas recorrentes eu poderia cancelar ou renegociar para economizar este mês?",
             calculateDiagnostic: (data) => {
                 return {
-                    headline: "Potencial de Otimização Mensal",
-                    metricLabel: "Economia Recorrente Estimada",
-                    metricValue: "Até R$ 180,00/mês",
-                    advice: "Revisar planos de internet e cancelar 1 serviço de streaming não utilizado pode economizar mais de R$ 2.000 ao ano.",
+                    headline: "Oportunidades de Economia Mapeadas",
+                    metricLabel: "Potencial de Renegociação",
+                    metricValue: "Até R$ 180/mês",
+                    advice: "Você possui assinaturas ativas que podem ser convertidas em planos anuais com até 30% de desconto ou unificadas em pacotes família.",
                     alertLevel: "info",
                 };
             },

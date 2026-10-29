@@ -87,6 +87,26 @@ export default function KitsuneAIPage() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [selectedScope, setSelectedScope] = useState<string>("personal");
+  const [thinkingStep, setThinkingStep] = useState<number>(0);
+
+  // Etapas de raciocínio da Kitsune AI em tempo real
+  const THINKING_STEPS = [
+    { icon: "search", label: "Consultando cofre financeiro e decodificando extratos..." },
+    { icon: "account_balance", label: "Conciliando faturas, limites e taxas Open Finance..." },
+    { icon: "security", label: "Auditando fluxo de caixa e anomalias de consumo..." },
+    { icon: "auto_awesome", label: "Formulando recomendações estratégicas personalizadas..." },
+  ];
+
+  useEffect(() => {
+    if (!isLoading) {
+      setThinkingStep(0);
+      return;
+    }
+    const timer = setInterval(() => {
+      setThinkingStep((prev) => (prev + 1) % THINKING_STEPS.length);
+    }, 1300);
+    return () => clearInterval(timer);
+  }, [isLoading]);
 
   // Imagem anexada para Kitsune Vision integrada
   const [attachedImage, setAttachedImage] = useState<{
@@ -445,51 +465,51 @@ export default function KitsuneAIPage() {
     const liquidAccs = accounts.filter((a) => a.type !== "CREDIT" && a.subtype !== "CREDIT_CARD");
     const totalLiquid = liquidAccs.reduce((sum, a) => sum + (Number(a.balance) || 0), 0);
 
-    // 1. Agente Julius (Supérfluos e Compras por Impulso)
+    // 1. Agente Kuro (Supérfluos e Compras por Impulso)
     list.push({
-      id: "agent_julius",
-      category: "Julius 😾",
+      id: "agent_kuro",
+      category: "Kuro 😾",
       icon: "warning",
-      label: "Julius: Vale a pena o que gastei com delivery e supérfluos?",
-      query: "Julius, analise minhas compras com delivery, lazer e supérfluos deste mês. Seja sincero: o que eu deveria cortar imediatamente?",
+      label: "Kuro: Vale a pena o que gastei com delivery e supérfluos?",
+      query: "Kuro, analise minhas compras com delivery, lazer e supérfluos deste mês. Seja sincero: o que eu deveria cortar imediatamente?",
     });
 
-    // 2. Agente Tio Patinhas (Rendimento & Dinheiro Parado)
+    // 2. Agente Daiko (Rendimento & Dinheiro Parado)
     if (totalLiquid > 500) {
       list.push({
-        id: "agent_patinhas",
-        category: "Tio Patinhas 🎩",
+        id: "agent_daiko",
+        category: "Daiko 🎩",
         icon: "savings",
-        label: `Tio Patinhas: Quanto meus ${formatCurrency(totalLiquid)} parados renderiam?`,
-        query: `Tio Patinhas, tenho ${formatCurrency(totalLiquid)} parados em conta corrente. Quanto estou perdendo por não investir no CDI/Selic e qual melhor alocação para hoje?`,
+        label: `Daiko: Quanto meus ${formatCurrency(totalLiquid)} parados renderiam?`,
+        query: `Daiko, tenho ${formatCurrency(totalLiquid)} parados em conta corrente. Quanto estou perdendo por não investir no CDI/Selic e qual melhor alocação para hoje?`,
       });
     }
 
-    // 3. Agente Sherlock (Detetive de Extrato & Estabelecimentos Estranhos)
+    // 3. Agente Kenji (Detetive de Extrato & Estabelecimentos Estranhos)
     list.push({
-      id: "agent_sherlock",
-      category: "Sherlock 🐱‍👓",
+      id: "agent_kenji",
+      category: "Kenji 🐱‍👓",
       icon: "search",
-      label: "Sherlock: Audite meu extrato recente e aponte anomalias",
-      query: "Sherlock, examine minhas últimas transações e aponte compras estranhas, horários fora do comum ou estabelecimentos com nomes misteriosos.",
+      label: "Kenji: Audite meu extrato recente e aponte anomalias",
+      query: "Kenji, examine minhas últimas transações e aponte compras estranhas, horários fora do comum ou estabelecimentos com nomes misteriosos.",
     });
 
-    // 4. Agente Inspetor Bugiganga (Cobranças Duplicadas e Tarifas Ocultas)
+    // 4. Agente Kage (Cobranças Duplicadas e Tarifas Ocultas)
     list.push({
-      id: "agent_bugiganga",
-      category: "Bugiganga 🕵️‍♂️",
+      id: "agent_kage",
+      category: "Kage 🕵️‍♂️",
       icon: "find_in_page",
-      label: "Inspetor Bugiganga: Rastreie cobranças duplicadas ou tarifas",
-      query: "Inspetor Bugiganga, varra meu extrato e identifique se fui cobrado em duplicidade na mesma data ou se há tarifas bancárias abusivas para estornar.",
+      label: "Kage: Rastreie cobranças duplicadas ou tarifas bancárias",
+      query: "Kage, varra meu extrato e identifique se fui cobrado em duplicidade na mesma data ou se há tarifas bancárias abusivas para estornar.",
     });
 
-    // 5. Agente Megamen (Ritmo Diário & Burn Rate)
+    // 5. Agente Ren (Ritmo Diário & Burn Rate)
     list.push({
-      id: "agent_megamen",
-      category: "Megamen ⚡",
+      id: "agent_ren",
+      category: "Ren ⚡",
       icon: "speed",
-      label: "Megamen: Qual meu ritmo de gastos diário até o fim do mês?",
-      query: "Megamen, calcule minha velocidade diária de gastos (burn rate) e me diga se meu saldo vai aguentar com folga até o último dia do mês.",
+      label: "Ren: Qual meu ritmo de gastos diário até o fim do mês?",
+      query: "Ren, calcule minha velocidade diária de gastos (burn rate) e me diga se meu saldo vai aguentar com folga até o último dia do mês.",
     });
 
     // 6. Faturas de Cartão e Folga de Caixa
@@ -805,18 +825,41 @@ export default function KitsuneAIPage() {
         currentSessionIdRef.current = data.sessionId;
       }
 
+      const fullText = data.message || "";
       const assistantMsgId = `assistant-${Date.now()}`;
       setStreamingMessageId(assistantMsgId);
+      setIsLoading(false);
 
-      const assistantMsg = {
-        id: assistantMsgId,
-        role: "assistant" as const,
-        content: data.message,
-        timestamp: new Date().toISOString(),
-        modelUsed: data.modelUsed,
-      };
+      // Inicia a resposta vazia e preenche suavemente (Efeito Typewriter Fluido)
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          id: assistantMsgId,
+          role: "assistant" as const,
+          content: "",
+          timestamp: new Date().toISOString(),
+          modelUsed: data.modelUsed,
+        },
+      ]);
 
-      setChatMessages((prev) => [...prev, assistantMsg]);
+      const words = fullText.split(" ");
+      let currentIdx = 0;
+      let buffer = "";
+
+      const streamTimer = setInterval(() => {
+        if (currentIdx >= words.length) {
+          clearInterval(streamTimer);
+          setStreamingMessageId(null);
+          return;
+        }
+        const chunk = words.slice(currentIdx, currentIdx + 3).join(" ") + (currentIdx + 3 < words.length ? " " : "");
+        buffer += (buffer.length > 0 && !buffer.endsWith(" ") ? " " : "") + chunk;
+        currentIdx += 3;
+
+        setChatMessages((prev) =>
+          prev.map((m) => (m.id === assistantMsgId ? { ...m, content: buffer } : m))
+        );
+      }, 30);
     } catch (err: any) {
       const errorMsg = {
         id: `err-${Date.now()}`,
@@ -896,7 +939,7 @@ export default function KitsuneAIPage() {
       : familyMembers.find((m) => m.id === selectedScope)?.name || "Membro";
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-3.5rem)] md:h-dvh w-full max-w-full overflow-hidden bg-slate-50 dark:bg-[#0B0E14] text-slate-900 dark:text-[#F8FAFC] font-sans">
+    <div className="flex flex-col h-[calc(100dvh-3.5rem)] md:h-dvh w-full max-w-full overflow-hidden bg-slate-50 dark:bg-[#0A0A0A] text-slate-900 dark:text-[#F8FAFC] font-sans">
       {/* Top Header */}
       <header className="px-3 md:px-8 py-2.5 md:py-3.5 border-b border-slate-200 dark:border-[#262E3D] bg-white/95 dark:bg-[#0E121A]/95 backdrop-blur-md flex items-center justify-between gap-3 shrink-0 z-30">
         <div className="flex items-center gap-2.5 min-w-0">
@@ -1154,27 +1197,34 @@ export default function KitsuneAIPage() {
           ))}
         </AnimatePresence>
 
-        {/* Indicador de Digitação Elegante (Zero Ícones Gigantes) */}
+        {/* Indicador de Raciocínio em Tempo Real com Etapas Transparentes */}
         {isLoading && (
           <motion.div
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-start gap-2.5 max-w-[85%]"
+            className="flex items-start gap-2.5 max-w-[90%]"
           >
             <div className="w-8 h-8 rounded-xl bg-[#FF8216]/10 border border-[#FF8216]/25 flex items-center justify-center shrink-0">
-              <span className="material-symbols-outlined text-[#FF8216] text-[18px]">
-                auto_awesome
+              <span className="material-symbols-outlined text-[#FF8216] text-[18px] animate-spin" style={{ animationDuration: "3s" }}>
+                {THINKING_STEPS[thinkingStep]?.icon || "auto_awesome"}
               </span>
             </div>
-            <div className="px-4 py-3 rounded-2xl rounded-tl-sm bg-white dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] text-xs text-slate-600 dark:text-[#94A3B8] flex items-center gap-3 shadow-sm">
+            <div className="px-4 py-3 rounded-2xl rounded-tl-sm bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] text-xs text-slate-600 dark:text-[#94A3B8] flex items-center gap-3 shadow-sm">
               <div className="flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#FF8216] animate-bounce" style={{ animationDelay: "0ms" }} />
                 <span className="w-1.5 h-1.5 rounded-full bg-[#FF8216] animate-bounce" style={{ animationDelay: "150ms" }} />
                 <span className="w-1.5 h-1.5 rounded-full bg-[#FF8216] animate-bounce" style={{ animationDelay: "300ms" }} />
               </div>
-              <span className="font-medium text-slate-700 dark:text-slate-300">
-                Kitsune AI está analisando seu patrimônio...
-              </span>
+              <div className="flex flex-col gap-0.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.2 rounded-md bg-[#FF8216]/15 text-[#FF8216]">
+                    Etapa {thinkingStep + 1}/4
+                  </span>
+                  <span className="font-semibold text-slate-800 dark:text-zinc-200">
+                    {THINKING_STEPS[thinkingStep]?.label}
+                  </span>
+                </div>
+              </div>
             </div>
           </motion.div>
         )}
@@ -1246,7 +1296,7 @@ export default function KitsuneAIPage() {
       </div>
 
       {/* Caixa de Entrada Inferior */}
-      <div className="p-3 md:p-4 bg-white dark:bg-[#0B0E14] border-t border-slate-200 dark:border-[#262E3D] z-20 shrink-0">
+      <div className="p-3 md:p-4 bg-white dark:bg-[#0A0A0A] border-t border-slate-200 dark:border-[#27272A] z-20 shrink-0">
         <form
           onSubmit={handleSubmit}
           className="max-w-4xl mx-auto bg-slate-50 dark:bg-[#12161F] border border-slate-200 dark:border-[#262E3D] focus-within:border-[#FF8216] rounded-2xl p-2.5 md:p-3 shadow-md flex flex-col gap-2 transition-colors"

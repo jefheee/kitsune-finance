@@ -47,6 +47,17 @@
 ---
 
 ## 3. Módulos Implementados
+- [x] Refatoração Global de Categorias: eliminação da distorção de R$ 40k, exclusão de aportes/resgates de investimento e TEDs próprias, com navegação mensal independente (< / >) e filtro pelo período selecionado
+- [x] Carrossel Apple Wallet de Cartões com interação por Mouse-Drag (`cursor-grab`) e Touch Swipe, barra de limite (usado vs livre), faturas detalhadas, dicas dinâmicas por cartão e seleção interativa
+- [x] Dynamic Style Resolver (`resolveCardTheme`) com reconhecimento inteligente de bancos e cartões (Black, Ultravioleta, Uniclass, Azul Itaú, Inter, C6 Carbon, etc.) com reflexo especular minimalista
+- [x] Espaço Compartilhado (Duo & Família): reativação completa da aba e toggle no header, conciliação segura de Pix e remanejamentos patrimoniais com consentimento mútuo
+- [x] Pacing Inteligente na Kitsune AI: exibição de 4 etapas de raciocínio em tempo real (Conectando, Conciliando, Auditando, Formulando) e streaming fluído via efeito máquina de escrever
+- [x] Central de Agentes Oficiais Kitsune (Sentinela Kitsune, Kuro, Daiko, Kage, Ren, Kenji, Takeshi) com cálculo em tempo real e identidade própria
+- [x] Transparência de Origem ("Fonte dos Dados") nos 4 KPIs do Dashboard detalhando a contagem exata de contas e lançamentos bancários conciliados
+- [x] Rendimento em Investimentos & Carteira Consolidada: cálculo de lucro acumulado e rendimento projetado mensal (~100% CDI / 0,85% a.m.)
+- [x] Identidade Warm Obsidian (#0A0A0A/#121214/#27272A) alinhada à Landing Page e eliminação de tremidos na troca de páginas (`scrollbar-gutter: stable`)
+- [x] Landing Page Otimizada: Marquee 100% SVG oficial sem textos pesados, inclusão de cooperativas (Civia, Unicred, Ailos, Cresol) e eliminação do lag no Hero
+- [x] Auditoria de Segurança Git: verificação minuciosa do repositório, histórico e branches confirmando 0 vazamentos de credenciais, chaves ou variáveis de ambiente
 - [x] Fusão do Kitsune Vision Multimodal no Chat (/kitsune) com câmera ao vivo WebRTC, galeria, compressão client-side em canvas e OCR de alta fidelidade
 - [x] Criação da Rota Dedicada de Cartões (/cards) estilo Wallet com proporção proporcional, faturas reais por cartão e auditoria de tarifas/anuidade
 - [x] Criação da Rota Dedicada de Investimentos (/investments) com termômetro macroeconômico Brasil (Selic, CDI, IPCA, Juro Real, Ibovespa, Dólar) e alocação estratégica adaptativa

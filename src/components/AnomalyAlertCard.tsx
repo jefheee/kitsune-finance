@@ -50,7 +50,7 @@ export function AnomalyAlertCard() {
 
   return (
     <div
-      className={`p-4 rounded-2xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3.5 transition-all shadow-xs ${
+      className={`p-4 rounded-2xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3.5 transition-all duration-700 ease-out animate-in fade-in slide-in-from-top-2 shadow-xs ${
         isDanger
           ? "bg-rose-500/10 border-rose-500/30 text-rose-950 dark:text-rose-100"
           : "bg-[#FF8216]/10 border-[#FF8216]/30 text-amber-950 dark:text-orange-100"
@@ -75,7 +75,7 @@ export function AnomalyAlertCard() {
                   : "bg-[#FF8216]/20 text-[#FF8216]"
               }`}
             >
-              Agente Albert • Alerta Preventivo
+              Sentinela Kitsune • Alerta Preventivo
             </span>
             <span className="text-xs font-bold text-slate-900 dark:text-white">
               {current.title}
@@ -90,7 +90,7 @@ export function AnomalyAlertCard() {
       <div className="flex items-center gap-2 shrink-0 self-stretch sm:self-auto">
         <Link
           href={`/kitsune?prompt=${encodeURIComponent(
-            `Kitsune AI, o Agente Albert detectou um alerta preventivo: "${current.title} - ${current.description}". Por favor, faça uma auditoria aprofundada desse lançamento com base nos meus dados bancários. É uma cobrança duplicada ou parcelamento legítimo? Qual recomendação prática você me dá?`
+            `Kitsune AI, o Sentinela Kitsune detectou um alerta preventivo: "${current.title} - ${current.description}". Por favor, faça uma auditoria aprofundada desse lançamento com base nos meus dados bancários. É uma cobrança duplicada ou parcelamento legítimo? Qual recomendação prática você me dá?`
           )}`}
           className="flex-1 sm:flex-initial h-8 px-3 rounded-lg bg-[#FF8216] hover:bg-[#FFA047] text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
         >
