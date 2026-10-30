@@ -47,6 +47,7 @@
 ---
 
 ## 3. Módulos Implementados
+- [x] Landing Page Atualizada: Remoção completa de menções e links do "Kitsune Vision" autônomo, unificando a navegação para Kitsune AI (`/kitsune`) e substituindo o card de visão computacional por Consultoria Autônoma Patrimonial.
 - [x] Espaço Compartilhado Multi-Membro com Supabase RLS: Suporte a múltiplos membros simultâneos (além de duo), expansão de vínculos (Cônjuge, Familiar, Filho, Sócio, Parceiro Financeiro, Amigo, Workspace, Personalizado), resolução de e-mail via RPC seguro com SECURITY DEFINER, código de convite explícito (`KT-XXXX`), link direto (`?accept_invite=...`) e botões de compartilhamento 1-clique (WhatsApp e Gmail).
 - [x] Carteira de Cartões Master-Detail & Interação em 2 Toques (`WalletCards.tsx`): layout split desktop onde a pilha vertical fica à esquerda e os detalhes do cartão ativo (limite, faturas, dicas dinâmicas, últimos lançamentos) à direita. Interação em 2 cliques (1º expande prévia, 2º seleciona cartão) e ordem invertida com o cartão mais relevante no topo. Mobile 100% clean estilo Pierre Finance.
 - [x] Lenis Smooth Scrolling Desbloqueado Globalmente: Remoção do overflow restritivo no container pai do AppShell e adição de interceptor para âncoras na Landing Page (`#vantagens`, `#recursos`, etc.).
