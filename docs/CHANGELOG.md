@@ -4,6 +4,15 @@ Todas as alterações notáveis no projeto Kitsune Finance são registradas de f
 
 ---
 
+## [2026-10-29] - Remoção do Kitsune Vision da Landing Page
+- **Arquivos Afetados:** `src/app/page.tsx`, `docs/PROJECT_STATE.md`, `docs/CHANGELOG.md`.
+- **Objetivo:**
+  - Remoção de todas as menções e links do "Kitsune Vision" na landing page.
+  - O atalho da barra de navegação superior foi unificado para `Kitsune AI` (`/kitsune`), integrando as funcionalidades de diagnóstico de forma coesa.
+  - Substituição do card isolado de visão computacional na seção de destaques por `Kitsune AI • Consultoria Autônoma`, destacando auditoria orçamentária e consultoria patrimonial contínua.
+
+---
+
 ## [2026-10-29] - Refatoração do Espaço Compartilhado Multi-Membro, Carteira de Cartões Master-Detail, Lenis Global e Otimizações de UX
 - **Arquivos Afetados:** `src/app/dashboard/page.tsx`, `src/components/finance/WalletCards.tsx`, `src/components/finance/CategoriesView.tsx`, `src/components/charts/CategoryDonutChart.tsx`, `src/app/kitsune/page.tsx`, `src/app/agents/page.tsx`, `src/app/connections/page.tsx`, `src/app/cards/page.tsx`, `src/app/investments/page.tsx`, `src/components/layout/AppShell.tsx`, `src/components/providers/SmoothScrollProvider.tsx`, `src/app/api/shared-space/route.ts`, `src/context/FinanceDataContext.tsx`, `docs/PROJECT_STATE.md`, `docs/CHANGELOG.md`.
 - **Objetivo:**
