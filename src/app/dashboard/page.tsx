@@ -22,6 +22,16 @@ import { PaginatedTransactionsView } from "@/components/finance/PaginatedTransac
 import { SpotlightCard } from "@/components/react-bits/SpotlightCard";
 import { ShinyText } from "@/components/react-bits/ShinyText";
 
+
+const FINANCIAL_GOALS_MAP: Record<string, string> = {
+    asset_growth: 'Crescimento e Alocação Estratégica',
+    emergency_fund: 'Construção de Reserva de Emergência',
+    debt_payoff: 'Quitação de Dívidas e Alavancagem',
+    reduce_expenses: 'Otimização de Custos e Gastos',
+    investir: 'Multiplicação Patrimonial e Renda Passiva',
+    'investir e multiplicar': 'Crescimento e Alocação Estratégica',
+};
+
 export default function DashboardPage() {
     const {
         user,
@@ -76,6 +86,8 @@ export default function DashboardPage() {
     const [isValidatingCode, setIsValidatingCode] = useState(false);
     const [sharedMessage, setSharedMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
     const [copiedCodeOrLink, setCopiedCodeOrLink] = useState<string | null>(null);
+    const [lastCreatedInvite, setLastCreatedInvite] = useState<{ code: string; email: string; url: string } | null>(null);
+    const [yearNotice, setYearNotice] = useState<string | null>(null);
 
     const fetchSharedSpace = useCallback(async () => {
         try {
@@ -121,9 +133,16 @@ export default function DashboardPage() {
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "Erro ao enviar convite");
+            const generatedCode = data.invite_code || data.inviteCode || data.connection?.invite_code || "KT-INVITE";
+            const generatedUrl = data.inviteUrl || ("https://kitsune-finance.vercel.app/dashboard?accept_invite=" + generatedCode);
+            setLastCreatedInvite({
+                code: generatedCode,
+                email: inviteEmail.trim(),
+                url: generatedUrl,
+            });
             setSharedMessage({
                 type: "success",
-                text: `Convite enviado com sucesso para ${inviteEmail}! Código gerado: ${data.invite_code}`,
+                text: "Convite gerado com sucesso para " + inviteEmail + "! Código: " + generatedCode,
             });
             setInviteEmail("");
             setInviteName("");
@@ -143,7 +162,7 @@ export default function DashboardPage() {
             const res = await fetch("/api/shared-space", {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ inviteCode, action }),
+                body: JSON.stringify({ code: inviteCode, inviteCode, action }),
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "Erro ao processar convite");
@@ -219,10 +238,8 @@ export default function DashboardPage() {
         "Visão Geral",
         "Transações",
         "Categorias",
-        "Cartões",
         "Parcelamentos",
         "Assinaturas",
-        "Investimentos",
         "Espaço Compartilhado",
     ];
 
@@ -648,7 +665,9 @@ export default function DashboardPage() {
                 if (!rawDate) return false;
                 const txDate = new Date(rawDate);
                 // Bloqueia lançamentos futuros (ex: parcelas de compras projetadas para meses seguintes)
-                if (txDate.getTime() > now.getTime() + 86400000) return false;
+                const todayIso = now.toISOString().split("T")[0];
+                const txIso = rawDate.includes("T") ? rawDate.split("T")[0] : rawDate.split(" ")[0];
+                if (txIso > todayIso || txDate.getTime() > now.getTime()) return false;
                 const amt = Number(t.amount) || 0;
                 const isExp = amt < 0 || t.type === "DEBIT" || t.operation_type === "CREDIT_CARD";
                 return isExp && Math.abs(amt) > 0;
@@ -752,7 +771,9 @@ export default function DashboardPage() {
             text = `Consolidação e alocação compartilhada em andamento com ${accounts.length} contas monitoradas.`;
         }
 
-        return { goal, progress, text };
+        const cleanGoal = goal.toLowerCase().trim();
+        const goalLabel = FINANCIAL_GOALS_MAP[cleanGoal] || (cleanGoal.includes("invest") ? "Crescimento Patrimonial e Renda Passiva" : cleanGoal.includes("reserva") ? "Construção de Reserva de Emergência" : cleanGoal.includes("gasto") ? "Otimização de Custos e Gastos" : "Crescimento e Alocação Estratégica");
+        return { goal: goalLabel, goalRaw: goal, progress, text };
     }, [userProfile?.financial_goal, liquidBalance, monthlyExpense, monthlyIncome, totalBalance, investmentsBalance, creditCardBalance, accounts.length, formatCurrency]);
 
     useEffect(() => {
@@ -1961,7 +1982,7 @@ export default function DashboardPage() {
                                         diversity_3
                                     </span>
                                     <h2 className="text-base font-bold text-slate-900 dark:text-[#F8FAFC]">
-                                        Espaço Compartilhado (Duo & Família)
+                                        Espaço Compartilhado
                                     </h2>
                                 </div>
                                 <p className="text-xs text-slate-500 dark:text-[#94A3B8] max-w-2xl leading-relaxed">
@@ -2186,9 +2207,13 @@ export default function DashboardPage() {
                                                 onChange={(val) => setInviteRole(val)}
                                                 options={[
                                                     { value: "Cônjuge", label: "Cônjuge / Parceiro(a)" },
+                                                    { value: "Familiar", label: "Familiar / Parente" },
                                                     { value: "Filho(a)", label: "Filho(a) / Dependente" },
                                                     { value: "Sócio(a)", label: "Sócio(a) / Duo Profissional" },
-                                                    { value: "Outro", label: "Outro Vínculo" },
+                                                    { value: "Parceiro Financeiro", label: "Parceiro(a) de Negócios / Financeiro" },
+                                                    { value: "Amigo(a)", label: "Amigo(a) / República" },
+                                                    { value: "Membro Workspace", label: "Membro do Workspace" },
+                                                    { value: "Personalizado", label: "Outro / Personalizado" },
                                                 ]}
                                             />
                                         </div>
@@ -2207,6 +2232,72 @@ export default function DashboardPage() {
                                             )}
                                             <span>Enviar Convite Seguro</span>
                                         </button>
+
+                                        {lastCreatedInvite && (
+                                            <div className="mt-2 p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex flex-col gap-2.5">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="material-symbols-outlined text-emerald-500 text-base">check_circle</span>
+                                                        <span className="text-xs font-bold text-emerald-500">Convite Pronto para Enviar</span>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setLastCreatedInvite(null)}
+                                                        className="text-xs text-slate-400 hover:text-white cursor-pointer"
+                                                    >
+                                                        ✕
+                                                    </button>
+                                                </div>
+                                                <p className="text-[11px] text-slate-300">
+                                                    Convite para <strong className="text-white">{lastCreatedInvite.email}</strong> criado. Compartilhe o código ou o link direto:
+                                                </p>
+                                                <div className="flex items-center gap-2 bg-black/40 p-2 rounded-lg border border-white/10">
+                                                    <code className="text-xs font-mono font-bold text-[#FF8216] flex-1">
+                                                        {lastCreatedInvite.code}
+                                                    </code>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            navigator.clipboard.writeText(lastCreatedInvite.code);
+                                                            setCopiedCodeOrLink("code");
+                                                            setTimeout(() => setCopiedCodeOrLink(null), 2500);
+                                                        }}
+                                                        className="px-2 py-1 rounded bg-[#FF8216] text-white text-[10px] font-bold hover:bg-[#FFA047] cursor-pointer"
+                                                    >
+                                                        {copiedCodeOrLink === "code" ? "Copiado!" : "Copiar Código"}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            navigator.clipboard.writeText(lastCreatedInvite.url);
+                                                            setCopiedCodeOrLink("link");
+                                                            setTimeout(() => setCopiedCodeOrLink(null), 2500);
+                                                        }}
+                                                        className="px-2 py-1 rounded bg-white/10 text-white text-[10px] font-bold hover:bg-white/20 cursor-pointer"
+                                                    >
+                                                        {copiedCodeOrLink === "link" ? "Copiado!" : "Copiar Link"}
+                                                    </button>
+                                                </div>
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <a
+                                                        href={`https://wa.me/?text=${encodeURIComponent(`Olá! Estou te convidando para conectar seu patrimônio no Kitsune Finance no nosso Espaço Compartilhado. Acesse o link para aceitar: ${lastCreatedInvite.url} (Código: ${lastCreatedInvite.code})`)}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="px-2.5 py-1 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold flex items-center gap-1"
+                                                    >
+                                                        <span className="material-symbols-outlined text-xs">chat</span>
+                                                        <span>Enviar via WhatsApp</span>
+                                                    </a>
+                                                    <a
+                                                        href={`mailto:${lastCreatedInvite.email}?subject=${encodeURIComponent("Convite para Espaço Compartilhado - Kitsune Finance")}&body=${encodeURIComponent(`Olá!\n\nVocê recebeu um convite para conectar seu patrimônio ao Espaço Compartilhado no Kitsune Finance com conciliação mútua.\n\nAcesse o link direto:\n${lastCreatedInvite.url}\n\nOu utilize o código de convite: ${lastCreatedInvite.code}\n\nAté logo,\nKitsune Finance`)}`}
+                                                        className="px-2.5 py-1 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 text-[10px] font-bold flex items-center gap-1"
+                                                    >
+                                                        <span className="material-symbols-outlined text-xs">mail</span>
+                                                        <span>Enviar via Gmail</span>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        )}
                                     </form>
 
                                     {/* Formulário 2: Inserir Código de Convite Recebido */}

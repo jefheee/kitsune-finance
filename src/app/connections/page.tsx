@@ -20,6 +20,8 @@ export default function ConnectionsPage() {
         isInitialLoading,
         revalidate,
         removeConnectionLocal,
+        isPrivacyMode,
+        formatSensitiveCurrency,
     } = useFinanceData();
 
     const [isLoadingToken, setIsLoadingToken] = useState(false);
@@ -157,13 +159,13 @@ export default function ConnectionsPage() {
     };
 
     return (
-        <div className="flex flex-col gap-6 max-w-6xl mx-auto w-full pb-12 animate-fade-in">
+        <div className="flex flex-col gap-6 p-4 md:p-8 pt-6 md:pt-8 pb-28 md:pb-10 max-w-6xl mx-auto w-full font-sans animate-fade-in">
             {/* Header da Página */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-xl md:text-2xl font-bold text-white flex items-center gap-2.5">
                         <span className="material-symbols-outlined text-[#FF8216]">account_balance</span>
-                        Conexões Bancárias & Open Finance
+                        <span>Conexões Bancárias & Open Finance</span>
                     </h1>
                     <p className="text-xs md:text-sm text-slate-400 mt-1">
                         Gerencie suas instituições vinculadas via Open Finance Brasil oficial com segurança e controle total.
@@ -320,7 +322,7 @@ export default function ConnectionsPage() {
                                         <div>
                                             <span className="text-[11px] text-slate-500 block">Saldo em Contas</span>
                                             <span className="text-sm font-semibold text-white font-mono">
-                                                {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(totalBalance)}
+                                                {formatSensitiveCurrency(totalBalance)}
                                             </span>
                                         </div>
                                         <div>

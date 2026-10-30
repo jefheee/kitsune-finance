@@ -30,10 +30,17 @@ export default function AgentsHubPage() {
         transactions,
         userProfile,
         isInitialLoading,
+        isPrivacyMode,
     } = useFinanceData();
 
     const formatCurrency = (val: number) => {
+        if (isPrivacyMode) return "R$ ••••••";
         return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(val);
+    };
+
+    const maskIfPrivacy = (text: string) => {
+        if (!isPrivacyMode) return text;
+        return text.replace(/R\$\s*[\d.,]+/g, "R$ ••••••");
     };
 
     // Dados consolidados do usuário para alimentar os agentes
@@ -312,16 +319,10 @@ export default function AgentsHubPage() {
     ];
 
     return (
-        <div className="flex flex-col gap-6 max-w-6xl mx-auto w-full pb-16 animate-fade-in">
+        <div className="flex flex-col gap-6 p-4 md:p-8 pt-6 md:pt-8 pb-28 md:pb-10 max-w-6xl mx-auto w-full font-sans animate-fade-in">
             {/* Header da Galeria */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <div className="flex items-center gap-2 mb-1">
-                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#FF8216]/10 text-[#FF8216] border border-[#FF8216]/20">
-                            Equipe Autônoma de Finanças
-                        </span>
-                        <span className="text-xs text-slate-500">• Alimentados com seus dados reais</span>
-                    </div>
                     <h1 className="text-xl md:text-3xl font-bold text-white flex items-center gap-2.5">
                         Agentes Especialistas da Kitsune
                     </h1>
@@ -390,7 +391,7 @@ export default function AgentsHubPage() {
                                         <span className="font-mono text-white text-xs">{diag.metricValue}</span>
                                     </div>
                                     <p className="text-[11px] leading-relaxed text-slate-300 opacity-90">
-                                        {diag.advice}
+                                        {maskIfPrivacy(diag.advice)}
                                     </p>
                                 </div>
                             </div>

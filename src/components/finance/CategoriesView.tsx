@@ -341,6 +341,21 @@ export function CategoriesView({
         return false;
       }
 
+      // Ignora pagamentos de fatura de cartão de crédito e transferências próprias/Pix entre contas
+      if (
+        catLower.includes("fatura") ||
+        descLower.includes("pagamento de fatura") ||
+        descLower.includes("pgto fatura") ||
+        descLower.includes("fatura cartao") ||
+        descLower.includes("fatura do cartão") ||
+        catLower.includes("transferência própria") ||
+        catLower.includes("transferencia propria") ||
+        descLower.includes("transferência própria") ||
+        descLower.includes("transferencia propria")
+      ) {
+        return false;
+      }
+
       // Valida se é realmente uma despesa (valor negativo ou tipo débito/crédito)
       const amt = Number(tx.amount) || 0;
       const isExpense = amt < 0 || tx.type === "DEBIT" || tx.operation_type === "CREDIT_CARD";
@@ -348,7 +363,7 @@ export function CategoriesView({
 
       const rawDate = tx.executed_at || tx.date;
       if (!rawDate) return false;
-      const dStr = rawDate.split("T")[0];
+      const dStr = rawDate.includes("T") ? rawDate.split("T")[0] : rawDate.split(" ")[0];
 
       if (timeGranularity === "day") {
         const txDate = new Date(rawDate);
@@ -448,6 +463,7 @@ export function CategoriesView({
             totalAmount={totalSpend}
             periodLabel="total gasto"
             size={180}
+            formatCurrency={formatCurrency}
           />
         </div>
 

@@ -42,32 +42,46 @@ export async function GET() {
       return NextResponse.json({ error: connError.message }, { status: 500 });
     }
 
-    // 3. Encontrar conexão ativa aceita (se houver)
-    const activeConnection = connections?.find((c) => c.status === 'accepted') || null;
+    // 3. Encontrar todas as conexões ativas aceitas (suporte multi-membros no Espaço Compartilhado)
+    const activeConnections = connections?.filter((c) => c.status === 'accepted') || [];
+    const activeConnection = activeConnections[0] || null;
     let partnerProfile = null;
     let partnerAccountsCount = 0;
+    const activePartners: any[] = [];
 
-    if (activeConnection) {
-      const partnerId =
-        activeConnection.requester_id === user.id
-          ? activeConnection.recipient_id
-          : activeConnection.requester_id;
+    if (activeConnections.length > 0) {
+      for (const conn of activeConnections) {
+        const partnerId =
+          conn.requester_id === user.id
+            ? conn.recipient_id
+            : conn.requester_id;
 
-      if (partnerId) {
-        const [profileRes, accountsRes] = await Promise.all([
-          supabase
-            .from('users_profile')
-            .select('id, display_name, full_name, avatar_url')
-            .eq('id', partnerId)
-            .maybeSingle(),
-          supabase
-            .from('bank_accounts')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', partnerId),
-        ]);
+        if (partnerId) {
+          const [profileRes, accountsRes] = await Promise.all([
+            supabase
+              .from('users_profile')
+              .select('id, display_name, full_name, avatar_url')
+              .eq('id', partnerId)
+              .maybeSingle(),
+            supabase
+              .from('bank_accounts')
+              .select('*', { count: 'exact', head: true })
+              .eq('user_id', partnerId),
+          ]);
 
-        partnerProfile = profileRes.data;
-        partnerAccountsCount = accountsRes.count || 0;
+          const prof = profileRes.data || { id: partnerId };
+          activePartners.push({
+            ...prof,
+            role: conn.role,
+            connection_id: conn.id,
+            accountsCount: accountsRes.count || 0,
+          });
+
+          if (!partnerProfile) {
+            partnerProfile = prof;
+            partnerAccountsCount = accountsRes.count || 0;
+          }
+        }
       }
     }
 
@@ -76,6 +90,8 @@ export async function GET() {
       userAccountsCount: userAccountsCount || 0,
       connections: connections || [],
       activeConnection,
+      activeConnections,
+      activePartners,
       partnerProfile,
       partnerAccountsCount,
     });
@@ -168,12 +184,31 @@ export async function POST(request: Request) {
       );
     }
 
-    // Verificar se o destinatário já está cadastrado no sistema
-    const { data: recipientProfile } = await supabase
-      .from('users_profile')
-      .select('id, display_name, full_name')
-      .contains('emails', [cleanEmail])
-      .maybeSingle();
+    // Tenta resolver o ID do destinatário pelo RPC de segurança ou pelo perfil
+    let resolvedRecipientId: string | null = null;
+    let resolvedRecipientName: string | null = name?.trim() || null;
+
+    try {
+      const { data: foundId } = await supabase.rpc('find_user_by_email', { target_email: cleanEmail });
+      if (foundId) {
+        resolvedRecipientId = foundId;
+      }
+    } catch {
+      // quiet fallback
+    }
+
+    if (!resolvedRecipientId) {
+      const { data: recipientProfile } = await supabase
+        .from('users_profile')
+        .select('id, display_name, full_name')
+        .contains('emails', [cleanEmail])
+        .maybeSingle();
+
+      if (recipientProfile?.id) {
+        resolvedRecipientId = recipientProfile.id;
+        resolvedRecipientName = resolvedRecipientName || recipientProfile.display_name || recipientProfile.full_name || null;
+      }
+    }
 
     const inviteCode = generateInviteCode();
 
@@ -184,8 +219,8 @@ export async function POST(request: Request) {
         requester_email: myEmail || '',
         requester_name: requesterName,
         recipient_email: cleanEmail,
-        recipient_id: recipientProfile?.id || null,
-        recipient_name: name?.trim() || recipientProfile?.display_name || null,
+        recipient_id: resolvedRecipientId,
+        recipient_name: resolvedRecipientName,
         role: role?.trim() || 'Cônjuge',
         invite_code: inviteCode,
         status: 'pending',
@@ -198,12 +233,12 @@ export async function POST(request: Request) {
     }
 
     // Se o usuário convidado já tem conta no sistema, criar notificação in-app imediata
-    if (recipientProfile?.id) {
+    if (resolvedRecipientId) {
       await supabase.from('user_notifications').insert({
-        user_id: recipientProfile.id,
+        user_id: resolvedRecipientId,
         type: 'invite_received',
         title: 'Convite para Espaço Compartilhado',
-        message: `${requesterName} convidou você para vincular contas no Espaço Compartilhado (${role || 'Cônjuge'}).`,
+        message: `${requesterName} convidou você para vincular contas no Espaço Compartilhado (${role || 'Cônjuge'}). Código: ${inviteCode}`,
         data: {
           connection_id: newConn.id,
           invite_code: inviteCode,
@@ -217,6 +252,7 @@ export async function POST(request: Request) {
       success: true,
       connection: newConn,
       inviteCode,
+      invite_code: inviteCode,
       inviteUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://kitsune-finance.vercel.app'}/dashboard?accept_invite=${inviteCode}`,
     });
   } catch (error: any) {
@@ -253,12 +289,13 @@ export async function PATCH(request: Request) {
     }
 
     const body = await request.json();
-    const { code, connectionId, action } = body;
+    const rawCode = (body.code || body.inviteCode || body.invite_code || '') as string;
+    const { connectionId, action } = body;
 
     // Buscar a conexão pelo código ou ID
     let query = supabase.from('shared_connections').select('*');
-    if (code) {
-      query = query.eq('invite_code', code.trim().toUpperCase());
+    if (rawCode) {
+      query = query.eq('invite_code', rawCode.trim().toUpperCase());
     } else if (connectionId) {
       query = query.eq('id', connectionId);
     } else {

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
@@ -10,38 +10,38 @@ import { BankLogo } from "@/components/BankLogo";
 const FINANCIAL_GOALS = [
     {
         id: "emergency_fund",
-        label: "Reserva de EmergÃªncia",
+        label: "Reserva de Emergência",
         desc: "Blindar de 3 a 6 meses de custo de vida para imprevistos.",
         icon: "shield",
     },
     {
         id: "debt_freedom",
-        label: "Zerar Faturas & DÃ­vidas",
-        desc: "Amortizar cartÃµes e viver 100% no positivo sem juros.",
+        label: "Zerar Faturas & Dívidas",
+        desc: "Amortizar cartões e viver 100% no positivo sem juros.",
         icon: "credit_card_off",
     },
     {
         id: "fire_investing",
-        label: "IndependÃªncia Financeira (FIRE)",
-        desc: "Construir patrimÃ´nio gerador de renda passiva mensal.",
+        label: "Independência Financeira (FIRE)",
+        desc: "Construir patrimônio gerador de renda passiva mensal.",
         icon: "rocket_launch",
     },
     {
         id: "asset_growth",
-        label: "Crescimento & AlocaÃ§Ã£o EstratÃ©gica",
-        desc: "Otimizar diversificaÃ§Ã£o entre CDI, AÃ§Ãµes e Fundos.",
+        label: "Crescimento & Alocação Estratégica",
+        desc: "Otimizar diversificação entre CDI, Ações e Fundos.",
         icon: "trending_up",
     },
     {
         id: "real_estate",
-        label: "Conquista de ImÃ³vel / VeÃ­culo",
-        desc: "Poupar para entrada ou aquisiÃ§Ã£o planejada de bens.",
+        label: "Conquista de Imóvel / Veículo",
+        desc: "Poupar para entrada ou aquisição planejada de bens.",
         icon: "home",
     },
     {
         id: "travel_lifestyle",
         label: "Projetos Pessoais & Viagens",
-        desc: "Garantir experiÃªncias sem comprometer o fluxo de caixa.",
+        desc: "Garantir experiências sem comprometer o fluxo de caixa.",
         icon: "flight_takeoff",
     },
 ];
@@ -92,7 +92,7 @@ export default function ProfilePage() {
         if (!file) return;
 
         if (file.size > 2 * 1024 * 1024) {
-            alert("A imagem selecionada Ã© muito grande. O limite mÃ¡ximo Ã© de 2MB.");
+            alert("A imagem selecionada é muito grande. O limite máximo é de 2MB.");
             return;
         }
 
@@ -180,7 +180,7 @@ export default function ProfilePage() {
             setTimeout(() => setSaveSuccess(false), 3500);
         } catch (err: any) {
             console.error("Erro ao salvar perfil:", err);
-            setErrorMessage(err.message || "Erro ao salvar informaÃ§Ãµes do perfil.");
+            setErrorMessage(err.message || "Erro ao salvar informações do perfil.");
         } finally {
             setIsSaving(false);
         }
@@ -196,7 +196,7 @@ export default function ProfilePage() {
                     <div className="flex items-center gap-2">
                         <span className="material-symbols-outlined text-[#FF8216]">person</span>
                         <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-[#94A3B8]">
-                            EspaÃ§o Pessoal & Open Finance
+                            Espaço Pessoal & Open Finance
                         </span>
                     </div>
                     <h1 className="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-[#F8FAFC]">
@@ -212,7 +212,7 @@ export default function ProfilePage() {
                     className="self-start sm:self-auto h-9 px-4 rounded-xl border border-slate-200 dark:border-[#27272A] hover:bg-slate-100 dark:hover:bg-[#18181B] text-xs font-semibold text-slate-700 dark:text-[#F8FAFC] flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                     <span className="material-symbols-outlined text-[16px]">arrow_back</span>
-                    Voltar ao InÃ­cio
+                    Voltar ao Início
                 </Link>
             </div>
 
@@ -237,7 +237,7 @@ export default function ProfilePage() {
                 </div>
             )}
 
-            {/* SeÃ§Ã£o: Perfil Open Finance Consolidado */}
+            {/* Seção: Perfil Open Finance Consolidado */}
             {(userProfile?.document_mask ||
                 (userProfile?.bank_sources && userProfile.bank_sources.length > 0)) && (
                 <section className="bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] rounded-2xl p-5 md:p-6 flex flex-col gap-4 shadow-sm">
@@ -253,7 +253,7 @@ export default function ProfilePage() {
                                     Perfil Open Finance Consolidado
                                 </h2>
                                 <span className="text-xs text-slate-500 dark:text-[#94A3B8]">
-                                    Consenso automÃ¡tico entre {userProfile?.bank_sources?.length || 1} instituiÃ§Ã£o(Ãµes) financeira(s) conectada(s).
+                                    Consenso automático entre {userProfile?.bank_sources?.length || 1} instituição(ões) financeira(s) conectada(s).
                                 </span>
                             </div>
                         </div>
@@ -270,15 +270,15 @@ export default function ProfilePage() {
                                 Data de Nascimento
                             </span>
                             <span className="text-xs font-bold text-slate-900 dark:text-white mt-0.5 block">
-                                {userProfile?.birth_date || "NÃ£o informada"}
+                                {userProfile?.birth_date || "Não informada"}
                             </span>
                         </div>
                         <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A]">
                             <span className="text-[10px] font-bold uppercase text-slate-400 block">
-                                ProfissÃ£o Registrada
+                                Profissão Registrada
                             </span>
                             <span className="text-xs font-bold text-slate-900 dark:text-white mt-0.5 block truncate">
-                                {userProfile?.job_title || "NÃ£o informada"}
+                                {userProfile?.job_title || "Não informada"}
                             </span>
                         </div>
                         <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A]">
@@ -287,8 +287,8 @@ export default function ProfilePage() {
                             </span>
                             <span className="text-xs font-bold text-slate-900 dark:text-white mt-0.5 block truncate">
                                 {userProfile?.phones?.length
-                                    ? userProfile.phones.slice(0, 2).join(" â€¢ ")
-                                    : "NÃ£o informado"}
+                                    ? userProfile.phones.slice(0, 2).join(" ⬢ ")
+                                    : "Não informado"}
                             </span>
                         </div>
                     </div>
@@ -311,7 +311,7 @@ export default function ProfilePage() {
                                             </span>
                                             <span className="text-[10px] text-slate-400 block truncate">
                                                 {src.fullName}
-                                                {src.cityState ? ` â€¢ ${src.cityState}` : ""}
+                                                {src.cityState ? ` ⬢ ${src.cityState}` : ""}
                                             </span>
                                         </div>
                                     </div>
@@ -440,7 +440,7 @@ export default function ProfilePage() {
                             </div>
                             <div className="flex flex-col">
                                 <h2 className="text-sm font-bold text-slate-900 dark:text-[#F8FAFC]">
-                                    Renda Mensal LÃ­quida
+                                    Renda Mensal Líquida
                                 </h2>
                                 <span className="text-xs text-slate-500 dark:text-[#94A3B8]">
                                     Usado pela IA para estimar seu teto de gastos e margem de sobra real.
@@ -452,7 +452,7 @@ export default function ProfilePage() {
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-start pt-1">
                         <div className="md:col-span-5 flex flex-col gap-1.5">
                             <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                                Valor LÃ­quido Mensal (R$)
+                                Valor Líquido Mensal (R$)
                             </label>
                             <div className="relative">
                                 <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
@@ -472,7 +472,7 @@ export default function ProfilePage() {
 
                         <div className="md:col-span-7 flex flex-col gap-2 p-3.5 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A]">
                             <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
-                                DivisÃ£o Recomendada (Regra de Ouro 50/30/20)
+                                Divisão Recomendada (Regra de Ouro 50/30/20)
                             </span>
 
                             <div className="grid grid-cols-3 gap-2 text-center">
@@ -585,7 +585,7 @@ export default function ProfilePage() {
                         ) : (
                             <>
                                 <span className="material-symbols-outlined text-[18px]">save</span>
-                                <span>Salvar InformaÃ§Ãµes</span>
+                                <span>Salvar Informações</span>
                             </>
                         )}
                     </button>

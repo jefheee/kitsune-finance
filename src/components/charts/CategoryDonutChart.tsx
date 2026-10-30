@@ -14,6 +14,8 @@ interface CategoryDonutChartProps {
   totalAmount: number;
   periodLabel?: string;
   size?: number;
+  formatCurrency?: (val: number) => string;
+  isPrivacyMode?: boolean;
 }
 
 export function CategoryDonutChart({
@@ -21,8 +23,16 @@ export function CategoryDonutChart({
   totalAmount,
   periodLabel = "gasto no período",
   size = 180,
+  formatCurrency,
+  isPrivacyMode = false,
 }: CategoryDonutChartProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+
+  const displayFormat = (val: number) => {
+    if (isPrivacyMode) return "R$ ••••••";
+    if (formatCurrency) return formatCurrency(val);
+    return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(val);
+  };
 
   const strokeWidth = 24;
   const radius = (size - strokeWidth) / 2;
@@ -96,10 +106,7 @@ export function CategoryDonutChart({
               {activeCategory.name}
             </span>
             <span className="text-sm font-extrabold text-slate-900 dark:text-white tabular-nums tracking-tight">
-              R${" "}
-              {new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2 }).format(
-                activeCategory.amount
-              )}
+              {displayFormat(activeCategory.amount)}
             </span>
             <span className="text-[10px] text-slate-400 dark:text-[#94A3B8] font-mono">
               {totalAmount > 0
@@ -113,10 +120,7 @@ export function CategoryDonutChart({
               {periodLabel}
             </span>
             <span className="text-sm font-extrabold text-slate-900 dark:text-white tabular-nums tracking-tight">
-              R${" "}
-              {new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2 }).format(
-                totalAmount
-              )}
+              {displayFormat(totalAmount)}
             </span>
           </>
         )}

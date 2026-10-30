@@ -893,7 +893,7 @@ export default function LandingPage() {
             </div>
 
             {/* Right Column: Untitled UI QR Code */}
-            <div className="md:col-span-5 flex flex-col items-start md:items-end gap-3">
+            <div className="hidden md:flex md:col-span-5 flex-col items-start md:items-end gap-3">
               <LandingQrCode />
               <div className="text-left md:text-right">
                 <span className="text-xs font-bold text-white block">

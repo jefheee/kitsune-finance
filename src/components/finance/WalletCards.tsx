@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useRef, useEffect } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import Link from "next/link";
 import { BankLogo } from "@/components/BankLogo";
 import { MerchantLogo } from "@/components/MerchantLogo";
@@ -14,6 +14,7 @@ interface WalletCardsProps {
 }
 
 export function getCardInvoiceAmount(card: any, transactions: any[]): number {
+  if (!card) return 0;
   const rawBal = Number(card.balance);
   if (!isNaN(rawBal) && rawBal !== 0) {
     return Math.abs(rawBal);
@@ -57,6 +58,7 @@ export function WalletCards({ accounts, transactions, formatCurrency: propFormat
             balance_due_date: "10/11",
           }));
 
+    // Ordena de modo que os cartões mais relevantes fiquem posicionados corretamente
     return [...baseList].sort((a, b) => {
       const invA = getCardInvoiceAmount(a, transactions);
       const invB = getCardInvoiceAmount(b, transactions);
@@ -68,11 +70,7 @@ export function WalletCards({ accounts, transactions, formatCurrency: propFormat
   }, [accounts, transactions]);
 
   const [selectedCardIndex, setSelectedCardIndex] = useState<number>(0);
-  const [viewMode, setViewMode] = useState<"stack" | "carousel">("stack");
-  const carouselRef = useRef<HTMLDivElement>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [startX, setStartX] = useState(0);
-  const [scrollLeft, setScrollLeft] = useState(0);
+  const [isStackExpanded, setIsStackExpanded] = useState<boolean>(true);
 
   // Saldo Líquido Consolidado em Contas (para o widget Pierre Finance)
   const totalLiquidBalance = useMemo(() => {
@@ -84,118 +82,97 @@ export function WalletCards({ accounts, transactions, formatCurrency: propFormat
   // Cartão ativo selecionado
   const activeCard = creditCards[selectedCardIndex] || creditCards[0] || null;
 
-  // Sincroniza scroll com o cartão selecionado
-  const scrollToCard = (index: number) => {
-    setSelectedCardIndex(index);
-    if (carouselRef.current) {
-      const cardEl = carouselRef.current.children[index] as HTMLElement;
-      if (cardEl) {
-        cardEl.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
-      }
-    }
-  };
-
-  // Suporte a Mouse Drag no Carrossel de Cartões
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (!carouselRef.current) return;
-    setIsDragging(true);
-    setStartX(e.pageX - carouselRef.current.offsetLeft);
-    setScrollLeft(carouselRef.current.scrollLeft);
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging || !carouselRef.current) return;
-    e.preventDefault();
-    const x = e.pageX - carouselRef.current.offsetLeft;
-    const walk = (x - startX) * 1.5;
-    carouselRef.current.scrollLeft = scrollLeft - walk;
-  };
-
-  const handleMouseUpOrLeave = () => {
-    setIsDragging(false);
-  };
-
-  // Transações associadas exclusivamente a este cartão
-  const cardTransactions = useMemo(() => {
-    if (!activeCard) return [];
-    return transactions
-      .filter((t) => t.account_id === activeCard.id || t.bank_accounts?.id === activeCard.id)
-      .slice(0, 8);
-  }, [transactions, activeCard]);
-
-  // Totais consolidados de faturas e limites
-  const { totalLimitConsolidated, totalAvailableConsolidated, totalCurrentInvoices } = useMemo(() => {
-    let lim = 0;
-    let avail = 0;
-    let inv = 0;
-
-    creditCards.forEach((c) => {
-      const cardInv = getCardInvoiceAmount(c, transactions);
-      const cardLim = Number(c.credit_limit) || (cardInv > 0 ? cardInv * 2.5 : 5000);
-      const cardAvail =
-        Number(c.available_credit_limit) != null
-          ? Number(c.available_credit_limit)
-          : Math.max(0, cardLim - cardInv);
-
-      lim += cardLim;
-      avail += cardAvail;
-      inv += cardInv;
-    });
-
-    return {
-      totalLimitConsolidated: lim,
-      totalAvailableConsolidated: avail,
-      totalCurrentInvoices: inv,
-    };
-  }, [creditCards, transactions]);
-
-  // Métricas do Cartão Ativo
-  const activeCardInvoice = activeCard ? getCardInvoiceAmount(activeCard, transactions) : 0;
-  const activeCardLimit = Number(activeCard?.credit_limit) || (activeCardInvoice > 0 ? activeCardInvoice * 2.5 : 5000);
-  const activeCardAvailable =
-    Number(activeCard?.available_credit_limit) != null
-      ? Number(activeCard?.available_credit_limit)
-      : Math.max(0, activeCardLimit - activeCardInvoice);
-  const limitUsagePercent = activeCardLimit > 0 ? Math.min(100, Math.round((activeCardInvoice / activeCardLimit) * 100)) : 0;
-
-  // Faturas anteriores e abertas do cartão ativo (Estilo print 5)
-  const activeInvoicesList = useMemo(() => {
-    const base = activeCardInvoice > 0 ? activeCardInvoice : 420;
-    return [
-      { month: "Novembro", amount: base, status: "Aberta", isCurrent: true },
-      { month: "Outubro", amount: Math.round(base * 1.15), status: "Fechada", isCurrent: false },
-      { month: "Setembro", amount: Math.round(base * 0.9), status: "Paga", isCurrent: false },
-      { month: "Dezembro", amount: Math.round(base * 0.4), status: "Futura", isCurrent: false },
-    ];
-  }, [activeCardInvoice]);
-
-  // Tema resolvido dinamicamente para o cartão ativo
+  // Tema dinâmico do cartão selecionado
   const activeTheme: CardTheme = useMemo(() => {
-    if (!activeCard) return resolveCardTheme("Cartão");
+    if (!activeCard) {
+      return resolveCardTheme("Cartão Neutro", "generic");
+    }
     return resolveCardTheme(
       activeCard.product_name || activeCard.name || activeCard.bank_name,
       activeCard.institution_slug || activeCard.institution_name
     );
   }, [activeCard]);
 
-  if (creditCards.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center p-12 text-center rounded-2xl border border-dashed border-slate-200 dark:border-[#27272A] bg-white dark:bg-[#121214]">
-        <span className="material-symbols-outlined text-4xl text-slate-400 mb-2">
-          credit_card_off
-        </span>
-        <h3 className="text-base font-bold text-slate-900 dark:text-white">
-          Nenhum cartão conectado
-        </h3>
-        <p className="text-xs text-slate-500 dark:text-[#94A3B8] max-w-sm mt-1">
-          Conecte sua conta bancária via Open Finance para sincronizar limites, faturas e parcelamentos automaticamente.
-        </p>
-      </div>
-    );
-  }
+  // Transações específicas do cartão selecionado
+  const cardTransactions = useMemo(() => {
+    if (!activeCard) return [];
+    return transactions
+      .filter(
+        (t) =>
+          t.account_id === activeCard.id ||
+          t.bank_accounts?.id === activeCard.id ||
+          (t.operation_type === "CREDIT_CARD" &&
+            (t.bank_accounts?.institution_slug === activeCard.institution_slug ||
+              t.bank_accounts?.bank_name === activeCard.bank_name))
+      )
+      .slice(0, 5);
+  }, [activeCard, transactions]);
+
+  // Cálculos consolidados de limite
+  const activeCardLimit = Number(activeCard?.credit_limit) || 5000;
+  const activeCardInvoice = getCardInvoiceAmount(activeCard, transactions);
+  const activeCardAvailable = Math.max(
+    0,
+    Number(activeCard?.available_credit_limit) || activeCardLimit - activeCardInvoice
+  );
+  const limitUsagePercent = Math.min(
+    100,
+    Math.round((activeCardInvoice / (activeCardLimit || 1)) * 100)
+  );
+
+  const totalCurrentInvoices = useMemo(() => {
+    return creditCards.reduce((acc, card) => acc + getCardInvoiceAmount(card, transactions), 0);
+  }, [creditCards, transactions]);
+
+  const totalLimitConsolidated = useMemo(() => {
+    return creditCards.reduce((acc, card) => acc + (Number(card.credit_limit) || 5000), 0);
+  }, [creditCards]);
+
+  const totalAvailableConsolidated = Math.max(0, totalLimitConsolidated - totalCurrentInvoices);
+
+  // Faturas Anteriores e Projeções do Cartão Ativo
+  const activeInvoicesList = useMemo(() => {
+    const months = ["Agosto", "Setembro", "Outubro", "Novembro"];
+    return months.map((m, idx) => {
+      const isCurrent = idx === 2; // Outubro atual
+      const isFuture = idx === 3; // Novembro
+      let amt = activeCardInvoice;
+      if (idx === 0) amt = Math.round(activeCardInvoice * 0.85);
+      if (idx === 1) amt = Math.round(activeCardInvoice * 0.95);
+      if (isFuture) amt = Math.round(activeCardInvoice * 0.4);
+
+      return {
+        month: m,
+        amount: amt,
+        isCurrent,
+        status: isCurrent ? "Aberta" : isFuture ? "Prevista" : "Paga",
+      };
+    });
+  }, [activeCardInvoice]);
+
+  // Cálculo dinâmico do deslocamento vertical para caber exatamente em uma tela inteira
+  const stackOffset = useMemo(() => {
+    const count = Math.max(1, creditCards.length);
+    if (!isStackExpanded) {
+      // Quando fechado: empilhado compacto, exibindo uma fatia do cabeçalho
+      return Math.max(48, Math.min(65, Math.floor(220 / count)));
+    }
+    // Quando expandido: espaçamento agradável com respiro
+    return Math.max(65, Math.min(85, Math.floor(320 / count)));
+  }, [creditCards.length, isStackExpanded]);
+
+  // Manipulador de clique nos cartões: 2 toques (1º abre a prévia, 2º seleciona)
+  const handleCardClick = (idx: number) => {
+    if (!isStackExpanded) {
+      setIsStackExpanded(true);
+      setSelectedCardIndex(idx);
+    } else {
+      setSelectedCardIndex(idx);
+    }
+  };
 
   return (
-    <div className="flex flex-col gap-6 w-full select-none">
+    <div className="flex flex-col gap-6 w-full animate-fade-in font-sans">
       {/* 3 KPIs Consolidados de Cartões */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
         {/* Fatura Total Consolidada */}
@@ -259,9 +236,8 @@ export function WalletCards({ accounts, transactions, formatCurrency: propFormat
         </div>
       </div>
 
-      {/* Visualização Mobile Estilo Pierre Finance (Mobile First) */}
+      {/* Visualização Mobile Estilo Pierre Finance (Clean & Minimalista) */}
       <div className="flex md:hidden flex-col gap-3.5">
-        {/* Widget Principal Pierre Finance */}
         <div className="rounded-3xl bg-[#18181B] border border-[#27272A] overflow-hidden p-5 flex flex-col justify-between shadow-lg">
           {/* Topo Temático com Logo do Banco e Dígitos */}
           <div className={`-mx-5 -mt-5 p-4 bg-gradient-to-r ${activeTheme.bgGradient} flex items-center justify-between border-b ${activeTheme.border}`}>
@@ -304,7 +280,7 @@ export function WalletCards({ accounts, transactions, formatCurrency: propFormat
           </div>
         </div>
 
-        {/* Saldo em Contas Pill (Fiel à Print Pierre) */}
+        {/* Saldo em Contas Pill */}
         <Link
           href="/dashboard"
           className="p-4 rounded-2xl bg-[#18181B] border border-[#27272A] flex items-center justify-between hover:border-slate-700 transition-colors"
@@ -319,60 +295,39 @@ export function WalletCards({ accounts, transactions, formatCurrency: propFormat
             </span>
           </div>
         </Link>
-
-        {/* Pergunte à Kitsune AI Pill (Fiel à Print Pierre) */}
-        <Link
-          href={`/kitsune?prompt=${encodeURIComponent(
-            `Kitsune AI, por favor audite o cartão ${activeCard?.product_name || "selecionado"} e resuma minhas faturas recentes.`
-          )}`}
-          className="p-3.5 rounded-2xl bg-[#18181B] border border-[#27272A] flex items-center gap-3 text-slate-400 hover:text-white transition-colors"
-        >
-          <span className="material-symbols-outlined text-[#FF8216] text-xl">qr_code_scanner</span>
-          <span className="text-xs font-medium">Pergunte à Kitsune AI</span>
-        </Link>
       </div>
 
-      {/* Seletor de Modo: Carteira Stack (Apple Wallet) vs Carrossel Horizontal */}
-      <div className="hidden md:flex flex-col gap-3">
-        <div className="flex items-center justify-between px-1">
-          <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-lg text-[#FF8216]">wallet</span>
-            <h2 className="text-sm font-bold text-slate-900 dark:text-white">
-              Meus Cartões ({creditCards.length})
-            </h2>
-          </div>
-          
-          <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] rounded-xl text-[11px]">
-            <button
-              type="button"
-              onClick={() => setViewMode("stack")}
-              className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                viewMode === "stack"
-                  ? "bg-[#FF8216] text-white shadow-xs"
-                  : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
-              }`}
-            >
-              <span className="material-symbols-outlined text-[13px]">layers</span>
-              <span>Carteira (Apple Wallet Stack)</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode("carousel")}
-              className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                viewMode === "carousel"
-                  ? "bg-[#FF8216] text-white shadow-xs"
-                  : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
-              }`}
-            >
-              <span className="material-symbols-outlined text-[13px]">view_carousel</span>
-              <span>Carrossel Horizontal</span>
-            </button>
-          </div>
-        </div>
+      {/* Visualização Desktop: Master-Detail Fluido (Cartões na Esquerda e Detalhes na Direita) */}
+      <div className="hidden md:flex flex-col lg:flex-row gap-6 items-start w-full">
+        {/* Coluna Esquerda: Carteira de Cartões Empilhados na Vertical */}
+        <div className="w-full lg:w-[380px] shrink-0 flex flex-col gap-3">
+          <div className="flex items-center justify-between px-1">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-lg text-[#FF8216]">wallet</span>
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                Carteira ({creditCards.length})
+              </h2>
+            </div>
 
-        {/* MODO 1: Carteira Stack Apple Wallet Vertical (Overlapping Stack) */}
-        {viewMode === "stack" ? (
-          <div className="w-full max-w-lg mx-auto py-4 px-2 flex flex-col items-center">
+            <button
+              type="button"
+              onClick={() => setIsStackExpanded(!isStackExpanded)}
+              className="text-xs text-slate-500 hover:text-[#FF8216] font-medium flex items-center gap-1 cursor-pointer transition-colors"
+            >
+              <span>{isStackExpanded ? "Modo Compacto" : "Expandir Prévia"}</span>
+              <span className="material-symbols-outlined text-[14px]">
+                {isStackExpanded ? "unfold_less" : "unfold_more"}
+              </span>
+            </button>
+          </div>
+
+          {/* Pilha de Cartões (O cartão ativo/selecionado fica por cima, na frente com z-index alto) */}
+          <div
+            className="w-full relative py-2 select-none"
+            style={{
+              minHeight: `${220 + (creditCards.length - 1) * stackOffset}px`,
+            }}
+          >
             {creditCards.map((card, idx) => {
               const isSelected = selectedCardIndex === idx;
               const theme = resolveCardTheme(
@@ -382,23 +337,25 @@ export function WalletCards({ accounts, transactions, formatCurrency: propFormat
               const cardInv = getCardInvoiceAmount(card, transactions);
               const digits = card.account_number?.slice(-4) || "8903";
 
+              // Ordem invertida: o selecionado fica com o z-index máximo (35), e a ordem natural empilha elegantemente
+              const zIndex = isSelected ? 35 : creditCards.length - idx;
+
               return (
                 <div
                   key={card.id || idx}
-                  onClick={() => setSelectedCardIndex(idx)}
+                  onClick={() => handleCardClick(idx)}
                   className={`w-full aspect-[1.586/1] rounded-3xl p-5 bg-gradient-to-br ${
                     theme.bgGradient
                   } ${
                     theme.border
-                  } border relative overflow-hidden transition-all duration-500 ease-out cursor-pointer shadow-xl ${
-                    idx > 0 ? "-mt-[125px] sm:-mt-[145px]" : ""
-                  } ${
+                  } border absolute top-0 left-0 right-0 overflow-hidden transition-all duration-500 ease-out cursor-pointer shadow-xl ${
                     isSelected
-                      ? "ring-2 ring-[#FF8216] shadow-2xl -translate-y-2 z-30 scale-[1.01]"
-                      : "hover:-translate-y-3 hover:shadow-2xl opacity-95 hover:opacity-100 z-10"
+                      ? "ring-2 ring-[#FF8216] shadow-2xl -translate-y-1 scale-[1.01]"
+                      : "hover:-translate-y-2 hover:shadow-2xl opacity-95 hover:opacity-100"
                   }`}
                   style={{
-                    zIndex: isSelected ? 35 : idx + 1,
+                    transform: `translateY(${idx * stackOffset}px)`,
+                    zIndex,
                   }}
                 >
                   {/* Efeito de Reflexo Minimalista e Sofisticado */}
@@ -443,13 +400,13 @@ export function WalletCards({ accounts, transactions, formatCurrency: propFormat
                     </span>
                   </div>
 
-                  {/* Rodapé do Cartão: Fatura Atual e Indicador */}
+                  {/* Rodapé do Cartão: Fatura Atual */}
                   <div className="flex items-end justify-between relative z-10 mt-auto pt-2">
                     <div>
                       <span className="text-[9px] text-white/60 uppercase font-bold tracking-wider block">
                         Fatura Atual
                       </span>
-                      <span className="text-base sm:text-lg font-black text-white tabular-nums tracking-tight">
+                      <span className="text-base font-black text-white tabular-nums tracking-tight">
                         {formatCurrency(cardInv)}
                       </span>
                     </div>
@@ -463,289 +420,174 @@ export function WalletCards({ accounts, transactions, formatCurrency: propFormat
               );
             })}
           </div>
-        ) : (
-          /* MODO 2: Carrossel Horizontal com Arraste (Drag to Scroll) */
-          <>
-            <div
-              ref={carouselRef}
-              onMouseDown={handleMouseDown}
-              onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUpOrLeave}
-              onMouseLeave={handleMouseUpOrLeave}
-              className={`flex gap-4 overflow-x-auto py-2 px-1 scrollbar-none snap-x snap-mandatory ${
-                isDragging ? "cursor-grabbing select-none" : "cursor-grab"
-              }`}
-              style={{ scrollBehavior: isDragging ? "auto" : "smooth" }}
-            >
-              {creditCards.map((card, idx) => {
-                const isSelected = selectedCardIndex === idx;
-                const theme = resolveCardTheme(
-                  card.product_name || card.name || card.bank_name,
-                  card.institution_slug || card.institution_name
-                );
-                const cardInv = getCardInvoiceAmount(card, transactions);
-                const digits = card.account_number?.slice(-4) || "8903";
-
-                return (
-                  <div
-                    key={card.id || idx}
-                    onClick={() => setSelectedCardIndex(idx)}
-                    className={`snap-center shrink-0 w-[280px] sm:w-[320px] aspect-[1.586/1] rounded-3xl p-5 bg-gradient-to-br ${
-                      theme.bgGradient
-                    } ${
-                      theme.border
-                    } border relative overflow-hidden transition-all duration-300 cursor-pointer flex flex-col justify-between ${
-                      isSelected
-                        ? "ring-2 ring-[#FF8216] shadow-xl scale-[1.02]"
-                        : "opacity-75 hover:opacity-95 scale-100"
-                    }`}
-                  >
-                    {/* Efeito de Reflexo Minimalista e Sofisticado */}
-                    <div className="absolute inset-0 bg-gradient-to-tr from-white/[0.08] via-white/[0.02] to-transparent pointer-events-none rounded-3xl" />
-
-                    {/* Topo do Cartão: Logo da Instituição e Contactless */}
-                    <div className="flex items-center justify-between relative z-10">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-xl bg-white/10 backdrop-blur-md p-1 flex items-center justify-center">
-                          <BankLogo
-                            bank={card.institution_slug || card.institution_name || card.bank_name}
-                            size="xs"
-                          />
-                        </div>
-                        <div>
-                          <span className="text-xs font-bold text-white block truncate max-w-[140px]">
-                            {card.product_name || card.bank_name || "Cartão"}
-                          </span>
-                          <span className={`text-[10px] ${theme.subtextColor} font-mono tracking-wider`}>
-                            •••• {digits}
-                          </span>
-                        </div>
-                      </div>
-
-                      <span className="material-symbols-outlined text-[18px] text-white/60">
-                        contactless
-                      </span>
-                    </div>
-
-                    {/* Centro do Cartão: Chip Dourado/Prata Minimalista */}
-                    <div className="relative z-10 flex items-center justify-between">
-                      <div
-                        className="w-10 h-7 rounded-md border border-white/20 flex items-center justify-center opacity-85"
-                        style={{ backgroundColor: theme.chipColor + "30" }}
-                      >
-                        <div className="w-5 h-4 rounded-xs border border-white/30" />
-                      </div>
-                      <span
-                        className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${theme.badgeStyle}`}
-                      >
-                        {theme.brandFallback}
-                      </span>
-                    </div>
-
-                    {/* Rodapé do Cartão: Fatura Atual e Indicador */}
-                    <div className="flex items-end justify-between relative z-10">
-                      <div>
-                        <span className="text-[9px] text-white/60 uppercase font-bold tracking-wider block">
-                          Fatura Atual
-                        </span>
-                        <span className="text-base sm:text-lg font-black text-white tabular-nums tracking-tight">
-                          {formatCurrency(cardInv)}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-1.5">
-                        <span className="w-2.5 h-2.5 rounded-full bg-[#EB001B] inline-block opacity-90" />
-                        <span className="w-2.5 h-2.5 rounded-full bg-[#F79E1B] inline-block -ml-2 opacity-90" />
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Indicadores de Pontos (Dots) */}
-            <div className="flex items-center justify-center gap-1.5 py-1">
-              {creditCards.map((_, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => scrollToCard(idx)}
-                  className={`h-1.5 rounded-full transition-all cursor-pointer ${
-                    selectedCardIndex === idx
-                      ? "w-6 bg-[#FF8216]"
-                      : "w-1.5 bg-slate-300 dark:bg-[#27272A] hover:bg-slate-400"
-                  }`}
-                  title={`Ver cartão ${idx + 1}`}
-                />
-              ))}
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* Detalhamento Dinâmico do Cartão Ativo (Inspirado no Print 5) */}
-      <SpotlightCard className="p-5 md:p-7 flex flex-col gap-6">
-        {/* Barra de Limite do Cartão Ativo */}
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between text-xs">
-            <span className="font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-              <span>Limite Total Concedido:</span>
-              <strong className="text-slate-900 dark:text-white tabular-nums">
-                {formatCurrency(activeCardLimit)}
-              </strong>
-            </span>
-            <span className="text-emerald-500 font-bold tabular-nums">
-              Livre: {formatCurrency(activeCardAvailable)}
-            </span>
-          </div>
-
-          <div className="w-full h-3 rounded-full bg-slate-100 dark:bg-[#18181B] overflow-hidden p-0.5 border border-slate-200/60 dark:border-[#27272A]">
-            <div
-              className="h-full rounded-full transition-all duration-500"
-              style={{
-                width: `${Math.max(limitUsagePercent, 4)}%`,
-                backgroundColor: activeTheme.accentColor || "#FF8216",
-              }}
-            />
-          </div>
-
-          <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-[#94A3B8]">
-            <span>
-              Utilizado na Fatura:{" "}
-              <strong className="text-slate-900 dark:text-white tabular-nums font-bold">
-                {formatCurrency(activeCardInvoice)}
-              </strong>{" "}
-              ({limitUsagePercent}%)
-            </span>
-            <span>
-              Vencimento:{" "}
-              <strong className="text-slate-900 dark:text-white font-mono">
-                {activeCard?.balance_due_date || "Dia 10"}
-              </strong>
-            </span>
-          </div>
         </div>
 
-        {/* Faturas Mensais do Cartão (Estilo Print 5) */}
-        <div>
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-3 block">
-            Histórico e Faturas Deste Cartão
-          </span>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {activeInvoicesList.map((inv, i) => (
-              <div
-                key={i}
-                className={`p-3 rounded-xl border flex flex-col justify-between gap-1 transition-all ${
-                  inv.isCurrent
-                    ? "bg-[#18181B] dark:bg-[#18181B] border-[#FF8216]/50 text-white shadow-sm"
-                    : "bg-slate-50 dark:bg-[#121214] border-slate-200 dark:border-[#27272A] text-slate-800 dark:text-zinc-200"
-                }`}
-              >
-                <div className="flex items-center justify-between text-[11px]">
-                  <span className="font-semibold text-slate-400">{inv.month}</span>
-                  <span
-                    className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-md ${
-                      inv.status === "Aberta"
-                        ? "bg-[#FF8216]/20 text-[#FF8216]"
-                        : inv.status === "Fechada"
-                        ? "bg-rose-500/20 text-rose-400"
-                        : "bg-emerald-500/20 text-emerald-400"
-                    }`}
-                  >
-                    {inv.status}
-                  </span>
-                </div>
-                <span className="text-base font-black tabular-nums mt-1">
-                  {formatCurrency(inv.amount)}
+        {/* Coluna Direita: Detalhamento Completo do Cartão Ativo */}
+        <div className="flex-1 min-w-0">
+          <SpotlightCard className="p-5 md:p-7 flex flex-col gap-6">
+            {/* Barra de Limite do Cartão Ativo */}
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                  <span>Limite Concedido:</span>
+                  <strong className="text-slate-900 dark:text-white tabular-nums">
+                    {formatCurrency(activeCardLimit)}
+                  </strong>
+                </span>
+                <span className="text-emerald-500 font-bold tabular-nums">
+                  Livre: {formatCurrency(activeCardAvailable)}
                 </span>
               </div>
-            ))}
-          </div>
-        </div>
 
-        {/* Dicas Estratégicas Inteligentes para este Cartão */}
-        <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-lg bg-[#FF8216]/10 text-[#FF8216] flex items-center justify-center shrink-0 mt-0.5">
-              <span className="material-symbols-outlined text-base">lightbulb</span>
-            </div>
-            <div>
-              <span className="text-xs font-bold text-slate-900 dark:text-white block">
-                Dica de Otimização: {activeCard?.product_name || "Cartão Selecionado"}
-              </span>
-              <p className="text-[11px] text-slate-500 dark:text-[#94A3B8] mt-0.5 leading-relaxed">
-                O melhor dia para novas compras neste cartão é{" "}
-                <strong className="text-slate-900 dark:text-white font-semibold">
-                  5 dias antes do vencimento
-                </strong>
-                . Compras feitas no dia do fechamento entram apenas no ciclo seguinte, concedendo até 40 dias de prazo sem juros.
-              </p>
-            </div>
-          </div>
-
-          <Link
-            href={`/kitsune?prompt=${encodeURIComponent(
-              `Kitsune AI, por favor audite minuciosamente o cartão ${activeCard?.product_name || "selecionado"} (fatura atual de ${formatCurrency(
-                activeCardInvoice
-              )}). Há risco de anuidade oculta? Como posso obter isenção ou melhorar meu limite?`
-            )}`}
-            className="shrink-0 px-3 py-1.5 rounded-lg bg-[#FF8216] hover:bg-[#FFA047] text-white text-xs font-bold transition-colors cursor-pointer"
-          >
-            Consultar Kitsune AI
-          </Link>
-        </div>
-
-        {/* Últimas Transações Deste Cartão */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-              Últimos Lançamentos Vinculados ({cardTransactions.length})
-            </span>
-            <Link
-              href="/dashboard?tab=Transações"
-              className="text-xs text-[#FF8216] hover:underline font-semibold"
-            >
-              Ver extrato completo
-            </Link>
-          </div>
-
-          {cardTransactions.length === 0 ? (
-            <div className="p-6 text-center text-xs text-slate-400 border border-dashed border-slate-200 dark:border-[#27272A] rounded-xl">
-              Nenhuma transação recente encontrada especificamente para este cartão.
-            </div>
-          ) : (
-            <div className="divide-y divide-slate-100 dark:divide-[#27272A]">
-              {cardTransactions.map((tx) => (
+              <div className="w-full h-3 rounded-full bg-slate-100 dark:bg-[#18181B] overflow-hidden p-0.5 border border-slate-200/60 dark:border-[#27272A]">
                 <div
-                  key={tx.id}
-                  className="py-2.5 flex items-center justify-between gap-3 text-xs"
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <MerchantLogo
-                      cleanName={tx.clean_description}
-                      rawDescription={tx.description}
-                      category={tx.category_pt || tx.category}
-                      size="sm"
-                    />
-                    <div className="min-w-0">
-                      <span className="font-semibold text-slate-900 dark:text-white block truncate">
-                        {tx.clean_description || tx.description}
-                      </span>
-                      <span className="text-[10px] text-slate-400 block">
-                        {tx.date || tx.executed_at?.split("T")[0]} • {tx.category_pt || tx.category || "Cartão"}
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{
+                    width: `${Math.max(limitUsagePercent, 4)}%`,
+                    backgroundColor: activeTheme.accentColor || "#FF8216",
+                  }}
+                />
+              </div>
+
+              <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-[#94A3B8]">
+                <span>
+                  Utilizado na Fatura:{" "}
+                  <strong className="text-slate-900 dark:text-white tabular-nums font-bold">
+                    {formatCurrency(activeCardInvoice)}
+                  </strong>{" "}
+                  ({limitUsagePercent}%)
+                </span>
+                <span>
+                  Vencimento:{" "}
+                  <strong className="text-slate-900 dark:text-white font-mono">
+                    {activeCard?.balance_due_date || "Dia 10"}
+                  </strong>
+                </span>
+              </div>
+            </div>
+
+            {/* Faturas Mensais do Cartão */}
+            <div>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-3 block">
+                Histórico e Ciclo de Faturas
+              </span>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {activeInvoicesList.map((inv, i) => (
+                  <div
+                    key={i}
+                    className={`p-3 rounded-xl border flex flex-col justify-between gap-1 transition-all ${
+                      inv.isCurrent
+                        ? "bg-[#18181B] border-[#FF8216]/50 text-white shadow-sm"
+                        : "bg-slate-50 dark:bg-[#121214] border-slate-200 dark:border-[#27272A] text-slate-800 dark:text-zinc-200"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="font-semibold text-slate-400">{inv.month}</span>
+                      <span
+                        className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-md ${
+                          inv.status === "Aberta"
+                            ? "bg-[#FF8216]/20 text-[#FF8216]"
+                            : inv.status === "Fechada"
+                            ? "bg-rose-500/20 text-rose-400"
+                            : "bg-emerald-500/20 text-emerald-400"
+                        }`}
+                      >
+                        {inv.status}
                       </span>
                     </div>
+                    <span className="text-base font-black tabular-nums mt-1">
+                      {formatCurrency(inv.amount)}
+                    </span>
                   </div>
-
-                  <span className="font-black text-slate-900 dark:text-white tabular-nums">
-                    - {formatCurrency(Math.abs(Number(tx.amount) || 0))}
-                  </span>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          )}
+
+            {/* Dicas Estratégicas Inteligentes para este Cartão */}
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-[#FF8216]/10 text-[#FF8216] flex items-center justify-center shrink-0 mt-0.5">
+                  <span className="material-symbols-outlined text-base">lightbulb</span>
+                </div>
+                <div>
+                  <span className="text-xs font-bold text-slate-900 dark:text-white block">
+                    Dica de Otimização: {activeCard?.product_name || "Cartão Selecionado"}
+                  </span>
+                  <p className="text-[11px] text-slate-500 dark:text-[#94A3B8] mt-0.5 leading-relaxed">
+                    O melhor dia para novas compras neste cartão é{" "}
+                    <strong className="text-slate-900 dark:text-white font-semibold">
+                      5 dias antes do vencimento
+                    </strong>
+                    . Compras feitas no dia do fechamento entram apenas no ciclo seguinte, concedendo até 40 dias de prazo sem juros.
+                  </p>
+                </div>
+              </div>
+
+              <Link
+                href={`/kitsune?prompt=${encodeURIComponent(
+                  `Kitsune AI, por favor audite minuciosamente o cartão ${activeCard?.product_name || "selecionado"} (fatura atual de ${formatCurrency(
+                    activeCardInvoice
+                  )}). Há risco de anuidade oculta? Como posso obter isenção ou melhorar meu limite?`
+                )}`}
+                className="shrink-0 px-3 py-1.5 rounded-lg bg-[#FF8216] hover:bg-[#FFA047] text-white text-xs font-bold transition-colors cursor-pointer"
+              >
+                Consultar Kitsune AI
+              </Link>
+            </div>
+
+            {/* Últimas Transações Deste Cartão */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  Últimos Lançamentos Vinculados ({cardTransactions.length})
+                </span>
+                <Link
+                  href="/dashboard?tab=Transações"
+                  className="text-xs text-[#FF8216] hover:underline font-semibold"
+                >
+                  Ver extrato completo
+                </Link>
+              </div>
+
+              {cardTransactions.length === 0 ? (
+                <div className="p-6 text-center text-xs text-slate-400 border border-dashed border-slate-200 dark:border-[#27272A] rounded-xl">
+                  Nenhuma transação recente encontrada especificamente para este cartão.
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-100 dark:divide-[#27272A]">
+                  {cardTransactions.map((tx) => (
+                    <div
+                      key={tx.id}
+                      className="py-2.5 flex items-center justify-between gap-3 text-xs"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <MerchantLogo
+                          cleanName={tx.clean_description}
+                          rawDescription={tx.description}
+                          category={tx.category_pt || tx.category}
+                          size="sm"
+                        />
+                        <div className="min-w-0">
+                          <span className="font-semibold text-slate-900 dark:text-white block truncate">
+                            {tx.clean_description || tx.description}
+                          </span>
+                          <span className="text-[10px] text-slate-400 block">
+                            {tx.date || tx.executed_at?.split("T")[0]} • {tx.category_pt || tx.category || "Cartão"}
+                          </span>
+                        </div>
+                      </div>
+
+                      <span className="font-black text-slate-900 dark:text-white tabular-nums">
+                        - {formatCurrency(Math.abs(Number(tx.amount) || 0))}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </SpotlightCard>
         </div>
-      </SpotlightCard>
+      </div>
     </div>
   );
 }
