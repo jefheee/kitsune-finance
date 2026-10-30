@@ -4,6 +4,13 @@ Todas as alterações notáveis no projeto Kitsune Finance são registradas de f
 
 ---
 
+## [2026-10-30] - Remoção do Banner de Segurança em Conexões Bancárias
+- **Arquivos Afetados:** `src/app/connections/page.tsx`, `docs/CHANGELOG.md`.
+- **Objetivo:**
+  - Remoção do banner genérico verde "Ambiente 100% Somente-Leitura" e tag "Open Finance Ativo" na tela de Conexões Bancárias (`/connections`), limpando o layout acima do grid de instituições.
+
+---
+
 ## [2026-10-30] - Espaço Compartilhado 360°, Correção de Barra Dupla, Auditoria de Investimentos & Faturas Detalhadas
 - **Arquivos Afetados:** `src/app/shared/page.tsx`, `src/app/api/shared-space/route.ts`, `src/app/dashboard/page.tsx`, `src/app/investments/page.tsx`, `src/app/kitsune/page.tsx`, `src/components/finance/GlobalFinanceSearchModal.tsx`, `src/components/finance/WalletCards.tsx`, `src/components/finance/CategoriesView.tsx`, `src/components/finance/SubscriptionsTracker.tsx`, `src/context/FinanceDataContext.tsx`, `docs/PROJECT_STATE.md`, `docs/CHANGELOG.md`.
 - **Objetivo:**
