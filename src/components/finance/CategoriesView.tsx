@@ -341,7 +341,7 @@ export function CategoriesView({
         return false;
       }
 
-      // Ignora pagamentos de fatura de cartão de crédito e transferências próprias/Pix entre contas
+      // Ignora pagamentos de fatura de cartão de crédito e transferências próprias/Pix entre contas do mesmo CPF
       if (
         catLower.includes("fatura") ||
         descLower.includes("pagamento de fatura") ||
@@ -350,8 +350,14 @@ export function CategoriesView({
         descLower.includes("fatura do cartão") ||
         catLower.includes("transferência própria") ||
         catLower.includes("transferencia propria") ||
+        catLower.includes("same person transfer") ||
+        catLower.includes("internal transfer") ||
         descLower.includes("transferência própria") ||
-        descLower.includes("transferencia propria")
+        descLower.includes("transferencia propria") ||
+        descLower.includes("mesma titularidade") ||
+        descLower.includes("mesmo cpf") ||
+        descLower.includes("entre contas") ||
+        descLower.includes("transf.mesma")
       ) {
         return false;
       }

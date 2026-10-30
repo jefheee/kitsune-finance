@@ -4,6 +4,17 @@ Todas as alterações notáveis no projeto Kitsune Finance são registradas de f
 
 ---
 
+## [2026-10-30] - Espaço Compartilhado 360°, Correção de Barra Dupla, Auditoria de Investimentos & Faturas Detalhadas
+- **Arquivos Afetados:** `src/app/shared/page.tsx`, `src/app/api/shared-space/route.ts`, `src/app/dashboard/page.tsx`, `src/app/investments/page.tsx`, `src/app/kitsune/page.tsx`, `src/components/finance/GlobalFinanceSearchModal.tsx`, `src/components/finance/WalletCards.tsx`, `src/components/finance/CategoriesView.tsx`, `src/components/finance/SubscriptionsTracker.tsx`, `src/context/FinanceDataContext.tsx`, `docs/PROJECT_STATE.md`, `docs/CHANGELOG.md`.
+- **Objetivo:**
+  - Eliminação da barra lateral duplicada no `/shared` e implementação de hub 360° com balanço conjunto, salários/fluxo mensal por membro, contas pagas e a pagar, rendimentos de investimentos e simulador de patrimônio com juros compostos.
+  - Otimização do pop-up de anexo "+" no chat da IA Kitsune (`/kitsune`), eliminando completamente a barra de rolagem vertical com grid compacto 2x2.
+  - Auditoria e paginação em Investimentos: elucidação do núcleo principal de R$ 89,5k em 4 CDBs vs R$ 16,9k em menores aportes e 4 posições zeradas/resgatadas, com paginação de 6 itens por página e alternador de posições ativas.
+  - Exibição de parcelas nas faturas de cartão de crédito no Dashboard e WalletCards (valor mensal e total parcelado), inclusão de KPI de Liquidez Livre em Conta, e widgets de comprometimento de renda, dias de reserva e previsão de fechamento.
+  - Desbloqueio de dados históricos com aumento de limites no Open Finance (3000 transações no contexto, 1500 no espaço compartilhado), permitindo recuperação integral de corridas Uber e navegação mensal completa em Categorias e Assinaturas.
+
+---
+
 ## [2026-10-29] - Página Dedicada /shared (Espaço Compartilhado), Isolamento Pessoal Total, Correção de Entradas & Modo Privacidade em Gráficos
 - **Arquivos Afetados:** `src/app/shared/page.tsx`, `src/app/dashboard/page.tsx`, `src/context/FinanceDataContext.tsx`, `src/components/charts/SpendingCurveChart.tsx`, `src/components/layout/AppShell.tsx`, `src/components/NotificationsModal.tsx`, `src/app/api/shared-space/route.ts`, `docs/PROJECT_STATE.md`, `docs/CHANGELOG.md`.
 - **Objetivo:**

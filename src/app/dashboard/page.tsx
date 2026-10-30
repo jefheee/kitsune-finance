@@ -70,6 +70,18 @@ export default function DashboardPage() {
         removeFamilyMemberLocal,
     } = useFinanceData();
 
+    const userFirstName = (() => {
+        if (userProfile?.display_name && userProfile.display_name.trim().length > 0) {
+            return userProfile.display_name.trim().split(" ")[0];
+        }
+        if (userProfile?.full_name && userProfile.full_name.trim().length > 0) {
+            return userProfile.full_name.trim().split(" ")[0];
+        }
+        const metaName = user?.user_metadata?.full_name || user?.user_metadata?.name;
+        if (metaName) return String(metaName).split(" ")[0];
+        return user?.email?.split("@")[0] || "Investidor";
+    })();
+
     const [activeTab, setActiveTab] = useState("Visão Geral");
     const [selectedMemberId, setSelectedMemberId] = useState<string>("all");
     const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
@@ -247,6 +259,8 @@ export default function DashboardPage() {
     const [copiedMemberId, setCopiedMemberId] = useState<string | null>(null);
 
     const [showAllAccounts, setShowAllAccounts] = useState(false);
+    const [invPage, setInvPage] = useState(1);
+    const [showWithdrawnInv, setShowWithdrawnInv] = useState(false);
 
     const TABS = [
         "Visão Geral",
@@ -406,6 +420,49 @@ export default function DashboardPage() {
         filteredAccountIds,
     ]);
 
+    const activeFilteredInvestments = useMemo(() => {
+        return filteredInvestments.filter((inv) => {
+            const bal = Number(inv.balance) || 0;
+            if (!showWithdrawnInv && (bal <= 0.05 || inv.status === "TOTAL_WITHDRAWAL")) return false;
+            return true;
+        });
+    }, [filteredInvestments, showWithdrawnInv]);
+
+    const INV_PAGE_SIZE = 6;
+    const paginatedInvestments = useMemo(() => {
+        const start = (invPage - 1) * INV_PAGE_SIZE;
+        return activeFilteredInvestments.slice(start, start + INV_PAGE_SIZE);
+    }, [activeFilteredInvestments, invPage]);
+    const totalInvPages = Math.ceil(activeFilteredInvestments.length / INV_PAGE_SIZE);
+
+    const installmentStats = useMemo(() => {
+        let totalInstallmentBalance = 0;
+        let monthlyInstallmentTotal = 0;
+        let activeInstallmentCount = 0;
+
+        filteredTransactions.forEach((t) => {
+            const totalInst = t.total_installments || t.installments_count;
+            const currentInst = t.installment_number || t.current_installment;
+            const amt = Math.abs(Number(t.amount) || 0);
+
+            if (totalInst && totalInst > 1 && amt > 0) {
+                const current = currentInst || 1;
+                const remaining = Math.max(0, totalInst - current + 1);
+                if (remaining > 0) {
+                    totalInstallmentBalance += amt * remaining;
+                    monthlyInstallmentTotal += amt;
+                    activeInstallmentCount += 1;
+                }
+            }
+        });
+
+        return {
+            totalInstallmentBalance,
+            monthlyInstallmentTotal,
+            activeInstallmentCount,
+        };
+    }, [filteredTransactions]);
+
     // Transações filtradas pelo período selecionado (Dia a Dia, Semana a Semana, Mês a Mês, Ano a Ano)
     const periodFilteredTransactions = useMemo(() => {
         const now = new Date();
@@ -513,6 +570,9 @@ export default function DashboardPage() {
         monthlyInternalTransfers,
         monthlyRefunds,
         categorySummary,
+        incomeCommitment,
+        emergencyDays,
+        monthEndForecast,
     } = useMemo(() => {
         let liquid = 0;
         let credit = 0;
@@ -570,8 +630,15 @@ export default function DashboardPage() {
         let refundsTotal = 0;
         const catMap: Record<string, { total: number; count: number }> = {};
 
-        // Lista de nomes de membros familiares cadastrados para conciliação de Pix
-        const familyNames = familyMembers.map((f) => f.name.toLowerCase().trim()).filter(Boolean);
+        // Nomes do próprio usuário e membros cadastrados para conciliação estrita de Pix próprio e remanejamentos
+        const selfAndFamilyNames = [
+            userProfile?.full_name,
+            userProfile?.display_name,
+            userFirstName,
+            ...familyMembers.map((f) => f.name),
+        ]
+            .filter(Boolean)
+            .map((n) => n!.toLowerCase().trim());
 
         filteredTransactions.forEach((txn) => {
             const rawDate = txn.date || txn.executed_at;
@@ -587,22 +654,40 @@ export default function DashboardPage() {
                 txn.bank_accounts?.subtype === "CREDIT_CARD" ||
                 txn.operation_type === "CREDIT_CARD";
 
-            // Se for Pix enviado a membro familiar cadastrado, trata como remanejamento interno patrimonial
             const catLower = (txn.category_pt || txn.category || "").toLowerCase();
-            const descLower = (txn.receiver_name || txn.clean_description || txn.description || "").toLowerCase();
-            const isFamilyPix = familyNames.some((name) => descLower.includes(name));
+            const descLower = (txn.receiver_name || txn.payer_name || txn.clean_description || txn.description || "").toLowerCase();
+
+            // Detecta Pix e transferências entre contas do mesmo CPF / titularidade própria ou familiares
+            const isSelfOrFamilyPix =
+                selfAndFamilyNames.some((name) => descLower.includes(name)) ||
+                descLower.includes("mesma titularidade") ||
+                descLower.includes("mesmo cpf") ||
+                descLower.includes("entre contas") ||
+                descLower.includes("transferência própria") ||
+                descLower.includes("transferencia propria") ||
+                descLower.includes("pagamento recebido") ||
+                descLower.includes("pagamento de fatura") ||
+                descLower.includes("fatura cartão") ||
+                catLower.includes("transferência própria") ||
+                catLower.includes("transferencia propria") ||
+                catLower.includes("same person transfer") ||
+                catLower.includes("internal transfer") ||
+                catLower.includes("credit card payment");
 
             // Identifica movimentações de investimentos (aplicações e resgates) para não inflar receitas/despesas operacionais
             const isInvestmentMovement =
                 catLower.includes("investimento") ||
                 catLower.includes("renda fixa") ||
                 descLower.includes("resgate cdb") ||
+                descLower.includes("resgate rdb") ||
                 descLower.includes("aplic cdb") ||
+                descLower.includes("aplicacao cdb") ||
                 descLower.includes("aplicacao aut") ||
-                descLower.includes("rend pago");
+                descLower.includes("rend pago") ||
+                descLower.includes("rendimento pago");
 
-            // 1. Transferências próprias, pagamentos de fatura, aportes/resgates e Pix familiares NUNCA inflam saídas operacionais
-            if (isInternal || isFamilyPix || isInvestmentMovement) {
+            // 1. Transferências próprias, pagamentos de fatura, aportes/resgates e Pix entre contas próprias NUNCA inflam saídas operacionais
+            if (isInternal || isSelfOrFamilyPix || isInvestmentMovement) {
                 if (txnDate >= windowStart && txnDate <= windowEnd) {
                     internalTotal += absAmount;
                 }
@@ -640,6 +725,12 @@ export default function DashboardPage() {
             .map(([name, info]) => ({ name, ...info }))
             .sort((a, b) => b.total - a.total);
 
+        // Estatísticas complementares inteligentes
+        const incomeCommitment = income > 0 ? Math.min(100, Math.round(((expense + credit) / income) * 100)) : 0;
+        const dailyBurn = expense > 0 ? expense / 30 : 1;
+        const emergencyDays = liquid > 0 ? Math.round(liquid / dailyBurn) : 0;
+        const monthEndForecast = income - expense - credit;
+
         return {
             totalBalance: liquid + invTotal - credit - loansTotal,
             liquidBalance: liquid,
@@ -653,6 +744,9 @@ export default function DashboardPage() {
             monthlyInternalTransfers: internalTotal,
             monthlyRefunds: refundsTotal,
             categorySummary: sortedCategories,
+            incomeCommitment,
+            emergencyDays,
+            monthEndForecast,
         };
     }, [filteredAccounts, filteredInvestments, filteredLoans, filteredTransactions, timeGranularity]);
 
@@ -868,18 +962,6 @@ export default function DashboardPage() {
         setCopiedMemberId(memberId);
         setTimeout(() => setCopiedMemberId(null), 3000);
     };
-
-    const userFirstName = (() => {
-        if (userProfile?.display_name && userProfile.display_name.trim().length > 0) {
-            return userProfile.display_name.trim().split(" ")[0];
-        }
-        if (userProfile?.full_name && userProfile.full_name.trim().length > 0) {
-            return userProfile.full_name.trim().split(" ")[0];
-        }
-        const metaName = user?.user_metadata?.full_name || user?.user_metadata?.name;
-        if (metaName) return String(metaName).split(" ")[0];
-        return user?.email?.split("@")[0] || "Investidor";
-    })();
 
     if (isInitialLoading && accounts.length === 0 && transactions.length === 0) {
         return (
@@ -1326,8 +1408,8 @@ export default function DashboardPage() {
                         </SpotlightCard>
                     </section>
 
-                    {/* Key Metrics: 4 Cards Responsivos */}
-                    <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+                    {/* Key Metrics: 5 Cards Responsivos */}
+                    <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
                         {/* Card 1: Patrimônio Líquido Consolidado */}
                         <div className="p-4 md:p-5 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] flex flex-col justify-between gap-2 shadow-xs">
                             <div className="flex items-center justify-between">
@@ -1341,7 +1423,7 @@ export default function DashboardPage() {
                                 </div>
                             </div>
                             <div>
-                                <span className="text-lg md:text-2xl font-extrabold text-slate-900 dark:text-[#F8FAFC] tabular-nums tracking-tight block">
+                                <span className="text-base md:text-xl font-extrabold text-slate-900 dark:text-[#F8FAFC] tabular-nums tracking-tight block">
                                     {formatCurrency(totalBalance)}
                                 </span>
                                 <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold mt-0.5 truncate">
@@ -1366,7 +1448,36 @@ export default function DashboardPage() {
                             </div>
                         </div>
 
-                        {/* Card 2: Entradas Reais Conforme Período Selecionado */}
+                        {/* Card 2: Liquidez Livre Imediata em Conta */}
+                        <div className="p-4 md:p-5 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] flex flex-col justify-between gap-2 shadow-xs">
+                            <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                    Liquidez Livre em Conta
+                                </span>
+                                <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                                    <span className="material-symbols-outlined text-[16px]">
+                                        payments
+                                    </span>
+                                </div>
+                            </div>
+                            <div>
+                                <span className="text-base md:text-xl font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums tracking-tight block">
+                                    {formatCurrency(liquidBalance)}
+                                </span>
+                                <p className="text-[11px] text-slate-400 mt-0.5 truncate">
+                                    Disponível para uso e novos aportes
+                                </p>
+                                <span className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 font-mono block mt-1">
+                                    Sem bloqueios ou carências
+                                </span>
+                            </div>
+                            <div className="pt-2 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-[10px] text-slate-400">
+                                <span>Disponibilidade</span>
+                                <span className="text-emerald-500 font-bold">Imediata</span>
+                            </div>
+                        </div>
+
+                        {/* Card 3: Entradas Reais Conforme Período Selecionado */}
                         <div className="p-4 md:p-5 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] flex flex-col justify-between gap-2 shadow-xs">
                             <div className="flex items-center justify-between">
                                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
@@ -1385,25 +1496,25 @@ export default function DashboardPage() {
                                 </div>
                             </div>
                             <div>
-                                <span className="text-lg md:text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums tracking-tight block">
+                                <span className="text-base md:text-xl font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums tracking-tight block">
                                     {formatCurrency(monthlyIncome)}
                                 </span>
                                 <p className="text-[11px] text-slate-400 mt-0.5 truncate">
-                                    Salário, rendimentos e créditos operacionais
+                                    Salário, rendimentos e créditos
                                 </p>
                                 <span className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 font-mono block mt-1">
-                                    Fonte: {monthlyIncomeCount} crédito(s) bancário(s)
+                                    Fonte: {monthlyIncomeCount} crédito(s)
                                 </span>
                             </div>
                             <div className="pt-2 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-[10px] text-slate-400">
-                                <span>Mov. Internas / Resgates</span>
+                                <span>Mov. Internas</span>
                                 <span className="text-slate-600 dark:text-slate-300 font-semibold tabular-nums">
                                     {formatCurrency(monthlyInternalTransfers)}
                                 </span>
                             </div>
                         </div>
 
-                        {/* Card 3: Saídas Reais Conforme Período Selecionado */}
+                        {/* Card 4: Saídas Reais Conforme Período Selecionado */}
                         <div className="p-4 md:p-5 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] flex flex-col justify-between gap-2 shadow-xs">
                             <div className="flex items-center justify-between">
                                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
@@ -1422,7 +1533,7 @@ export default function DashboardPage() {
                                 </div>
                             </div>
                             <div>
-                                <span className="text-lg md:text-2xl font-extrabold text-red-600 dark:text-red-400 tabular-nums tracking-tight block">
+                                <span className="text-base md:text-xl font-extrabold text-red-600 dark:text-red-400 tabular-nums tracking-tight block">
                                     {formatCurrency(monthlyExpense)}
                                 </span>
                                 <p className="text-[11px] text-slate-400 mt-0.5 truncate">
@@ -1431,19 +1542,19 @@ export default function DashboardPage() {
                                         : "Gastos reais conciliados"}
                                 </p>
                                 <span className="text-[10px] text-rose-500/80 font-mono block mt-1">
-                                    Fonte: {monthlyExpenseCount} saída(s) operacional(is)
+                                    Fonte: {monthlyExpenseCount} saída(s)
                                 </span>
                             </div>
                             <div className="pt-2 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-[10px] text-slate-400">
-                                <span>Estornos no período</span>
+                                <span>Estornos</span>
                                 <span className="text-emerald-500 font-bold tabular-nums">
                                     +{formatCurrency(monthlyRefunds)}
                                 </span>
                             </div>
                         </div>
 
-                        {/* Card 4: Faturas de Cartão */}
-                        <div className="p-4 md:p-5 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] flex flex-col justify-between gap-2 shadow-xs">
+                        {/* Card 5: Faturas de Cartão com Detalhe de Parcelado */}
+                        <div className="p-4 md:p-5 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] flex flex-col justify-between gap-2 shadow-xs col-span-2 sm:col-span-1">
                             <div className="flex items-center justify-between">
                                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                                     Faturas em Aberto
@@ -1455,37 +1566,106 @@ export default function DashboardPage() {
                                 </div>
                             </div>
                             <div>
-                                <span className="text-lg md:text-2xl font-extrabold text-[#FF8216] tabular-nums tracking-tight block">
+                                <span className="text-base md:text-xl font-extrabold text-[#FF8216] tabular-nums tracking-tight block">
                                     {formatCurrency(creditCardBalance)}
                                 </span>
                                 <p className="text-[11px] text-slate-400 mt-0.5 truncate">
-                                    {liquidBalance + investmentsBalance >= creditCardBalance
-                                        ? "Coberto pela liquidez"
-                                        : "Atenção à liquidez"}
+                                    {installmentStats.monthlyInstallmentTotal > 0
+                                        ? `Parcelado: ${formatCurrency(installmentStats.monthlyInstallmentTotal)}/mês`
+                                        : "À vista e recorrentes"}
                                 </p>
-                                <span className="text-[10px] text-[#FF8216]/80 font-mono block mt-1">
-                                    Fonte: {
-                                        filteredAccounts.filter(
-                                            (a) =>
-                                                a.type === "CREDIT" ||
-                                                a.subtype === "CREDIT_CARD"
-                                        ).length
-                                    } cartão(ões) conciliado(s)
+                                <span className="text-[10px] text-[#FF8216]/90 font-mono block mt-1 truncate">
+                                    {installmentStats.activeInstallmentCount > 0
+                                        ? `${formatCurrency(installmentStats.totalInstallmentBalance)} total (${installmentStats.activeInstallmentCount} parc.)`
+                                        : `${filteredAccounts.filter((a) => a.type === "CREDIT" || a.subtype === "CREDIT_CARD").length} cartão(ões)`}
                                 </span>
                             </div>
                             <div className="pt-2 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-[10px] text-slate-400">
-                                <span>Cartões ativos</span>
-                                <span className="text-[#FF8216] font-semibold">
-                                    {
-                                        filteredAccounts.filter(
-                                            (a) =>
-                                                a.type === "CREDIT" ||
-                                                a.subtype === "CREDIT_CARD"
-                                        ).length
-                                    }{" "}
-                                    cartão(ões)
+                                <span>Cobertura líquida</span>
+                                <span className={liquidBalance >= creditCardBalance ? "text-emerald-500 font-semibold" : "text-amber-500 font-semibold"}>
+                                    {liquidBalance >= creditCardBalance ? "100% Coberto" : "Atenção"}
                                 </span>
                             </div>
+                        </div>
+                    </section>
+
+                    {/* Widgets de Inteligência e Saúde Financeira */}
+                    <section className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+                        <div className="p-3.5 md:p-4 rounded-xl bg-slate-50 dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] flex items-center justify-between gap-3 shadow-xs">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                                    incomeCommitment <= 60
+                                        ? "bg-emerald-500/10 text-emerald-500"
+                                        : incomeCommitment <= 80
+                                        ? "bg-amber-500/10 text-amber-500"
+                                        : "bg-rose-500/10 text-rose-500"
+                                }`}>
+                                    <span className="material-symbols-outlined text-[18px]">pie_chart</span>
+                                </div>
+                                <div className="min-w-0">
+                                    <span className="text-[10px] text-slate-400 uppercase font-bold block truncate">
+                                        Comprometimento de Renda
+                                    </span>
+                                    <span className="text-xs md:text-sm font-black text-slate-900 dark:text-white tabular-nums block">
+                                        {incomeCommitment}% da Renda
+                                    </span>
+                                </div>
+                            </div>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                incomeCommitment <= 60
+                                    ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
+                                    : incomeCommitment <= 80
+                                    ? "bg-amber-500/10 text-amber-500 border border-amber-500/20"
+                                    : "bg-rose-500/10 text-rose-500 border border-rose-500/20"
+                            }`}>
+                                {incomeCommitment <= 60 ? "Saudável" : incomeCommitment <= 80 ? "Moderado" : "Elevado"}
+                            </span>
+                        </div>
+
+                        <div className="p-3.5 md:p-4 rounded-xl bg-slate-50 dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] flex items-center justify-between gap-3 shadow-xs">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center shrink-0">
+                                    <span className="material-symbols-outlined text-[18px]">security</span>
+                                </div>
+                                <div className="min-w-0">
+                                    <span className="text-[10px] text-slate-400 uppercase font-bold block truncate">
+                                        Reserva de Emergência
+                                    </span>
+                                    <span className="text-xs md:text-sm font-black text-slate-900 dark:text-white tabular-nums block">
+                                        {emergencyDays} Dias Cobertos
+                                    </span>
+                                </div>
+                            </div>
+                            <span className="text-[10px] font-semibold text-slate-400">
+                                {(emergencyDays / 30).toFixed(1)} meses
+                            </span>
+                        </div>
+
+                        <div className="p-3.5 md:p-4 rounded-xl bg-slate-50 dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] flex items-center justify-between gap-3 shadow-xs">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                                    monthEndForecast >= 0
+                                        ? "bg-emerald-500/10 text-emerald-500"
+                                        : "bg-rose-500/10 text-rose-500"
+                                }`}>
+                                    <span className="material-symbols-outlined text-[18px]">account_balance_wallet</span>
+                                </div>
+                                <div className="min-w-0">
+                                    <span className="text-[10px] text-slate-400 uppercase font-bold block truncate">
+                                        Previsão Fechamento
+                                    </span>
+                                    <span className={`text-xs md:text-sm font-black tabular-nums block ${
+                                        monthEndForecast >= 0 ? "text-emerald-500" : "text-rose-500"
+                                    }`}>
+                                        {formatCurrency(monthEndForecast)}
+                                    </span>
+                                </div>
+                            </div>
+                            <span className={`text-[10px] font-bold ${
+                                monthEndForecast >= 0 ? "text-emerald-500" : "text-rose-500"
+                            }`}>
+                                {monthEndForecast >= 0 ? "Superávit" : "Déficit"}
+                            </span>
                         </div>
                     </section>
 
@@ -1746,12 +1926,12 @@ export default function DashboardPage() {
                 </>
             ) : activeTab === "Parcelamentos" ? (
                 <InstallmentsTracker
-                    transactions={periodFilteredTransactions}
+                    transactions={filteredTransactions}
                     formatCurrency={formatCurrency}
                 />
             ) : activeTab === "Assinaturas" ? (
                 <SubscriptionsTracker
-                    transactions={periodFilteredTransactions}
+                    transactions={filteredTransactions}
                     formatCurrency={formatCurrency}
                 />
             ) : activeTab === "Transações" || activeTab === "Extrato & Transações" ? (
@@ -1764,79 +1944,145 @@ export default function DashboardPage() {
             ) : activeTab === "Cartões" || activeTab === "Cartões de Crédito" ? (
                 <WalletCards
                     accounts={filteredAccounts}
-                    transactions={periodFilteredTransactions}
+                    transactions={filteredTransactions}
                     formatCurrency={formatCurrency}
                 />
             ) : activeTab === "Categorias" || activeTab === "Categorias de Gastos" ? (
                 <CategoriesView
-                    transactions={periodFilteredTransactions}
+                    transactions={filteredTransactions}
                     formatCurrency={formatCurrency}
                     timeGranularity={timeGranularity}
                 />
             ) : activeTab === "Investimentos" || activeTab === "Investimentos & Carteira" ? (
                 <section className="flex flex-col gap-6">
                     <div className="bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] rounded-2xl p-5 shadow-xs flex flex-col gap-4">
-                        <div className="flex items-center justify-between">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                             <div>
-                                <h2 className="text-sm font-bold text-slate-900 dark:text-white">
-                                    Carteira de Investimentos Open Finance ({filteredInvestments.length})
-                                </h2>
-                                <p className="text-xs text-slate-400">
+                                <div className="flex items-center gap-2">
+                                    <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                                        Carteira de Investimentos Open Finance ({activeFilteredInvestments.length})
+                                    </h2>
+                                    {totalInvPages > 1 && (
+                                        <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#FF8216]/10 text-[#FF8216]">
+                                            Pág. {invPage} de {totalInvPages}
+                                        </span>
+                                    )}
+                                </div>
+                                <p className="text-xs text-slate-400 mt-0.5">
                                     CDBs, Renda Fixa, Tesouro e Fundos sincronizados diretamente das instituições conectadas.
                                 </p>
                             </div>
-                            <span className="text-lg font-extrabold text-emerald-500 tabular-nums">
-                                {formatCurrency(investmentsBalance)}
-                            </span>
+                            <div className="flex items-center gap-3 self-start sm:self-auto">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowWithdrawnInv((prev) => !prev);
+                                        setInvPage(1);
+                                    }}
+                                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                                        showWithdrawnInv
+                                            ? "border-[#FF8216] bg-[#FF8216]/10 text-[#FF8216]"
+                                            : "border-slate-200 dark:border-[#27272A] text-slate-400 hover:text-white"
+                                    }`}
+                                >
+                                    {showWithdrawnInv ? "Ocultar Zerados (R$ 0)" : "Ver Resgatados / Zerados"}
+                                </button>
+                                <span className="text-lg font-extrabold text-emerald-500 tabular-nums">
+                                    {formatCurrency(investmentsBalance)}
+                                </span>
+                            </div>
                         </div>
 
-                        {filteredInvestments.length === 0 ? (
+                        {activeFilteredInvestments.length === 0 ? (
                             <div className="p-6 text-center text-xs text-slate-400">
-                                Nenhum investimento encontrado neste filtro.
+                                Nenhum investimento ativo encontrado neste filtro.
                             </div>
                         ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                {filteredInvestments.map((inv) => (
-                                    <div
-                                        key={inv.id}
-                                        className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] flex items-center justify-between gap-3"
-                                    >
-                                        <div className="flex items-center gap-3 min-w-0">
-                                            <BankLogo
-                                                bank={
-                                                    inv.institution_slug ||
-                                                    inv.institution_name ||
-                                                    inv.issuer
-                                                }
-                                                size="sm"
-                                            />
-                                            <div className="min-w-0">
-                                                <span className="text-xs font-bold text-slate-900 dark:text-white block truncate">
-                                                    {inv.name}
+                            <>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    {paginatedInvestments.map((inv) => (
+                                        <div
+                                            key={inv.id}
+                                            className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] flex items-center justify-between gap-3"
+                                        >
+                                            <div className="flex items-center gap-3 min-w-0">
+                                                <BankLogo
+                                                    bank={
+                                                        inv.institution_slug ||
+                                                        inv.institution_name ||
+                                                        inv.issuer
+                                                    }
+                                                    size="sm"
+                                                />
+                                                <div className="min-w-0">
+                                                    <span className="text-xs font-bold text-slate-900 dark:text-white block truncate">
+                                                        {inv.name}
+                                                    </span>
+                                                    <span className="text-[11px] text-slate-400 block truncate">
+                                                        {inv.institution_name || inv.issuer || "Carteira"} •{" "}
+                                                        {inv.subtype || inv.type}
+                                                        {inv.rate
+                                                            ? ` • ${inv.rate}% ${inv.rate_type || "CDI"}`
+                                                            : ""}
+                                                        {inv.due_date
+                                                            ? ` • Venc: ${formatDate(inv.due_date)}`
+                                                            : ""}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="text-right shrink-0">
+                                                <span className="text-xs md:text-sm font-extrabold text-emerald-500 tabular-nums block">
+                                                    {formatCurrency(Number(inv.balance) || 0)}
                                                 </span>
-                                                <span className="text-[11px] text-slate-400 block truncate">
-                                                    {inv.institution_name || inv.issuer || "Carteira"} •{" "}
-                                                    {inv.subtype || inv.type}
-                                                    {inv.rate
-                                                        ? ` • ${inv.rate}% ${inv.rate_type || "CDI"}`
-                                                        : ""}
-                                                    {inv.due_date
-                                                        ? ` • Venc: ${formatDate(inv.due_date)}`
-                                                        : ""}
+                                                <span className="text-[10px] text-emerald-600/90 dark:text-emerald-400/90 block font-medium">
+                                                    +{formatCurrency((Number(inv.balance) || 0) * 0.0085)}/mês (~100% CDI)
                                                 </span>
                                             </div>
                                         </div>
-                                        <div className="text-right shrink-0">
-                                            <span className="text-xs md:text-sm font-extrabold text-emerald-500 tabular-nums block">
-                                                {formatCurrency(Number(inv.balance) || 0)}
-                                            </span>
-                                            <span className="text-[10px] text-emerald-600/90 dark:text-emerald-400/90 block font-medium">
-                                                +{formatCurrency((Number(inv.balance) || 0) * 0.0085)}/mês (~100% CDI)
-                                            </span>
+                                    ))}
+                                </div>
+
+                                {/* Paginação de Investimentos */}
+                                {totalInvPages > 1 && (
+                                    <div className="flex items-center justify-between pt-3 border-t border-slate-200 dark:border-[#27272A]/70">
+                                        <span className="text-xs text-slate-400">
+                                            Exibindo {paginatedInvestments.length} de {activeFilteredInvestments.length} posições
+                                        </span>
+                                        <div className="flex items-center gap-1.5">
+                                            <button
+                                                type="button"
+                                                onClick={() => setInvPage((p) => Math.max(1, p - 1))}
+                                                disabled={invPage === 1}
+                                                className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-[#27272A] text-xs font-bold disabled:opacity-30 hover:bg-white/5 cursor-pointer"
+                                            >
+                                                Anterior
+                                            </button>
+                                            {Array.from({ length: totalInvPages }, (_, i) => i + 1).map((pg) => (
+                                                <button
+                                                    key={pg}
+                                                    type="button"
+                                                    onClick={() => setInvPage(pg)}
+                                                    className={`w-8 h-8 rounded-lg text-xs font-bold cursor-pointer transition-all ${
+                                                        invPage === pg
+                                                            ? "bg-[#FF8216] text-white"
+                                                            : "border border-slate-200 dark:border-[#27272A] text-slate-400 hover:text-white"
+                                                    }`}
+                                                >
+                                                    {pg}
+                                                </button>
+                                            ))}
+                                            <button
+                                                type="button"
+                                                onClick={() => setInvPage((p) => Math.min(totalInvPages, p + 1))}
+                                                disabled={invPage === totalInvPages}
+                                                className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-[#27272A] text-xs font-bold disabled:opacity-30 hover:bg-white/5 cursor-pointer"
+                                            >
+                                                Próxima
+                                            </button>
                                         </div>
                                     </div>
-                                ))}
-                            </div>
+                                )}
+                            </>
                         )}
                     </div>
 

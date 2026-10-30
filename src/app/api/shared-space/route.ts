@@ -78,7 +78,7 @@ export async function GET() {
               .select('*, bank_accounts(bank_name, institution_name, institution_slug, product_name, type, subtype, card_brand)')
               .eq('user_id', partnerId)
               .order('date', { ascending: false })
-              .limit(50),
+              .limit(1500),
           ]);
 
           const prof = profileRes.data || { id: partnerId };
@@ -117,7 +117,7 @@ export async function GET() {
         .select('*, bank_accounts(bank_name, institution_name, institution_slug, product_name, type, subtype, card_brand)')
         .eq('user_id', user.id)
         .order('date', { ascending: false })
-        .limit(50),
+        .limit(1500),
     ]);
 
     return NextResponse.json({

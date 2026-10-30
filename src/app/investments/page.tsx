@@ -30,6 +30,9 @@ export default function InvestmentsPage() {
   } = useFinanceData();
 
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<string>("all");
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [showRedeemed, setShowRedeemed] = useState<boolean>(false);
+  const PAGE_SIZE = 6;
 
   // Filtro por instituição bancária
   const filteredInvestments = useMemo(() => {
@@ -47,13 +50,50 @@ export default function InvestmentsPage() {
     });
   }, [investments, selectedBankSlug]);
 
-  // Total investido consolidado
+  // Separação estrita de posições ativas vs resgatadas/zeradas
+  const activeInvestments = useMemo(() => {
+    return filteredInvestments.filter(
+      (inv) => Number(inv.balance) > 0 && inv.status !== "TOTAL_WITHDRAWAL"
+    );
+  }, [filteredInvestments]);
+
+  const redeemedInvestments = useMemo(() => {
+    return filteredInvestments.filter(
+      (inv) => Number(inv.balance) <= 0 || inv.status === "TOTAL_WITHDRAWAL"
+    );
+  }, [filteredInvestments]);
+
+  // Auditoria transparente de composição: grandes posições vs menores aportes
+  const portfolioAudit = useMemo(() => {
+    const major = activeInvestments.filter((i) => (Number(i.balance) || 0) >= 5000);
+    const minor = activeInvestments.filter((i) => (Number(i.balance) || 0) < 5000);
+    const majorTotal = major.reduce((s, i) => s + (Number(i.balance) || 0), 0);
+    const minorTotal = minor.reduce((s, i) => s + (Number(i.balance) || 0), 0);
+
+    // Resgates recentes identificados nos extratos bancários
+    const recentRedemptions = transactions
+      .filter((t) => {
+        const desc = (t.clean_description || t.description || "").toLowerCase();
+        return desc.includes("resgate cdb") || desc.includes("resgate rdb");
+      })
+      .reduce((sum, t) => sum + Math.abs(Number(t.amount) || 0), 0);
+
+    return {
+      majorPositions: major,
+      minorPositions: minor,
+      majorTotal,
+      minorTotal,
+      recentRedemptions,
+    };
+  }, [activeInvestments, transactions]);
+
+  // Total investido consolidado (apenas posições ativas com saldo > 0)
   const totalInvested = useMemo(() => {
-    return filteredInvestments.reduce(
+    return activeInvestments.reduce(
       (sum, inv) => sum + (Number(inv.balance) || 0),
       0
     );
-  }, [filteredInvestments]);
+  }, [activeInvestments]);
 
   // Rendimento Acumulado e Rendimento Estimado em Tempo Real
   const { totalProfit, estimatedMonthlyYield, historicalYieldCount } = useMemo(() => {
@@ -452,17 +492,96 @@ export default function InvestmentsPage() {
           </div>
         </div>
 
+        {/* Painel de Auditoria & Transparência da Carteira (R$ 80-90k vs R$ 106k) */}
+        <div className="p-4 md:p-5 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-[#27272A]">
+            <div className="flex items-center gap-2.5">
+              <span className="p-1.5 rounded-xl bg-[#FF8216]/10 text-[#FF8216] border border-[#FF8216]/20">
+                <span className="material-symbols-outlined text-lg">insights</span>
+              </span>
+              <div>
+                <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                  Auditoria de Composição da Carteira
+                </h3>
+                <p className="text-[11px] text-slate-500 dark:text-[#94A3B8]">
+                  Entenda o detalhamento entre seus grandes títulos e aportes complementares
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowRedeemed((prev) => !prev);
+                  setCurrentPage(1);
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                  showRedeemed
+                    ? "bg-[#FF8216]/15 border-[#FF8216]/50 text-[#FF8216]"
+                    : "bg-slate-50 dark:bg-[#18181B] border-slate-200 dark:border-[#27272A] text-slate-600 dark:text-slate-300 hover:text-white"
+                }`}
+              >
+                {showRedeemed ? "Ocultar Resgatados" : `Ver Resgatados (${redeemedInvestments.length})`}
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3">
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200/60 dark:border-[#27272A]">
+              <span className="text-[10px] text-slate-400 font-bold uppercase block">
+                Núcleo Principal ({portfolioAudit.majorPositions.length} CDBs &gt; R$ 5k)
+              </span>
+              <span className="text-base font-black text-emerald-500 tabular-nums block mt-0.5">
+                {formatSensitiveCurrency(portfolioAudit.majorTotal)}
+              </span>
+              <span className="text-[10px] text-slate-400 block mt-0.5">
+                ~{totalInvested > 0 ? Math.round((portfolioAudit.majorTotal / totalInvested) * 100) : 0}% da sua carteira ativa
+              </span>
+            </div>
+
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200/60 dark:border-[#27272A]">
+              <span className="text-[10px] text-slate-400 font-bold uppercase block">
+                Aportes Complementares ({portfolioAudit.minorPositions.length} posições &lt; R$ 5k)
+              </span>
+              <span className="text-base font-black text-slate-900 dark:text-white tabular-nums block mt-0.5">
+                {formatSensitiveCurrency(portfolioAudit.minorTotal)}
+              </span>
+              <span className="text-[10px] text-slate-400 block mt-0.5">
+                Pequenas aplicações e sobras de caixa
+              </span>
+            </div>
+
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200/60 dark:border-[#27272A]">
+              <span className="text-[10px] text-slate-400 font-bold uppercase block">
+                Resgates Recentes Identificados
+              </span>
+              <span className="text-base font-black text-amber-500 tabular-nums block mt-0.5">
+                {formatSensitiveCurrency(portfolioAudit.recentRedemptions)}
+              </span>
+              <span className="text-[10px] text-slate-400 block mt-0.5">
+                Valores já liquidados para conta corrente
+              </span>
+            </div>
+          </div>
+        </div>
+
         {/* Filtros por Categoria de Investimento */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1">
           <button
-            onClick={() => setActiveCategoryFilter("all")}
+            onClick={() => {
+              setActiveCategoryFilter("all");
+              setCurrentPage(1);
+            }}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               activeCategoryFilter === "all"
                 ? "bg-[#FF8216] text-white shadow-xs"
                 : "bg-white dark:bg-[#121214] text-slate-600 dark:text-[#94A3B8] border border-slate-200 dark:border-[#27272A] hover:bg-slate-100 dark:hover:bg-[#18181B]"
             }`}
           >
-            Todos ({filteredInvestments.length})
+            {showRedeemed
+              ? `Todos (${filteredInvestments.length})`
+              : `Ativos (${activeInvestments.length})`}
           </button>
           {Object.entries(categorizedInvestments).map(([key, cat]) => {
             if (cat.items.length === 0) return null;
@@ -470,7 +589,10 @@ export default function InvestmentsPage() {
             return (
               <button
                 key={key}
-                onClick={() => setActiveCategoryFilter(key)}
+                onClick={() => {
+                  setActiveCategoryFilter(key);
+                  setCurrentPage(1);
+                }}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                   isActive
                     ? "bg-[#FF8216] text-white shadow-xs"
@@ -484,90 +606,169 @@ export default function InvestmentsPage() {
           })}
         </div>
 
-        {/* Listagem dos Títulos Conectados */}
-        <div className="space-y-3">
-          {filteredInvestments.length === 0 ? (
-            <div className="p-8 text-center bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] rounded-2xl flex flex-col items-center gap-3">
-              <span className="material-symbols-outlined text-3xl text-slate-400">savings</span>
-              <p className="text-xs text-slate-400 max-w-sm">
-                Nenhum título de investimento retornado para este filtro. Conecte sua corretora ou banco pelo Open Finance para acompanhar sua carteira.
-              </p>
-              <Link
-                href="/agents"
-                className="px-4 py-2 rounded-xl bg-[#FF8216] text-white text-xs font-bold shadow-xs hover:bg-[#FFA047]"
-              >
-                Conectar Instituição no Open Finance
-              </Link>
-            </div>
-          ) : (
-            filteredInvestments
-              .filter((inv) => {
-                if (activeCategoryFilter === "all") return true;
-                const cat = categorizedInvestments[activeCategoryFilter];
-                return cat ? cat.items.some((i) => i.id === inv.id) : true;
-              })
-              .map((inv) => {
-                const bal = Number(inv.balance) || 0;
-                const profit = Number(inv.amount_profit) || 0;
-                const bankSlug =
-                  inv.institution_slug ||
-                  inv.institution_name ||
-                  inv.bank_name ||
-                  "generic";
+        {/* Listagem dos Títulos Conectados com Paginação */}
+        {(() => {
+          const sourceList = showRedeemed ? filteredInvestments : activeInvestments;
+          const displayItems = sourceList.filter((inv) => {
+            if (activeCategoryFilter === "all") return true;
+            const cat = categorizedInvestments[activeCategoryFilter];
+            return cat ? cat.items.some((i) => i.id === inv.id) : true;
+          });
 
-                return (
-                  <div
-                    key={inv.id}
-                    className="p-4 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] flex items-center justify-between gap-4 hover:border-[#FF8216]/40 transition-all shadow-xs"
+          const totalPages = Math.max(1, Math.ceil(displayItems.length / PAGE_SIZE));
+          const safePage = Math.min(currentPage, totalPages);
+          const startIndex = (safePage - 1) * PAGE_SIZE;
+          const pagedItems = displayItems.slice(startIndex, startIndex + PAGE_SIZE);
+
+          return (
+            <div className="space-y-3">
+              {displayItems.length === 0 ? (
+                <div className="p-8 text-center bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] rounded-2xl flex flex-col items-center gap-3">
+                  <span className="material-symbols-outlined text-3xl text-slate-400">savings</span>
+                  <p className="text-xs text-slate-400 max-w-sm">
+                    Nenhum título de investimento retornado para este filtro. Conecte sua corretora ou banco pelo Open Finance para acompanhar sua carteira.
+                  </p>
+                  <Link
+                    href="/agents"
+                    className="px-4 py-2 rounded-xl bg-[#FF8216] text-white text-xs font-bold shadow-xs hover:bg-[#FFA047]"
                   >
-                    <div className="flex items-center gap-3.5 min-w-0">
-                      <BankLogo bank={bankSlug} size="sm" />
-                      <div className="flex flex-col min-w-0">
-                        <span className="text-xs md:text-sm font-bold text-slate-900 dark:text-white truncate">
-                          {inv.name || inv.code || "Título de Investimento"}
-                        </span>
-                        <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5 flex-wrap">
-                          <span>{inv.institution_name || inv.bank_name || "Banco"}</span>
-                          {inv.rate && (
-                            <>
-                              <span>•</span>
-                              <span className="text-emerald-500 font-bold">{inv.rate}</span>
-                            </>
-                          )}
-                          {inv.due_date && (
-                            <>
-                              <span>•</span>
-                              <span>Vencimento: {new Date(inv.due_date).toLocaleDateString("pt-BR")}</span>
-                            </>
-                          )}
-                          {inv.type && (
-                            <span className="px-1.5 py-0.2 rounded bg-slate-100 dark:bg-white/5 text-[10px] text-slate-400 uppercase font-semibold">
-                              {inv.type}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="text-right shrink-0">
-                      <span className="text-xs md:text-base font-extrabold text-emerald-500 tabular-nums block">
-                        {formatSensitiveCurrency(bal)}
-                      </span>
-                      {profit > 0 ? (
-                        <span className="text-[10px] text-emerald-400 font-semibold block">
-                          Lucro: +{formatSensitiveCurrency(profit)}
-                        </span>
-                      ) : (
-                        <span className="text-[10px] text-blue-400 font-medium block">
-                          Rendendo ~+{formatSensitiveCurrency(Math.round(bal * 0.00847))}/mês
-                        </span>
-                      )}
-                    </div>
+                    Conectar Instituição no Open Finance
+                  </Link>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between text-xs text-slate-400 px-1">
+                    <span>
+                      Exibindo <strong>{startIndex + 1}</strong> a{" "}
+                      <strong>{Math.min(startIndex + PAGE_SIZE, displayItems.length)}</strong> de{" "}
+                      <strong>{displayItems.length}</strong> títulos
+                    </span>
+                    <span>Página {safePage} de {totalPages}</span>
                   </div>
-                );
-              })
-          )}
-        </div>
+
+                  <div className="space-y-2.5">
+                    {pagedItems.map((inv) => {
+                      const bal = Number(inv.balance) || 0;
+                      const profit = Number(inv.amount_profit) || 0;
+                      const isZero = bal <= 0 || inv.status === "TOTAL_WITHDRAWAL";
+                      const bankSlug =
+                        inv.institution_slug ||
+                        inv.institution_name ||
+                        inv.bank_name ||
+                        "generic";
+
+                      return (
+                        <div
+                          key={inv.id}
+                          className={`p-4 rounded-2xl bg-white dark:bg-[#121214] border transition-all shadow-xs flex items-center justify-between gap-4 ${
+                            isZero
+                              ? "border-dashed border-slate-200 dark:border-[#27272A] opacity-60"
+                              : "border-slate-200 dark:border-[#27272A] hover:border-[#FF8216]/40"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3.5 min-w-0">
+                            <BankLogo bank={bankSlug} size="sm" />
+                            <div className="flex flex-col min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs md:text-sm font-bold text-slate-900 dark:text-white truncate">
+                                  {inv.name || inv.code || "Título de Investimento"}
+                                </span>
+                                {isZero && (
+                                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 dark:bg-white/10 text-slate-400">
+                                    Resgatado / Zerado
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5 flex-wrap">
+                                <span>{inv.institution_name || inv.bank_name || "Banco"}</span>
+                                {inv.rate && (
+                                  <>
+                                    <span>•</span>
+                                    <span className="text-emerald-500 font-bold">{inv.rate}% CDI</span>
+                                  </>
+                                )}
+                                {inv.due_date && (
+                                  <>
+                                    <span>•</span>
+                                    <span>Vencimento: {new Date(inv.due_date).toLocaleDateString("pt-BR")}</span>
+                                  </>
+                                )}
+                                {inv.type && (
+                                  <span className="px-1.5 py-0.2 rounded bg-slate-100 dark:bg-white/5 text-[10px] text-slate-400 uppercase font-semibold">
+                                    {inv.type}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="text-right shrink-0">
+                            <span className={`text-xs md:text-base font-extrabold tabular-nums block ${
+                              isZero ? "text-slate-400" : "text-emerald-500"
+                            }`}>
+                              {formatSensitiveCurrency(bal)}
+                            </span>
+                            {profit > 0 ? (
+                              <span className="text-[10px] text-emerald-400 font-semibold block">
+                                Lucro: +{formatSensitiveCurrency(profit)}
+                              </span>
+                            ) : isZero ? (
+                              <span className="text-[10px] text-slate-400 font-medium block">
+                                Posição liquidada
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-blue-400 font-medium block">
+                                Rendendo ~+{formatSensitiveCurrency(Math.round(bal * 0.00847))}/mês
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Controles de Paginação (1, 2, 3...) */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-center gap-1.5 pt-4">
+                      <button
+                        type="button"
+                        disabled={safePage <= 1}
+                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                        className="px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 dark:border-[#27272A] bg-white dark:bg-[#121214] text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-[#18181B] transition-colors cursor-pointer"
+                      >
+                        Anterior
+                      </button>
+
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                        <button
+                          key={pageNum}
+                          type="button"
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={`w-8 h-8 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                            safePage === pageNum
+                              ? "bg-[#FF8216] text-white shadow-xs"
+                              : "bg-white dark:bg-[#121214] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-[#27272A] hover:bg-slate-100 dark:hover:bg-[#18181B]"
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      ))}
+
+                      <button
+                        type="button"
+                        disabled={safePage >= totalPages}
+                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                        className="px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 dark:border-[#27272A] bg-white dark:bg-[#121214] text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-[#18181B] transition-colors cursor-pointer"
+                      >
+                        Próxima
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          );
+        })()}
       </div>
     </div>
   );

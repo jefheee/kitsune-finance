@@ -15,6 +15,7 @@ interface Transaction {
     category_pt?: string | null;
     date: string;
     type?: string | null;
+    operation_type?: string | null;
     is_internal_transfer?: boolean;
     is_refund?: boolean;
     installment_number?: number | null;
@@ -284,9 +285,9 @@ export function GlobalFinanceSearchModal({
                                     Histórico de Transações ({searchAnalytics.matchedTransactions.length})
                                 </h4>
                                 <div className="divide-y divide-white/5 rounded-2xl bg-white/[0.02] border border-white/5 overflow-hidden">
-                                    {searchAnalytics.matchedTransactions.slice(0, 15).map((tx) => {
+                                    {searchAnalytics.matchedTransactions.slice(0, 50).map((tx) => {
                                         const amt = Math.abs(Number(tx.amount) || 0);
-                                        const isDebit = tx.amount > 0;
+                                        const isIncome = Number(tx.amount) > 0 && tx.type === "CREDIT" && tx.operation_type !== "CREDIT_CARD";
                                         return (
                                             <div
                                                 key={tx.id}
@@ -322,8 +323,8 @@ export function GlobalFinanceSearchModal({
                                                         </p>
                                                     </div>
                                                 </div>
-                                                <span className={`text-sm font-mono font-semibold shrink-0 ${isDebit ? "text-slate-200" : "text-emerald-400"}`}>
-                                                    {isDebit ? "-" : "+"} {formatCurrency(amt)}
+                                                <span className={`text-sm font-mono font-semibold shrink-0 ${isIncome ? "text-emerald-400" : "text-rose-400"}`}>
+                                                    {isIncome ? "+" : "-"} {formatCurrency(amt)}
                                                 </span>
                                             </div>
                                         );

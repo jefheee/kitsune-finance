@@ -16,13 +16,23 @@ interface WalletCardsProps {
 export function getCardInvoiceAmount(card: any, transactions: any[]): number {
   if (!card) return 0;
   const rawBal = Number(card.balance);
-  if (!isNaN(rawBal) && rawBal !== 0) {
+  if (!isNaN(rawBal) && rawBal > 0) {
     return Math.abs(rawBal);
   }
-  const cardTxns = transactions.filter(
-    (t) => t.account_id === card.id || t.bank_accounts?.id === card.id
-  );
-  return cardTxns.reduce((acc, t) => {
+
+  // Se o saldo for 0 ou nulo, busca APENAS compras do ciclo/mês corrente (sem inflar com histórico antigo)
+  const now = new Date();
+  const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
+  const currentMonthTxns = transactions.filter((t) => {
+    if (t.is_internal_transfer || t.is_refund || t.operation_type === "BILL_PAYMENT") return false;
+    const isThisCard = t.account_id === card.id || t.bank_accounts?.id === card.id;
+    if (!isThisCard) return false;
+    const dStr = (t.date || t.executed_at || "").split("T")[0];
+    return dStr.startsWith(currentMonthStr);
+  });
+
+  return currentMonthTxns.reduce((acc, t) => {
     const isExp = Number(t.amount) < 0 || t.type === "DEBIT" || t.operation_type === "CREDIT_CARD";
     return acc + (isExp ? Math.abs(Number(t.amount) || 0) : 0);
   }, 0);
@@ -130,25 +140,95 @@ export function WalletCards({ accounts, transactions, formatCurrency: propFormat
 
   const totalAvailableConsolidated = Math.max(0, totalLimitConsolidated - totalCurrentInvoices);
 
-  // Faturas Anteriores e Projeções do Cartão Ativo
-  const activeInvoicesList = useMemo(() => {
-    const months = ["Agosto", "Setembro", "Outubro", "Novembro"];
-    return months.map((m, idx) => {
-      const isCurrent = idx === 2; // Outubro atual
-      const isFuture = idx === 3; // Novembro
-      let amt = activeCardInvoice;
-      if (idx === 0) amt = Math.round(activeCardInvoice * 0.85);
-      if (idx === 1) amt = Math.round(activeCardInvoice * 0.95);
-      if (isFuture) amt = Math.round(activeCardInvoice * 0.4);
+  // Faturas e Parcelamentos Reais do Cartão Ativo (sem números arbitrários)
+  const cardInstallmentsData = useMemo(() => {
+    if (!activeCard) return { items: [], totalCommitted: 0, monthlySum: 0, futureMonths: [] };
+
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    // Filtra compras parceladas vinculadas a este cartão
+    const installmentTxns = transactions.filter((t) => {
+      if (t.is_internal_transfer || t.is_refund) return false;
+      const isThisCard = t.account_id === activeCard.id || t.bank_accounts?.id === activeCard.id;
+      return isThisCard && Number(t.total_installments) > 1;
+    });
+
+    const grouped = new Map<
+      string,
+      {
+        description: string;
+        totalAmount: number;
+        monthlyAmount: number;
+        currentInstallment: number;
+        totalInstallments: number;
+        remainingInstallments: number;
+        remainingAmount: number;
+      }
+    >();
+
+    installmentTxns.forEach((t) => {
+      const rawLabel = t.clean_description || t.description || "Compra Parcelada";
+      const baseKey = rawLabel.replace(/\b\d{1,2}\/\d{1,2}\b/g, "").trim().toLowerCase();
+      const inst = Number(t.installment_number) || 1;
+      const totalInst = Number(t.total_installments) || 2;
+      const amt = Math.abs(Number(t.amount) || 0);
+      const totalPurchase =
+        Number(t.total_purchase_amount) > 0 ? Number(t.total_purchase_amount) : amt * totalInst;
+
+      const existing = grouped.get(baseKey);
+      if (!existing || inst > existing.currentInstallment) {
+        const remaining = Math.max(0, totalInst - inst);
+        grouped.set(baseKey, {
+          description: rawLabel,
+          totalAmount: totalPurchase,
+          monthlyAmount: amt,
+          currentInstallment: inst,
+          totalInstallments: totalInst,
+          remainingInstallments: remaining,
+          remainingAmount: remaining * amt,
+        });
+      }
+    });
+
+    const items = Array.from(grouped.values());
+    const totalCommitted = items.reduce((s, i) => s + i.remainingAmount, 0);
+    const monthlySum = items.reduce(
+      (s, i) => s + (i.remainingInstallments > 0 ? i.monthlyAmount : 0),
+      0
+    );
+
+    const monthNames = [
+      "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+      "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+    ];
+
+    const futureMonths = [0, 1, 2, 3].map((offset) => {
+      const targetDate = new Date(currentYear, currentMonth + offset, 1);
+      const mName = monthNames[targetDate.getMonth()];
+      const isCurrent = offset === 0;
+
+      let amt = 0;
+      if (isCurrent) {
+        amt = activeCardInvoice;
+      } else {
+        // Soma real das parcelas que vencerão no mês `offset`
+        amt = items.reduce((sum, item) => {
+          return item.remainingInstallments >= offset ? sum + item.monthlyAmount : sum;
+        }, 0);
+      }
 
       return {
-        month: m,
+        month: `${mName}${offset > 0 ? `/${targetDate.getFullYear()}` : ""}`,
         amount: amt,
         isCurrent,
-        status: isCurrent ? "Aberta" : isFuture ? "Prevista" : "Paga",
+        status: isCurrent ? (amt > 0 ? "Aberta" : "Sem Fatura") : (amt > 0 ? "Prevista" : "Zerada"),
       };
     });
-  }, [activeCardInvoice]);
+
+    return { items, totalCommitted, monthlySum, futureMonths };
+  }, [activeCard, transactions, activeCardInvoice]);
 
   // Cálculo dinâmico do deslocamento vertical para caber exatamente em uma tela inteira
   const stackOffset = useMemo(() => {
@@ -466,18 +546,23 @@ export function WalletCards({ accounts, transactions, formatCurrency: propFormat
               </div>
             </div>
 
-            {/* Faturas Mensais do Cartão */}
+            {/* Faturas Mensais e Previsão dos Próximos Meses */}
             <div>
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-3 block">
-                Histórico e Ciclo de Faturas
-              </span>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  Faturas e Projeções Futuras Reais
+                </span>
+                <span className="text-[10px] text-slate-400 font-mono">
+                  Calculado por parcelas contratadas
+                </span>
+              </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {activeInvoicesList.map((inv, i) => (
+                {cardInstallmentsData.futureMonths.map((inv, i) => (
                   <div
                     key={i}
                     className={`p-3 rounded-xl border flex flex-col justify-between gap-1 transition-all ${
                       inv.isCurrent
-                        ? "bg-[#18181B] border-[#FF8216]/50 text-white shadow-sm"
+                        ? "bg-[#18181B] border-[#FF8216]/50 text-white shadow-sm ring-1 ring-[#FF8216]/20"
                         : "bg-slate-50 dark:bg-[#121214] border-slate-200 dark:border-[#27272A] text-slate-800 dark:text-zinc-200"
                     }`}
                   >
@@ -487,9 +572,9 @@ export function WalletCards({ accounts, transactions, formatCurrency: propFormat
                         className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-md ${
                           inv.status === "Aberta"
                             ? "bg-[#FF8216]/20 text-[#FF8216]"
-                            : inv.status === "Fechada"
-                            ? "bg-rose-500/20 text-rose-400"
-                            : "bg-emerald-500/20 text-emerald-400"
+                            : inv.status === "Prevista"
+                            ? "bg-blue-500/20 text-blue-400"
+                            : "bg-slate-500/20 text-slate-400"
                         }`}
                       >
                         {inv.status}
@@ -501,6 +586,58 @@ export function WalletCards({ accounts, transactions, formatCurrency: propFormat
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* Detalhamento de Parcelamentos do Cartão (Total Parcelado vs Valor por Mês) */}
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-bold text-slate-900 dark:text-white block">
+                    Parcelamentos Ativos no Cartão ({cardInstallmentsData.items.length})
+                  </span>
+                  <span className="text-[10px] text-slate-400">
+                    Total em parcelas a vencer: <strong>{formatCurrency(cardInstallmentsData.totalCommitted)}</strong> • Impacto mensal: <strong>{formatCurrency(cardInstallmentsData.monthlySum)}/mês</strong>
+                  </span>
+                </div>
+              </div>
+
+              {cardInstallmentsData.items.length === 0 ? (
+                <p className="text-[11px] text-slate-400 py-1">
+                  Nenhum parcelamento ativo registrado para este cartão. Compras recentes foram realizadas à vista (1x).
+                </p>
+              ) : (
+                <div className="space-y-2 pt-1">
+                  {cardInstallmentsData.items.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className="p-2.5 rounded-lg bg-white dark:bg-[#18181B] border border-slate-200/60 dark:border-white/5 flex items-center justify-between gap-3 text-xs"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <span className="font-semibold text-slate-900 dark:text-white block truncate">
+                          {item.description}
+                        </span>
+                        <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-0.5">
+                          <span className="text-amber-500 font-bold">
+                            Parcela {item.currentInstallment}/{item.totalInstallments}x
+                          </span>
+                          <span>•</span>
+                          <span>{item.remainingInstallments} restantes</span>
+                        </div>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <span className="font-extrabold text-slate-900 dark:text-white tabular-nums block">
+                          {formatCurrency(item.monthlyAmount)}
+                          <span className="text-[10px] font-normal text-slate-400">/mês</span>
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-mono block">
+                          Total: {formatCurrency(item.totalAmount)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Dicas Estratégicas Inteligentes para este Cartão */}

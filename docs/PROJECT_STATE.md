@@ -1,6 +1,6 @@
 # Estado do Projeto - Kitsune Finance
 
-**Última atualização:** 29/10/2026
+**Última atualização:** 30/10/2026
 **Status Geral:** Operacional / Open Finance Brasil Completo & Blindagem Multi-tenant Ativos
 
 ---
@@ -47,6 +47,11 @@
 ---
 
 ## 3. Módulos Implementados
+- [x] Espaço Compartilhado 360° (`/shared`): Eliminação do AppShell duplicado (resolução do bug de barra lateral dupla), criação de hub com 7 módulos temáticos (Visão Geral & Balanço, Salários & Fluxo Mensal por integrante, Contas Pagas e a Pagar com indicação de pagador e vencimento, Investimentos & Rendimento com comparativo Poupança vs CDI vs IPCA+, Simulador Interativo de Metas Familiares com juros compostos, Calculadora de Divisão Justa 50/50 e Proporcional à renda com valor de ressarcimento, e Administração de Membros com convites WhatsApp/Gmail).
+- [x] Otimização do Pop-up "+" de Anexos no Kitsune AI (`/kitsune`): Eliminação completa da barra de rolagem vertical via grid 2x2 ultra-compacto para modos de Visão e Contexto Financeiro.
+- [x] Auditoria Transparente de Investimentos e Paginação (`/investments` e Dashboard): Detalhamento do núcleo de R$ 89,5k em 4 grandes CDBs vs R$ 16,9k em menores aportes e 4 posições zeradas/resgatadas; implementação de paginação numerada (1, 2, 3...) com 6 posições por página e alternador de posições resgatadas em ambas as telas.
+- [x] Faturas de Cartão com Parcelamento Detalhado e Widgets no Dashboard: Detalhamento explícito de compras parceladas nas faturas (quanto foi parcelado no total e quanto é a parcela mensal), 5º card de KPI "Liquidez Livre em Conta", e trio de widgets inteligentes (Comprometimento de Renda %, Reserva de Emergência em Dias/Meses e Previsão de Fechamento do Mês).
+- [x] Consumo Total de Dados Open Finance & Correção em Modal de Busca: Aumento dos limites de busca de 400 para 3000 transações no contexto global e de 50 para 1500 no espaço compartilhado; correção de sinal no modal de busca global (despesas exibidas com sinal de menos e cor avermelhada, sem distorção verde de crédito); desacoplamento de filtros temporais nos módulos de Categorias, Parcelamentos e Assinaturas permitindo navegação livre entre meses.
 - [x] Página Dedicada do Espaço Compartilhado (`/shared`): Centralização completa da governança multi-membros, visão consolidada conjunta, abas individuais por integrante (cartões, contas e extrato isolados por membro), distribuição percentual de patrimônio, gestão de convites com WhatsApp/Gmail e botão de desligamento total com revogação RLS imediata ("Sair do Espaço", sem resíduos visíveis).
 - [x] Isolamento Pessoal Total nas Rotas Principais: O painel pessoal (`/dashboard`), cartões (`/cards`), investimentos (`/investments`), bancos (`/connections`) e IA (`/kitsune`) carregam exclusivamente os ativos do usuário autenticado (`user_id = authUser.id`), eliminando contaminações cruzadas de contas ou cartões no fluxo diário.
 - [x] Correção de Entradas do Mês & Timezone: Implementação de `parseLocalDate` para eliminar o deslocamento de timezone UTC no 1º dia de cada mês, computando corretamente o salário integral (ex: R$ 4.842,00 no Santander) e distinguindo receitas operacionais de transferências/resgates internos.
