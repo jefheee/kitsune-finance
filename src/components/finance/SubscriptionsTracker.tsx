@@ -54,15 +54,33 @@ const KNOWN_SUB_META: Record<string, { name: string; category: string; icon: str
     "meli+": { name: "Meli+ (Mercado Livre)", category: "Assinatura & Streaming", icon: "shopping_bag" },
     melimais: { name: "Meli+ (Mercado Livre)", category: "Assinatura & Streaming", icon: "shopping_bag" },
     "amazon prime": { name: "Amazon Prime", category: "Compras & Streaming", icon: "shopping_bag" },
+    prime: { name: "Amazon Prime", category: "Compras & Streaming", icon: "shopping_bag" },
     wellhub: { name: "Wellhub (Gympass)", category: "Academia & Bem-Estar", icon: "fitness_center" },
     gympass: { name: "Wellhub (Gympass)", category: "Academia & Bem-Estar", icon: "fitness_center" },
+    totalpass: { name: "TotalPass", category: "Academia & Bem-Estar", icon: "fitness_center" },
+    smartfit: { name: "Smart Fit", category: "Academia & Bem-Estar", icon: "fitness_center" },
+    "smart fit": { name: "Smart Fit", category: "Academia & Bem-Estar", icon: "fitness_center" },
     apple: { name: "Apple Services", category: "Serviços Digitais", icon: "phone_iphone" },
+    icloud: { name: "Apple iCloud", category: "Armazenamento em Nuvem", icon: "cloud" },
     chatgpt: { name: "ChatGPT Plus (OpenAI)", category: "Inteligência Artificial", icon: "smart_toy" },
     openai: { name: "OpenAI", category: "Inteligência Artificial", icon: "smart_toy" },
     claude: { name: "Anthropic Claude", category: "Inteligência Artificial", icon: "auto_awesome" },
+    cursor: { name: "Cursor AI", category: "Desenvolvimento & IA", icon: "code" },
+    github: { name: "GitHub Copilot", category: "Desenvolvimento & IA", icon: "code" },
     disney: { name: "Disney+", category: "Streaming de Vídeo", icon: "movie" },
     globoplay: { name: "Globoplay", category: "Streaming de Vídeo", icon: "live_tv" },
+    max: { name: "Max (HBO)", category: "Streaming de Vídeo", icon: "movie" },
+    "hbo max": { name: "Max (HBO)", category: "Streaming de Vídeo", icon: "movie" },
+    crunchyroll: { name: "Crunchyroll", category: "Streaming de Animes", icon: "smart_display" },
+    deezer: { name: "Deezer", category: "Streaming de Música", icon: "music_note" },
     canva: { name: "Canva Pro", category: "Design & Criatividade", icon: "palette" },
+    "sem parar": { name: "Sem Parar", category: "Pedágio & Mobilidade", icon: "directions_car" },
+    conectcar: { name: "ConectCar", category: "Pedágio & Mobilidade", icon: "directions_car" },
+    veloe: { name: "Veloe", category: "Pedágio & Mobilidade", icon: "directions_car" },
+    duolingo: { name: "Duolingo Plus / Super", category: "Educação & Idiomas", icon: "school" },
+    strava: { name: "Strava", category: "Saúde & Esportes", icon: "directions_run" },
+    playstation: { name: "PlayStation Plus", category: "Games & Jogos", icon: "sports_esports" },
+    xbox: { name: "Xbox Game Pass", category: "Games & Jogos", icon: "sports_esports" },
 };
 
 export function SubscriptionsTracker({ transactions, formatCurrency }: SubscriptionsTrackerProps) {
@@ -87,7 +105,12 @@ export function SubscriptionsTracker({ transactions, formatCurrency }: Subscript
                 }
             }
 
-            const isFlaggedSub = Boolean(t.is_subscription || matchedKey);
+            const isCategorySub =
+                t.category_pt?.toLowerCase().includes("assinatura") ||
+                t.category_pt?.toLowerCase().includes("serviços digitais") ||
+                t.category?.toLowerCase().includes("subscription");
+
+            const isFlaggedSub = Boolean(t.is_subscription || matchedKey || isCategorySub);
             if (!isFlaggedSub) return;
 
             const groupKey = matchedKey || rawLabel.trim().toLowerCase();

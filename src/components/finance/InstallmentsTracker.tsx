@@ -319,21 +319,22 @@ export function InstallmentsTracker({ transactions, formatCurrency }: Installmen
                                         </div>
                                     </div>
                                     <div className="text-right shrink-0">
-                                        <span className="text-sm font-extrabold text-slate-900 dark:text-white tabular-nums block">
-                                            {formatCurrency(item.installmentAmount)}
+                                        <div className="flex items-baseline justify-end gap-1">
+                                            <span className="text-sm md:text-base font-extrabold text-slate-900 dark:text-white tabular-nums block">
+                                                {formatCurrency(item.installmentAmount)}
+                                            </span>
                                             {item.totalInstallments > 1 && (
-                                                <span className="text-[10px] text-slate-400 font-normal">
-                                                    {" "}
-                                                    /parcela
+                                                <span className="text-[11px] font-semibold text-emerald-500">
+                                                    /mês
                                                 </span>
                                             )}
-                                        </span>
+                                        </div>
                                         {item.totalInstallments > 1 ? (
-                                            <span className="text-[11px] text-[#FF8216] font-semibold">
-                                                Total: {formatCurrency(item.totalAmount)} • Resta:{" "}
-                                                {formatCurrency(item.remainingAmount)} (
-                                                {item.remainingCount}x)
-                                            </span>
+                                            <div className="text-[11px] text-slate-400 mt-0.5">
+                                                <span>Total parcelado: <strong className="text-slate-700 dark:text-slate-200">{formatCurrency(item.totalAmount)}</strong></span>
+                                                <span className="mx-1">•</span>
+                                                <span className="text-[#FF8216] font-semibold">Resta {formatCurrency(item.remainingAmount)} ({item.remainingCount}x)</span>
+                                            </div>
                                         ) : (
                                             <span className="text-[11px] text-emerald-500 font-medium">
                                                 Compra à vista (1x)

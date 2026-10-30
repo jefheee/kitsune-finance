@@ -389,7 +389,7 @@ export function FinanceDataProvider({ children }: { children: React.ReactNode })
                         )
                         .in('user_id', targetUserIds)
                         .order('date', { ascending: false })
-                        .limit(400),
+                        .limit(3000),
                     supabase
                         .from('pluggy_connections')
                         .select('*')

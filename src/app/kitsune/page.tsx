@@ -1511,22 +1511,33 @@ export default function KitsuneAIPage() {
                 </button>
 
                 {isAttachOpen && (
-                  <div className="absolute bottom-full left-0 mb-2.5 w-80 max-h-96 overflow-y-auto bg-white dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] rounded-2xl shadow-2xl p-2.5 flex flex-col gap-1.5 z-50">
-                    <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#FF8216]">
-                      Kitsune Vision • Multimodal
+                  <div className="absolute bottom-full left-0 mb-2.5 w-[330px] sm:w-[360px] bg-white dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] rounded-2xl shadow-2xl p-3 flex flex-col gap-2 z-50 animate-scale-up">
+                    <div className="flex items-center justify-between pb-1 border-b border-slate-100 dark:border-white/5">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-[#FF8216] flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[13px]">add_a_photo</span>
+                        Kitsune Vision & Anexos
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setIsAttachOpen(false)}
+                        className="text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer"
+                      >
+                        <span className="material-symbols-outlined text-[15px]">close</span>
+                      </button>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-1.5 mb-1.5">
+                    {/* Botões Principais de Câmera e Upload */}
+                    <div className="grid grid-cols-2 gap-1.5">
                       <button
                         type="button"
                         onClick={() => {
                           setIsAttachOpen(false);
                           startCamera("environment");
                         }}
-                        className="p-2.5 rounded-xl bg-[#FF8216]/10 hover:bg-[#FF8216]/20 text-[#FF8216] border border-[#FF8216]/25 flex flex-col items-center gap-1 text-center transition-all cursor-pointer"
+                        className="py-2 px-2.5 rounded-xl bg-[#FF8216]/10 hover:bg-[#FF8216]/20 text-[#FF8216] border border-[#FF8216]/25 flex items-center justify-center gap-1.5 transition-all cursor-pointer text-xs font-bold"
                       >
-                        <span className="material-symbols-outlined text-xl">photo_camera</span>
-                        <span className="text-[11px] font-bold">Tirar Foto Agora</span>
+                        <span className="material-symbols-outlined text-[17px]">photo_camera</span>
+                        <span>Câmera</span>
                       </button>
 
                       <button
@@ -1535,132 +1546,115 @@ export default function KitsuneAIPage() {
                           setIsAttachOpen(false);
                           fileInputRef.current?.click();
                         }}
-                        className="p-2.5 rounded-xl bg-slate-100 dark:bg-[#27272A] hover:bg-slate-200 dark:hover:bg-[#323238] text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-white/10 flex flex-col items-center gap-1 text-center transition-all cursor-pointer"
+                        className="py-2 px-2.5 rounded-xl bg-slate-100 dark:bg-[#27272A] hover:bg-slate-200 dark:hover:bg-[#323238] text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-white/10 flex items-center justify-center gap-1.5 transition-all cursor-pointer text-xs font-bold"
                       >
-                        <span className="material-symbols-outlined text-xl">photo_library</span>
-                        <span className="text-[11px] font-bold">Escolher da Galeria</span>
+                        <span className="material-symbols-outlined text-[17px]">photo_library</span>
+                        <span>Galeria</span>
                       </button>
                     </div>
 
-                    <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                      Modos Rápidos com Imagem
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsAttachOpen(false);
-                        setInput("Estou enviando a foto deste cardápio. Analise os pratos com melhor custo-benefício e compare com minha média de gastos com alimentação.");
-                        fileInputRef.current?.click();
-                      }}
-                      className="w-full px-3 py-2 rounded-xl text-left transition-colors flex items-center gap-2.5 cursor-pointer hover:bg-slate-100 dark:hover:bg-[#27272A] text-slate-800 dark:text-slate-100"
-                    >
-                      <span className="p-1.5 rounded-lg bg-[#FF8216]/10 text-[#FF8216] material-symbols-outlined text-sm">restaurant_menu</span>
-                      <div className="flex flex-col min-w-0 flex-1">
-                        <span className="text-xs font-semibold">Cardápio de Restaurante</span>
-                        <span className="text-[10px] text-slate-400">Compara preços e indica opções inteligentes</span>
-                      </div>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsAttachOpen(false);
-                        setInput("Estou considerando comprar este produto. Calcule com precisão quantas horas de trabalho minhas ele custa com base na minha renda mensal e me diga se cabe no meu saldo livre.");
-                        fileInputRef.current?.click();
-                      }}
-                      className="w-full px-3 py-2 rounded-xl text-left transition-colors flex items-center gap-2.5 cursor-pointer hover:bg-slate-100 dark:hover:bg-[#27272A] text-slate-800 dark:text-slate-100"
-                    >
-                      <span className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-500 material-symbols-outlined text-sm">schedule</span>
-                      <div className="flex flex-col min-w-0 flex-1">
-                        <span className="text-xs font-semibold">Produto ou Etiqueta (Horas de Trabalho)</span>
-                        <span className="text-[10px] text-slate-400">Calcula esforço de trabalho e anti-impulso</span>
-                      </div>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsAttachOpen(false);
-                        setInput("Audite esta proposta de financiamento de imóvel ou carro: taxa de juros CET real, custo total dos juros e se a parcela compromete mais de 30% da minha renda mensal.");
-                        fileInputRef.current?.click();
-                      }}
-                      className="w-full px-3 py-2 rounded-xl text-left transition-colors flex items-center gap-2.5 cursor-pointer hover:bg-slate-100 dark:hover:bg-[#27272A] text-slate-800 dark:text-slate-100"
-                    >
-                      <span className="p-1.5 rounded-lg bg-blue-500/10 text-blue-500 material-symbols-outlined text-sm">home</span>
-                      <div className="flex flex-col min-w-0 flex-1">
-                        <span className="text-xs font-semibold">Simulação de Casa ou Carro</span>
-                        <span className="text-[10px] text-slate-400">Auditoria CET, SAC vs Price e regra dos 30%</span>
-                      </div>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsAttachOpen(false);
-                        setInput("Audite esta nota fiscal / comprovante de pagamento: verifique valores, tributos e taxas embutidas.");
-                        fileInputRef.current?.click();
-                      }}
-                      className="w-full px-3 py-2 rounded-xl text-left transition-colors flex items-center gap-2.5 cursor-pointer hover:bg-slate-100 dark:hover:bg-[#27272A] text-slate-800 dark:text-slate-100"
-                    >
-                      <span className="p-1.5 rounded-lg bg-purple-500/10 text-purple-500 material-symbols-outlined text-sm">receipt</span>
-                      <div className="flex flex-col min-w-0 flex-1">
-                        <span className="text-xs font-semibold">Nota Fiscal ou Comprovante</span>
-                        <span className="text-[10px] text-slate-400">Verifica taxas e conciliação bancária</span>
-                      </div>
-                    </button>
-
-                    <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-1">
-                      Blocos de Contexto Financeiro
-                    </div>
-
-                    {CONTEXT_ATTACHMENTS.map((item) => {
-                      const isAttached = attachedContexts.includes(item.id);
-                      return (
+                    {/* Modos Rápidos Vision (Grid Compacto 2x2) */}
+                    <div>
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                        Modos Rápidos Vision
+                      </span>
+                      <div className="grid grid-cols-2 gap-1.5">
                         <button
-                          key={item.id}
                           type="button"
                           onClick={() => {
-                            setAttachedContexts((prev) =>
-                              prev.includes(item.id)
-                                ? prev.filter((id) => id !== item.id)
-                                : [...prev, item.id]
-                            );
                             setIsAttachOpen(false);
+                            setInput("Estou enviando a foto deste cardápio. Analise os pratos com melhor custo-benefício e compare com minha média de gastos com alimentação.");
+                            fileInputRef.current?.click();
                           }}
-                          className={`w-full px-3 py-2 rounded-xl text-left transition-colors flex items-start gap-2.5 cursor-pointer ${
-                            isAttached
-                              ? "bg-[#FF8216]/15 text-[#FF8216]"
-                              : "hover:bg-slate-100 dark:hover:bg-[#27272A] text-slate-800 dark:text-slate-100"
-                          }`}
+                          className="p-1.5 rounded-lg bg-slate-50 dark:bg-[#202024] hover:bg-slate-100 dark:hover:bg-[#27272A] border border-slate-200/60 dark:border-white/5 flex items-center gap-1.5 text-left transition-all cursor-pointer"
                         >
-                          <div
-                            className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
-                              isAttached
-                                ? "bg-[#FF8216] text-white"
-                                : "bg-[#FF8216]/15 text-[#FF8216]"
-                            }`}
-                          >
-                            <span className="material-symbols-outlined text-[16px]">
-                              {item.icon}
-                            </span>
-                          </div>
-                          <div className="flex flex-col flex-1 min-w-0">
-                            <span className="text-xs font-semibold truncate">
-                              {item.label}
-                            </span>
-                            <span className="text-[11px] text-slate-500 dark:text-[#94A3B8] leading-tight">
-                              {item.description}
-                            </span>
-                          </div>
-                          {isAttached && (
-                            <span className="material-symbols-outlined text-[16px] text-[#FF8216]">
-                              check
-                            </span>
-                          )}
+                          <span className="p-1 rounded bg-[#FF8216]/10 text-[#FF8216] material-symbols-outlined text-[14px]">restaurant_menu</span>
+                          <span className="text-[11px] font-semibold text-slate-800 dark:text-slate-200 truncate">Cardápio</span>
                         </button>
-                      );
-                    })}
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsAttachOpen(false);
+                            setInput("Estou considerando comprar este produto. Calcule com precisão quantas horas de trabalho minhas ele custa com base na minha renda mensal e me diga se cabe no meu saldo livre.");
+                            fileInputRef.current?.click();
+                          }}
+                          className="p-1.5 rounded-lg bg-slate-50 dark:bg-[#202024] hover:bg-slate-100 dark:hover:bg-[#27272A] border border-slate-200/60 dark:border-white/5 flex items-center gap-1.5 text-left transition-all cursor-pointer"
+                        >
+                          <span className="p-1 rounded bg-emerald-500/10 text-emerald-500 material-symbols-outlined text-[14px]">schedule</span>
+                          <span className="text-[11px] font-semibold text-slate-800 dark:text-slate-200 truncate">Anti-Impulso</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsAttachOpen(false);
+                            setInput("Audite esta proposta de financiamento de imóvel ou carro: taxa de juros CET real, custo total dos juros e se a parcela compromete mais de 30% da minha renda mensal.");
+                            fileInputRef.current?.click();
+                          }}
+                          className="p-1.5 rounded-lg bg-slate-50 dark:bg-[#202024] hover:bg-slate-100 dark:hover:bg-[#27272A] border border-slate-200/60 dark:border-white/5 flex items-center gap-1.5 text-left transition-all cursor-pointer"
+                        >
+                          <span className="p-1 rounded bg-blue-500/10 text-blue-500 material-symbols-outlined text-[14px]">home</span>
+                          <span className="text-[11px] font-semibold text-slate-800 dark:text-slate-200 truncate">Financiamento</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsAttachOpen(false);
+                            setInput("Audite esta nota fiscal / comprovante de pagamento: verifique valores, tributos e taxas embutidas.");
+                            fileInputRef.current?.click();
+                          }}
+                          className="p-1.5 rounded-lg bg-slate-50 dark:bg-[#202024] hover:bg-slate-100 dark:hover:bg-[#27272A] border border-slate-200/60 dark:border-white/5 flex items-center gap-1.5 text-left transition-all cursor-pointer"
+                        >
+                          <span className="p-1 rounded bg-purple-500/10 text-purple-500 material-symbols-outlined text-[14px]">receipt</span>
+                          <span className="text-[11px] font-semibold text-slate-800 dark:text-slate-200 truncate">Nota / Recibo</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Blocos de Contexto Financeiro (Grid Compacto 2x2) */}
+                    <div>
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                        Contexto Financeiro
+                      </span>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {CONTEXT_ATTACHMENTS.map((item) => {
+                          const isAttached = attachedContexts.includes(item.id);
+                          return (
+                            <button
+                              key={item.id}
+                              type="button"
+                              onClick={() => {
+                                setAttachedContexts((prev) =>
+                                  prev.includes(item.id)
+                                    ? prev.filter((id) => id !== item.id)
+                                    : [...prev, item.id]
+                                );
+                                setIsAttachOpen(false);
+                              }}
+                              className={`p-1.5 rounded-lg border text-left transition-all flex items-center gap-1.5 cursor-pointer ${
+                                isAttached
+                                  ? "bg-[#FF8216]/15 border-[#FF8216]/40 text-[#FF8216]"
+                                  : "bg-slate-50 dark:bg-[#202024] hover:bg-slate-100 dark:hover:bg-[#27272A] border-slate-200/60 dark:border-white/5 text-slate-800 dark:text-slate-200"
+                              }`}
+                            >
+                              <span className={`material-symbols-outlined text-[14px] ${isAttached ? "text-[#FF8216]" : "text-slate-400"}`}>
+                                {item.icon}
+                              </span>
+                              <span className="text-[11px] font-semibold truncate flex-1">
+                                {item.label}
+                              </span>
+                              {isAttached && (
+                                <span className="material-symbols-outlined text-[12px] text-[#FF8216]">
+                                  check
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
