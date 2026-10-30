@@ -57,7 +57,7 @@ export async function GET() {
             : conn.requester_id;
 
         if (partnerId) {
-          const [profileRes, accountsRes] = await Promise.all([
+          const [profileRes, accountsRes, invRes, txnRes] = await Promise.all([
             supabase
               .from('users_profile')
               .select('id, display_name, full_name, avatar_url')
@@ -65,8 +65,20 @@ export async function GET() {
               .maybeSingle(),
             supabase
               .from('bank_accounts')
-              .select('*', { count: 'exact', head: true })
-              .eq('user_id', partnerId),
+              .select('*')
+              .eq('user_id', partnerId)
+              .order('balance', { ascending: false }),
+            supabase
+              .from('investments')
+              .select('*')
+              .eq('user_id', partnerId)
+              .order('balance', { ascending: false }),
+            supabase
+              .from('transactions')
+              .select('*, bank_accounts(bank_name, institution_name, institution_slug, product_name, type, subtype, card_brand)')
+              .eq('user_id', partnerId)
+              .order('date', { ascending: false })
+              .limit(50),
           ]);
 
           const prof = profileRes.data || { id: partnerId };
@@ -74,20 +86,46 @@ export async function GET() {
             ...prof,
             role: conn.role,
             connection_id: conn.id,
-            accountsCount: accountsRes.count || 0,
+            accountsCount: accountsRes.data?.length || 0,
+            accounts: accountsRes.data || [],
+            investments: invRes.data || [],
+            transactions: txnRes.data || [],
           });
 
           if (!partnerProfile) {
             partnerProfile = prof;
-            partnerAccountsCount = accountsRes.count || 0;
+            partnerAccountsCount = accountsRes.data?.length || 0;
           }
         }
       }
     }
 
+    // Buscar contas e investimentos do usuário atual para a visualização consolidada do Espaço Compartilhado
+    const [myAccountsRes, myInvRes, myTxnRes] = await Promise.all([
+      supabase
+        .from('bank_accounts')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('balance', { ascending: false }),
+      supabase
+        .from('investments')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('balance', { ascending: false }),
+      supabase
+        .from('transactions')
+        .select('*, bank_accounts(bank_name, institution_name, institution_slug, product_name, type, subtype, card_brand)')
+        .eq('user_id', user.id)
+        .order('date', { ascending: false })
+        .limit(50),
+    ]);
+
     return NextResponse.json({
       canInvite: hasConnectedBank,
       userAccountsCount: userAccountsCount || 0,
+      userAccounts: myAccountsRes.data || [],
+      userInvestments: myInvRes.data || [],
+      userTransactions: myTxnRes.data || [],
       connections: connections || [],
       activeConnection,
       activeConnections,

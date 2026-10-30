@@ -95,8 +95,19 @@ export function NotificationsModal({ isOpen, onClose, onRefreshData }: Notificat
         body: JSON.stringify({ id: notif.id }),
       });
 
-      setNotifications((prev) => prev.map((n) => (n.id === notif.id ? { ...n, is_read: true } : n)));
+      setNotifications((prev) =>
+        prev.map((n) =>
+          n.id === notif.id
+            ? { ...n, is_read: true, data: { ...n.data, status: 'accepted' } }
+            : n
+        )
+      );
       if (onRefreshData) onRefreshData();
+
+      // Fechar modal automaticamente após feedback positivo
+      setTimeout(() => {
+        onClose();
+      }, 1200);
     } catch (err: any) {
       setStatusMessage({ type: 'error', text: err.message || 'Falha na conexão.' });
     } finally {
@@ -279,28 +290,37 @@ export function NotificationsModal({ isOpen, onClose, onRefreshData }: Notificat
                   {/* Ações interativas para convites */}
                   {isInvite && (
                     <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-[#27272A] flex items-center gap-2">
-                      <button
-                        type="button"
-                        disabled={isLoadingThis}
-                        onClick={() => handleAcceptInvite(notif)}
-                        className="px-3 py-1.5 rounded-xl bg-[#FF8216] hover:bg-[#FFA047] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer disabled:opacity-50"
-                      >
-                        {isLoadingThis ? (
-                          <Spinner size={12} className="text-white" />
-                        ) : (
+                      {notif.data?.status === 'accepted' ? (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-500 text-xs font-bold border border-emerald-500/20">
                           <span className="material-symbols-outlined text-[15px]">check_circle</span>
-                        )}
-                        <span>Aceitar Conexão</span>
-                      </button>
+                          Conexão aceita
+                        </span>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            disabled={isLoadingThis}
+                            onClick={() => handleAcceptInvite(notif)}
+                            className="px-3 py-1.5 rounded-xl bg-[#FF8216] hover:bg-[#FFA047] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer disabled:opacity-50"
+                          >
+                            {isLoadingThis ? (
+                              <Spinner size={12} className="text-white" />
+                            ) : (
+                              <span className="material-symbols-outlined text-[15px]">check_circle</span>
+                            )}
+                            <span>Aceitar Conexão</span>
+                          </button>
 
-                      <button
-                        type="button"
-                        disabled={isLoadingThis}
-                        onClick={() => handleRejectInvite(notif)}
-                        className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-[#27272A] dark:hover:bg-[#3F3F46] text-slate-700 dark:text-slate-300 text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50"
-                      >
-                        Recusar
-                      </button>
+                          <button
+                            type="button"
+                            disabled={isLoadingThis}
+                            onClick={() => handleRejectInvite(notif)}
+                            className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-[#27272A] dark:hover:bg-[#3F3F46] text-slate-700 dark:text-slate-300 text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50"
+                          >
+                            Recusar
+                          </button>
+                        </>
+                      )}
                     </div>
                   )}
                 </div>

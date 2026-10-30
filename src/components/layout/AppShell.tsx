@@ -61,12 +61,27 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isSettingsOpen]);
 
+  const handleOpenNotifications = useCallback(async () => {
+    setIsNotificationsOpen(true);
+    setUnreadNotifsCount(0);
+    try {
+      await fetch('/api/notifications', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ all: true }),
+      });
+    } catch (e) {
+      console.error('Failed to mark notifications as read:', e);
+    }
+  }, []);
+
   // Sidebar Desktop: Rotas operacionais dedicadas e organizadas
   const desktopNavItems = [
     { path: "/dashboard", icon: "dashboard", label: "Dashboard" },
     { path: "/kitsune", icon: "auto_awesome", label: "Kitsune AI" },
     { path: "/cards", icon: "wallet", label: "Cartões" },
     { path: "/investments", icon: "trending_up", label: "Investimentos" },
+    { path: "/shared", icon: "diversity_3", label: "Espaço Compartilhado" },
     { path: "/agents", icon: "smart_toy", label: "Agentes" },
     { path: "/connections", icon: "account_balance", label: "Bancos" },
   ];
@@ -74,9 +89,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   // Mobile Bottom Bar (Estilo Pierre Finance: Clean, Flutuante e Sem Poluição)
   const mobileNavItems = [
     { path: "/dashboard", icon: "home", label: "Início" },
-    { path: "/dashboard?tab=Transações", icon: "swap_horiz", label: "Extrato" },
-    { path: "/kitsune", icon: "auto_awesome", label: "Kitsune AI" },
     { path: "/cards", icon: "wallet", label: "Cartões" },
+    { path: "/kitsune", icon: "auto_awesome", label: "Kitsune AI" },
+    { path: "/shared", icon: "diversity_3", label: "Compartilhado" },
     { path: "/profile", icon: "person", label: "Perfil" },
   ];
 
@@ -173,7 +188,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           {/* Botão de Notificações */}
           <button
             type="button"
-            onClick={() => setIsNotificationsOpen(true)}
+            onClick={handleOpenNotifications}
             className="w-10 h-10 flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#161618] transition-colors cursor-pointer relative"
             title="Notificações & Convites"
           >
@@ -261,7 +276,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             {/* Botão de Notificações Mobile */}
             <button
               type="button"
-              onClick={() => setIsNotificationsOpen(true)}
+              onClick={handleOpenNotifications}
               className="p-1.5 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#161618] transition-colors cursor-pointer relative"
               title="Notificações & Convites"
             >

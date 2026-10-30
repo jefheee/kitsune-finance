@@ -4,6 +4,17 @@ Todas as alterações notáveis no projeto Kitsune Finance são registradas de f
 
 ---
 
+## [2026-10-29] - Página Dedicada /shared (Espaço Compartilhado), Isolamento Pessoal Total, Correção de Entradas & Modo Privacidade em Gráficos
+- **Arquivos Afetados:** `src/app/shared/page.tsx`, `src/app/dashboard/page.tsx`, `src/context/FinanceDataContext.tsx`, `src/components/charts/SpendingCurveChart.tsx`, `src/components/layout/AppShell.tsx`, `src/components/NotificationsModal.tsx`, `src/app/api/shared-space/route.ts`, `docs/PROJECT_STATE.md`, `docs/CHANGELOG.md`.
+- **Objetivo:**
+  - Criação da página `/shared` com governança multi-membros, visão consolidada conjunta, abas individuais por integrante, distribuição patrimonial e botão de desligamento total ("Sair do Espaço") com revogação RLS imediata.
+  - Isolamento estrito das telas pessoais (`/dashboard`, `/cards`, etc.): cada usuário visualiza exclusivamente suas próprias contas e transações, sem misturar ativos.
+  - Correção no cômputo de "Entradas do Mês" eliminando bug de timezone UTC no 1º dia do mês via `parseLocalDate` (incluindo o salário integral de R$ 4.842,00).
+  - Suporte ao Modo Privacidade (`hideValues`) no gráfico de Ritmo de Gastos e paginação retrátil com botão "Ver mais" em "Minhas Contas & Cartões".
+  - Fechamento automático e feedback visual "Conexão aceita" no modal de notificações, limpando instantaneamente alertas e glow ao abrir.
+
+---
+
 ## [2026-10-29] - Remoção do Kitsune Vision da Landing Page
 - **Arquivos Afetados:** `src/app/page.tsx`, `docs/PROJECT_STATE.md`, `docs/CHANGELOG.md`.
 - **Objetivo:**
