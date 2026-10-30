@@ -205,25 +205,6 @@ export default function ConnectionsPage() {
                 </div>
             )}
 
-            {/* Banner de Segurança & Privacidade */}
-            <div className="p-4 md:p-5 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="flex items-start gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
-                        <span className="material-symbols-outlined text-[20px]">verified_user</span>
-                    </div>
-                    <div>
-                        <h3 className="text-sm font-bold text-white">Ambiente 100% Somente-Leitura</h3>
-                        <p className="text-xs text-slate-400 leading-relaxed mt-0.5">
-                            Criptografia TLS 1.3 de nível bancário e isolamento rigoroso por RLS. O sistema não tem permissão para movimentar seu dinheiro.
-                        </p>
-                    </div>
-                </div>
-                <div className="flex items-center gap-2 shrink-0 text-xs font-mono text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span>Open Finance Ativo</span>
-                </div>
-            </div>
-
             {/* Modal do Pluggy Connect */}
             {connectToken && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
