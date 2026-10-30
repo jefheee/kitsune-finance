@@ -342,12 +342,10 @@ export function FinanceDataProvider({ children }: { children: React.ReactNode })
                 setSharedConnection(activeConn);
                 setActivePartner(partnerProfile);
 
-                // Multi-tenant: Se o modo Espaço Compartilhado estiver ativo e houver parceiros conectados, agrega todos os IDs
-                const partnerIds = partnerProfiles.map((p) => p.id).filter(Boolean);
-                const targetUserIds =
-                    isFamilyActive && partnerIds.length > 0
-                        ? Array.from(new Set([authUser.id, ...partnerIds]))
-                        : [authUser.id];
+                // Multi-tenant: Isolamento rigoroso para o painel pessoal do usuário.
+                // Contas, investimentos e transações das telas pessoais pertencem exclusivamente ao usuário autenticado.
+                // O Espaço Compartilhado possui sua página própria (/shared) com agregação e transparência por integrante.
+                const targetUserIds = [authUser.id];
 
                 const [
                     profileRes,

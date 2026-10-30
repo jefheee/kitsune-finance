@@ -32,6 +32,18 @@ const FINANCIAL_GOALS_MAP: Record<string, string> = {
     'investir e multiplicar': 'Crescimento e Alocação Estratégica',
 };
 
+function parseLocalDate(dateStr: string | Date | undefined | null): Date {
+    if (!dateStr) return new Date();
+    if (dateStr instanceof Date) return dateStr;
+    const cleanStr = String(dateStr).split('T')[0];
+    if (/^\d{4}-\d{2}-\d{2}$/.test(cleanStr)) {
+        const [y, m, d] = cleanStr.split('-').map(Number);
+        return new Date(y, m - 1, d, 12, 0, 0);
+    }
+    const parsed = new Date(dateStr);
+    return isNaN(parsed.getTime()) ? new Date() : parsed;
+}
+
 export default function DashboardPage() {
     const {
         user,
@@ -234,13 +246,14 @@ export default function DashboardPage() {
     const [isCreatingMember, setIsCreatingMember] = useState(false);
     const [copiedMemberId, setCopiedMemberId] = useState<string | null>(null);
 
+    const [showAllAccounts, setShowAllAccounts] = useState(false);
+
     const TABS = [
         "Visão Geral",
         "Transações",
         "Categorias",
         "Parcelamentos",
         "Assinaturas",
-        "Espaço Compartilhado",
     ];
 
     // Lista única de bancos conectados pelo usuário para a barra horizontal de filtro
@@ -402,7 +415,7 @@ export default function DashboardPage() {
         return filteredTransactions.filter((tx) => {
             const rawDate = tx.executed_at || tx.date;
             if (!rawDate) return false;
-            const txDate = new Date(rawDate);
+            const txDate = parseLocalDate(rawDate);
             const dStr = rawDate.split("T")[0];
 
             if (timeGranularity === "day") {
@@ -563,7 +576,7 @@ export default function DashboardPage() {
         filteredTransactions.forEach((txn) => {
             const rawDate = txn.date || txn.executed_at;
             if (!rawDate) return;
-            const txnDate = new Date(rawDate);
+            const txnDate = parseLocalDate(rawDate);
             const absAmount = Math.abs(Number(txn.amount) || 0);
             if (absAmount === 0) return;
 
@@ -931,27 +944,6 @@ export default function DashboardPage() {
 
                 {/* Ações Superiores */}
                 <div className="flex items-center gap-2 shrink-0 self-stretch sm:self-auto flex-wrap">
-                    {/* Toggle Rápido: Modo Pessoal vs Espaço Compartilhado */}
-                    <button
-                        type="button"
-                        onClick={() => setIsFamilyModeEnabled(!isFamilyModeEnabled)}
-                        title={
-                            isFamilyModeEnabled
-                                ? "Modo Compartilhado ativo. Clique para voltar ao Modo Pessoal."
-                                : "Modo Pessoal ativo. Clique para ativar Espaço Compartilhado (Duo / Família)."
-                        }
-                        className={`flex-1 sm:flex-initial h-10 px-3.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs ${
-                            isFamilyModeEnabled
-                                ? "bg-[#FF8216]/15 border-[#FF8216] text-[#FF8216]"
-                                : "bg-white dark:bg-[#121214] border-slate-200 dark:border-[#27272A] text-slate-700 dark:text-zinc-200 hover:border-[#FF8216]/40"
-                        }`}
-                    >
-                        <span className="material-symbols-outlined text-[17px]">
-                            {isFamilyModeEnabled ? "group" : "person"}
-                        </span>
-                        <span>{isFamilyModeEnabled ? "Espaço Duo / Família" : "Modo Pessoal"}</span>
-                    </button>
-
                     <button
                         onClick={() => setIsSearchModalOpen(true)}
                         title="Buscar compras, iFood, Uber, lojas... (Atalho: Ctrl+K)"
@@ -1329,6 +1321,7 @@ export default function DashboardPage() {
                                 currentDay={spendingCurveData.currentDay}
                                 totalCurrentMonth={spendingCurveData.totalCurrentMonth}
                                 totalPreviousMonth={spendingCurveData.totalPreviousMonth}
+                                hideValues={isPrivacyMode}
                             />
                         </SpotlightCard>
                     </section>
@@ -1396,14 +1389,14 @@ export default function DashboardPage() {
                                     {formatCurrency(monthlyIncome)}
                                 </span>
                                 <p className="text-[11px] text-slate-400 mt-0.5 truncate">
-                                    Sem transferências próprias ou familiares
+                                    Salário, rendimentos e créditos operacionais
                                 </p>
                                 <span className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 font-mono block mt-1">
                                     Fonte: {monthlyIncomeCount} crédito(s) bancário(s)
                                 </span>
                             </div>
                             <div className="pt-2 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-[10px] text-slate-400">
-                                <span>Mov. Internas / Família</span>
+                                <span>Mov. Internas / Resgates</span>
                                 <span className="text-slate-600 dark:text-slate-300 font-semibold tabular-nums">
                                     {formatCurrency(monthlyInternalTransfers)}
                                 </span>
@@ -1530,70 +1523,89 @@ export default function DashboardPage() {
 
                             <div className="flex flex-col gap-2.5">
                                 {filteredAccounts.length > 0 ? (
-                                    filteredAccounts.map((account) => {
-                                        const isCredit =
-                                            account.type === "CREDIT" ||
-                                            account.type === "CREDIT_CARD" ||
-                                            account.subtype === "CREDIT_CARD";
-                                        const isSavings = account.subtype === "SAVINGS_ACCOUNT";
-                                        const instName =
-                                            account.institution_name ||
-                                            account.bank_name ||
-                                            "Banco Conectado";
-                                        const prodName =
-                                            account.product_name ||
-                                            account.bank_name ||
-                                            "Conta Bancária";
-                                        const slug =
-                                            account.institution_slug || instName;
+                                    <>
+                                        {(showAllAccounts ? filteredAccounts : filteredAccounts.slice(0, 5)).map((account) => {
+                                            const isCredit =
+                                                account.type === "CREDIT" ||
+                                                account.type === "CREDIT_CARD" ||
+                                                account.subtype === "CREDIT_CARD";
+                                            const isSavings = account.subtype === "SAVINGS_ACCOUNT";
+                                            const instName =
+                                                account.institution_name ||
+                                                account.bank_name ||
+                                                "Banco Conectado";
+                                            const prodName =
+                                                account.product_name ||
+                                                account.bank_name ||
+                                                "Conta Bancária";
+                                            const slug =
+                                                account.institution_slug || instName;
 
-                                        return (
-                                            <div
-                                                key={account.id}
-                                                className="p-3.5 rounded-xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] flex items-center justify-between hover:border-[#FF8216]/40 transition-colors shadow-xs gap-3"
-                                            >
-                                                <div className="flex items-center gap-3 min-w-0">
-                                                    <BankLogo bank={slug} size="sm" />
-                                                    <div className="flex flex-col min-w-0">
-                                                        <span className="text-xs font-bold text-slate-900 dark:text-[#F8FAFC] truncate">
-                                                            {prodName}
+                                            return (
+                                                <div
+                                                    key={account.id}
+                                                    className="p-3.5 rounded-xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] flex items-center justify-between hover:border-[#FF8216]/40 transition-colors shadow-xs gap-3"
+                                                >
+                                                    <div className="flex items-center gap-3 min-w-0">
+                                                        <BankLogo bank={slug} size="sm" />
+                                                        <div className="flex flex-col min-w-0">
+                                                            <span className="text-xs font-bold text-slate-900 dark:text-[#F8FAFC] truncate">
+                                                                {prodName}
+                                                            </span>
+                                                            <span className="text-[11px] text-slate-400 truncate">
+                                                                {instName} •{" "}
+                                                                {isCredit
+                                                                    ? account.credit_limit
+                                                                        ? `Limite: ${formatCurrency(Number(account.credit_limit))}`
+                                                                        : "Cartão de Crédito"
+                                                                    : isSavings
+                                                                      ? "Conta Poupança"
+                                                                      : "Conta Corrente"}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex flex-col items-end shrink-0 pl-2">
+                                                        <span
+                                                            className={`text-xs md:text-sm font-extrabold tabular-nums ${
+                                                                isCredit
+                                                                    ? "text-[#FF8216]"
+                                                                    : "text-slate-900 dark:text-white"
+                                                            }`}
+                                                        >
+                                                            {formatCurrency(
+                                                                Math.abs(Number(account.balance) || 0)
+                                                            )}
                                                         </span>
-                                                        <span className="text-[11px] text-slate-400 truncate">
-                                                            {instName} •{" "}
+                                                        <span className="text-[10px] text-slate-400">
                                                             {isCredit
-                                                                ? account.credit_limit
-                                                                    ? `Limite: ${formatCurrency(Number(account.credit_limit))}`
-                                                                    : "Cartão de Crédito"
-                                                                : isSavings
-                                                                  ? "Conta Poupança"
-                                                                  : "Conta Corrente"}
+                                                                ? account.available_credit_limit != null
+                                                                    ? `Disp: ${formatCurrency(Number(account.available_credit_limit))}`
+                                                                    : "Fatura atual"
+                                                                : "Saldo livre"}
                                                         </span>
                                                     </div>
                                                 </div>
+                                            );
+                                        })}
 
-                                                <div className="flex flex-col items-end shrink-0 pl-2">
-                                                    <span
-                                                        className={`text-xs md:text-sm font-extrabold tabular-nums ${
-                                                            isCredit
-                                                                ? "text-[#FF8216]"
-                                                                : "text-slate-900 dark:text-white"
-                                                        }`}
-                                                    >
-                                                        {formatCurrency(
-                                                            Math.abs(Number(account.balance) || 0)
-                                                        )}
-                                                    </span>
-                                                    <span className="text-[10px] text-slate-400">
-                                                        {isCredit
-                                                            ? account.available_credit_limit != null
-                                                                ? `Disp: ${formatCurrency(Number(account.available_credit_limit))}`
-                                                                : "Fatura atual"
-                                                            : "Saldo livre"}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        );
-                                    })
+                                        {filteredAccounts.length > 5 && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowAllAccounts(!showAllAccounts)}
+                                                className="w-full py-2.5 rounded-xl border border-slate-200 dark:border-[#27272A] bg-slate-50 dark:bg-[#18181B] hover:bg-slate-100 dark:hover:bg-[#202024] text-xs font-bold text-slate-700 dark:text-zinc-300 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                                            >
+                                                <span>
+                                                    {showAllAccounts
+                                                        ? "Ver menos"
+                                                        : `Ver mais (${filteredAccounts.length - 5} outras contas)`}
+                                                </span>
+                                                <span className="material-symbols-outlined text-[16px]">
+                                                    {showAllAccounts ? "expand_less" : "expand_more"}
+                                                </span>
+                                            </button>
+                                        )}
+                                    </>
                                 ) : (
                                     <div className="p-6 text-center bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] rounded-xl flex flex-col items-center gap-2">
                                         <p className="text-xs text-slate-400">
@@ -1971,439 +1983,7 @@ export default function DashboardPage() {
                         </div>
                     </div>
                 </section>
-            ) : (
-                /* Aba: Espaço Compartilhado (Duo & Família) */
-                <section className="flex flex-col gap-6">
-                    <div className="bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] rounded-2xl p-5 md:p-6 flex flex-col gap-5 shadow-xs">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-white/5 pb-4">
-                            <div className="flex flex-col gap-1">
-                                <div className="flex items-center gap-2">
-                                    <span className="material-symbols-outlined text-[#FF8216]">
-                                        diversity_3
-                                    </span>
-                                    <h2 className="text-base font-bold text-slate-900 dark:text-[#F8FAFC]">
-                                        Espaço Compartilhado
-                                    </h2>
-                                </div>
-                                <p className="text-xs text-slate-500 dark:text-[#94A3B8] max-w-2xl leading-relaxed">
-                                    Vincule sua conta à de seu cônjuge ou sócio com consentimento mútuo e proteção Row Level Security (RLS). As movimentações e Pix mútuos são conciliados como remanejamento patrimonial sem inflar suas saídas operacionais.
-                                </p>
-                            </div>
-
-                            <button
-                                onClick={() => setIsFamilyModeEnabled(!isFamilyModeEnabled)}
-                                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 flex items-center gap-1.5 ${
-                                    isFamilyModeEnabled
-                                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                                        : "bg-[#FF8216] text-white shadow-xs hover:bg-[#FFA047]"
-                                }`}
-                            >
-                                <span className="material-symbols-outlined text-[16px]">
-                                    {isFamilyModeEnabled ? "check_circle" : "toggle_on"}
-                                </span>
-                                {isFamilyModeEnabled
-                                    ? "Espaço Compartilhado Ativo"
-                                    : "Ativar Espaço Compartilhado"}
-                            </button>
-                        </div>
-
-                        {/* Mensagem de Feedback de Operação */}
-                        {sharedMessage && (
-                            <div
-                                className={`p-3.5 rounded-xl text-xs flex items-center justify-between gap-2 border ${
-                                    sharedMessage.type === "success"
-                                        ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400"
-                                        : "bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400"
-                                }`}
-                            >
-                                <div className="flex items-center gap-2">
-                                    <span className="material-symbols-outlined text-base">
-                                        {sharedMessage.type === "success" ? "check_circle" : "error"}
-                                    </span>
-                                    <span>{sharedMessage.text}</span>
-                                </div>
-                                <button
-                                    onClick={() => setSharedMessage(null)}
-                                    className="p-1 hover:opacity-70 cursor-pointer"
-                                >
-                                    <span className="material-symbols-outlined text-sm">close</span>
-                                </button>
-                            </div>
-                        )}
-
-                        {/* Pré-requisito: Usuário precisa ter pelo menos 1 banco conectado */}
-                        {sharedSpaceData && !sharedSpaceData.has_bank_accounts && (
-                            <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                                <div className="flex items-start gap-3">
-                                    <span className="material-symbols-outlined text-amber-500 text-xl shrink-0 mt-0.5">
-                                        account_balance
-                                    </span>
-                                    <div>
-                                        <h4 className="text-xs font-bold text-amber-600 dark:text-amber-400">
-                                            Conecte uma conta bancária primeiro
-                                        </h4>
-                                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                                            Para convidar seu cônjuge/sócio ou aceitar conexões com conciliação mútua, você precisa ter pelo menos 1 conta sincronizada via Open Finance.
-                                        </p>
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={() => setIsConnectModalOpen(true)}
-                                    className="px-3.5 py-2 bg-[#FF8216] hover:bg-[#FFA047] text-white rounded-xl text-xs font-bold shrink-0 flex items-center gap-1.5 cursor-pointer shadow-xs"
-                                >
-                                    <span className="material-symbols-outlined text-sm">add_link</span>
-                                    <span>Conectar Banco via Open Finance</span>
-                                </button>
-                            </div>
-                        )}
-
-                        {/* Estado 1: Conexão Ativa Estabelecida */}
-                        {sharedSpaceData?.active_connection ? (
-                            <div className="p-5 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] flex flex-col gap-4">
-                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 rounded-full bg-[#FF8216]/10 text-[#FF8216] flex items-center justify-center font-extrabold text-base border border-[#FF8216]/20">
-                                            {(sharedSpaceData.active_connection.partner_name || sharedSpaceData.active_connection.partner_email || "P")
-                                                .slice(0, 2)
-                                                .toUpperCase()}
-                                        </div>
-                                        <div className="flex flex-col">
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-sm font-bold text-slate-900 dark:text-white">
-                                                    {sharedSpaceData.active_connection.partner_name || "Parceiro Vinculado"}
-                                                </span>
-                                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 flex items-center gap-1">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                                    Conectado & Seguro
-                                                </span>
-                                            </div>
-                                            <span className="text-xs text-slate-500 dark:text-slate-400">
-                                                {sharedSpaceData.active_connection.partner_email} • Vínculo: {sharedSpaceData.active_connection.role}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center gap-2.5">
-                                        <button
-                                            onClick={() => setIsFamilyModeEnabled(!isFamilyModeEnabled)}
-                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
-                                                isFamilyModeEnabled
-                                                    ? "bg-white dark:bg-[#121214] border-slate-200 dark:border-[#27272A] text-slate-700 dark:text-slate-300"
-                                                    : "bg-[#FF8216] text-white border-transparent"
-                                            }`}
-                                        >
-                                            {isFamilyModeEnabled ? "Ocultar Dados do Duo" : "Consolidar no Painel"}
-                                        </button>
-                                        <button
-                                            onClick={handleUnlinkSharedSpace}
-                                            className="px-3 py-1.5 rounded-lg text-xs font-bold text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer border border-rose-500/20"
-                                            title="Desvincular Espaço Compartilhado"
-                                        >
-                                            Desvincular
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div className="p-3 rounded-lg bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                                    <span className="material-symbols-outlined text-emerald-500 text-base shrink-0">
-                                        shield
-                                    </span>
-                                    <span>
-                                        Privacidade garantida via Supabase Row-Level Security: ambos visualizam contas e investimentos integrados. Transferências Pix mútuas são conciliadas como remanejamento interno.
-                                    </span>
-                                </div>
-                            </div>
-                        ) : (
-                            /* Estado 2: Nenhum parceiro ativo -> Convites Recebidos, Formulário de Convite e Validador de Código */
-                            <div className="flex flex-col gap-6">
-                                {/* Convites Recebidos Aguardando Aceite */}
-                                {sharedSpaceData?.pending_received && sharedSpaceData.pending_received.length > 0 && (
-                                    <div className="flex flex-col gap-2.5">
-                                        <h3 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                                            <span className="material-symbols-outlined text-[#FF8216] text-base">
-                                                mark_email_unread
-                                            </span>
-                                            Convites de Conexão Recebidos ({sharedSpaceData.pending_received.length})
-                                        </h3>
-                                        {sharedSpaceData.pending_received.map((inv) => (
-                                            <div
-                                                key={inv.id}
-                                                className="p-4 rounded-xl bg-[#FF8216]/5 border border-[#FF8216]/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-                                            >
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-9 h-9 rounded-full bg-[#FF8216]/10 text-[#FF8216] flex items-center justify-center font-bold text-xs">
-                                                        {(inv.requester_name || inv.requester_email || "U").slice(0, 2).toUpperCase()}
-                                                    </div>
-                                                    <div className="flex flex-col">
-                                                        <span className="text-xs font-bold text-slate-900 dark:text-white">
-                                                            {inv.requester_name || inv.requester_email} convidou você
-                                                        </span>
-                                                        <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                                                            Vínculo: {inv.role} • Código: <code className="font-mono font-bold text-[#FF8216]">{inv.invite_code}</code>
-                                                        </span>
-                                                    </div>
-                                                </div>
-
-                                                <div className="flex items-center gap-2 shrink-0">
-                                                    <button
-                                                        onClick={() => handleRespondInvite(inv.invite_code, "accept")}
-                                                        disabled={isValidatingCode}
-                                                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold cursor-pointer disabled:opacity-50 flex items-center gap-1"
-                                                    >
-                                                        <span className="material-symbols-outlined text-sm">check</span>
-                                                        <span>Aceitar Conexão</span>
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleRespondInvite(inv.invite_code, "reject")}
-                                                        disabled={isValidatingCode}
-                                                        className="px-3 py-1.5 bg-slate-200 dark:bg-[#27272A] hover:bg-slate-300 dark:hover:bg-[#323238] text-slate-700 dark:text-slate-300 rounded-lg text-xs font-semibold cursor-pointer disabled:opacity-50"
-                                                    >
-                                                        Recusar
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-
-                                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                                    {/* Formulário 1: Convidar Cônjuge/Sócio por E-mail */}
-                                    <form
-                                        onSubmit={handleSendInvite}
-                                        className="lg:col-span-6 p-4 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] flex flex-col gap-3.5"
-                                    >
-                                        <div className="flex flex-col gap-0.5">
-                                            <h3 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                                                <span className="material-symbols-outlined text-[#FF8216] text-[17px]">
-                                                    send
-                                                </span>
-                                                Convidar por E-mail
-                                            </h3>
-                                            <span className="text-[11px] text-slate-400">
-                                                Envie um convite seguro diretamente para a conta cadastrada do parceiro.
-                                            </span>
-                                        </div>
-
-                                        <div className="flex flex-col gap-2">
-                                            <input
-                                                type="email"
-                                                placeholder="E-mail da pessoa cadastrada (ex: mariana@exemplo.com)"
-                                                value={inviteEmail}
-                                                onChange={(e) => setInviteEmail(e.target.value)}
-                                                required
-                                                className="p-2.5 bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] rounded-xl text-xs text-slate-900 dark:text-[#F8FAFC] focus:outline-none focus:border-[#FF8216]"
-                                            />
-
-                                            <input
-                                                type="text"
-                                                placeholder="Nome do parceiro(a) (opcional)"
-                                                value={inviteName}
-                                                onChange={(e) => setInviteName(e.target.value)}
-                                                className="p-2.5 bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] rounded-xl text-xs text-slate-900 dark:text-[#F8FAFC] focus:outline-none focus:border-[#FF8216]"
-                                            />
-
-                                            <CustomDropdown
-                                                value={inviteRole}
-                                                onChange={(val) => setInviteRole(val)}
-                                                options={[
-                                                    { value: "Cônjuge", label: "Cônjuge / Parceiro(a)" },
-                                                    { value: "Familiar", label: "Familiar / Parente" },
-                                                    { value: "Filho(a)", label: "Filho(a) / Dependente" },
-                                                    { value: "Sócio(a)", label: "Sócio(a) / Duo Profissional" },
-                                                    { value: "Parceiro Financeiro", label: "Parceiro(a) de Negócios / Financeiro" },
-                                                    { value: "Amigo(a)", label: "Amigo(a) / República" },
-                                                    { value: "Membro Workspace", label: "Membro do Workspace" },
-                                                    { value: "Personalizado", label: "Outro / Personalizado" },
-                                                ]}
-                                            />
-                                        </div>
-
-                                        <button
-                                            type="submit"
-                                            disabled={isSendingInvite || !inviteEmail.trim()}
-                                            className="h-10 px-4 bg-[#FF8216] hover:bg-[#FFA047] text-white rounded-xl text-xs font-bold disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1.5 transition-colors"
-                                        >
-                                            {isSendingInvite ? (
-                                                <Spinner size={14} />
-                                            ) : (
-                                                <span className="material-symbols-outlined text-[16px]">
-                                                    forward_to_inbox
-                                                </span>
-                                            )}
-                                            <span>Enviar Convite Seguro</span>
-                                        </button>
-
-                                        {lastCreatedInvite && (
-                                            <div className="mt-2 p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex flex-col gap-2.5">
-                                                <div className="flex items-center justify-between">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="material-symbols-outlined text-emerald-500 text-base">check_circle</span>
-                                                        <span className="text-xs font-bold text-emerald-500">Convite Pronto para Enviar</span>
-                                                    </div>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setLastCreatedInvite(null)}
-                                                        className="text-xs text-slate-400 hover:text-white cursor-pointer"
-                                                    >
-                                                        ✕
-                                                    </button>
-                                                </div>
-                                                <p className="text-[11px] text-slate-300">
-                                                    Convite para <strong className="text-white">{lastCreatedInvite.email}</strong> criado. Compartilhe o código ou o link direto:
-                                                </p>
-                                                <div className="flex items-center gap-2 bg-black/40 p-2 rounded-lg border border-white/10">
-                                                    <code className="text-xs font-mono font-bold text-[#FF8216] flex-1">
-                                                        {lastCreatedInvite.code}
-                                                    </code>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            navigator.clipboard.writeText(lastCreatedInvite.code);
-                                                            setCopiedCodeOrLink("code");
-                                                            setTimeout(() => setCopiedCodeOrLink(null), 2500);
-                                                        }}
-                                                        className="px-2 py-1 rounded bg-[#FF8216] text-white text-[10px] font-bold hover:bg-[#FFA047] cursor-pointer"
-                                                    >
-                                                        {copiedCodeOrLink === "code" ? "Copiado!" : "Copiar Código"}
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            navigator.clipboard.writeText(lastCreatedInvite.url);
-                                                            setCopiedCodeOrLink("link");
-                                                            setTimeout(() => setCopiedCodeOrLink(null), 2500);
-                                                        }}
-                                                        className="px-2 py-1 rounded bg-white/10 text-white text-[10px] font-bold hover:bg-white/20 cursor-pointer"
-                                                    >
-                                                        {copiedCodeOrLink === "link" ? "Copiado!" : "Copiar Link"}
-                                                    </button>
-                                                </div>
-                                                <div className="flex items-center gap-2 flex-wrap">
-                                                    <a
-                                                        href={`https://wa.me/?text=${encodeURIComponent(`Olá! Estou te convidando para conectar seu patrimônio no Kitsune Finance no nosso Espaço Compartilhado. Acesse o link para aceitar: ${lastCreatedInvite.url} (Código: ${lastCreatedInvite.code})`)}`}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="px-2.5 py-1 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold flex items-center gap-1"
-                                                    >
-                                                        <span className="material-symbols-outlined text-xs">chat</span>
-                                                        <span>Enviar via WhatsApp</span>
-                                                    </a>
-                                                    <a
-                                                        href={`mailto:${lastCreatedInvite.email}?subject=${encodeURIComponent("Convite para Espaço Compartilhado - Kitsune Finance")}&body=${encodeURIComponent(`Olá!\n\nVocê recebeu um convite para conectar seu patrimônio ao Espaço Compartilhado no Kitsune Finance com conciliação mútua.\n\nAcesse o link direto:\n${lastCreatedInvite.url}\n\nOu utilize o código de convite: ${lastCreatedInvite.code}\n\nAté logo,\nKitsune Finance`)}`}
-                                                        className="px-2.5 py-1 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 text-[10px] font-bold flex items-center gap-1"
-                                                    >
-                                                        <span className="material-symbols-outlined text-xs">mail</span>
-                                                        <span>Enviar via Gmail</span>
-                                                    </a>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </form>
-
-                                    {/* Formulário 2: Inserir Código de Convite Recebido */}
-                                    <div className="lg:col-span-6 p-4 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] flex flex-col justify-between gap-3.5">
-                                        <div className="flex flex-col gap-0.5">
-                                            <h3 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                                                <span className="material-symbols-outlined text-[#FF8216] text-[17px]">
-                                                    key
-                                                </span>
-                                                Já possui um Código de Convite?
-                                            </h3>
-                                            <span className="text-[11px] text-slate-400">
-                                                Se o parceiro compartilhou um código KT-XXXX com você, insira abaixo para validar e vincular.
-                                            </span>
-                                        </div>
-
-                                        <div className="flex flex-col gap-2">
-                                            <input
-                                                type="text"
-                                                placeholder="KT-XXXX (ex: KT-A1B2C3)"
-                                                value={inputInviteCode}
-                                                onChange={(e) => setInputInviteCode(e.target.value.toUpperCase())}
-                                                maxLength={12}
-                                                className="p-2.5 bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] rounded-xl text-xs font-mono font-bold tracking-wider text-slate-900 dark:text-[#F8FAFC] focus:outline-none focus:border-[#FF8216] uppercase"
-                                            />
-                                        </div>
-
-                                        <button
-                                            type="button"
-                                            onClick={() => handleRespondInvite(inputInviteCode.trim(), "accept")}
-                                            disabled={isValidatingCode || !inputInviteCode.trim()}
-                                            className="h-10 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1.5 transition-colors"
-                                        >
-                                            {isValidatingCode ? (
-                                                <Spinner size={14} />
-                                            ) : (
-                                                <span className="material-symbols-outlined text-[16px]">
-                                                    link
-                                                </span>
-                                            )}
-                                            <span>Validar e Vincular Contas</span>
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {/* Convites Enviados em Aberto com Link e Código Copiáveis */}
-                                {sharedSpaceData?.pending_sent && sharedSpaceData.pending_sent.length > 0 && (
-                                    <div className="flex flex-col gap-2.5 pt-2">
-                                        <h3 className="text-xs font-bold text-slate-900 dark:text-white">
-                                            Convites Enviados em Aberto ({sharedSpaceData.pending_sent.length})
-                                        </h3>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                            {sharedSpaceData.pending_sent.map((sent) => (
-                                                <div
-                                                    key={sent.id}
-                                                    className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] flex flex-col gap-2.5"
-                                                >
-                                                    <div className="flex items-center justify-between">
-                                                        <div className="flex flex-col">
-                                                            <span className="text-xs font-bold text-slate-900 dark:text-white">
-                                                                {sent.recipient_email}
-                                                            </span>
-                                                            <span className="text-[11px] text-slate-400">
-                                                                {sent.role} • Aguardando aceite
-                                                            </span>
-                                                        </div>
-                                                        <span className="px-2 py-0.5 rounded-md font-mono text-[11px] font-extrabold bg-[#FF8216]/10 text-[#FF8216] border border-[#FF8216]/20">
-                                                            {sent.invite_code}
-                                                        </span>
-                                                    </div>
-
-                                                    <div className="flex items-center gap-2 pt-1 border-t border-slate-200/60 dark:border-white/5">
-                                                        <button
-                                                            onClick={() => handleCopy(sent.invite_code, `code_${sent.id}`)}
-                                                            className="flex-1 h-8 px-2.5 rounded-lg bg-white dark:bg-[#121214] hover:bg-slate-100 dark:hover:bg-[#27272A] border border-slate-200 dark:border-[#27272A] text-[11px] font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-center gap-1 cursor-pointer transition-colors"
-                                                        >
-                                                            <span className="material-symbols-outlined text-[13px]">
-                                                                content_copy
-                                                            </span>
-                                                            <span>
-                                                                {copiedCodeOrLink === `code_${sent.id}` ? "Copiado!" : "Copiar Código"}
-                                                            </span>
-                                                        </button>
-
-                                                        <button
-                                                            onClick={() => handleCopy(sent.invite_link, `link_${sent.id}`)}
-                                                            className="flex-1 h-8 px-2.5 rounded-lg bg-[#FF8216]/10 hover:bg-[#FF8216]/20 text-[#FF8216] text-[11px] font-bold flex items-center justify-center gap-1 cursor-pointer transition-colors"
-                                                        >
-                                                            <span className="material-symbols-outlined text-[13px]">
-                                                                share
-                                                            </span>
-                                                            <span>
-                                                                {copiedCodeOrLink === `link_${sent.id}` ? "Link Copiado!" : "Copiar Link"}
-                                                            </span>
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                </section>
-            )}
+            ) : null}
 
             <PluggyConnectModal
                 isOpen={isConnectModalOpen}

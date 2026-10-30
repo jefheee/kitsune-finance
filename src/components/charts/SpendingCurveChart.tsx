@@ -8,6 +8,7 @@ interface SpendingCurveChartProps {
   currentDay: number;
   totalCurrentMonth: number;
   totalPreviousMonth: number;
+  hideValues?: boolean;
 }
 
 export function SpendingCurveChart({
@@ -16,6 +17,7 @@ export function SpendingCurveChart({
   currentDay,
   totalCurrentMonth,
   totalPreviousMonth,
+  hideValues = false,
 }: SpendingCurveChartProps) {
   const [hoveredDay, setHoveredDay] = useState<number | null>(null);
 
@@ -88,9 +90,12 @@ export function SpendingCurveChart({
           </span>
           <div className="flex items-baseline gap-2 mt-1">
             <span className="text-2xl font-extrabold text-slate-900 dark:text-white tabular-nums tracking-tight">
-              R${" "}
-              {new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2 }).format(
-                Math.abs(diffAmount)
+              {hideValues ? (
+                "R$ ••••••"
+              ) : (
+                `R$ ${new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2 }).format(
+                  Math.abs(diffAmount)
+                )}`
               )}
             </span>
             <span
@@ -102,10 +107,7 @@ export function SpendingCurveChart({
             >
               {isBelow ? `-${diffPercent}%` : `+${diffPercent}%`}{" "}
               <span className="text-[11px] opacity-80">
-                vs R${" "}
-                {new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 0 }).format(
-                  totalPreviousMonth
-                )}{" "}
+                vs {hideValues ? "R$ ••••••" : `R$ ${new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 0 }).format(totalPreviousMonth)}`}{" "}
                 mês anterior
               </span>
             </span>
@@ -147,7 +149,7 @@ export function SpendingCurveChart({
                   textAnchor="end"
                   className="text-[10px] fill-slate-400 dark:fill-[#64748B] font-mono tabular-nums"
                 >
-                  R${val >= 1000 ? `${(val / 1000).toFixed(val % 1000 === 0 ? 0 : 1)}k` : val}
+                  {hideValues ? "••••" : (val >= 1000 ? `R$${(val / 1000).toFixed(val % 1000 === 0 ? 0 : 1)}k` : `R$${val}`)}
                 </text>
               </g>
             );
@@ -262,7 +264,7 @@ export function SpendingCurveChart({
                 textAnchor="middle"
                 className="text-[10px] fill-white font-mono font-bold"
               >
-                Dia {hoveredDay}: R$ {curPoints[hoveredDay - 1].val.toFixed(0)}
+                {hideValues ? `Dia ${hoveredDay}: R$ ••••••` : `Dia ${hoveredDay}: R$ ${curPoints[hoveredDay - 1].val.toFixed(0)}`}
               </text>
             </g>
           )}
