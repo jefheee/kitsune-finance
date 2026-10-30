@@ -969,7 +969,7 @@ export default function KitsuneAIPage() {
     selectedScope === "personal"
       ? "Meu Patrimônio"
       : selectedScope === "all"
-      ? "Consolidado Familiar"
+      ? "Espaço Compartilhado"
       : familyMembers.find((m) => m.id === selectedScope)?.name || "Membro";
 
   return (
@@ -986,10 +986,6 @@ export default function KitsuneAIPage() {
               <h1 className="text-sm md:text-base font-extrabold text-slate-900 dark:text-white truncate">
                 Kitsune AI
               </h1>
-              <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Open Finance Conectado
-              </span>
             </div>
             <p className="text-[11px] text-slate-500 dark:text-[#94A3B8] truncate hidden sm:block">
               Consultoria Patrimonial Pessoal & Estratégia de Ativos
@@ -1716,7 +1712,7 @@ export default function KitsuneAIPage() {
                           : "text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#27272A]"
                       }`}
                     >
-                      Consolidado Familiar
+                      Espaço Compartilhado
                     </button>
                   </div>
                 )}

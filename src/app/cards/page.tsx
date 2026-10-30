@@ -28,7 +28,7 @@ export default function CardsPage() {
   )}. Analise se há risco de atraso, se estou pagando alguma tarifa ou anuidade indevida e como otimizar minhas datas de fechamento.`;
 
   return (
-    <div className="flex-1 w-full min-h-screen bg-slate-50 dark:bg-[#0A0A0A] text-slate-900 dark:text-[#F8FAFC] p-4 md:p-8 overflow-y-auto">
+    <div className="flex-1 w-full min-h-screen bg-slate-50 dark:bg-[#0A0A0A] text-slate-900 dark:text-[#F8FAFC] p-4 md:p-8 pt-6 md:pt-8 pb-28 md:pb-10 font-sans">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header da Página */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-[#27272A]">

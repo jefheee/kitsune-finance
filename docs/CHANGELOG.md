@@ -4,6 +4,17 @@ Todas as alterações notáveis no projeto Kitsune Finance são registradas de f
 
 ---
 
+## [2026-10-29] - Refatoração do Espaço Compartilhado Multi-Membro, Carteira de Cartões Master-Detail, Lenis Global e Otimizações de UX
+- **Arquivos Afetados:** `src/app/dashboard/page.tsx`, `src/components/finance/WalletCards.tsx`, `src/components/finance/CategoriesView.tsx`, `src/components/charts/CategoryDonutChart.tsx`, `src/app/kitsune/page.tsx`, `src/app/agents/page.tsx`, `src/app/connections/page.tsx`, `src/app/cards/page.tsx`, `src/app/investments/page.tsx`, `src/components/layout/AppShell.tsx`, `src/components/providers/SmoothScrollProvider.tsx`, `src/app/api/shared-space/route.ts`, `src/context/FinanceDataContext.tsx`, `docs/PROJECT_STATE.md`, `docs/CHANGELOG.md`.
+- **Objetivo:**
+  - Multi-Membro no Espaço Compartilhado com 8 perfis de vínculo, resolução de e-mail via RPC seguro, exibição de código gerado (`KT-XXXX`), link direto e botões de compartilhamento rápido (WhatsApp e Gmail).
+  - Remoção das abas redundantes "Cartões" e "Investimentos" do Dashboard e padronização para "Espaço Compartilhado".
+  - Refatoração dos Cartões: modo Carteira master-detail no desktop, interação em 2 cliques (expandir/selecionar), ordem invertida com o cartão mais relevante no topo e mobile limpo estilo Pierre.
+  - Correção na soma de Categorias (exclusão de pagamentos de fatura e transferências próprias) e suporte integral ao Modo Privacidade em gráficos de pizza, agentes e conexões.
+  - Ativação do Lenis Smooth Scrolling em todas as rotas internas via liberação de overflow no AppShell e âncoras suaves na Landing Page.
+
+---
+
 ## [2026-10-29] - Espaço Compartilhado com Supabase RLS, Central de Notificações, Apple Wallet Stack e Mobile Pierre Finance
 - **Arquivos Afetados:** `src/app/api/shared-space/route.ts`, `src/app/api/notifications/route.ts`, `src/components/NotificationsModal.tsx`, `src/components/providers/SmoothScrollProvider.tsx`, `src/context/FinanceDataContext.tsx`, `src/app/dashboard/page.tsx`, `src/components/finance/WalletCards.tsx`, `src/components/layout/AppShell.tsx`, `src/app/globals.css`, `src/app/kitsune/page.tsx`, `docs/PROJECT_STATE.md`, `docs/CHANGELOG.md`.
 - **Objetivo:**

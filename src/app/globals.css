@@ -289,9 +289,7 @@ body {
   animation: marquee 35s linear infinite;
 }
 
-.animate-marquee:hover {
-  animation-play-state: paused;
-}
+/* Marquee continuo sem pausa */
 
 /* Animações React Bits */
 @keyframes shine {

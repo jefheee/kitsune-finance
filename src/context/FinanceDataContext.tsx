@@ -305,30 +305,34 @@ export function FinanceDataProvider({ children }: { children: React.ReactNode })
                     }
                 }
 
-                // Busca conexão de Espaço Compartilhado ativa com consentimento mútuo
+                // Busca todas as conexões de Espaço Compartilhado ativas com consentimento mútuo
                 let activeConn: any = null;
                 let partnerProfile: any = null;
+                const partnerProfiles: any[] = [];
                 try {
-                    const { data: conn } = await supabase
+                    const { data: conns } = await supabase
                         .from('shared_connections')
                         .select('*')
                         .or(`requester_id.eq.${authUser.id},recipient_id.eq.${authUser.id}`)
-                        .eq('status', 'accepted')
-                        .maybeSingle();
+                        .eq('status', 'accepted');
 
-                    activeConn = conn || null;
-                    if (conn) {
-                        const partnerId =
-                            conn.requester_id === authUser.id
-                                ? conn.recipient_id
-                                : conn.requester_id;
-                        if (partnerId) {
-                            const { data: pData } = await supabase
-                                .from('users_profile')
-                                .select('id, full_name, display_name, avatar_url')
-                                .eq('id', partnerId)
-                                .maybeSingle();
-                            partnerProfile = pData || { id: partnerId };
+                    if (conns && conns.length > 0) {
+                        activeConn = conns[0];
+                        for (const conn of conns) {
+                            const partnerId =
+                                conn.requester_id === authUser.id
+                                    ? conn.recipient_id
+                                    : conn.requester_id;
+                            if (partnerId) {
+                                const { data: pData } = await supabase
+                                    .from('users_profile')
+                                    .select('id, full_name, display_name, avatar_url')
+                                    .eq('id', partnerId)
+                                    .maybeSingle();
+                                const prof = pData || { id: partnerId };
+                                partnerProfiles.push(prof);
+                                if (!partnerProfile) partnerProfile = prof;
+                            }
                         }
                     }
                 } catch (e) {
@@ -338,10 +342,11 @@ export function FinanceDataProvider({ children }: { children: React.ReactNode })
                 setSharedConnection(activeConn);
                 setActivePartner(partnerProfile);
 
-                // Multi-tenant: Se o modo Espaço Compartilhado estiver ativo e houver parceiro conectado, agrega os dois IDs
+                // Multi-tenant: Se o modo Espaço Compartilhado estiver ativo e houver parceiros conectados, agrega todos os IDs
+                const partnerIds = partnerProfiles.map((p) => p.id).filter(Boolean);
                 const targetUserIds =
-                    isFamilyActive && partnerProfile?.id
-                        ? [authUser.id, partnerProfile.id]
+                    isFamilyActive && partnerIds.length > 0
+                        ? Array.from(new Set([authUser.id, ...partnerIds]))
                         : [authUser.id];
 
                 const [

@@ -96,9 +96,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const userInitials = userDisplayName.slice(0, 2).toUpperCase();
 
   return (
-    <div className="flex h-dvh w-full bg-slate-50 dark:bg-[#0A0A0A] text-slate-900 dark:text-[#F8FAFC] overflow-hidden font-sans">
+    <div className="flex min-h-screen w-full bg-slate-50 dark:bg-[#0A0A0A] text-slate-900 dark:text-[#F8FAFC] font-sans">
       {/* Desktop Sidebar (>= 768px): Minimalista & Elegante */}
-      <aside className="hidden md:flex flex-col w-20 border-r border-slate-200 dark:border-[#27272A] bg-white dark:bg-[#101012] pt-6 pb-4 items-center justify-between relative z-40 shrink-0 select-none">
+      <aside className="hidden md:flex flex-col w-20 sticky top-0 h-screen border-r border-slate-200 dark:border-[#27272A] bg-white dark:bg-[#101012] pt-6 pb-4 items-center justify-between z-40 shrink-0 select-none">
         <div className="flex flex-col items-center gap-7 w-full">
           {/* Logo Kitsune */}
           <Link
@@ -224,7 +224,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col h-full overflow-y-auto pb-24 md:pb-0 relative bg-slate-50 dark:bg-[#0A0A0A] animate-page-enter">
+      <main className="flex-1 flex flex-col min-h-screen pb-24 md:pb-0 relative bg-slate-50 dark:bg-[#0A0A0A] animate-page-enter">
         {/* Mobile Header Compacto (< 768px) */}
         <div className="md:hidden flex items-center justify-between px-4 py-2.5 border-b border-slate-200 dark:border-[#27272A] bg-white/90 dark:bg-[#0A0A0A]/90 backdrop-blur-md sticky top-0 z-40 pt-safe">
           <Link href="/dashboard" className="flex items-center gap-2">

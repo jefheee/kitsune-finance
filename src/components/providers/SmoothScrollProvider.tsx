@@ -19,6 +19,8 @@ export function SmoothScrollProvider({ children }: { children: React.ReactNode }
       touchMultiplier: 1.5,
     });
 
+    (window as any).__lenis = lenis;
+
     function raf(time: number) {
       lenis.raf(time);
       requestAnimationFrame(raf);
@@ -26,9 +28,28 @@ export function SmoothScrollProvider({ children }: { children: React.ReactNode }
 
     const rafId = requestAnimationFrame(raf);
 
+    // Suporte a cliques em âncoras na Landing Page com scroll suave via Lenis
+    const handleAnchorClick = (e: MouseEvent) => {
+      const target = (e.target as HTMLElement).closest('a[href^="#"]');
+      if (target) {
+        const href = target.getAttribute('href');
+        if (href && href.startsWith('#') && href.length > 1) {
+          const el = document.querySelector(href);
+          if (el) {
+            e.preventDefault();
+            lenis.scrollTo(el as HTMLElement, { offset: -80, duration: 1.2 });
+          }
+        }
+      }
+    };
+
+    document.addEventListener('click', handleAnchorClick);
+
     return () => {
+      document.removeEventListener('click', handleAnchorClick);
       cancelAnimationFrame(rafId);
       lenis.destroy();
+      delete (window as any).__lenis;
     };
   }, []);
 
