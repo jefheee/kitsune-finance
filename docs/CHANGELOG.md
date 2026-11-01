@@ -4,6 +4,14 @@ Todas as alterações notáveis no projeto Kitsune Finance são registradas de f
 
 ---
 
+## [2026-10-31] - Atualização do Protocolo State-Machine no AGENTS.md
+- **Arquivos Afetados:** `AGENTS.md`, `docs/CHANGELOG.md`.
+- **Objetivo:**
+  - Preservação integral do bloco `nextjs-agent-rules` e inserção do protocolo State-Machine & Docs-as-Code.
+  - Formalização das regras inegociáveis: Soberania Custo Zero ($0/mês), Blindagem MSLR determinística, precisão monetária (53 bits e `parseLocalDate`), segurança multi-tenant e tokens do Design System Warm Obsidian.
+
+---
+
 ## [2026-10-31] - Migração de Regras para Padrão Nativo Antigravity (.gemini/rules)
 - **Arquivos Afetados:** `.gemini/rules/autonomous-protocol.md`, `AGENTS.md`, `docs/CHANGELOG.md`.
 - **Objetivo:**
