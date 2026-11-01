@@ -4,9 +4,10 @@ import React from "react";
 import Link from "next/link";
 import { useFinanceData } from "@/context/FinanceDataContext";
 import { WalletCards, getCardInvoiceAmount } from "@/components/finance/WalletCards";
+import { DebtAndAdvanceSimulator } from "@/components/finance/DebtAndAdvanceSimulator";
 
 export default function CardsPage() {
-  const { accounts, transactions, formatSensitiveCurrency, isPrivacyMode } = useFinanceData();
+  const { accounts, loans, transactions, formatSensitiveCurrency, isPrivacyMode } = useFinanceData();
 
   // Consolidação de métricas rápidas para cabeçalho
   const creditCards = accounts.filter(
@@ -64,6 +65,15 @@ export default function CardsPage() {
           formatCurrency={formatSensitiveCurrency}
         />
 
+        {/* Etapa 5B: Simulador Interativo de Quitação (Avalanche vs Bola de Neve) & Antecipação vs CDI */}
+        <DebtAndAdvanceSimulator
+          accounts={accounts}
+          loans={loans}
+          transactions={transactions}
+          formatCurrency={formatSensitiveCurrency}
+          isPrivacyMode={isPrivacyMode}
+        />
+
         {/* Guia Rápido de Otimização de Cartões */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
           <div className="p-4 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A]">
@@ -87,7 +97,7 @@ export default function CardsPage() {
           </div>
 
           <div className="p-4 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A]">
-            <div className="flex items-center gap-2 text-blue-500 font-bold text-xs mb-2">
+            <div className="flex items-center gap-2 text-amber-500 font-bold text-xs mb-2">
               <span className="material-symbols-outlined text-sm">speed</span>
               <span>Score de Crédito</span>
             </div>

@@ -4,6 +4,14 @@ Todas as alterações notáveis no projeto Kitsune Finance são registradas de f
 
 ---
 
+## [2026-11-01] - Implementação da Etapa 5: Pix de Acerto Único (/shared), Simulador de Dívidas/Antecipação (/cards), Taxas BCB ao Vivo & Auditoria Upstream
+- **Arquivos Afetados:** `src/utils/finance/shared-settlement.ts`, `src/app/shared/page.tsx`, `src/app/api/shared-space/route.ts`, `src/components/finance/DebtAndAdvanceSimulator.tsx`, `src/app/cards/page.tsx`, `src/utils/finance/macro-rates.ts`, `src/app/api/finance/macro-rates/route.ts`, `src/utils/pluggy/client.ts`, `src/utils/pluggy/transaction-enricher.ts`, `src/utils/pluggy/sync.ts`, `src/utils/finance/enrichment-pipeline.ts`, `src/utils/finance/engine/xray-rules.ts`, `src/utils/ai/deterministic-tools.ts`, `src/utils/ai/dossier.ts`, `src/app/investments/page.tsx`, `AGENTS.md`, `docs/ARCHITECTURE_EXPANSION.md`, `docs/PROJECT_STATE.md`.
+- **Objetivo:**
+  - Institucionalização do protocolo de Upstream Benchmarking (`.benchmarks/`) e upgrades baseados em `pluggy-node`, `BrasilAPI` e `minha-receita`: extração estruturada de `payeeMCC` (ISO 18245) e `paymentData` (auto-transferência por mesmo CPF/CNPJ), separação de emissor real (`issuer`) vs. corretora para o teto de R$ 250k do FGC, failover duplo `BrasilAPI` $\leftrightarrow$ `MinhaReceita` com `cnaes_secundarios`, e taxas oficiais BCB (`Selic`, `CDI`, `IPCA`) ao vivo com cache híbrido de 12h.
+  - Etapa 5A (`/shared`) & Etapa 5B (`/cards`): motor determinístico de liquidação mínima em centavos inteiros ("Pix de Acerto Único" proporcional à renda ou 50/50 com cópia WhatsApp e link para o agente Takeshi) e simulador interativo em tempo real Avalanche vs. Bola de Neve (*Snowball Rollover*) + Calculadora de Antecipação de Parcelas vs. CDI líquido com conformidade total ao `isPrivacyMode` e Design System Warm Obsidian.
+
+---
+
 ## [2026-11-01] - Implementação da Etapa 4: Cache IndexedDB 0ms, Extrato Virtualizado 60 FPS, Sankey SVG & Auditoria Upstream
 - **Arquivos Afetados:** `src/utils/cache/indexeddb-cache.ts`, `src/context/FinanceDataContext.tsx`, `src/components/finance/VirtualizedTransactionsList.tsx`, `src/components/finance/PaginatedTransactionsView.tsx`, `src/components/charts/CashFlowSankey.tsx`, `src/app/dashboard/page.tsx`, `src/utils/finance/reconciler.ts`, `src/utils/finance/enrichment-pipeline.ts`, `src/app/api/mcp/route.ts`, `.gitignore`.
 - **Objetivo:**

@@ -25,12 +25,18 @@ export interface KnownMerchantCacheRow {
     updated_at?: string;
 }
 
-interface BrasilApiCnpjResponse {
+interface PublicCnpjSecondaryCnae {
+    codigo?: number | string | null;
+    descricao?: string | null;
+}
+
+interface BrasilApiOrMinhaReceitaCnpjResponse {
     cnpj?: string;
     razao_social?: string | null;
     nome_fantasia?: string | null;
     cnae_fiscal?: number | string | null;
     cnae_fiscal_descricao?: string | null;
+    cnaes_secundarios?: PublicCnpjSecondaryCnae[] | null;
 }
 
 export interface EnrichableTransactionItem {
@@ -45,6 +51,8 @@ export interface EnrichableTransactionItem {
     category?: string | null;
     categoryPt?: string | null;
     category_pt?: string | null;
+    payeeMcc?: number | string | null;
+    payee_mcc?: number | string | null;
     merchantCnpj?: string | null;
     merchant_cnpj?: string | null;
     merchantName?: string | null;
@@ -253,6 +261,227 @@ export function mapCnaeToCategoryPt(cnae: number | string | null | undefined): s
     return 'Outros';
 }
 
+const BROAD_CORPORATE_CNAE_PREFIXES = new Set([
+    '6462', // Holdings de instituições não-financeiras
+    '6463', // Outras sociedades de participação
+    '4713', // Lojas de departamentos ou magazines genéricos
+    '4789', // Comércio varejista de outros produtos não especificados
+    '7490', // Outras atividades profissionais, científicas e técnicas
+    '8211', // Serviços combinados de escritório e apoio administrativo
+    '8299', // Atividades de apoio prestadas às empresas não especificadas
+]);
+
+/**
+ * Resolve a categoria mais específica avaliando primeiro o `cnae_fiscal` principal e,
+ * caso ele resulte em `'Outros'` ou num CNAE societário genérico (holdings, varejo não especificado),
+ * inspeciona sequencialmente `cnaes_secundarios` (BrasilAPI / MinhaReceita).
+ */
+export function resolveCategoryFromPrimaryAndSecondaryCnaes(
+    primaryCnae: number | string | null | undefined,
+    secondaryCnaes?: ReadonlyArray<PublicCnpjSecondaryCnae> | null
+): { categoryPt: string; matchedCnae: number | null; matchedDescription: string | null } {
+    const primaryDigits = primaryCnae != null ? String(primaryCnae).replace(/\D/g, '') : '';
+    const primaryNum = primaryDigits ? Number(primaryDigits) : null;
+    const primaryCat = mapCnaeToCategoryPt(primaryCnae);
+    const isBroadPrimary =
+        primaryCat === 'Outros' ||
+        Array.from(BROAD_CORPORATE_CNAE_PREFIXES).some((prefix) => primaryDigits.startsWith(prefix));
+
+    if (!isBroadPrimary) {
+        return {
+            categoryPt: primaryCat,
+            matchedCnae: primaryNum && Number.isFinite(primaryNum) ? primaryNum : null,
+            matchedDescription: null,
+        };
+    }
+
+    if (Array.isArray(secondaryCnaes) && secondaryCnaes.length > 0) {
+        for (const sec of secondaryCnaes) {
+            const secDigits = sec?.codigo != null ? String(sec.codigo).replace(/\D/g, '') : '';
+            if (!secDigits) continue;
+            const secCat = mapCnaeToCategoryPt(secDigits);
+            if (secCat !== 'Outros' && (primaryCat === 'Outros' || secCat !== primaryCat)) {
+                const secNum = Number(secDigits);
+                return {
+                    categoryPt: secCat,
+                    matchedCnae: Number.isFinite(secNum) ? secNum : primaryNum,
+                    matchedDescription: sec?.descricao?.trim() || null,
+                };
+            }
+        }
+    }
+
+    return {
+        categoryPt: primaryCat,
+        matchedCnae: primaryNum && Number.isFinite(primaryNum) ? primaryNum : null,
+        matchedDescription: null,
+    };
+}
+
+/**
+ * Mapeamento determinístico ISO 18245 de `creditCardMetadata.payeeMCC` (Pluggy Open Finance)
+ * para as categorias oficiais em português do Kitsune Finance.
+ */
+const MCC_EXACT_MAP: Readonly<Record<number, string>> = {
+    // Supermercado & Mercearia
+    5300: 'Supermercado',
+    5411: 'Supermercado',
+    5422: 'Supermercado',
+    5441: 'Supermercado',
+    5451: 'Supermercado',
+    5462: 'Supermercado',
+    5499: 'Supermercado',
+    // Alimentação, Restaurantes & Delivery
+    5811: 'Alimentação & Restaurantes',
+    5812: 'Alimentação & Restaurantes',
+    5813: 'Alimentação & Restaurantes',
+    5814: 'Alimentação & Restaurantes',
+    // Transporte, Postos & Mobilidade
+    4111: 'Transporte & Combustível',
+    4112: 'Transporte & Combustível',
+    4121: 'Transporte & Combustível',
+    4131: 'Transporte & Combustível',
+    4784: 'Transporte & Combustível',
+    5511: 'Transporte & Combustível',
+    5521: 'Transporte & Combustível',
+    5531: 'Transporte & Combustível',
+    5532: 'Transporte & Combustível',
+    5533: 'Transporte & Combustível',
+    5541: 'Transporte & Combustível',
+    5542: 'Transporte & Combustível',
+    7512: 'Transporte & Combustível',
+    7523: 'Transporte & Combustível',
+    7531: 'Transporte & Combustível',
+    7538: 'Transporte & Combustível',
+    7542: 'Transporte & Combustível',
+    // Saúde, Farmácias, Médicos & Hospitais
+    742: 'Saúde & Farmácia',
+    5122: 'Saúde & Farmácia',
+    5912: 'Saúde & Farmácia',
+    5975: 'Saúde & Farmácia',
+    5976: 'Saúde & Farmácia',
+    8011: 'Saúde & Farmácia',
+    8021: 'Saúde & Farmácia',
+    8031: 'Saúde & Farmácia',
+    8041: 'Saúde & Farmácia',
+    8042: 'Saúde & Farmácia',
+    8043: 'Saúde & Farmácia',
+    8049: 'Saúde & Farmácia',
+    8050: 'Saúde & Farmácia',
+    8062: 'Saúde & Farmácia',
+    8071: 'Saúde & Farmácia',
+    8099: 'Saúde & Farmácia',
+    // Educação & Livrarias
+    5192: 'Educação',
+    5942: 'Educação',
+    8211: 'Educação',
+    8220: 'Educação',
+    8241: 'Educação',
+    8244: 'Educação',
+    8249: 'Educação',
+    8299: 'Educação',
+    // Tecnologia, SaaS, Telecom & Assinaturas Digitais
+    4812: 'Tecnologia & Assinaturas',
+    4814: 'Tecnologia & Assinaturas',
+    4816: 'Tecnologia & Assinaturas',
+    4899: 'Tecnologia & Assinaturas',
+    5732: 'Tecnologia & Assinaturas',
+    5734: 'Tecnologia & Assinaturas',
+    5815: 'Tecnologia & Assinaturas',
+    5816: 'Tecnologia & Assinaturas',
+    5817: 'Tecnologia & Assinaturas',
+    5818: 'Tecnologia & Assinaturas',
+    7372: 'Tecnologia & Assinaturas',
+    7379: 'Tecnologia & Assinaturas',
+    // Casa, Construção & Utilidades Domésticas
+    5200: 'Casa & Construção',
+    5211: 'Casa & Construção',
+    5231: 'Casa & Construção',
+    5251: 'Casa & Construção',
+    5261: 'Casa & Construção',
+    5712: 'Casa & Construção',
+    5713: 'Casa & Construção',
+    5714: 'Casa & Construção',
+    5719: 'Casa & Construção',
+    5722: 'Casa & Construção',
+    // Moradia, Energia, Água, Gás & Condomínio
+    4900: 'Moradia & Condomínio',
+    6513: 'Moradia & Condomínio',
+    // Lazer, Viagens, Hotéis, Companhias Aéreas &Academias
+    4511: 'Lazer & Entretenimento',
+    4722: 'Lazer & Entretenimento',
+    7011: 'Lazer & Entretenimento',
+    7832: 'Lazer & Entretenimento',
+    7911: 'Lazer & Entretenimento',
+    7922: 'Lazer & Entretenimento',
+    7929: 'Lazer & Entretenimento',
+    7932: 'Lazer & Entretenimento',
+    7933: 'Lazer & Entretenimento',
+    7941: 'Lazer & Entretenimento',
+    7991: 'Lazer & Entretenimento',
+    7994: 'Lazer & Entretenimento',
+    7996: 'Lazer & Entretenimento',
+    7997: 'Lazer & Entretenimento',
+    7999: 'Lazer & Entretenimento',
+    // Serviços Financeiros & Seguros
+    6010: 'Serviços Financeiros & Seguros',
+    6011: 'Serviços Financeiros & Seguros',
+    6012: 'Serviços Financeiros & Seguros',
+    6051: 'Serviços Financeiros & Seguros',
+    6211: 'Serviços Financeiros & Seguros',
+    6300: 'Serviços Financeiros & Seguros',
+    // Compras & Varejo
+    5310: 'Compras & Varejo',
+    5311: 'Compras & Varejo',
+    5331: 'Compras & Varejo',
+    5399: 'Compras & Varejo',
+    5611: 'Compras & Varejo',
+    5621: 'Compras & Varejo',
+    5631: 'Compras & Varejo',
+    5641: 'Compras & Varejo',
+    5651: 'Compras & Varejo',
+    5655: 'Compras & Varejo',
+    5661: 'Compras & Varejo',
+    5691: 'Compras & Varejo',
+    5699: 'Compras & Varejo',
+    5941: 'Compras & Varejo',
+    5943: 'Compras & Varejo',
+    5944: 'Compras & Varejo',
+    5945: 'Compras & Varejo',
+    5947: 'Compras & Varejo',
+    5948: 'Compras & Varejo',
+    5977: 'Compras & Varejo',
+    5995: 'Compras & Varejo',
+    5999: 'Compras & Varejo',
+    // Serviços & Cuidados Pessoais
+    7210: 'Serviços & Cuidados Pessoais',
+    7216: 'Serviços & Cuidados Pessoais',
+    7230: 'Serviços & Cuidados Pessoais',
+    7297: 'Serviços & Cuidados Pessoais',
+    7298: 'Serviços & Cuidados Pessoais',
+};
+
+export function mapMccToCategoryPt(mcc: number | string | null | undefined): string | null {
+    if (mcc === null || mcc === undefined) return null;
+    const digits = String(mcc).replace(/\D/g, '');
+    if (!digits) return null;
+    const code = Number(digits);
+    if (!Number.isFinite(code) || code <= 0) return null;
+
+    if (MCC_EXACT_MAP[code]) {
+        return MCC_EXACT_MAP[code];
+    }
+
+    // Faixas reservadas ISO 18245 (companhias aéreas 3000-3350, locadoras 3351-3500, redes hoteleiras 3501-3999)
+    if (code >= 3000 && code <= 3350) return 'Lazer & Entretenimento';
+    if (code >= 3351 && code <= 3500) return 'Transporte & Combustível';
+    if (code >= 3501 && code <= 3999) return 'Lazer & Entretenimento';
+    if (code >= 8000 && code <= 8099) return 'Saúde & Farmácia';
+    if (code >= 8200 && code <= 8299) return 'Educação';
+
+    return null;
+}
+
 function formatCleanCorporateBrandName(rawName: string): string {
     const lowerConnectors = new Set(['de', 'da', 'do', 'das', 'dos', 'e', 'em', 'para', 'com', 'no', 'na']);
 
@@ -318,6 +547,55 @@ async function runWithConcurrencyLimit<TItem, TResult>(
 const recentMerchantMemoryCache = new Map<string, KnownMerchantCacheRow>();
 const inFlightBrasilApiRequests = new Map<string, Promise<KnownMerchantCacheRow | null>>();
 
+async function fetchRawPublicCnpjPayload(
+    cnpj: string,
+    timeoutMs: number
+): Promise<BrasilApiOrMinhaReceitaCnpjResponse | null> {
+    const encoded = encodeURIComponent(cnpj);
+
+    // Provedor Primário: BrasilAPI (`/api/cnpj/v1/{cnpj}`)
+    try {
+        const primaryResponse = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${encoded}`, {
+            method: 'GET',
+            headers: {
+                Accept: 'application/json',
+            },
+            cache: 'force-cache',
+            signal: AbortSignal.timeout(timeoutMs),
+        });
+
+        if (primaryResponse.ok) {
+            return (await primaryResponse.json()) as BrasilApiOrMinhaReceitaCnpjResponse;
+        }
+        // Em 404 estrito (CNPJ inexistente na base RFB), evita chamada redundante; em 429/5xx/403 faz failover imediato
+        if (primaryResponse.status === 404) {
+            return null;
+        }
+    } catch {
+        // Timeout ou erro de rede na BrasilAPI -> aciona failover imediato na MinhaReceita
+    }
+
+    // Provedor Secundário de Alta Velocidade (Failover): MinhaReceita (`https://minhareceita.org/{cnpj}`)
+    try {
+        const secondaryResponse = await fetch(`https://minhareceita.org/${encoded}`, {
+            method: 'GET',
+            headers: {
+                Accept: 'application/json',
+            },
+            cache: 'force-cache',
+            signal: AbortSignal.timeout(timeoutMs),
+        });
+
+        if (!secondaryResponse.ok) {
+            return null;
+        }
+
+        return (await secondaryResponse.json()) as BrasilApiOrMinhaReceitaCnpjResponse;
+    } catch {
+        return null;
+    }
+}
+
 async function fetchMerchantFromBrasilApi(
     cnpj: string,
     timeoutMs: number
@@ -330,20 +608,11 @@ async function fetchMerchantFromBrasilApi(
 
     const requestPromise = (async (): Promise<KnownMerchantCacheRow | null> => {
         try {
-            const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${encodeURIComponent(cnpj)}`, {
-                method: 'GET',
-                headers: {
-                    Accept: 'application/json',
-                },
-                cache: 'force-cache',
-                signal: AbortSignal.timeout(timeoutMs),
-            });
-
-            if (!response.ok) {
+            const data = await fetchRawPublicCnpjPayload(cnpj, timeoutMs);
+            if (!data) {
                 return null;
             }
 
-            const data = (await response.json()) as BrasilApiCnpjResponse;
             const razaoSocial = data.razao_social?.trim() || null;
             const nomeFantasia = data.nome_fantasia?.trim() || null;
             const rawChosenName = nomeFantasia || razaoSocial;
@@ -353,13 +622,20 @@ async function fetchMerchantFromBrasilApi(
             }
 
             const cnaeRaw = data.cnae_fiscal != null ? Number(String(data.cnae_fiscal).replace(/\D/g, '')) : null;
-            const cnaeFiscal = cnaeRaw && Number.isFinite(cnaeRaw) ? cnaeRaw : null;
-            const cnaeDescricao = data.cnae_fiscal_descricao?.trim() || null;
+            const primaryCnaeFiscal = cnaeRaw && Number.isFinite(cnaeRaw) ? cnaeRaw : null;
+
+            const cnaeResolution = resolveCategoryFromPrimaryAndSecondaryCnaes(
+                primaryCnaeFiscal,
+                data.cnaes_secundarios
+            );
+            const cnaeFiscal = cnaeResolution.matchedCnae ?? primaryCnaeFiscal;
+            const cnaeDescricao =
+                cnaeResolution.matchedDescription || data.cnae_fiscal_descricao?.trim() || null;
 
             const cleanCorporate = formatCleanCorporateBrandName(rawChosenName);
             const brandResolved = resolveMerchant(cleanCorporate);
 
-            const cnaeCategory = mapCnaeToCategoryPt(cnaeFiscal);
+            const cnaeCategory = cnaeResolution.categoryPt;
             const mappedCategoryPt =
                 cnaeCategory !== 'Outros'
                     ? cnaeCategory
@@ -389,7 +665,7 @@ async function fetchMerchantFromBrasilApi(
             recentMerchantMemoryCache.set(cnpj, resolvedRow);
             return resolvedRow;
         } catch {
-            // Timeout (3000ms), erro de rede ou rate-limit: cai silenciosamente para a Camada 1
+            // Timeout (3000ms), erro de rede ou rate-limit em ambos os provedores: cai silenciosamente para a Camada 1
             return null;
         } finally {
             inFlightBrasilApiRequests.delete(cnpj);
@@ -565,10 +841,16 @@ export async function enrichTransactionBatch<T extends EnrichableTransactionItem
             ? resolved.cleanName
             : existingClean || resolved.cleanName || 'Transação';
 
+        const mccMappedCategory = !isInternalOrRefund
+            ? mapMccToCategoryPt(tx.payeeMcc ?? tx.payee_mcc ?? null)
+            : null;
+
         const layer1Category =
             layer1HighConfidence && resolved.category && resolved.category !== 'Outros'
                 ? resolved.category
-                : existingCategory || resolved.category || 'Outros';
+                : !isGenericCategory(existingCategory)
+                  ? existingCategory
+                  : mccMappedCategory || existingCategory || resolved.category || 'Outros';
 
         return {
             tx,

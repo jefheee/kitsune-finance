@@ -3,6 +3,7 @@ import {
     extractCnpjFromText,
     isValidCnpj,
     mapCnaeToCategoryPt,
+    mapMccToCategoryPt,
 } from '@/utils/finance/enrichment-pipeline';
 import {
     formatLocalDateKey,
@@ -38,6 +39,7 @@ export interface PluggyTransactionRaw {
         installmentNumber?: number | null;
         totalInstallments?: number | null;
         totalAmount?: number | null;
+        payeeMCC?: number | null;
         billId?: string | null;
         purchaseDate?: string | null;
         cardNumber?: string | null;
@@ -83,6 +85,7 @@ export interface EnrichedTransaction {
     payerName: string | null;
     receiverName: string | null;
     paymentReason: string | null;
+    payeeMcc: number | null;
     billId: string | null;
     executedAt: string;
     dateOnly: string;
@@ -678,9 +681,20 @@ export function enrichPluggyTransaction(params: {
         lowerRaw.includes('transferencia mesma titularidade') ||
         lowerRaw.includes('transferência mesma titularidade');
 
+    const payerDocDigits = payerDoc ? payerDoc.replace(/\D/g, '') : '';
+    const receiverDocDigits = receiverDoc ? receiverDoc.replace(/\D/g, '') : '';
+
+    // Se pagador e recebedor no `paymentData` compartilham exatamente o mesmo CPF (11 dígitos) ou CNPJ (14 dígitos),
+    // trata-se deterministicamente de transferência entre contas de mesma titularidade (`funds_movement`).
+    const isExactSamePartyDocument =
+        payerDocDigits.length >= 11 &&
+        receiverDocDigits.length >= 11 &&
+        payerDocDigits === receiverDocDigits;
+
     const isSameHolderParty =
-        isSameHolderPerson(receiverName, receiverDoc, holderNames, holderDocuments) &&
-        isSameHolderPerson(payerName, payerDoc, holderNames, holderDocuments);
+        isExactSamePartyDocument ||
+        (isSameHolderPerson(receiverName, receiverDoc, holderNames, holderDocuments) &&
+            isSameHolderPerson(payerName, payerDoc, holderNames, holderDocuments));
 
     // Também se for transferência enviada para o próprio CPF/nome ou recebida do próprio CPF/nome
     const isTransferToSelf =
@@ -771,29 +785,49 @@ export function enrichPluggyTransaction(params: {
         normalizedType === 'DEBIT' &&
         detectSubscription(tx, cleanDesc, categoryOriginal, totalInstallments);
 
+    const rawPayeeMcc = tx.creditCardMetadata?.payeeMCC != null ? Number(tx.creditCardMetadata.payeeMCC) : null;
+    const validPayeeMcc = rawPayeeMcc && Number.isFinite(rawPayeeMcc) && rawPayeeMcc > 0 ? rawPayeeMcc : null;
+
     let categoryPt = translatePluggyCategory(categoryOriginal, cleanDesc, isInternalTransfer, isRefund);
     if (
         !isInternalTransfer &&
         !isRefund &&
-        tx.merchant?.cnae &&
-        (categoryPt === 'Outros' || categoryPt === 'Compras' || categoryPt === 'Pix')
+        (categoryPt === 'Outros' || categoryPt === 'Compras' || categoryPt === 'Compras Online' || categoryPt === 'Pix')
     ) {
-        const mappedFromCnae = mapCnaeToCategoryPt(tx.merchant.cnae);
-        if (mappedFromCnae !== 'Outros') {
-            categoryPt = mappedFromCnae;
+        if (validPayeeMcc) {
+            const mappedFromMcc = mapMccToCategoryPt(validPayeeMcc);
+            if (mappedFromMcc && mappedFromMcc !== 'Outros') {
+                categoryPt = mappedFromMcc;
+            }
+        }
+        if (
+            tx.merchant?.cnae &&
+            (categoryPt === 'Outros' || categoryPt === 'Compras' || categoryPt === 'Pix')
+        ) {
+            const mappedFromCnae = mapCnaeToCategoryPt(tx.merchant.cnae);
+            if (mappedFromCnae !== 'Outros') {
+                categoryPt = mappedFromCnae;
+            }
         }
     }
 
-    // Extração determinística de CNPJ (14 dígitos com validação oficial dos 2 dígitos verificadores)
+    // Extração estruturada prioritária de CNPJ (14 dígitos Módulo 11) via `merchant.cnpj` e `paymentData` antes de Regex textual
     let resolvedCnpj: string | null = null;
     if (tx.merchant?.cnpj && isValidCnpj(tx.merchant.cnpj)) {
         resolvedCnpj = tx.merchant.cnpj.replace(/\D/g, '');
-    } else if (!isInternalTransfer && normalizedType === 'DEBIT' && receiverDoc && isValidCnpj(receiverDoc)) {
-        resolvedCnpj = receiverDoc.replace(/\D/g, '');
     } else if (!isInternalTransfer) {
-        resolvedCnpj = extractCnpjFromText(
-            `${rawDescription} ${tx.descriptionRaw || ''} ${paymentReason || ''}`
-        );
+        const primaryCounterpartyDoc = normalizedType === 'DEBIT' ? receiverDoc : payerDoc;
+        const secondaryCounterpartyDoc = normalizedType === 'DEBIT' ? payerDoc : receiverDoc;
+
+        if (primaryCounterpartyDoc && isValidCnpj(primaryCounterpartyDoc)) {
+            resolvedCnpj = primaryCounterpartyDoc.replace(/\D/g, '');
+        } else if (secondaryCounterpartyDoc && isValidCnpj(secondaryCounterpartyDoc)) {
+            resolvedCnpj = secondaryCounterpartyDoc.replace(/\D/g, '');
+        } else {
+            resolvedCnpj = extractCnpjFromText(
+                `${rawDescription} ${tx.descriptionRaw || ''} ${paymentReason || ''}`
+            );
+        }
     }
 
     // Classificação determinística preliminar de `kind` (padrão Maybe Finance)
@@ -846,6 +880,7 @@ export function enrichPluggyTransaction(params: {
         payerName,
         receiverName,
         paymentReason,
+        payeeMcc: validPayeeMcc,
         billId: tx.creditCardMetadata?.billId || null,
         executedAt,
         dateOnly,

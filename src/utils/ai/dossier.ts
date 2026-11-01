@@ -7,6 +7,7 @@ import {
     type AuditedDeterministicBundle,
     type SharedPartnerInput,
 } from '@/utils/ai/deterministic-tools';
+import { fetchLiveMacroRates } from '@/utils/finance/macro-rates';
 
 export interface FinancialDossierResult {
     systemPrompt: string;
@@ -43,6 +44,7 @@ export async function loadUserFinancialDataFromSupabase(
         transactionsRes,
         familyMembersRes,
         sharedConnectionsRes,
+        liveMacroRates,
     ] = await Promise.all([
         supabase
             .from('users_profile')
@@ -92,6 +94,7 @@ export async function loadUserFinancialDataFromSupabase(
                   .select('id, requester_id, recipient_id, role, status')
                   .eq('status', 'accepted')
                   .or(`requester_id.eq.${userId},recipient_id.eq.${userId}`),
+        fetchLiveMacroRates(),
     ]);
 
     const profileRaw = profileRes.data;
@@ -141,6 +144,11 @@ export async function loadUserFinancialDataFromSupabase(
         profile: profileRaw,
         familyMembers,
         sharedPartners,
+        macroRates: {
+            annualSelicPct: liveMacroRates.annualSelicPct,
+            annualCDIPct: liveMacroRates.annualCDIPct,
+            annualIPCAPct: liveMacroRates.annualIPCAPct,
+        },
     };
 
     return {

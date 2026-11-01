@@ -60,7 +60,7 @@ export async function GET() {
           const [profileRes, accountsRes, invRes, txnRes] = await Promise.all([
             supabase
               .from('users_profile')
-              .select('id, display_name, full_name, avatar_url')
+              .select('id, display_name, full_name, avatar_url, monthly_income')
               .eq('id', partnerId)
               .maybeSingle(),
             supabase

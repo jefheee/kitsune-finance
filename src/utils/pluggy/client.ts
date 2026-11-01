@@ -54,6 +54,9 @@ export interface PluggyInvestmentRaw {
     balance: number;
     currencyCode?: string;
     issuer?: string | null;
+    issuerCNPJ?: string | null;
+    institutionName?: string | null;
+    taxExempt?: boolean | null;
     rate?: number | null;
     rateType?: string | null;
     annualRate?: number | null;
@@ -303,6 +306,7 @@ class PluggyService {
                       installmentNumber: tx.creditCardMetadata.installmentNumber ?? null,
                       totalInstallments: tx.creditCardMetadata.totalInstallments ?? null,
                       totalAmount: tx.creditCardMetadata.totalAmount ?? null,
+                      payeeMCC: tx.creditCardMetadata.payeeMCC != null ? Number(tx.creditCardMetadata.payeeMCC) : null,
                       billId: tx.creditCardMetadata.billId || null,
                       purchaseDate: tx.creditCardMetadata.purchaseDate || null,
                       cardNumber: tx.creditCardMetadata.cardNumber || null,
@@ -385,6 +389,9 @@ class PluggyService {
                 balance: Number(inv.balance ?? inv.amount ?? 0),
                 currencyCode: String(inv.currencyCode || 'BRL'),
                 issuer: inv.issuer ? String(inv.issuer) : null,
+                issuerCNPJ: inv.issuerCNPJ ? String(inv.issuerCNPJ) : null,
+                institutionName: inv.institution?.name ? String(inv.institution.name) : null,
+                taxExempt: typeof inv.taxExempt === 'boolean' ? inv.taxExempt : null,
                 rate: inv.rate != null ? Number(inv.rate) : null,
                 rateType: inv.rateType ? String(inv.rateType) : null,
                 annualRate: inv.annualRate != null ? Number(inv.annualRate) : null,
@@ -428,9 +435,12 @@ class PluggyService {
                         : loan.contractAmount != null
                           ? Number(loan.contractAmount)
                           : 0,
-                paidInstallments: loan.installments?.paidNumberOfInstallments ?? null,
+                paidInstallments:
+                    loan.installments?.paidInstallments ??
+                    loan.installments?.paidNumberOfInstallments ??
+                    null,
                 totalInstallments: loan.installments?.totalNumberOfInstallments ?? null,
-                interestRate: loan.interestRates?.[0]?.preFixedRate ?? null,
+                interestRate: loan.CET ?? loan.interestRates?.[0]?.preFixedRate ?? null,
                 currencyCode: String(loan.currencyCode || 'BRL'),
                 date: loan.date ? String(loan.date).split('T')[0] : null,
                 dueDate: loan.dueDate ? String(loan.dueDate).split('T')[0] : null,

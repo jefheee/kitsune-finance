@@ -11,7 +11,23 @@
 - [x] **Etapa 2:** Pipeline Open Finance v2, Reconciliação Anti-Duplicidade (`kind` + `auto_transfer_match`) e Enriquecimento Comercial 3 Camadas (`BrasilAPI` + Cache Supabase).
 - [x] **Etapa 3:** Orquestração Multi-Agente com Tool Calling Determinístico (7 Agentes Kitsune + Macro-Tools do Maybe + Endpoint `/api/mcp`).
 - [x] **Etapa 4:** Performance Client-Side (Read-Through Cache IndexedDB `0ms`, Lista Virtualizada 60 FPS e Diagrama de Sankey em SVG).
-- [ ] **Etapa 5:** Reconciliador Dinâmico no Espaço Compartilhado ("Pix de Acerto Único") e UI Interativa do Simulador de Dívidas/Antecipação.
+- [x] **Etapa 5:** Reconciliador Dinâmico no Espaço Compartilhado ("Pix de Acerto Único"), UI Interativa do Simulador de Dívidas/Antecipação e Auditoria Upstream (`pluggy-node`, `BrasilAPI` e `minha-receita`).
+
+---
+
+## Tabela Oficial de Repositórios de Referência (Upstream Benchmarks)
+
+> **Regra Obrigatória:** Antes de codificar qualquer recurso relacionado aos domínios abaixo, baixe temporariamente em `.benchmarks/` (via `git clone --depth 1 --filter=blob:none --sparse`) os caminhos críticos do repositório oficial correspondente para conferir a implementação real e os tipos oficiais antes de escrever o código, removendo `.benchmarks/` ao concluir.
+
+| Domínio / Recurso | Repositório Oficial GitHub | Caminhos Críticos para Sparse Checkout em `.benchmarks/` |
+| :--- | :--- | :--- |
+| **Reconciliação, Transfers, Sankey & Assistant Tools** | `https://github.com/maybe-finance/maybe.git` | `app/models/transfer.rb`, `app/models/account/transfer_matchable.rb`, `app/models/balance/reverse_calculator.rb`, `app/javascript/controllers/sankey_chart_controller.js`, `app/models/assistant/function/` |
+| **X-Ray Rules, TWR/MWR & Servidor MCP** | `https://github.com/ghostfolio/ghostfolio.git` | `apps/api/src/models/rules/`, `apps/api/src/app/endpoints/mcp/`, `apps/api/src/app/portfolio/calculator/` |
+| **Matching de Transações, Regras & Local-First** | `https://github.com/actualbudget/actual.git` | `packages/loot-core/src/server/accounts/sync.ts`, `packages/loot-core/src/server/accounts/transaction-rules.ts` |
+| **Open Finance Brasil, Metadata de Cartões, Pix & Investimentos** | `https://github.com/pluggyai/pluggy-node.git` | `src/types/transaction.ts`, `src/types/investment.ts`, `src/types/loan.ts`, `src/client.ts` |
+| **Taxas BCB ao Vivo (Selic/CDI/IPCA), Feriados, ISPB & CNPJ** | `https://github.com/BrasilAPI/BrasilAPI.git` | `pages/api/taxas/v1/`, `pages/api/cnpj/v1/`, `pages/api/banks/v1/`, `pages/api/feriados/v1/`, `services/` |
+| **Failover de CNPJ / CNAE Receita Federal em Alta Velocidade** | `https://github.com/cuducos/minha-receita.git` | `README.md`, estrutura de resposta JSON (`cnae_fiscal`, `cnaes_secundarios`, `nome_fantasia`, `razao_social`) |
+| **Auditoria de Reconciliação Contábil** | `https://github.com/firefly-iii/firefly-iii.git` | `app/Services/Internal/Support/TransactionTypeFilter.php`, `app/Transformers/AccountTransformer.php` |
 
 ---
 
@@ -62,9 +78,10 @@ Todos os algoritmos devem ser puros, zero-dependency, 100% determinísticos em T
 2. **Virtualização de Extrato:** Renderização a 60 FPS para listas de 3.000+ transações no mobile/desktop.
 3. **Diagrama de Sankey de Fluxo de Caixa (`CashFlowSankey.tsx`):** Fluxo visual `[Fontes de Renda] -> [Renda Total] -> [Categorias de Despesa + Aportes + Liquidez Retida]` em SVG responsivo com suporte total ao `isPrivacyMode`.
 
-### Etapa 5: Reconciliador Familiar ("Pix de Acerto Único") & Simulador UI
-1. **Cálculo de Liquidação Mínima no `/shared`:** Algoritmo que cruza os gastos compartilhados do mês ponderados pelo peso da renda líquida de cada membro e gera o card de **Liquidação em 1 Pix** (quem transfere exatamente quanto para quem para zerar o mês).
-2. **Modal Interativo de Quitação e Antecipação em `/cards`:** Interface visual ligada ao `debt-payoff.ts` e `cet.ts`.
+### Etapa 5: Reconciliador Familiar ("Pix de Acerto Único"), Simulador UI & Upgrades Upstream
+1. **Cálculo de Liquidação Mínima no `/shared` (`src/utils/finance/shared-settlement.ts`):** Algoritmo determinístico em centavos inteiros (Método dos Maiores Restos de Hamilton + *Greedy Minimum Cash Flow*) que cruza gastos operacionais compartilhados do mês ponderados pela renda líquida de cada membro (`proportional` ou `equal`) e gera o card **"Acerto Inteligente do Mês (Pix Único)"** com cópia rápida para WhatsApp e deep-link para o agente **Takeshi**.
+2. **Simulador Interativo de Quitação e Antecipação em `/cards` (`src/components/finance/DebtAndAdvanceSimulator.tsx`):** Interface visual em tempo real ligada ao `debt-payoff.ts` (Avalanche vs. Bola de Neve com *Snowball Rollover*), `cet.ts` e `taxes.ts` (Antecipação de Parcelas vs. Deixar no CDI líquido de IR regressivo).
+3. **Upgrades Upstream (`pluggy-node`, `BrasilAPI` e `minha-receita`):** Extração estruturada de `merchant.cnpj`, `paymentData` (auto-detecção de transferência própria por CPF/CNPJ idêntico) e `creditCardMetadata.payeeMCC` (ISO 18245), segregação de `issuer` (emissor FGC R\$ 250k) vs. corretora custodiante, failover duplo `BrasilAPI` $\leftrightarrow$ `MinhaReceita` com inspeção de `cnaes_secundarios`, e alimentação de taxas oficiais do BCB ao vivo (`Selic`, `CDI`, `IPCA`) com cache híbrido de 12h (`src/utils/finance/macro-rates.ts`).
 
 ---
 

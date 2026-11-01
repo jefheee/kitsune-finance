@@ -408,6 +408,9 @@ export function toolGetBalanceSheetAndXRay(
 
         const normType = normalizeInvestmentType(inv);
         const instName = inv.institution_name || inv.issuer || 'Custódia Consolidada';
+        const issuerNameClean =
+            inv.issuer && String(inv.issuer).trim().length > 1 ? String(inv.issuer).trim() : null;
+        const fgcConglomerateKey = issuerNameClean || instName;
         const rawRate = Number(inv.rate) || 0;
         const rateTypeUpper = String(inv.rate_type || '').toUpperCase();
         const nameUpper = String(inv.name || '').toUpperCase();
@@ -432,13 +435,14 @@ export function toolGetBalanceSheetAndXRay(
 
         const isFGCGuaranteed = ['CDB', 'LCI', 'LCA', 'RDB', 'POUPANCA'].includes(normType);
         if (isFGCGuaranteed) {
-            fgcMap.set(instName, (fgcMap.get(instName) ?? 0) + balCents);
+            fgcMap.set(fgcConglomerateKey, (fgcMap.get(fgcConglomerateKey) ?? 0) + balCents);
         }
 
         return {
             id: inv.id || `inv-${idx}`,
             name: inv.name || normType,
             institutionName: instName,
+            issuerName: issuerNameClean,
             type: normType,
             balance: fromCents(balCents),
             ratePercentOfCDI,

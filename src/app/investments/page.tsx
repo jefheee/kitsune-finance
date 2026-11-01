@@ -1,38 +1,50 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useFinanceData } from "@/context/FinanceDataContext";
 import { BankLogo } from "@/components/BankLogo";
-import { SpotlightCard } from "@/components/react-bits/SpotlightCard";
-
-// Dados de Contexto Macroeconômico Atualizado do Brasil
-const BRAZIL_MACRO_DATA = {
-  selic: "10,75%",
-  cdi: "10,65%",
-  ipca12m: "4,42%",
-  realInterestRate: "6,23%", // Juro real líquido aproximado (CDI - IPCA)
-  ibovespa: "131.200 pts",
-  dolar: "R$ 5,68",
-  copomTrend: "Ciclo de vigilância monetária para ancorar expectativas de inflação.",
-};
+import { parseLocalDate } from "@/utils/finance/reconciler";
+import {
+  fetchLiveMacroRates,
+  formatPercentPtBr,
+  getCachedOrFallbackMacroRates,
+  type LiveMacroRatesSnapshot,
+} from "@/utils/finance/macro-rates";
 
 export default function InvestmentsPage() {
   const {
     investments,
     accounts,
-    loans,
     transactions,
-    userProfile,
     formatSensitiveCurrency,
     selectedBankSlug,
-    setSelectedBankSlug,
   } = useFinanceData();
 
+  const [macroSnapshot, setMacroSnapshot] = useState<LiveMacroRatesSnapshot>(() =>
+    getCachedOrFallbackMacroRates()
+  );
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [showRedeemed, setShowRedeemed] = useState<boolean>(false);
   const PAGE_SIZE = 6;
+
+  useEffect(() => {
+    let active = true;
+    fetchLiveMacroRates().then((live) => {
+      if (active) {
+        setMacroSnapshot(live);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const selicFormatted = formatPercentPtBr(macroSnapshot.annualSelicPct);
+  const cdiFormatted = formatPercentPtBr(macroSnapshot.annualCDIPct);
+  const ipcaFormatted = formatPercentPtBr(macroSnapshot.annualIPCAPct);
+  const realInterestFormatted = formatPercentPtBr(macroSnapshot.realInterestAnnualPct);
 
   // Filtro por instituição bancária
   const filteredInvestments = useMemo(() => {
@@ -137,9 +149,9 @@ export default function InvestmentsPage() {
       ? profit
       : txnYieldTotal > 0
       ? txnYieldTotal
-      : Math.round(totalInvested * 0.052);
+      : Math.round(totalInvested * (macroSnapshot.annualCDIPct / 100) * 0.5);
 
-    const monthlyRate = Math.pow(1 + 0.1065, 1 / 12) - 1;
+    const monthlyRate = macroSnapshot.monthlyCDICompoundFactor;
     const monthlyProj = Math.round(totalInvested * monthlyRate * 100) / 100;
 
     return {
@@ -147,7 +159,7 @@ export default function InvestmentsPage() {
       estimatedMonthlyYield: monthlyProj,
       historicalYieldCount: yieldTxnCount,
     };
-  }, [filteredInvestments, transactions, totalInvested]);
+  }, [filteredInvestments, transactions, totalInvested, macroSnapshot]);
 
   // Saldo líquido em contas correntes e poupança
   const liquidCash = useMemo(() => {
@@ -259,7 +271,7 @@ export default function InvestmentsPage() {
         allocation: [
           { label: "Renda Fixa CDI", target: 55, color: "bg-emerald-500" },
           { label: "Tesouro IPCA+ (Médio/Longo Prazo)", target: 30, color: "bg-[#FF8216]" },
-          { label: "Fundos Imobiliários (FIIs)", target: 15, color: "bg-blue-500" },
+          { label: "Fundos Imobiliários (FIIs)", target: 15, color: "bg-amber-500" },
         ],
         action:
           "Alavanque os aportes em títulos IPCA+ para proteger o poder de compra contra a inflação de longo prazo.",
@@ -273,8 +285,8 @@ export default function InvestmentsPage() {
         allocation: [
           { label: "Renda Fixa Pós/Pré", target: 40, color: "bg-emerald-500" },
           { label: "Tesouro IPCA+ Aposentadoria", target: 25, color: "bg-[#FF8216]" },
-          { label: "Fundos Imobiliários & Dividendos", target: 20, color: "bg-blue-500" },
-          { label: "Dólar / Ativos Globais", target: 15, color: "bg-purple-500" },
+          { label: "Fundos Imobiliários & Dividendos", target: 20, color: "bg-amber-500" },
+          { label: "Dólar / Ativos Globais", target: 15, color: "bg-zinc-400" },
         ],
         action:
           "Reinvista 100% dos dividendos recebidos para potencializar o efeito bola de neve dos juros compostos.",
@@ -286,7 +298,7 @@ export default function InvestmentsPage() {
     totalInvested
   )} investidos distribuídos em ${filteredInvestments.length} títulos, além de ${formatSensitiveCurrency(
     liquidCash
-  )} em liquidez. Considerando a taxa Selic atual de ${BRAZIL_MACRO_DATA.selic} e inflação de ${BRAZIL_MACRO_DATA.ipca12m}, onde estou deixando dinheiro na mesa e qual deveria ser meu plano de aportes para o próximo mês?`;
+  )} em liquidez. Considerando a taxa Selic oficial vigente de ${selicFormatted} (CDI ${cdiFormatted}) e inflação IPCA de ${ipcaFormatted}, onde estou deixando dinheiro na mesa e qual deveria ser meu plano de aportes para o próximo mês?`;
 
   return (
     <div className="flex-1 w-full min-h-screen bg-slate-50 dark:bg-[#0A0A0A] text-slate-900 dark:text-[#F8FAFC] p-4 md:p-8 pt-6 md:pt-8 pb-28 md:pb-10 font-sans">
@@ -343,16 +355,16 @@ export default function InvestmentsPage() {
               <span className="text-xs font-semibold text-slate-400">/mês</span>
             </div>
             <span className="text-[11px] text-slate-400 mt-1 block">
-              100% do CDI atual ({BRAZIL_MACRO_DATA.cdi} a.a.)
+              100% do CDI vigente ({cdiFormatted} a.a.)
             </span>
           </div>
 
           <div className="p-4 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A]">
             <div className="flex items-center justify-between text-slate-400 text-xs mb-1">
               <span>Lucro Acumulado & Proventos</span>
-              <span className="material-symbols-outlined text-sm text-blue-500">show_chart</span>
+              <span className="material-symbols-outlined text-sm text-[#FF8216]">show_chart</span>
             </div>
-            <div className="text-xl font-extrabold text-blue-500 tabular-nums">
+            <div className="text-xl font-extrabold text-[#FF8216] tabular-nums">
               + {formatSensitiveCurrency(totalProfit)}
             </div>
             <span className="text-[11px] text-slate-400 mt-1 block">
@@ -376,9 +388,9 @@ export default function InvestmentsPage() {
           <div className="p-4 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A]">
             <div className="flex items-center justify-between text-slate-400 text-xs mb-1">
               <span>Patrimônio Bruto Total</span>
-              <span className="material-symbols-outlined text-sm text-purple-500">account_balance</span>
+              <span className="material-symbols-outlined text-sm text-amber-500">account_balance</span>
             </div>
-            <div className="text-xl font-extrabold text-purple-500 tabular-nums">
+            <div className="text-xl font-extrabold text-amber-500 tabular-nums">
               {formatSensitiveCurrency(netTotalPortfolio)}
             </div>
             <span className="text-[11px] text-slate-400 mt-1 block">
@@ -393,54 +405,47 @@ export default function InvestmentsPage() {
             <div className="flex items-center gap-2">
               <span className="text-lg">🇧🇷</span>
               <div>
-                <h2 className="text-sm font-bold tracking-tight text-slate-900 dark:text-white">
-                  Termômetro Macroeconômico do Brasil (Mercado Financeiro)
+                <h2 className="text-sm font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+                  <span>Termômetro Macroeconômico BCB Ao Vivo</span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                    {macroSnapshot.source === "brasilapi_live" || macroSnapshot.source === "cache"
+                      ? "BrasilAPI • BCB Sync"
+                      : "Referência BCB"}
+                  </span>
                 </h2>
                 <p className="text-[11px] text-slate-500 dark:text-[#94A3B8]">
-                  Taxas de referência oficiais para rentabilidade da sua carteira
+                  Taxas oficiais do Banco Central (cache 12h) alimentando rentabilidade real, IR regressivo e Fisher
                 </p>
               </div>
             </div>
-            <span className="text-[11px] px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/20">
-              Juro Real: +{BRAZIL_MACRO_DATA.realInterestRate} a.a.
+            <span className="text-[11px] px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/20 tabular-nums">
+              Juro Real Fisher: +{realInterestFormatted} a.a.
             </span>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4">
             <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A]">
               <span className="text-[10px] text-slate-400 font-bold block uppercase">Taxa Selic</span>
-              <span className="text-base font-extrabold text-emerald-500">{BRAZIL_MACRO_DATA.selic}</span>
-              <span className="text-[10px] text-slate-400 block mt-0.5">Meta Copom</span>
+              <span className="text-base font-extrabold text-emerald-500 tabular-nums">{selicFormatted}</span>
+              <span className="text-[10px] text-slate-400 block mt-0.5">Meta Copom BCB</span>
             </div>
 
             <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A]">
               <span className="text-[10px] text-slate-400 font-bold block uppercase">CDI Anual</span>
-              <span className="text-base font-extrabold text-emerald-500">{BRAZIL_MACRO_DATA.cdi}</span>
-              <span className="text-[10px] text-slate-400 block mt-0.5">100% CDI</span>
+              <span className="text-base font-extrabold text-emerald-500 tabular-nums">{cdiFormatted}</span>
+              <span className="text-[10px] text-slate-400 block mt-0.5">Benchmark Renda Fixa</span>
             </div>
 
             <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A]">
-              <span className="text-[10px] text-slate-400 font-bold block uppercase">IPCA 12 Meses</span>
-              <span className="text-base font-extrabold text-[#FF8216]">{BRAZIL_MACRO_DATA.ipca12m}</span>
-              <span className="text-[10px] text-slate-400 block mt-0.5">Inflação Oficial</span>
+              <span className="text-[10px] text-slate-400 font-bold block uppercase">IPCA Acumulado</span>
+              <span className="text-base font-extrabold text-[#FF8216] tabular-nums">{ipcaFormatted}</span>
+              <span className="text-[10px] text-slate-400 block mt-0.5">Inflação Oficial IBGE</span>
             </div>
 
             <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A]">
-              <span className="text-[10px] text-slate-400 font-bold block uppercase">Juro Real Líquido</span>
-              <span className="text-base font-extrabold text-emerald-500">+{BRAZIL_MACRO_DATA.realInterestRate}</span>
-              <span className="text-[10px] text-slate-400 block mt-0.5">Ganho Real</span>
-            </div>
-
-            <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A]">
-              <span className="text-[10px] text-slate-400 font-bold block uppercase">Ibovespa</span>
-              <span className="text-base font-extrabold text-slate-900 dark:text-white">{BRAZIL_MACRO_DATA.ibovespa}</span>
-              <span className="text-[10px] text-slate-400 block mt-0.5">Bolsa B3</span>
-            </div>
-
-            <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A]">
-              <span className="text-[10px] text-slate-400 font-bold block uppercase">Dólar PTAX</span>
-              <span className="text-base font-extrabold text-slate-900 dark:text-white">{BRAZIL_MACRO_DATA.dolar}</span>
-              <span className="text-[10px] text-slate-400 block mt-0.5">Câmbio USD</span>
+              <span className="text-[10px] text-slate-400 font-bold block uppercase">Juro Real (Fisher)</span>
+              <span className="text-base font-extrabold text-emerald-500 tabular-nums">+{realInterestFormatted}</span>
+              <span className="text-[10px] text-slate-400 block mt-0.5">Ganho Acima da Inflação</span>
             </div>
           </div>
         </div>
@@ -681,6 +686,16 @@ export default function InvestmentsPage() {
                               </div>
                               <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5 flex-wrap">
                                 <span>{inv.institution_name || inv.bank_name || "Banco"}</span>
+                                {inv.issuer &&
+                                  String(inv.issuer).trim().toLowerCase() !==
+                                    String(inv.institution_name || inv.bank_name || "").trim().toLowerCase() && (
+                                    <>
+                                      <span>•</span>
+                                      <span className="text-zinc-300 font-semibold">
+                                        Emissor FGC: {inv.issuer}
+                                      </span>
+                                    </>
+                                  )}
                                 {inv.rate && (
                                   <>
                                     <span>•</span>
@@ -690,7 +705,7 @@ export default function InvestmentsPage() {
                                 {inv.due_date && (
                                   <>
                                     <span>•</span>
-                                    <span>Vencimento: {new Date(inv.due_date).toLocaleDateString("pt-BR")}</span>
+                                    <span>Vencimento: {parseLocalDate(inv.due_date).toLocaleDateString("pt-BR")}</span>
                                   </>
                                 )}
                                 {inv.type && (
@@ -717,8 +732,8 @@ export default function InvestmentsPage() {
                                 Posição liquidada
                               </span>
                             ) : (
-                              <span className="text-[10px] text-blue-400 font-medium block">
-                                Rendendo ~+{formatSensitiveCurrency(Math.round(bal * 0.00847))}/mês
+                              <span className="text-[10px] text-[#FF8216] font-medium block">
+                                Rendendo ~+{formatSensitiveCurrency(Math.round(bal * macroSnapshot.monthlyCDICompoundFactor))}/mês
                               </span>
                             )}
                           </div>

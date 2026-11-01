@@ -12,6 +12,8 @@ export interface XRayInvestmentItem {
   id: string;
   name: string;
   institutionName: string;
+  issuerName?: string | null;
+  issuerCnpj?: string | null;
   type: string; // 'CDB' | 'LCI' | 'LCA' | 'RDB' | 'POUPANCA' | 'TESOURO' | 'ACOES' | 'FII' | 'OUTROS'
   balance: number;
   ratePercentOfCDI?: number;
@@ -77,8 +79,13 @@ function evaluateFGCConcentration(investments: XRayInvestmentItem[]): {
       ['CDB', 'LCI', 'LCA', 'RDB', 'POUPANCA'].includes(inv.type.toUpperCase());
 
     if (isFGC) {
-      const current = fgcByInstitution.get(inv.institutionName) ?? 0;
-      fgcByInstitution.set(inv.institutionName, current + inv.balance);
+      // Audita o teto de R$ 250k pelo EMISSOR real do título (`issuerName`), distinto da corretora custodiante (`institutionName`)
+      const issuingConglomerate =
+        inv.issuerName && inv.issuerName.trim().length > 1
+          ? inv.issuerName.trim()
+          : inv.institutionName.trim() || 'Instituição Emissora';
+      const current = fgcByInstitution.get(issuingConglomerate) ?? 0;
+      fgcByInstitution.set(issuingConglomerate, current + inv.balance);
     }
   }
 

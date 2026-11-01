@@ -6,12 +6,24 @@ import { BankLogo } from "@/components/BankLogo";
 import { SpotlightCard } from "@/components/react-bits/SpotlightCard";
 import Spinner from "@/components/Spinner";
 import { useFinanceData } from "@/context/FinanceDataContext";
+import {
+  calculateSharedSettlement,
+  buildSharedSettlementWhatsAppText,
+  type SharedSplitMode,
+} from "@/utils/finance/shared-settlement";
+import { parseLocalDate } from "@/utils/finance/reconciler";
+import {
+  fetchLiveMacroRates,
+  formatPercentPtBr,
+  getCachedOrFallbackMacroRates,
+} from "@/utils/finance/macro-rates";
 
 interface MemberData {
   id: string;
   display_name?: string | null;
   full_name?: string | null;
   avatar_url?: string | null;
+  monthly_income?: number | null;
   role?: string;
   connection_id: string;
   accountsCount: number;
@@ -32,13 +44,23 @@ export default function SharedSpacePage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
+  // Taxas BCB ao vivo (Selic / CDI / IPCA)
+  const [liveCdiAnnualPct, setLiveCdiAnnualPct] = useState<number>(
+    () => getCachedOrFallbackMacroRates().annualCDIPct
+  );
+
   // Simulador de metas
   const [simMonthlyDeposit, setSimMonthlyDeposit] = useState<number>(1500);
   const [simYears, setSimYears] = useState<number>(3);
-  const [simAnnualRate, setSimAnnualRate] = useState<number>(10.65);
+  const [simAnnualRate, setSimAnnualRate] = useState<number>(
+    () => getCachedOrFallbackMacroRates().annualCDIPct
+  );
 
-  // Divisão justa
-  const [splitMode, setSplitMode] = useState<"50-50" | "proportional">("proportional");
+  // Divisão justa & Reconciliador Pix Único
+  const [splitMode, setSplitMode] = useState<SharedSplitMode>("proportional");
+  const [settlementScope, setSettlementScope] = useState<"auto" | "bills" | "all_expenses">("auto");
+  const [simPartnerIncome, setSimPartnerIncome] = useState<number>(5500);
+  const [simPartnerPaid, setSimPartnerPaid] = useState<number>(1450);
 
   // Formulário de convite
   const [inviteEmail, setInviteEmail] = useState("");
@@ -71,6 +93,19 @@ export default function SharedSpacePage() {
   useEffect(() => {
     fetchSharedSpace();
   }, [fetchSharedSpace]);
+
+  useEffect(() => {
+    let active = true;
+    fetchLiveMacroRates().then((snapshot) => {
+      if (active) {
+        setLiveCdiAnnualPct(snapshot.annualCDIPct);
+        setSimAnnualRate(snapshot.annualCDIPct);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const formatCurrency = useCallback(
     (value: number) => {
@@ -201,12 +236,15 @@ export default function SharedSpacePage() {
 
     const isThisMonth = (dStr: string) => {
       if (!dStr) return false;
-      const d = new Date(dStr);
+      const d = parseLocalDate(dStr);
       return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
     };
 
-    // Helper para identificar transferências internas entre contas
+    // Helper para identificar transferências internas entre contas e pagamentos de fatura
     const isInternalTx = (t: any) => {
+      if (t.is_internal_transfer || t.kind === "funds_movement" || t.kind === "cc_payment") {
+        return true;
+      }
       const desc = `${t.clean_description || ""} ${t.description || ""}`.toLowerCase();
       return (
         desc.includes("mesma titularidade") ||
@@ -319,7 +357,7 @@ export default function SharedSpacePage() {
 
     const isThisMonth = (dStr: string) => {
       if (!dStr) return false;
-      const d = new Date(dStr);
+      const d = parseLocalDate(dStr);
       return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
     };
 
@@ -363,7 +401,13 @@ export default function SharedSpacePage() {
 
     // Minhas contas pagas
     myTransactions.forEach((t: any) => {
-      if (isThisMonth(t.date || t.executed_at) && Number(t.amount) < 0 && isBillTx(t)) {
+      if (
+        isThisMonth(t.date || t.executed_at) &&
+        Number(t.amount) < 0 &&
+        !t.is_internal_transfer &&
+        t.kind !== "funds_movement" &&
+        isBillTx(t)
+      ) {
         paidBills.push({
           id: t.id,
           name: t.clean_description || t.description,
@@ -371,6 +415,7 @@ export default function SharedSpacePage() {
           amount: Math.abs(Number(t.amount)),
           date: t.date || t.executed_at,
           paidBy: `${myDisplayName} (Você)`,
+          paidByMemberId: user?.id || "self",
           isMine: true,
           bank: t.bank_accounts?.institution_slug || t.bank_accounts?.bank_name,
         });
@@ -380,7 +425,13 @@ export default function SharedSpacePage() {
     // Contas pagas pelos parceiros
     activePartners.forEach((p) => {
       (p.transactions || []).forEach((t: any) => {
-        if (isThisMonth(t.date || t.executed_at) && Number(t.amount) < 0 && isBillTx(t)) {
+        if (
+          isThisMonth(t.date || t.executed_at) &&
+          Number(t.amount) < 0 &&
+          !t.is_internal_transfer &&
+          t.kind !== "funds_movement" &&
+          isBillTx(t)
+        ) {
           paidBills.push({
             id: t.id,
             name: t.clean_description || t.description,
@@ -388,6 +439,7 @@ export default function SharedSpacePage() {
             amount: Math.abs(Number(t.amount)),
             date: t.date || t.executed_at,
             paidBy: p.display_name || p.full_name || "Parceiro",
+            paidByMemberId: p.id,
             isMine: false,
             bank: t.bank_accounts?.institution_slug || t.bank_accounts?.bank_name,
           });
@@ -431,18 +483,18 @@ export default function SharedSpacePage() {
     };
   }, [myTransactions, activePartners, totals.allAccounts, user?.id, myDisplayName]);
 
-  // Cálculos de Rentabilidade e Comparações
+  // Cálculos de Rentabilidade e Comparações com Taxa BCB ao Vivo
   const investmentYields = useMemo(() => {
     const total = totals.investments;
-    // CDI atual de 10.65% a.a. -> rendimento mensal líquido (~0.846%)
-    const monthlyCdiRate = Math.pow(1 + 0.1065, 1 / 12) - 1;
+    const annualRateDec = liveCdiAnnualPct / 100;
+    const monthlyCdiRate = Math.pow(1 + annualRateDec, 1 / 12) - 1;
     const monthlyIncome = total * monthlyCdiRate;
-    const annualIncome = total * 0.1065;
+    const annualIncome = total * annualRateDec;
 
     // Comparativo anual
     const poupancaYield = total * 0.0617; // Poupança ~6.17% a.a.
-    const ipcaPlusYield = total * 0.1068; // Tesouro IPCA+ ~10.68% a.a.
-    const diffVsPoupanca = annualIncome - poupancaYield;
+    const ipcaPlusYield = total * Math.max(annualRateDec, 0.112); // Tesouro IPCA+
+    const diffVsPoupanca = Math.max(0, annualIncome - poupancaYield);
 
     return {
       total,
@@ -452,7 +504,7 @@ export default function SharedSpacePage() {
       ipcaPlusYield,
       diffVsPoupanca,
     };
-  }, [totals.investments]);
+  }, [totals.investments, liveCdiAnnualPct]);
 
   // Simulação de Metas e Patrimônio Conjunto
   const simulationResult = useMemo(() => {
@@ -479,37 +531,120 @@ export default function SharedSpacePage() {
     };
   }, [totals.net, simYears, simAnnualRate, simMonthlyDeposit]);
 
-  // Divisão Justa de Despesas (50/50 vs Proporcional)
-  const fairSplitCalculation = useMemo(() => {
-    const myIncome = monthlyFlow.myIncome || 1;
-    const partnerTotalIncome = monthlyFlow.partnerFlows.reduce((s, p) => s + p.income, 0) || 1;
-    const jointIncome = myIncome + partnerTotalIncome;
+  // Motor Determinístico: Reconciliador Familiar & "Pix de Acerto Único"
+  const sharedSettlementBundle = useMemo(() => {
+    const selfId = user?.id || "self";
+    const myAuditedIncome =
+      monthlyFlow.myIncome > 0
+        ? monthlyFlow.myIncome
+        : Number(userProfile?.monthly_income) > 0
+        ? Number(userProfile?.monthly_income)
+        : 0;
 
-    const myShareRatio = splitMode === "50-50" ? 0.5 : myIncome / jointIncome;
-    const partnerShareRatio = splitMode === "50-50" ? 0.5 : partnerTotalIncome / jointIncome;
+    const useBillsScope =
+      settlementScope === "bills" ||
+      (settlementScope === "auto" && monthlyBills.totalPaid > 0);
 
-    const jointBills = monthlyBills.totalMonthBills;
-    const myExpectedShare = jointBills * myShareRatio;
-    const partnerExpectedShare = jointBills * partnerShareRatio;
+    const myBillsPaid = monthlyBills.paidBills
+      .filter((b) => b.paidByMemberId === selfId || b.isMine)
+      .reduce((s, b) => s + b.amount, 0);
 
-    // Quanto cada um realmente pagou
-    const myActuallyPaid = monthlyBills.paidBills.filter((b) => b.isMine).reduce((s, b) => s + b.amount, 0);
-    const partnerActuallyPaid = monthlyBills.paidBills.filter((b) => !b.isMine).reduce((s, b) => s + b.amount, 0);
+    const myPaidShared = useBillsScope ? myBillsPaid : monthlyFlow.myExpense;
 
-    // Ajuste / acerto de contas
-    const myBalanceDiff = myActuallyPaid - myExpectedShare;
+    const isSimulationWithoutPartner = activePartners.length === 0;
+
+    const memberInputs = [
+      {
+        memberId: selfId,
+        memberName: myDisplayName,
+        role: "Titular Principal",
+        isSelf: true,
+        auditedNetIncomeBRL: myAuditedIncome,
+        paidSharedExpensesBRL: myPaidShared,
+      },
+      ...(isSimulationWithoutPartner
+        ? [
+            {
+              memberId: "sim-partner",
+              memberName: "Parceiro(a) Simulado",
+              role: "Cenário Interativo",
+              isSelf: false,
+              auditedNetIncomeBRL: simPartnerIncome,
+              paidSharedExpensesBRL: simPartnerPaid,
+            },
+          ]
+        : activePartners.map((p) => {
+            const pFlow = monthlyFlow.partnerFlows.find((pf) => pf.id === p.id);
+            const pAuditedIncome =
+              (pFlow?.income || 0) > 0
+                ? pFlow!.income
+                : Number(p.monthly_income) > 0
+                ? Number(p.monthly_income)
+                : 0;
+            const pBillsPaid = monthlyBills.paidBills
+              .filter((b) => b.paidByMemberId === p.id)
+              .reduce((s, b) => s + b.amount, 0);
+            const pPaidShared = useBillsScope ? pBillsPaid : pFlow?.expense || 0;
+
+            return {
+              memberId: p.id,
+              memberName: p.display_name || p.full_name || "Parceiro(a)",
+              role: p.role || "Membro",
+              isSelf: false,
+              auditedNetIncomeBRL: pAuditedIncome,
+              paidSharedExpensesBRL: pPaidShared,
+            };
+          })),
+    ];
+
+    const monthLabel = new Intl.DateTimeFormat("pt-BR", {
+      month: "long",
+      year: "numeric",
+    }).format(new Date());
+
+    const result = calculateSharedSettlement({
+      mode: splitMode,
+      members: memberInputs,
+      referenceMonthLabel: monthLabel,
+    });
+
+    const whatsappText = buildSharedSettlementWhatsAppText(
+      result,
+      formatCurrency,
+      monthLabel
+    );
+
+    const takeshiPrompt = `Agente Takeshi, audite nosso Acerto Inteligente do Mês (${monthLabel}) no modo ${result.modeLabelPtBr}. Total de despesas compartilhadas pagas: ${formatCurrency(
+      result.totalSharedExpensesBRL
+    )}. ${
+      result.transfers.length > 0
+        ? `Liquidação mínima calculada: ${result.transfers
+            .map((t) => `${t.fromMember} envia ${formatCurrency(t.amountBRL)} para ${t.toMember}`)
+            .join("; ")}.`
+        : "Contas já equilibradas neste mês."
+    } Como podemos otimizar a divisão das contas fixas e elevar a poupança conjunta da família no próximo mês?`;
 
     return {
-      jointIncome,
-      mySharePercent: Math.round(myShareRatio * 100),
-      partnerSharePercent: Math.round(partnerShareRatio * 100),
-      myExpectedShare,
-      partnerExpectedShare,
-      myActuallyPaid,
-      partnerActuallyPaid,
-      myBalanceDiff,
+      result,
+      whatsappText,
+      takeshiPrompt,
+      isSimulationWithoutPartner,
+      useBillsScope,
+      monthLabel,
     };
-  }, [monthlyFlow, monthlyBills, splitMode]);
+  }, [
+    user?.id,
+    userProfile?.monthly_income,
+    monthlyFlow,
+    monthlyBills,
+    settlementScope,
+    activePartners,
+    myDisplayName,
+    simPartnerIncome,
+    simPartnerPaid,
+    splitMode,
+    formatCurrency,
+  ]);
 
   // Integrante Selecionado
   const selectedMemberData = useMemo(() => {
@@ -642,6 +777,318 @@ export default function SharedSpacePage() {
     navigator.clipboard.writeText(text);
     setCopiedKey(key);
     setTimeout(() => setCopiedKey(null), 2500);
+  };
+
+  const renderSmartSettlementCard = () => {
+    const {
+      result,
+      whatsappText,
+      takeshiPrompt,
+      isSimulationWithoutPartner,
+      useBillsScope,
+      monthLabel,
+    } = sharedSettlementBundle;
+
+    return (
+      <div className="p-5 md:p-6 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] flex flex-col gap-5 shadow-xs">
+        {/* Header + Alternador Instantâneo Proporcional vs 50/50 */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-[#27272A]">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="p-1.5 rounded-xl bg-[#FF8216]/10 text-[#FF8216] border border-[#FF8216]/25 flex items-center justify-center">
+                <span className="material-symbols-outlined text-[18px]">bolt</span>
+              </span>
+              <h3 className="text-sm md:text-base font-extrabold text-slate-900 dark:text-white tracking-tight">
+                Acerto Inteligente do Mês (Pix Único)
+              </h3>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#18181B] text-[#FF8216] border border-[#27272A] uppercase tracking-wider">
+                {monthLabel}
+              </span>
+              {isSimulationWithoutPartner && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/25">
+                  Modo Simulação • Conecte um Membro p/ Sync Real
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-slate-500 dark:text-zinc-400">
+              Algoritmo determinístico de Liquidação Mínima (Greedy Minimum Cash Flow) em centavos exatos, zerando pendências com o menor número de Pix.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Alternador de Escopo */}
+            <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-100 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A]">
+              <button
+                type="button"
+                onClick={() => setSettlementScope("bills")}
+                className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                  useBillsScope
+                    ? "bg-[#27272A] text-white"
+                    : "text-slate-500 dark:text-zinc-400 hover:text-white"
+                }`}
+              >
+                Contas da Casa
+              </button>
+              <button
+                type="button"
+                onClick={() => setSettlementScope("all_expenses")}
+                className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                  !useBillsScope
+                    ? "bg-[#27272A] text-white"
+                    : "text-slate-500 dark:text-zinc-400 hover:text-white"
+                }`}
+              >
+                Todas as Saídas
+              </button>
+            </div>
+
+            {/* Alternador Proporcional à Renda vs 50/50 Igualitário */}
+            <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-100 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A]">
+              <button
+                type="button"
+                onClick={() => setSplitMode("proportional")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  splitMode === "proportional"
+                    ? "bg-[#FF8216] text-white shadow-xs"
+                    : "text-slate-600 dark:text-zinc-400 hover:text-white"
+                }`}
+              >
+                Proporcional à Renda
+              </button>
+              <button
+                type="button"
+                onClick={() => setSplitMode("equal")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  splitMode === "equal"
+                    ? "bg-[#FF8216] text-white shadow-xs"
+                    : "text-slate-600 dark:text-zinc-400 hover:text-white"
+                }`}
+              >
+                50/50 Igualitário
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Inputs editáveis caso ainda não haja parceiro conectado */}
+        {isSimulationWithoutPartner && (
+          <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] font-bold text-zinc-400 flex items-center justify-between">
+                <span>Renda Líquida do Parceiro(a) (Simulação):</span>
+                <span className="text-[#FF8216] font-mono">{formatCurrency(simPartnerIncome)}</span>
+              </label>
+              <input
+                type="range"
+                min={0}
+                max={30000}
+                step={250}
+                value={simPartnerIncome}
+                onChange={(e) => setSimPartnerIncome(Number(e.target.value))}
+                className="w-full accent-[#FF8216] cursor-pointer"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] font-bold text-zinc-400 flex items-center justify-between">
+                <span>Contas Pagas pelo Parceiro(a) no Mês:</span>
+                <span className="text-emerald-400 font-mono">{formatCurrency(simPartnerPaid)}</span>
+              </label>
+              <input
+                type="range"
+                min={0}
+                max={15000}
+                step={50}
+                value={simPartnerPaid}
+                onChange={(e) => setSimPartnerPaid(Number(e.target.value))}
+                className="w-full accent-[#FF8216] cursor-pointer"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Quotas por Membro com Barra Visual de Pago vs Cota Ideal */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {result.members.map((member) => {
+            const maxRef = Math.max(member.fairShareBRL, member.paidAmountBRL, 1);
+            const paidBarPct = Math.min(100, Math.round((member.paidAmountBRL / maxRef) * 100));
+            const fairMarkerPct = Math.min(100, Math.round((member.fairShareBRL / maxRef) * 100));
+
+            const isCreditor = member.status === "CREDITOR";
+            const isDebtor = member.status === "DEBTOR";
+
+            return (
+              <div
+                key={member.memberId}
+                className="p-4 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] flex flex-col gap-3"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span
+                      className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                        member.isSelf ? "bg-[#FF8216]" : "bg-emerald-500"
+                      }`}
+                    />
+                    <span className="text-xs font-extrabold text-slate-900 dark:text-white truncate">
+                      {member.memberName}
+                      {member.isSelf ? " (Você)" : ""}
+                    </span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-black/30 text-zinc-300 border border-[#27272A]">
+                    Cota {member.weightPct.toFixed(1).replace(".", ",")}%
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <div>
+                    <span className="text-[10px] text-zinc-400 uppercase block">Renda Base</span>
+                    <span className="font-bold text-zinc-200 tabular-nums">
+                      {formatCurrency(member.auditedNetIncomeBRL)}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-zinc-400 uppercase block">Já Pagou</span>
+                    <span className="font-bold text-white tabular-nums">
+                      {formatCurrency(member.paidAmountBRL)}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-zinc-400 uppercase block">Cota Ideal</span>
+                    <span className="font-bold text-[#FF8216] tabular-nums">
+                      {formatCurrency(member.fairShareBRL)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Barra Visual Pago vs Cota Justa */}
+                <div className="flex flex-col gap-1.5">
+                  <div className="relative h-2.5 w-full rounded-full bg-zinc-200 dark:bg-[#0A0A0A] border border-slate-200 dark:border-[#27272A] overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${
+                        isCreditor
+                          ? "bg-emerald-500"
+                          : isDebtor
+                          ? "bg-[#FF8216]"
+                          : "bg-zinc-400"
+                      }`}
+                      style={{ width: `${paidBarPct}%` }}
+                    />
+                    {member.fairShareBRL > 0 && (
+                      <div
+                        className="absolute top-0 bottom-0 w-0.5 bg-white/90"
+                        style={{ left: `${fairMarkerPct}%` }}
+                        title={`Cota Ideal: ${formatCurrency(member.fairShareBRL)}`}
+                      />
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-zinc-400">
+                      Cumprimento da cota:{" "}
+                      <strong className="text-zinc-200 tabular-nums">
+                        {member.quotaFulfillmentPct.toFixed(0)}%
+                      </strong>
+                    </span>
+                    <span
+                      className={`font-bold tabular-nums ${
+                        isCreditor
+                          ? "text-emerald-400"
+                          : isDebtor
+                          ? "text-amber-400"
+                          : "text-zinc-400"
+                      }`}
+                    >
+                      {isCreditor
+                        ? `Recebe +${formatCurrency(member.netBalanceBRL)}`
+                        : isDebtor
+                        ? `Envia -${formatCurrency(Math.abs(member.netBalanceBRL))}`
+                        : "100% Quitado"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Bloco Direto de Liquidação Mínima ("Pix de Acerto Único") + Ações WhatsApp / Agente Takeshi */}
+        <div className="p-4 md:p-5 rounded-2xl bg-[#18181B] border border-[#FF8216]/35 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="flex items-start sm:items-center gap-3.5">
+            <div className="w-11 h-11 rounded-2xl bg-[#FF8216]/15 border border-[#FF8216]/30 text-[#FF8216] flex items-center justify-center shrink-0">
+              <span className="material-symbols-outlined text-[22px]">
+                {result.isAlreadyBalanced ? "verified" : "currency_exchange"}
+              </span>
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-[#FF8216]">
+                {result.isAlreadyBalanced
+                  ? "Balanço Familiar Equilibrado"
+                  : result.transfers.length === 1
+                  ? "Pix de Acerto Único • Liquidação Exata"
+                  : `Liquidação Mínima em ${result.transfers.length} Pix`}
+              </span>
+              {result.isAlreadyBalanced ? (
+                <p className="text-xs md:text-sm font-bold text-white">
+                  Nenhuma transferência pendente neste mês (Total compartilhado:{" "}
+                  <span className="tabular-nums text-emerald-400">
+                    {formatCurrency(result.totalSharedExpensesBRL)}
+                  </span>
+                  ).
+                </p>
+              ) : (
+                <div className="flex flex-col gap-1.5">
+                  {result.transfers.map((tr, idx) => (
+                    <div
+                      key={`${tr.fromMemberId}-${tr.toMemberId}-${idx}`}
+                      className="flex items-center gap-2 flex-wrap text-xs md:text-sm"
+                    >
+                      <span className="font-extrabold text-white">{tr.fromMember}</span>
+                      <span className="material-symbols-outlined text-[16px] text-[#FF8216]">
+                        arrow_forward
+                      </span>
+                      <span className="font-extrabold text-emerald-400">{tr.toMember}</span>
+                      <span className="px-2.5 py-0.5 rounded-lg bg-[#FF8216] text-white font-black tabular-nums text-xs md:text-sm">
+                        {formatCurrency(tr.amountBRL)}
+                      </span>
+                    </div>
+                  ))}
+                  <span className="text-[11px] text-zinc-400">
+                    Despesas compartilhadas apuradas:{" "}
+                    <strong className="text-zinc-200 tabular-nums">
+                      {formatCurrency(result.totalSharedExpensesBRL)}
+                    </strong>{" "}
+                    • Critério: {result.modeLabelPtBr}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5 flex-wrap shrink-0">
+            <button
+              type="button"
+              onClick={() => copyToClipboard(whatsappText, "whatsapp_settlement")}
+              className="px-3.5 py-2.5 rounded-xl bg-[#0A0A0A] hover:bg-black border border-[#27272A] hover:border-emerald-500/40 text-xs font-bold text-zinc-200 hover:text-emerald-400 transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[16px] text-emerald-500">
+                {copiedKey === "whatsapp_settlement" ? "check" : "content_copy"}
+              </span>
+              <span>
+                {copiedKey === "whatsapp_settlement"
+                  ? "Resumo Copiado!"
+                  : "Copiar Resumo WhatsApp"}
+              </span>
+            </button>
+
+            <Link
+              href={`/kitsune?prompt=${encodeURIComponent(takeshiPrompt)}`}
+              className="px-3.5 py-2.5 rounded-xl bg-[#FF8216] hover:bg-[#FFA047] text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[16px]">diversity_3</span>
+              <span>Consultar Agente Takeshi</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -781,12 +1228,12 @@ export default function SharedSpacePage() {
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
               Investimentos Ativos
             </span>
-            <div className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center">
               <span className="material-symbols-outlined text-[16px]">trending_up</span>
             </div>
           </div>
           <div>
-            <span className="text-base md:text-xl font-black text-blue-600 dark:text-blue-400 tabular-nums tracking-tight block">
+            <span className="text-base md:text-xl font-black text-amber-500 tabular-nums tracking-tight block">
               {formatCurrency(totals.investments)}
             </span>
             <span className="text-[10px] text-slate-400 mt-0.5 block truncate">
@@ -916,7 +1363,7 @@ export default function SharedSpacePage() {
 
                 {totals.partnerStats.map((p, idx) => {
                   const pPercent = Math.max(0, Math.min(100, Math.round((p.net / (totals.net || 1)) * 100)));
-                  const colors = ["bg-emerald-500", "bg-purple-500", "bg-blue-500"];
+                  const colors = ["bg-emerald-500", "bg-amber-500", "bg-zinc-400"];
                   return (
                     <div key={p.id} className="flex items-center gap-1.5">
                       <span className={`w-2.5 h-2.5 rounded-full ${colors[idx % colors.length]}`} />
@@ -930,6 +1377,9 @@ export default function SharedSpacePage() {
               </div>
             </SpotlightCard>
           )}
+
+          {/* Card de Acerto Inteligente do Mês (Pix Único) na Visão Geral */}
+          {renderSmartSettlementCard()}
 
           {/* Grid 2 Colunas: Contas de Todos os Membros & Movimentações Recentes */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -1345,12 +1795,12 @@ export default function SharedSpacePage() {
         <div className="flex flex-col gap-6 animate-in fade-in">
           {/* Card Principal de Rendimento */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <SpotlightCard className="p-5 flex flex-col justify-between gap-3 bg-blue-500/5 border-blue-500/20">
-              <span className="text-xs font-bold text-blue-500 uppercase tracking-wider">
+            <SpotlightCard className="p-5 flex flex-col justify-between gap-3 bg-amber-500/5 border-amber-500/20">
+              <span className="text-xs font-bold text-amber-500 uppercase tracking-wider">
                 Patrimônio Investido da Família
               </span>
               <div>
-                <span className="text-2xl font-black text-blue-500 tabular-nums">
+                <span className="text-2xl font-black text-amber-500 tabular-nums">
                   {formatCurrency(investmentYields.total)}
                 </span>
                 <p className="text-xs text-slate-400 mt-1">
@@ -1368,7 +1818,7 @@ export default function SharedSpacePage() {
                   + {formatCurrency(investmentYields.monthlyIncome)}/mês
                 </span>
                 <p className="text-xs text-slate-400 mt-1">
-                  Calculado a 100% do CDI atual (10,65% a.a.) pingando passivamente na carteira.
+                  Calculado a 100% do CDI vigente ({formatPercentPtBr(liveCdiAnnualPct)} a.a.) via Banco Central.
                 </p>
               </div>
             </SpotlightCard>
@@ -1407,12 +1857,14 @@ export default function SharedSpacePage() {
                   {formatCurrency(investmentYields.poupancaYield)}/ano
                 </span>
                 <span className="text-[11px] text-rose-500">
-                  Perderia {formatCurrency(investmentYields.diffVsPoupanca)} comparado ao CDI atual!
+                  Perderia {formatCurrency(investmentYields.diffVsPoupanca)} comparado ao CDI vigente!
                 </span>
               </div>
 
               <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex flex-col gap-2">
-                <span className="text-xs font-bold text-emerald-500 uppercase">CDI 100% Atual (10,65% a.a.)</span>
+                <span className="text-xs font-bold text-emerald-500 uppercase">
+                  CDI 100% Vigente ({formatPercentPtBr(liveCdiAnnualPct)} a.a.)
+                </span>
                 <span className="text-lg font-black text-emerald-400 tabular-nums">
                   {formatCurrency(investmentYields.annualIncome)}/ano
                 </span>
@@ -1421,12 +1873,12 @@ export default function SharedSpacePage() {
                 </span>
               </div>
 
-              <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/30 flex flex-col gap-2">
-                <span className="text-xs font-bold text-blue-400 uppercase">Tesouro IPCA+ (IPCA + 6,2% a.a.)</span>
-                <span className="text-lg font-black text-blue-400 tabular-nums">
+              <div className="p-4 rounded-xl bg-[#FF8216]/10 border border-[#FF8216]/30 flex flex-col gap-2">
+                <span className="text-xs font-bold text-[#FF8216] uppercase">Tesouro IPCA+ (Juro Real + Inflação)</span>
+                <span className="text-lg font-black text-[#FF8216] tabular-nums">
                   {formatCurrency(investmentYields.ipcaPlusYield)}/ano
                 </span>
-                <span className="text-[11px] text-blue-400 font-semibold">
+                <span className="text-[11px] text-[#FF8216] font-semibold">
                   Proteção máxima contra inflação no longo prazo.
                 </span>
               </div>
@@ -1584,100 +2036,10 @@ export default function SharedSpacePage() {
         </div>
       )}
 
-      {/* ABA 6: DIVISÃO JUSTA DE DESPESAS */}
+      {/* ABA 6: DIVISÃO JUSTA DE DESPESAS & PIX DE ACERTO ÚNICO */}
       {activeFeatureTab === "split" && (
         <div className="flex flex-col gap-6 animate-in fade-in">
-          <div className="p-6 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] flex flex-col gap-6 shadow-xs">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="flex flex-col gap-1">
-                <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[#FF8216]">balance</span>
-                  <span>Calculadora de Divisão Justa do Casal</span>
-                </h3>
-                <p className="text-xs text-slate-400">
-                  Evite atritos financeiros: divida as contas comuns igualitariamente (50/50) ou de forma proporcional à renda de cada um.
-                </p>
-              </div>
-
-              {/* Toggle de Modo */}
-              <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] self-start md:self-auto">
-                <button
-                  type="button"
-                  onClick={() => setSplitMode("proportional")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    splitMode === "proportional"
-                      ? "bg-[#FF8216] text-white shadow-xs"
-                      : "text-slate-600 dark:text-zinc-400 hover:text-white"
-                  }`}
-                >
-                  Proporcional à Renda
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSplitMode("50-50")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    splitMode === "50-50"
-                      ? "bg-[#FF8216] text-white shadow-xs"
-                      : "text-slate-600 dark:text-zinc-400 hover:text-white"
-                  }`}
-                >
-                  Divisão 50% / 50%
-                </button>
-              </div>
-            </div>
-
-            {/* Visualização de Proporção */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] flex flex-col gap-2">
-                <span className="text-xs font-bold text-[#FF8216]">{myDisplayName} (Você)</span>
-                <div className="flex items-baseline justify-between">
-                  <span className="text-xl font-black text-white tabular-nums">
-                    {fairSplitCalculation.mySharePercent}%
-                  </span>
-                  <span className="text-xs text-slate-400">
-                    Cota justa: {formatCurrency(fairSplitCalculation.myExpectedShare)}
-                  </span>
-                </div>
-                <span className="text-[11px] text-slate-400">
-                  Já pagou neste mês: <strong className="text-white">{formatCurrency(fairSplitCalculation.myActuallyPaid)}</strong>
-                </span>
-              </div>
-
-              <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] flex flex-col gap-2">
-                <span className="text-xs font-bold text-emerald-500">
-                  {activePartners[0]?.display_name || "Parceiro(a)"}
-                </span>
-                <div className="flex items-baseline justify-between">
-                  <span className="text-xl font-black text-white tabular-nums">
-                    {fairSplitCalculation.partnerSharePercent}%
-                  </span>
-                  <span className="text-xs text-slate-400">
-                    Cota justa: {formatCurrency(fairSplitCalculation.partnerExpectedShare)}
-                  </span>
-                </div>
-                <span className="text-[11px] text-slate-400">
-                  Já pagou neste mês: <strong className="text-white">{formatCurrency(fairSplitCalculation.partnerActuallyPaid)}</strong>
-                </span>
-              </div>
-            </div>
-
-            {/* Acerto de Contas */}
-            <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] flex items-center justify-between flex-wrap gap-3">
-              <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-[#FF8216] text-2xl">sync_alt</span>
-                <div>
-                  <h4 className="text-xs font-bold text-white">Acerto de Contas Sugerido</h4>
-                  <p className="text-[11px] text-slate-400">
-                    {fairSplitCalculation.myBalanceDiff > 0
-                      ? `${activePartners[0]?.display_name || "Seu parceiro(a)"} deve transferir ${formatCurrency(fairSplitCalculation.myBalanceDiff)} para você para equilibrar o mês.`
-                      : fairSplitCalculation.myBalanceDiff < 0
-                      ? `Você deve transferir ${formatCurrency(Math.abs(fairSplitCalculation.myBalanceDiff))} para ${activePartners[0]?.display_name || "seu parceiro(a)"} para equilibrar as despesas.`
-                      : "As contas do mês estão perfeitamente equilibradas entre ambos!"}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
+          {renderSmartSettlementCard()}
         </div>
       )}
 
@@ -1828,7 +2190,7 @@ export default function SharedSpacePage() {
                       </a>
                       <a
                         href={`mailto:${lastCreatedInvite.email}?subject=${encodeURIComponent("Convite para Espaço Compartilhado - Kitsune Finance")}&body=${encodeURIComponent(`Olá!\n\nVocê recebeu um convite para conectar seu patrimônio ao Espaço Compartilhado no Kitsune Finance com conciliação mútua.\n\nAcesse o link direto:\n${lastCreatedInvite.url}\n\nOu utilize o código de convite: ${lastCreatedInvite.code}\n\nAté logo,\nKitsune Finance`)}`}
-                        className="px-2.5 py-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 text-[10px] font-bold flex items-center gap-1"
+                        className="px-2.5 py-1.5 rounded-lg bg-[#18181B] hover:bg-[#27272A] text-zinc-200 border border-[#27272A] text-[10px] font-bold flex items-center gap-1"
                       >
                         <span className="material-symbols-outlined text-xs">mail</span>
                         <span>Enviar via Gmail</span>

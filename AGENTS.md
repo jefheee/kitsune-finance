@@ -12,10 +12,11 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 Qualquer agente de IA que iniciar uma sessão neste repositório DEVE executar este fluxo automaticamente, mesmo que o usuário não mencione na mensagem:
 
-### 1. Leitura de Boot Obrigatória
+### 1. Leitura de Boot Obrigatória & Upstream Benchmarking
 Antes de escrever qualquer código, leia silenciosamente:
 1. `docs/PROJECT_STATE.md` (Estado atual e seção `## Context Handoff`).
-2. `docs/ARCHITECTURE_EXPANSION.md` (Plano Mestre de Expansão em 5 Etapas e especificações matemáticas).
+2. `docs/ARCHITECTURE_EXPANSION.md` (Plano Mestre de Expansão em 5 Etapas, Tabela Oficial de Repositórios e especificações matemáticas).
+3. **Regra Obrigatória de Upstream Benchmarking:** Antes de codificar, consulte a tabela de repositórios em `docs/ARCHITECTURE_EXPANSION.md`. Baixe temporariamente em `.benchmarks/` os arquivos de referência do repositório relacionado a este recurso para conferir a implementação oficial real antes de escrever o código, removendo `.benchmarks/` ao concluir.
 
 ### 2. Regras Inegociáveis de Arquitetura (Kitsune Finance)
 - **Soberania Custo Zero ($0.00/mês):** Proibido introduzir bibliotecas, APIs ou serviços pagos.
