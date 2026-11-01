@@ -4,6 +4,16 @@ Todas as alterações notáveis no projeto Kitsune Finance são registradas de f
 
 ---
 
+## [2026-11-01] - Unificação da Kitsune AI na Navegação, Hierarquia Visual e Abas Estilo Widgets
+- **Arquivos Afetados:** `src/app/dashboard/page.tsx`, `src/components/layout/AppShell.tsx`.
+- **Objetivo:**
+  - Unificação da presença da IA na navegação sob a entrada oficial única "Kitsune AI" (`/kitsune`), removendo a duplicidade com "Squad IA" que causava ativação de duas abas ao mesmo tempo.
+  - Conversão das Segmented Tabs para a estética neutra dos widgets (`bg-[#121214] border-[#27272A]`), eliminando cores saturadas.
+  - Substituição da métrica técnica genérica de CDI por mensagem executiva sóbria: "Gestão patrimonial consolidada e acompanhamento estratégico em tempo real."
+  - Reordenação da Visão Geral: "Falar com Kitsune AI" posicionado no topo acima dos cartões de bancos e alertas dos agentes movidos para baixo do gráfico de patrimônio líquido.
+
+---
+
 ## [2026-11-01] - Padronização Global de UI/UX, Busca FIPE Flexível com Fallback e Radar Imobiliário Enriquecido
 - **Arquivos Afetados:** `src/app/assets/page.tsx`, `src/components/assets/{VehicleFipeSelector.tsx, LandValuationCard.tsx, AssetModal.tsx}`, `src/utils/finance/engine/{fipe.ts, land-valuation.ts}`, `src/app/api/assets/{radar/route.ts, vehicle-plate/route.ts}`, `src/app/{agents, shared, profile}/page.tsx`, `src/components/wealthfolio/WealthfolioIcons.tsx`.
 - **Objetivo:**

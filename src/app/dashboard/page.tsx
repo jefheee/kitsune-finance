@@ -790,7 +790,7 @@ export default function DashboardPage() {
               Olá, {userFirstName}
             </h1>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-              {connectedBanks.length} instituições Open Finance • CDI {macroRates.annualCDIPct.toFixed(2)}% a.a.
+              Gestão patrimonial consolidada e acompanhamento estratégico em tempo real.
             </p>
           </div>
 
@@ -843,8 +843,8 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Linha 2: Segmented Tabs (Caberem 100% no mobile sem barra de rolagem e perfeitamente centralizadas/alinhadas) */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 p-1 rounded-xl bg-zinc-100 dark:bg-[#121214] border border-zinc-200 dark:border-[#27272A] w-full">
+        {/* Linha 2: Segmented Tabs (Caberem 100% no mobile sem barra de rolagem e com fundo idêntico aos widgets) */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full">
           {DASHBOARD_TABS.map((tab) => {
             const active = activeTab === tab;
             return (
@@ -852,10 +852,10 @@ export default function DashboardPage() {
                 key={tab}
                 type="button"
                 onClick={() => setActiveTab(tab)}
-                className={`px-2 py-2 sm:py-1.5 rounded-lg text-xs font-medium text-center transition-colors cursor-pointer ${
+                className={`px-3 py-2 sm:py-2.5 rounded-xl text-xs font-medium text-center transition-all cursor-pointer border ${
                   active
-                    ? "bg-white dark:bg-[#18181B] text-zinc-900 dark:text-[#F4F4F5] font-semibold shadow-xs border border-zinc-200/80 dark:border-[#27272A]"
-                    : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
+                    ? "bg-[#18181B] border-[#3F3F46] text-[#F4F4F5] font-semibold shadow-xs"
+                    : "bg-[#121214] border-[#27272A] text-zinc-400 hover:text-zinc-200 hover:border-zinc-700"
                 }`}
               >
                 {tab}
@@ -906,31 +906,16 @@ export default function DashboardPage() {
       ======================================================================== */}
       {activeTab === "Visão Geral" && (
         <div className="space-y-6">
-          {/* Alertas de Anomalia e Teto FGC */}
-          <AnomalyAlertCard />
-
-          {fgcWarning && (
-            <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/25 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5">
-                <WfIcons.ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
-                <p className="text-xs text-zinc-800 dark:text-zinc-200">
-                  <strong>Atenção ao Teto do FGC:</strong> Emissor{" "}
-                  <span className="font-semibold text-[#FF8216]">{fgcWarning.issuerName}</span>{" "}
-                  acumula{" "}
-                  <span className="font-mono tabular-nums font-semibold">
-                    {formatCurrency(fgcWarning.total)}
-                  </span>{" "}
-                  ({formatCurrency(fgcWarning.excess)} acima da garantia ordinária de R$ 250 mil).
-                </p>
-              </div>
-              <Link
-                href="/investments"
-                className="text-xs font-semibold text-[#FF8216] hover:underline shrink-0"
-              >
-                Ver Auditoria FGC →
-              </Link>
-            </div>
-          )}
+          {/* Chat Compacto Kitsune AI (Acesso Direto no Topo, Acima dos Cartões de Bancos) */}
+          <CompactKitsuneChat
+            onOpenFullChat={(initPrompt) => {
+              if (initPrompt) {
+                router.push(`/kitsune?prompt=${encodeURIComponent(initPrompt)}`);
+              } else {
+                router.push("/kitsune");
+              }
+            }}
+          />
 
           {/* Cards de Saldo por Banco com Gradiente de Marca e Faturas */}
           <BankBalanceCards
@@ -957,6 +942,32 @@ export default function DashboardPage() {
             scopeLabel={activeScopeLabel}
             annualCDIPct={macroRates.annualCDIPct}
           />
+
+          {/* Avisos dos Agentes de IA e Teto FGC (Posicionados Abaixo do Gráfico de Patrimônio Líquido) */}
+          <AnomalyAlertCard />
+
+          {fgcWarning && (
+            <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/25 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <WfIcons.ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
+                <p className="text-xs text-zinc-800 dark:text-zinc-200">
+                  <strong>Atenção ao Teto do FGC:</strong> Emissor{" "}
+                  <span className="font-semibold text-[#FF8216]">{fgcWarning.issuerName}</span>{" "}
+                  acumula{" "}
+                  <span className="font-mono tabular-nums font-semibold">
+                    {formatCurrency(fgcWarning.total)}
+                  </span>{" "}
+                  ({formatCurrency(fgcWarning.excess)} acima da garantia ordinária de R$ 250 mil).
+                </p>
+              </div>
+              <Link
+                href="/investments"
+                className="text-xs font-semibold text-[#FF8216] hover:underline shrink-0"
+              >
+                Ver Auditoria FGC →
+              </Link>
+            </div>
+          )}
 
           {/* 4 Módulos & Widgets Executivos Clicáveis Estilo Cards de Banco (2x2 Mobile, 4 PC) */}
           <DashboardExecutiveWidgets
@@ -989,17 +1000,6 @@ export default function DashboardPage() {
             goalsSummary={goalsSummary}
             topHoldings={topHoldings}
             monthlyCDIFactor={macroRates.monthlyCDICompoundFactor}
-          />
-
-          {/* Chat Compacto Kitsune AI (Discreto e Disponível no Rodapé) */}
-          <CompactKitsuneChat
-            onOpenFullChat={(initPrompt) => {
-              if (initPrompt) {
-                router.push(`/kitsune?prompt=${encodeURIComponent(initPrompt)}`);
-              } else {
-                router.push("/kitsune");
-              }
-            }}
           />
         </div>
       )}

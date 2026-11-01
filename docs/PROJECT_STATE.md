@@ -187,13 +187,23 @@
     - Enriquecimento com estimativas de mercado do m² da região do CEP (venda, locação e rental yield) e listagem nominal detalhada de todos os pontos de interesse identificados pelo OpenStreetMap Overpass no raio de 2km com suas respectivas distâncias em metros.
   - **Compilação e Estabilidade:** Validação TypeScript com 0 erros (`npx tsc --noEmit`) e build de produção bem-sucedido de todas as 42 rotas do Next.js 16.
 
+- [x] Unificação da Kitsune AI na Navegação, Hierarquia Visual e Abas Estilo Widgets (Release v3.0):
+  - **Unificação da Página de IA na Navegação:** Eliminação da duplicidade entre "Agentes IA" e "Squad IA" que causava ativação simultânea. A navegação passa a contar com uma única entrada oficial: **Kitsune AI** (`/kitsune`), com o atalho redundante de "Squad IA" removido tanto da sidebar desktop quanto do More Sheet mobile.
+  - **Abas do Dashboard com Fundo dos Widgets:** As 4 abas ("Visão Geral", "Fluxo & Gastos", "Transações", "Parcelas & Assinaturas") foram convertidas para o mesmo padrão estético e neutro dos widgets (`bg-[#121214] border-[#27272A]`), sem cores saturadas, destacando a aba ativa suavemente com `bg-[#18181B] border-[#3F3F46]`.
+  - **Subtítulo Executivo Refinado:** Substituição da métrica técnica genérica de CDI/instituições por uma mensagem sóbria de alto nível: *"Gestão patrimonial consolidada e acompanhamento estratégico em tempo real."*
+  - **Hierarquia Visual da Visão Geral Reordenada:**
+    - **Falar com Kitsune AI (`CompactKitsuneChat`):** Movido para o topo do dashboard, imediatamente acima dos cartões de bancos para acesso instantâneo ao copiloto inteligente.
+    - **Avisos de Agentes & Teto FGC (`AnomalyAlertCard` & `fgcWarning`):** Movidos para logo abaixo do gráfico de patrimônio líquido (`NetWorthHeroChart`), mantendo a leitura fluida e os dados patrimoniais em primeiro plano.
+  - **Validação de Código:** TypeScript estrito com 0 erros (`npx tsc --noEmit`).
+
 ---
 
 ## 4. Context Handoff (Memória de Continuidade entre Chats)
-- **Última Etapa Concluída:** Release v2.9 — **Padronização Global de UI/UX, Busca FIPE Flexível com Fallback e Radar Imobiliário Enriquecido**:
-  1. **Layout Canônico em 100% das Páginas:** Container `max-w-[1380px] p-4 md:p-7 pb-28 md:pb-10 font-sans` e cabeçalhos homogêneos sem tags genéricas.
-  2. **Motor FIPE e Placas:** Busca tolerante/fuzzy, escolha antecipada de ano, fallback resiliente contra erro 429 e consulta veicular por placa.
-  3. **Imóveis & Terrenos:** Modal redesenhado sem redundâncias, estimativa de mercado do m² da região (venda/locação/yield) e listagem nominal dos POIs no raio de 2km.
-  4. **Build e Tipagem:** `npx tsc --noEmit` zerado e `next build` com 42/42 rotas compiladas com sucesso.
+- **Última Etapa Concluída:** Release v3.0 — **Unificação da Kitsune AI, Hierarquia Visual e Abas Estilo Widgets**:
+  1. **Navegação de IA Unificada:** Apenas uma página de IA na navegação ("Kitsune AI" em `/kitsune`), eliminando conflito de seleção dupla com "Squad IA".
+  2. **Abas com Fundo de Widget:** Grid de 4 abas sem cor viva, integrado ao design `#121214` e `#27272A`.
+  3. **Subtítulo Sóbrio:** Substituição de jargões técnicos por texto executivo na saudação.
+  4. **Fluxo Visual Reordenado:** "Falar com Kitsune AI" no topo sobre os bancos, e avisos de agentes posicionados abaixo do gráfico de patrimônio líquido.
+  5. **Estabilidade:** `npx tsc --noEmit` validado com 0 erros.
 - **Próxima Etapa Imediata:** Sincronização dos novos dados patrimoniais e ativos físicos com as ferramentas dos agentes de IA (`src/utils/ai/deterministic-tools.ts`).
 - **Pendências ou Bloqueios:** Nenhum. Todo o código compila perfeitamente.

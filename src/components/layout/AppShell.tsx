@@ -213,8 +213,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     },
     {
       path: "/kitsune",
-      matchPaths: ["/kitsune", "/agents"],
-      label: "Agentes IA",
+      matchPaths: ["/kitsune"],
+      label: "Kitsune AI",
       Icon: WfIcons.Agents,
     },
   ];
@@ -412,34 +412,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   </Link>
                 );
               })}
-
-              {/* 7 Specialist AI Agents Direct Shortcut */}
-              <Link
-                href="/agents"
-                title={isSidebarCollapsed ? "7 Agentes Especialistas" : undefined}
-                className={`group relative flex items-center h-9 rounded-lg transition-colors duration-150 ${
-                  isSidebarCollapsed ? "justify-center px-0" : "gap-2.5 px-2.5"
-                } ${
-                  pathname.startsWith("/agents")
-                    ? "bg-zinc-100 dark:bg-[#18181B] text-zinc-900 dark:text-[#F4F4F5] font-semibold"
-                    : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-[#F4F4F5] hover:bg-zinc-100/70 dark:hover:bg-[#121214]"
-                }`}
-              >
-                <WfIcons.BotGrid
-                  size={18}
-                  className={`shrink-0 ${
-                    pathname.startsWith("/agents") ? "text-[#FF8216]" : "text-current"
-                  }`}
-                />
-                {!isSidebarCollapsed && (
-                  <span className="text-[13px] truncate flex items-center justify-between flex-1">
-                    <span>Squad IA</span>
-                    <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-[#FF8216]/10 text-[#FF8216] border border-[#FF8216]/20">
-                      7
-                    </span>
-                  </span>
-                )}
-              </Link>
             </nav>
           </div>
         </div>
@@ -1059,12 +1031,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     label: "Kitsune AI",
                     sub: "Copiloto patrimonial",
                     Icon: WfIcons.Agents,
-                  },
-                  {
-                    href: "/agents",
-                    label: "7 Agentes IA",
-                    sub: "Consultores Especialistas",
-                    Icon: WfIcons.BotGrid,
                   },
                   {
                     href: "/connections",
