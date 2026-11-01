@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { BankLogo } from "@/components/BankLogo";
 import { WfIcons } from "@/components/wealthfolio/WealthfolioIcons";
@@ -118,11 +119,11 @@ export function TransactionDetailModal({
     return sum;
   }, [absAmount, merchantHistory]);
 
-  return (
+  const modalContent = (
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-[99996] bg-black/85 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200"
+      className="fixed inset-0 z-[99999] bg-black/85 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200"
     >
       <div className="w-full max-w-lg rounded-t-3xl sm:rounded-3xl bg-[#121214] border border-[#27272A] shadow-2xl overflow-hidden flex flex-col max-h-[92vh] sm:max-h-[88vh]">
         {/* Header estilo Apple Wallet */}
@@ -281,4 +282,8 @@ export function TransactionDetailModal({
       </div>
     </div>
   );
+
+  return typeof document !== "undefined"
+    ? createPortal(modalContent, document.body)
+    : null;
 }

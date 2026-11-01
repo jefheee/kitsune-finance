@@ -786,14 +786,11 @@ export default function DashboardPage() {
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-lg md:text-xl font-bold tracking-tight text-zinc-900 dark:text-[#F4F4F5]">
+              <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-[#F4F4F5]">
                 Olá, {userFirstName}
               </h1>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#FF8216]/12 text-[#FF8216] border border-[#FF8216]/25 tabular-nums">
-                Score {isPrivacyMode ? "••/100" : `${kitsuneScore.score}/100`}
-              </span>
             </div>
-            <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
               {connectedBanks.length} instituições Open Finance • CDI {macroRates.annualCDIPct.toFixed(2)}% a.a.
             </p>
           </div>
@@ -825,11 +822,11 @@ export default function DashboardPage() {
           <button
             type="button"
             onClick={() => setIsSearchModalOpen(true)}
-            className="h-9 px-3 rounded-xl bg-white dark:bg-[#121214] hover:bg-zinc-100 dark:hover:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] text-xs font-medium text-zinc-600 dark:text-zinc-300 flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="hidden sm:flex h-9 px-3 rounded-xl bg-white dark:bg-[#121214] hover:bg-zinc-100 dark:hover:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] text-xs font-medium text-zinc-600 dark:text-zinc-300 items-center gap-1.5 transition-colors cursor-pointer"
             title="Busca Financeira Global (Ctrl+K)"
           >
             <WfIcons.Search className="w-3.5 h-3.5 text-[#FF8216]" />
-            <span className="hidden sm:inline">Buscar</span>
+            <span>Buscar</span>
             <kbd className="hidden md:inline-block px-1.5 py-0.5 text-[10px] font-mono rounded bg-zinc-100 dark:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] text-zinc-400">
               ⌘K
             </kbd>
@@ -838,23 +835,23 @@ export default function DashboardPage() {
           <a
             href="/api/export/spreadsheet"
             download
-            className="h-9 px-3 rounded-xl bg-white dark:bg-[#121214] hover:bg-zinc-100 dark:hover:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] text-xs font-medium text-zinc-600 dark:text-zinc-300 flex items-center gap-1.5 transition-colors"
+            className="hidden sm:flex h-9 px-3 rounded-xl bg-white dark:bg-[#121214] hover:bg-zinc-100 dark:hover:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] text-xs font-medium text-zinc-600 dark:text-zinc-300 items-center gap-1.5 transition-colors"
             title="Exportar planilha consolidada CSV"
           >
             <WfIcons.Download className="w-3.5 h-3.5 text-zinc-400" />
-            <span className="hidden sm:inline">CSV</span>
+            <span>CSV</span>
           </a>
 
           <button
             type="button"
             onClick={() => revalidate(true)}
-            className="h-9 px-3 rounded-xl bg-white dark:bg-[#121214] hover:bg-zinc-100 dark:hover:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] text-xs font-medium text-zinc-600 dark:text-zinc-300 flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="h-9 px-3.5 rounded-xl bg-white dark:bg-[#121214] hover:bg-zinc-100 dark:hover:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] text-xs font-semibold text-zinc-700 dark:text-zinc-200 flex items-center gap-2 transition-colors cursor-pointer shadow-2xs"
             title="Sincronizar Open Finance agora"
           >
             <WfIcons.RefreshCw
               className={`w-3.5 h-3.5 text-emerald-500 ${isRevalidating ? "animate-spin" : ""}`}
             />
-            <span className="hidden sm:inline">Sincronizar</span>
+            <span>Sincronizar</span>
           </button>
 
           <button
@@ -972,6 +969,20 @@ export default function DashboardPage() {
             onTogglePrivacy={togglePrivacyMode}
             scopeLabel={activeScopeLabel}
             annualCDIPct={macroRates.annualCDIPct}
+          />
+
+          {/* Diagnóstico Executivo Kitsune AI + Camada Determinística MSLR (Widget Bento de Largura Total) */}
+          <AiDiagnosticPanel
+            aiInsight={aiInsight}
+            isGenerating={isGeneratingAi}
+            onRefresh={generateAiInsight}
+            totalBalance={totalBalance}
+            liquidBalance={liquidBalance}
+            creditCardBalance={creditCardBalance}
+            monthlyIncome={monthlyIncome}
+            monthlyExpense={monthlyExpense}
+            kitsuneScore={kitsuneScore}
+            formatCurrency={formatCurrency}
           />
 
           {/* Grid Assimétrico 2 Colunas Fiel ao Wealthfolio (1.7fr Contas & Extrato | 1fr Metas, Carteira & IA) */}
@@ -1240,20 +1251,6 @@ export default function DashboardPage() {
                     router.push("/kitsune");
                   }
                 }}
-              />
-
-              {/* Diagnóstico Executivo Kitsune AI + Camada Determinística MSLR */}
-              <AiDiagnosticPanel
-                aiInsight={aiInsight}
-                isGenerating={isGeneratingAi}
-                onRefresh={generateAiInsight}
-                totalBalance={totalBalance}
-                liquidBalance={liquidBalance}
-                creditCardBalance={creditCardBalance}
-                monthlyIncome={monthlyIncome}
-                monthlyExpense={monthlyExpense}
-                kitsuneScore={kitsuneScore}
-                formatCurrency={formatCurrency}
               />
             </div>
           </div>

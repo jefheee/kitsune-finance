@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { WfIcons } from "@/components/wealthfolio/WealthfolioIcons";
 import Spinner from "@/components/Spinner";
 
@@ -84,11 +85,11 @@ export function ManualTransactionModal({
     }
   };
 
-  return (
+  const modalContent = (
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-[99995] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
+      className="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200 overflow-y-auto"
     >
       <div className="w-full max-w-md rounded-3xl bg-[#121214] border border-[#27272A] p-6 shadow-2xl space-y-5 text-left">
         {/* Top Header */}
@@ -264,4 +265,8 @@ export function ManualTransactionModal({
       </div>
     </div>
   );
+
+  return typeof document !== "undefined"
+    ? createPortal(modalContent, document.body)
+    : null;
 }

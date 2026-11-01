@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import dynamic from 'next/dynamic';
 import Spinner from '@/components/Spinner';
 import CustomDropdown from '@/components/ui/CustomDropdown';
@@ -152,9 +153,11 @@ export default function PluggyConnectModal({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-[#121212] border border-gray-200 dark:border-white/10 w-full max-w-lg rounded-3xl p-6 md:p-8 shadow-2xl relative flex flex-col gap-6">
+  if (!isOpen) return null;
+
+  const modalContent = (
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto">
+      <div className="bg-white dark:bg-[#121212] border border-gray-200 dark:border-white/10 w-full max-w-lg rounded-3xl p-6 md:p-8 shadow-2xl relative flex flex-col gap-6 my-auto">
         {/* Cabeçalho */}
         <div className="flex items-center justify-between border-b border-gray-100 dark:border-white/5 pb-4">
           <div className="flex items-center gap-3">
@@ -350,7 +353,7 @@ export default function PluggyConnectModal({
         )}
 
         {connectToken && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80">
+          <div className="fixed inset-0 z-[100000] flex items-center justify-center bg-black/80">
             <PluggyConnect
               connectToken={connectToken}
               selectedConnectorId={200}
@@ -371,4 +374,8 @@ export default function PluggyConnectModal({
       </div>
     </div>
   );
+
+  return typeof document !== "undefined"
+    ? createPortal(modalContent, document.body)
+    : null;
 }

@@ -194,18 +194,23 @@ export async function POST(req: Request) {
 
         const topCategoriesStr = stmt.topCategories
             .slice(0, 5)
-            .map((c) => `${c.name}: R$ ${c.totalAmount.toFixed(2)}`)
+            .map((c) => `${c.name}: ${formatBRL(c.totalAmount)}`)
             .join(', ');
 
         const topMerchantsStr = stmt.topMerchants
             .slice(0, 4)
-            .map((m) => `${m.name} (R$ ${m.totalAmount.toFixed(2)})`)
+            .map((m) => `${m.name} (${formatBRL(m.totalAmount)})`)
             .join(', ');
 
-        const systemInstruction = `Você é Sentinela Kitsune, orquestradora de diagnóstico 360° da Kitsune Finance.
-Sua missão é responder EXCLUSIVAMENTE em formato JSON VÁLIDO (sem blocos markdown ou texto extra).
+        const systemInstruction = `Você é a inteligência de auditoria e diagnóstico patrimonial do Kitsune Finance.
+Sua missão é responder EXCLUSIVAMENTE em formato JSON VÁLIDO (sem blocos markdown soltos fora do JSON).
 
-REGRA INVIOLÁVEL DE BLINDAGEM MATEMÁTICA (MSLR):
+DIRETRIZES MANDATÓRIAS DE QUALIDADE & FORMATAÇÃO:
+1. PROIBIDO utilizar números decimais com ponto (como 106561.48 ou 0.00). Todo e qualquer valor monetário DEVE ser escrito no padrão brasileiro com vírgula e separador de milhar: R$ 106.561,48.
+2. PROIBIDO exibir jargões de engenharia ("MSLR", "Motor Determinístico", "Zero Alucinação", "X-Ray").
+3. Seja conciso, executivo e sofisticado. O "summary" deve ter exatamente 2 frases diretas e legíveis.
+4. Os "actionPoints" devem conter 2 ações práticas e imediatas para a saúde financeira do usuário.
+
 ${ANTI_HALLUCINATION_SYSTEM_DIRECTIVE}
 
 ${auditedEngineBlock}
@@ -213,7 +218,7 @@ ${auditedEngineBlock}
 Formato estrito esperado:
 {
   "headline": "Frase de efeito executiva (máx 10 palavras)",
-  "summary": "Resumo executivo de exatamente 2 frases citando os valores exatos do [ENGINE_MATEMATICO_AUDITADO].",
+  "summary": "Resumo executivo de exatamente 2 frases citando os valores exatos já formatados em R$.",
   "score": ${calculatedScore},
   "kitsuneScore": ${kitsuneScore100},
   "scoreLabel": "${scoreLabel}",
@@ -229,20 +234,20 @@ Formato estrito esperado:
       "desc": "Meta de caixa coerente com o perfil: ${incomeProfile.typeLabel}."
     }
   ],
-  "fullReport": "Parecer consultivo detalhado de 3 parágrafos sem asteriscos, citando Kitsune Score (${kitsuneScore100}/100), reserva (${xray.emergencyFundMonths} meses), exposição FGC (R$ ${xray.totalUncoveredFGC.toFixed(2)}) e custo de oportunidade (R$ ${xray.annualOpportunityCostBRL.toFixed(2)}/ano)."
+  "fullReport": "Parecer consultivo estruturado em 3 parágrafos claros, citando pontuação (${kitsuneScore100}/100), reserva (${xray.emergencyFundMonths} meses), cobertura FGC (${formatBRL(xray.totalUncoveredFGC)}) e custo de oportunidade (${formatBRL(xray.annualOpportunityCostBRL)}/ano)."
 }`;
 
         const prompt = `Sintetize o parecer executivo para o escopo (${bankContextLabel}):
 - Objetivo Patrimonial: "${userGoal}"
-- Kitsune Health Score: ${kitsuneScore100}/100 (${xray.statusLabel})
-- Perfil de Renda: ${incomeProfile.typeLabel} (Média: R$ ${incomeProfile.monthlyAverageIncome.toFixed(2)})
-- Patrimônio Líquido Exato: R$ ${totalBalance.toFixed(2)}
-- Liquidez em Conta: R$ ${liquidBalance.toFixed(2)} | Investimentos: R$ ${totalInvested.toFixed(2)} | Faturas: R$ ${creditDebt.toFixed(2)}
-- Receitas Operacionais do Mês: R$ ${monthlyIncome.toFixed(2)} | Despesas Operacionais Líquidas: R$ ${monthlyExpense.toFixed(2)} | Margem: R$ ${netMargin.toFixed(2)}
+- Pontuação de Saúde: ${kitsuneScore100}/100 (${xray.statusLabel})
+- Perfil de Renda: ${incomeProfile.typeLabel} (Média: ${formatBRL(incomeProfile.monthlyAverageIncome)})
+- Patrimônio Líquido Consolidado: ${formatBRL(totalBalance)}
+- Liquidez em Conta: ${formatBRL(liquidBalance)} | Investimentos: ${formatBRL(totalInvested)} | Faturas Abertas: ${formatBRL(creditDebt)}
+- Receitas do Mês: ${formatBRL(monthlyIncome)} | Despesas Líquidas: ${formatBRL(monthlyExpense)} | Margem Líquida: ${formatBRL(netMargin)}
 - Principais Categorias: ${topCategoriesStr || 'Sem gastos no mês'}
 - Maiores Estabelecimentos: ${topMerchantsStr || 'Nenhuma saída'}
 
-Retorne apenas o JSON válido sem recalcular nenhum número.`;
+Retorne apenas o JSON válido formatando todos os números no padrão R$ XX.XXX,XX.`;
 
         const aiResult = await generateWithGeminiPool({
             systemInstruction,
@@ -272,7 +277,7 @@ Retorne apenas o JSON válido sem recalcular nenhum número.`;
         } catch {
             jsonPayload = {
                 headline: 'Diagnóstico Consolidado do Seu Patrimônio',
-                summary: `Kitsune Score de ${kitsuneScore100}/100 (${xray.statusLabel}), com receitas operacionais de R$ ${monthlyIncome.toFixed(2)}, saídas líquidas de R$ ${monthlyExpense.toFixed(2)} e liquidez de R$ ${liquidBalance.toFixed(2)}.`,
+                summary: `Saúde patrimonial com pontuação de ${kitsuneScore100}/100 (${xray.statusLabel}), registrando receitas de ${formatBRL(monthlyIncome)}, despesas líquidas de ${formatBRL(monthlyExpense)} e liquidez disponível de ${formatBRL(liquidBalance)}.`,
                 score: calculatedScore,
                 kitsuneScore: kitsuneScore100,
                 scoreLabel,

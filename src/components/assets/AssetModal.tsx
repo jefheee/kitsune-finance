@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { VehicleFipeSelector, type VehicleFormData } from "./VehicleFipeSelector";
 import { LandValuationCard, type LandFormData } from "./LandValuationCard";
 import { FgtsCalculatorCard, type FgtsFormData } from "./FgtsCalculatorCard";
@@ -175,8 +176,8 @@ export function AssetModal({ isOpen, onClose, assetToEdit }: AssetModalProps) {
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-md overflow-y-auto">
+  const modalContent = (
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-md overflow-y-auto">
       <div className="relative w-full max-w-2xl bg-[#121214] border border-[#27272A] rounded-2xl shadow-2xl overflow-hidden my-auto">
         {/* Cabeçalho do Modal */}
         <div className="px-5 py-4 border-b border-[#27272A] flex items-center justify-between bg-[#18181B]/80">
@@ -389,4 +390,8 @@ export function AssetModal({ isOpen, onClose, assetToEdit }: AssetModalProps) {
       </div>
     </div>
   );
+
+  return typeof document !== "undefined"
+    ? createPortal(modalContent, document.body)
+    : null;
 }

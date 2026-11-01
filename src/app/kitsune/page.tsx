@@ -7,6 +7,34 @@ import StreamingMarkdown from "@/components/StreamingMarkdown";
 import Spinner from "@/components/Spinner";
 import { useFinanceData } from "@/context/FinanceDataContext";
 import { KITSUNE_AI_MODELS } from "@/utils/ai/gemini";
+import {
+  downloadWordDoc,
+  exportToPrintPdf,
+  openInGoogleDocs,
+  downloadMarkdownFile,
+} from "@/utils/export/document-exporter";
+
+function isDocumentContent(content: string): boolean {
+  if (!content || content.length < 180) return false;
+  const keywords = [
+    "documento",
+    "relatório",
+    "planejamento",
+    "diagnóstico",
+    "sumário",
+    "instruções para download",
+    "relatório patrimonial",
+    "auditoria",
+    "orquestrador geral",
+    "salvar como pdf",
+    "google docs",
+  ];
+  const lower = content.toLowerCase();
+  return (
+    keywords.some((kw) => lower.includes(kw)) ||
+    (content.includes("#") && content.includes("|") && content.length > 250)
+  );
+}
 
 const CONTEXT_ATTACHMENTS = [
   {
@@ -88,6 +116,14 @@ export default function KitsuneAIPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedScope, setSelectedScope] = useState<string>("personal");
   const [thinkingStep, setThinkingStep] = useState<number>(0);
+  const [exportFeedback, setExportFeedback] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (exportFeedback) {
+      const t = setTimeout(() => setExportFeedback(null), 3500);
+      return () => clearTimeout(t);
+    }
+  }, [exportFeedback]);
 
   // Etapas de raciocínio da Kitsune AI progressivas e lineares (sem repetição de loop falso)
   const THINKING_STEPS = [
@@ -1174,17 +1210,84 @@ export default function KitsuneAIPage() {
                 }`}
               >
                 {msg.role === "assistant" ? (
-                  <StreamingMarkdown
-                    content={msg.content}
-                    isNew={msg.id === streamingMessageId}
-                    onUpdate={() => scrollToBottomSmooth(false)}
-                    onComplete={() => {
-                      if (msg.id === streamingMessageId) {
-                        setStreamingMessageId(null);
-                        scrollToBottomSmooth(false);
-                      }
-                    }}
-                  />
+                  <>
+                    <StreamingMarkdown
+                      content={msg.content}
+                      isNew={msg.id === streamingMessageId}
+                      onUpdate={() => scrollToBottomSmooth(false)}
+                      onComplete={() => {
+                        if (msg.id === streamingMessageId) {
+                          setStreamingMessageId(null);
+                          scrollToBottomSmooth(false);
+                        }
+                      }}
+                    />
+
+                    {isDocumentContent(msg.content) && (
+                      <div className="mt-2 pt-2.5 border-t border-slate-100 dark:border-[#27272A] flex flex-wrap items-center gap-1.5">
+                        <span className="text-[11px] font-semibold text-zinc-400 flex items-center gap-1 mr-1">
+                          <span className="material-symbols-outlined text-[14px] text-[#FF8216]">description</span>
+                          Baixar Documento:
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            downloadWordDoc(
+                              "Documento-Kitsune",
+                              msg.content,
+                              userProfile?.display_name || user?.email || "Titular"
+                            );
+                            setExportFeedback("Documento Word (.doc) baixado!");
+                          }}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/25 text-[11px] font-semibold transition-colors cursor-pointer"
+                          title="Baixar como Word (.doc compatível com Google Docs e MS Word)"
+                        >
+                          <span className="material-symbols-outlined text-[13px]">description</span>
+                          Word (.doc)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            exportToPrintPdf(
+                              "Documento-Kitsune",
+                              msg.content,
+                              userProfile?.display_name || user?.email || "Titular"
+                            );
+                            setExportFeedback("Janela de impressão e PDF aberta!");
+                          }}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/25 text-[11px] font-semibold transition-colors cursor-pointer"
+                          title="Salvar como PDF oficial ou imprimir"
+                        >
+                          <span className="material-symbols-outlined text-[13px]">print</span>
+                          Salvar PDF
+                        </button>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            await openInGoogleDocs(msg.content);
+                            setExportFeedback("Formatação rica copiada! Basta colar (Ctrl+V) no Google Docs aberto.");
+                          }}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/25 text-[11px] font-semibold transition-colors cursor-pointer"
+                          title="Abrir Google Docs com formatação rica pré-copiada"
+                        >
+                          <span className="material-symbols-outlined text-[13px]">open_in_new</span>
+                          Google Docs
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            downloadMarkdownFile("Documento-Kitsune", msg.content);
+                            setExportFeedback("Arquivo Markdown (.md) baixado!");
+                          }}
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 text-[11px] font-medium transition-colors cursor-pointer"
+                          title="Baixar em Markdown (.md)"
+                        >
+                          <span className="material-symbols-outlined text-[13px]">code</span>
+                          Markdown
+                        </button>
+                      </div>
+                    )}
+                  </>
                 ) : (
                   <div className="flex flex-col gap-2">
                     {(msg as any).imagePreview && (
@@ -1886,6 +1989,23 @@ export default function KitsuneAIPage() {
           </div>
         )}
       </div>
+
+      {/* Toast Flutuante de Confirmação de Exportação */}
+      <AnimatePresence>
+        {exportFeedback && (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-2xl bg-[#18181B] border border-[#FF8216]/50 text-white text-xs font-semibold shadow-2xl flex items-center gap-2.5 backdrop-blur-md"
+          >
+            <span className="material-symbols-outlined text-[#FF8216] text-[18px]">
+              check_circle
+            </span>
+            <span>{exportFeedback}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

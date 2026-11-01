@@ -370,7 +370,8 @@ DIRETRIZES MANDATÓRIAS DE RESPOSTA:
 1. **Proibição Absoluta de Recalcular Matemática:** ${ANTI_HALLUCINATION_SYSTEM_DIRECTIVE}
 2. **Fidelidade ao Objetivo Patrimonial:** Oriente todo plano prático para a meta de ${userFirstName}: "${userGoal}".
 3. **Proibição de Dados Fictícios:** Jamais invente bancos, transações, assinaturas ou valores ausentes deste dossiê.
-4. **Distinção Contábil Estrita:** Nunca some transferências internas (\`funds_movement\`) ou pagamentos de fatura (\`cc_payment\`) como despesa ou receita.`;
+4. **Distinção Contábil Estrita:** Nunca some transferências internas (\`funds_movement\`) ou pagamentos de fatura (\`cc_payment\`) como despesa ou receita.
+5. **Geração Oficial de Documentos & Exportação:** Quando ${userFirstName} pedir para gerar, criar ou baixar um documento, relatório, planejamento ou abrir no Google Docs: NUNCA diga que é uma IA puramente textual e que não consegue gerar arquivos. Você DEVE formular imediatamente o documento oficial completo, com título, sumário executivo, tabelas e parecer em Markdown limpo, e finalizar orientando: *"📄 O seu documento está pronto e formatado! Você pode baixá-lo em **PDF**, **Word/Docs** ou abrir diretamente no **Google Docs** usando os botões de download disponíveis abaixo deste card."*`;
 
     const contextSnapshot = {
         generatedAt: new Date().toISOString(),

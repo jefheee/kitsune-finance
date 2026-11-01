@@ -352,9 +352,9 @@ export function NetWorthHeroChart({
           >
             {(
               [
-                { id: "BRL", label: "BRL" },
-                { id: "USD_EST", label: "USD" },
-                { id: "CDI_MONTH", label: "CDI/mês" },
+                { id: "BRL", label: "Real (R$)" },
+                { id: "USD_EST", label: "Dólar (USD)" },
+                { id: "CDI_MONTH", label: "CDI Mensal" },
               ] as const
             ).map((opt) => {
               const active = unit === opt.id;
@@ -602,7 +602,15 @@ export function NetWorthHeroChart({
           aria-label="Selecionar período do gráfico"
           className="inline-flex items-center gap-1 p-1 rounded-full bg-zinc-100/80 dark:bg-[#18181B] border border-zinc-200/70 dark:border-[#27272A]"
         >
-          {(["1M", "3M", "6M", "1Y", "ALL"] as const).map((code) => {
+          {(
+            [
+              { code: "1M", label: "1 Mês" },
+              { code: "3M", label: "3 Meses" },
+              { code: "6M", label: "6 Meses" },
+              { code: "1Y", label: "1 Ano" },
+              { code: "ALL", label: "Tudo" },
+            ] as const
+          ).map(({ code, label }) => {
             const active = period === code;
             return (
               <button
@@ -611,9 +619,9 @@ export function NetWorthHeroChart({
                 role="tab"
                 aria-selected={active}
                 onClick={() => setPeriod(code)}
-                className={`relative px-3.5 py-1 rounded-full text-xs font-semibold tracking-wide transition-colors cursor-pointer ${
+                className={`relative px-3 sm:px-3.5 py-1 rounded-full text-xs font-semibold tracking-wide transition-colors cursor-pointer ${
                   active
-                    ? "text-black dark:text-black"
+                    ? "text-black dark:text-black font-bold"
                     : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-[#F4F4F5]"
                 }`}
               >
@@ -624,7 +632,7 @@ export function NetWorthHeroChart({
                     className="absolute inset-0 rounded-full bg-[#FF8216]"
                   />
                 )}
-                <span className="relative z-10">{code}</span>
+                <span className="relative z-10">{label}</span>
               </button>
             );
           })}

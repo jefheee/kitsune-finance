@@ -4,6 +4,17 @@ Todas as alterações notáveis no projeto Kitsune Finance são registradas de f
 
 ---
 
+## [2026-11-01] - Geração de Documentos IA, Busca Global 360°, Centralização de Modais e Overhaul do Diagnóstico
+- **Arquivos Afetados:** `src/app/kitsune/page.tsx`, `src/utils/export/document-exporter.ts`, `src/utils/ai/dossier.ts`, `src/app/dashboard/page.tsx`, `src/components/wealthfolio/NetWorthHeroChart.tsx`, `src/components/finance/GlobalFinanceSearchModal.tsx`, `src/components/AiDiagnosticPanel.tsx`, `src/app/api/ai/generate-insight/route.ts`, `src/components/{PluggyConnectModal.tsx, assets/AssetModal.tsx, finance/ManualTransactionModal.tsx, finance/TransactionDetailModal.tsx}`, `src/app/globals.css`.
+- **Objetivo:**
+  - Exportação e download de relatórios em Word (.doc), PDF oficial, Google Docs (com formatação rica copiada) e Markdown (.md) sob mensagens da Kitsune AI e no cabeçalho.
+  - Centralização de modais no viewport via `createPortal(..., document.body)` e correção da contenção CSS (`pageFadeIn`), eliminando o bug de abertura no final da página.
+  - Busca Global 360° expandida para páginas internas, contas correntes, cartões, investimentos, ativos imobilizados e transações com navegação direta.
+  - Reestruturação do Diagnóstico Executivo da Kitsune AI: fim de números brutos não formatados, eliminação do esmagamento de cards e posicionamento proporcional em Bento Grid.
+  - Limpeza do cabeçalho mobile (remoção de botões desnecessários, destaque da sincronização e ampliação da saudação) e tradução integral de períodos e unidades.
+
+---
+
 ## [2026-11-01] - Refinamento Completo do Dashboard, Roteamento Automático IA, Apple Wallet Modal & Multi-Membros
 - **Arquivos Afetados:** `src/app/dashboard/page.tsx`, `src/components/wealthfolio/{TransactionsDataTable.tsx, GroupedAccountsList.tsx, NetWorthHeroChart.tsx}`, `src/components/finance/{BankBalanceCards.tsx, ManualTransactionModal.tsx, TransactionDetailModal.tsx, WalletCards.tsx}`, `src/components/chat/CompactKitsuneChat.tsx`, `src/utils/ai/gemini.ts`, `src/app/api/chat/route.ts`, `src/app/kitsune/page.tsx`, `src/app/shared/page.tsx`, `src/app/globals.css`, `src/components/providers/SmoothScrollProvider.tsx`.
 - **Objetivo:**

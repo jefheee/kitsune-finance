@@ -37,6 +37,19 @@ interface ParsedDiagnostic {
   fullReport: string;
 }
 
+function sanitizeUnformattedNumbers(text: string): string {
+  if (!text) return "";
+  return text
+    .replace(/R\$\s*(\d+)\.(\d{2})\b/g, (_m, intPart, decPart) => {
+      const formattedInt = Number(intPart).toLocaleString("pt-BR");
+      return `R$ ${formattedInt},${decPart}`;
+    })
+    .replace(/\b(\d{4,})\.(\d{2})\b/g, (_m, intPart, decPart) => {
+      const formattedInt = Number(intPart).toLocaleString("pt-BR");
+      return `${formattedInt},${decPart}`;
+    });
+}
+
 export function AiDiagnosticPanel({
   aiInsight,
   isGenerating,
@@ -71,8 +84,8 @@ export function AiDiagnosticPanel({
       status: isLiquidOk ? "positive" : "warning",
       desc:
         creditCardBalance > 0
-          ? `Patrimônio líquido disponível cobre ${liquidRatio} das faturas abertas.`
-          : "Patrimônio líquido equivalente ao saldo disponível, sem faturas pendentes.",
+          ? `Disponível em conta cobre ${liquidRatio} do total de faturas abertas.`
+          : "Patrimônio líquido disponível sem faturas abertas ou passivos pendentes.",
     },
     {
       title: "Gastos Operacionais",
@@ -93,28 +106,32 @@ export function AiDiagnosticPanel({
     },
   ];
 
-  // Parser com reconciliação matemática (qualitativo por IA, números estritos por código)
+  // Parser com reconciliação matemática e higienização estrita
   const parsedData: ParsedDiagnostic = (() => {
-    let headline = margin >= 0
-      ? "Superávit operacional sólido com liquidez integral mantida."
-      : "Atenção: Margem operacional pressionada pelas saídas do ciclo.";
-    let summary = margin >= 0
-      ? `O mês registra receitas de ${formatCurrency(monthlyIncome)} e despesas operacionais de ${formatCurrency(monthlyExpense)}, gerando margem líquida de ${formatCurrency(margin)}. A liquidez total é de ${formatCurrency(liquidBalance)}.`
-      : `O mês registra despesas de ${formatCurrency(monthlyExpense)} frente a receitas de ${formatCurrency(monthlyIncome)}. O saldo disponível é de ${formatCurrency(liquidBalance)}.`;
+    let headline =
+      margin >= 0
+        ? "Superávit operacional sólido com liquidez integral mantida."
+        : "Atenção: Margem operacional pressionada pelas saídas do ciclo.";
+    let summary =
+      margin >= 0
+        ? `O mês registra receitas de ${formatCurrency(monthlyIncome)} e despesas operacionais de ${formatCurrency(monthlyExpense)}, gerando margem líquida de ${formatCurrency(margin)}. A liquidez em conta é de ${formatCurrency(liquidBalance)}.`
+        : `O mês registra despesas de ${formatCurrency(monthlyExpense)} frente a receitas de ${formatCurrency(monthlyIncome)}. A liquidez disponível é de ${formatCurrency(liquidBalance)}.`;
     let actionPoints: ParsedDiagnostic["actionPoints"] = [
       {
         icon: "shield",
         title: "Blindagem de Caixa",
-        desc: creditCardBalance > 0
-          ? `Monitore o fechamento da fatura de ${formatCurrency(creditCardBalance)} para garantir alocação eficiente.`
-          : "Faturas zeradas. Excelente disciplina operacional mantida.",
+        desc:
+          creditCardBalance > 0
+            ? `Monitore o fechamento da fatura de ${formatCurrency(creditCardBalance)} para manter a alocação protegida.`
+            : "Faturas zeradas. Excelente disciplina operacional e previsibilidade mantida.",
       },
       {
         icon: "trending_up",
         title: "Alocação Estratégica",
-        desc: margin > 0
-          ? `Direcionar a margem operacional de ${formatCurrency(margin)} para instrumentos de renda fixa e reserva.`
-          : "Ajuste os desembolsos não essenciais para restabelecer o superávit operacional.",
+        desc:
+          margin > 0
+            ? `Direcionar a margem operacional de ${formatCurrency(margin)} para instrumentos de renda fixa e reserva.`
+            : "Ajuste os desembolsos não essenciais para restabelecer o superávit operacional.",
       },
     ];
     let fullReport = "";
@@ -123,33 +140,35 @@ export function AiDiagnosticPanel({
       try {
         const json = JSON.parse(aiInsight.text);
         if (json.headline && typeof json.headline === "string") {
-          headline = json.headline;
+          headline = sanitizeUnformattedNumbers(json.headline);
         }
 
-        // Se o resumo da IA for coerente e não contiver números alucinados de transferências próprias, aproveita
         if (
           json.summary &&
           typeof json.summary === "string" &&
-          !json.summary.includes("Transferência Própria") &&
-          !json.summary.includes("11064")
+          !json.summary.includes("Transferência Própria")
         ) {
-          summary = json.summary;
+          summary = sanitizeUnformattedNumbers(json.summary);
         }
 
         if (Array.isArray(json.actionPoints) && json.actionPoints.length > 0) {
-          actionPoints = json.actionPoints.filter(
-            (p: any) => p && typeof p.title === "string" && !p.title.includes("Transferência Própria")
-          );
+          actionPoints = json.actionPoints
+            .filter((p: any) => p && typeof p.title === "string")
+            .map((p: any) => ({
+              icon: p.icon || "check_circle",
+              title: sanitizeUnformattedNumbers(p.title),
+              desc: sanitizeUnformattedNumbers(p.desc),
+            }));
         }
 
         if (json.fullReport && typeof json.fullReport === "string") {
-          fullReport = json.fullReport;
+          fullReport = sanitizeUnformattedNumbers(json.fullReport);
         }
       } catch {
-        // Fallback para texto plano
-        const clean = aiInsight.text.replace(/\*\*/g, "").replace(/#{1,6}\s?/g, "");
-        const parts = clean.split("\n\n").filter(Boolean);
-        if (parts.length > 0) fullReport = clean;
+        const clean = sanitizeUnformattedNumbers(
+          aiInsight.text.replace(/\*\*/g, "").replace(/#{1,6}\s?/g, "")
+        );
+        fullReport = clean;
       }
     }
 
@@ -167,37 +186,39 @@ export function AiDiagnosticPanel({
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "positive":
-        return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20";
+        return "bg-emerald-500/10 text-emerald-400 border-emerald-500/25";
       case "warning":
-        return "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20";
+        return "bg-amber-500/10 text-amber-400 border-amber-500/25";
       case "danger":
-        return "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20";
+        return "bg-rose-500/10 text-rose-400 border-rose-500/25";
       default:
-        return "bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-[#94A3B8] border-slate-200 dark:border-white/10";
+        return "bg-zinc-800 text-zinc-300 border-zinc-700";
     }
   };
 
   return (
-    <div className="bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] rounded-2xl p-5 md:p-6 shadow-xs flex flex-col gap-5 transition-all duration-700 ease-out animate-in fade-in">
+    <div className="w-full bg-[#121214] border border-[#27272A] rounded-2xl p-5 md:p-6 shadow-sm flex flex-col gap-5 transition-all duration-300">
       {/* Top Header do Painel */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-[#27272A] pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 border-b border-[#27272A] pb-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#FF8216]/10 border border-[#FF8216]/20 flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-[#FF8216]/10 border border-[#FF8216]/25 flex items-center justify-center shrink-0">
             <span className="material-symbols-outlined text-xl text-[#FF8216]">
               psychology
             </span>
           </div>
           <div className="flex flex-col">
             <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-sm md:text-base font-bold text-slate-900 dark:text-[#F8FAFC]">
+              <h2 className="text-sm md:text-base font-bold text-white">
                 Diagnóstico & Parecer da Kitsune AI
               </h2>
-              <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#18181B] border border-[#27272A] ${kitsuneScore.color}`}>
+              <span
+                className={`text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#18181B] border border-[#27272A] ${kitsuneScore.color}`}
+              >
                 Score {parsedData.score}/100 • {parsedData.scoreLabel}
               </span>
             </div>
-            <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-[#94A3B8]">
-              <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
+            <div className="flex items-center gap-2 text-[11px] text-zinc-400">
+              <span className="flex items-center gap-1 text-emerald-400 font-medium">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 Auditoria via Open Finance
               </span>
@@ -218,7 +239,7 @@ export function AiDiagnosticPanel({
         </div>
 
         {/* Botões Superiores */}
-        <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+        <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
           <Link
             href={`/kitsune?prompt=${encodeURIComponent(
               `Kitsune AI, gostaria de aprofundar meu diagnóstico financeiro do período. Minhas receitas são de ${formatCurrency(
@@ -229,7 +250,7 @@ export function AiDiagnosticPanel({
                 creditCardBalance
               )}. Quais são as recomendações mais estratégicas para mim hoje?`
             )}`}
-            className="h-8 px-3 rounded-lg bg-[#FF8216] hover:bg-[#FFA047] active:bg-[#E66E08] text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+            className="h-8 px-3 rounded-lg bg-[#FF8216] hover:bg-[#FFA047] active:bg-[#E66E08] text-black text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
           >
             <span className="material-symbols-outlined text-[15px]">chat</span>
             <span>Conversar</span>
@@ -238,8 +259,9 @@ export function AiDiagnosticPanel({
           <button
             onClick={onRefresh}
             disabled={isGenerating}
+            type="button"
             title="Recalcular diagnóstico agora"
-            className="h-8 px-3 rounded-lg bg-slate-100 dark:bg-[#18181B] hover:bg-slate-200 dark:hover:bg-[#27272A] text-slate-700 dark:text-[#F8FAFC] border border-slate-200 dark:border-[#27272A] text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+            className="h-8 px-3 rounded-lg bg-[#18181B] hover:bg-[#27272A] text-zinc-200 border border-[#27272A] text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
           >
             <span
               className={`material-symbols-outlined text-[15px] ${
@@ -253,67 +275,67 @@ export function AiDiagnosticPanel({
         </div>
       </div>
 
-      {/* Resumo Executivo com transição suave */}
-      <div className="flex flex-col gap-2 transition-opacity duration-500 ease-out">
-        <h3 className="text-sm font-extrabold text-slate-900 dark:text-[#F8FAFC]">
+      {/* Resumo Executivo */}
+      <div className="flex flex-col gap-1.5">
+        <h3 className="text-sm md:text-base font-bold text-white">
           {parsedData.headline}
         </h3>
-        <p className="text-xs md:text-sm text-slate-600 dark:text-[#94A3B8] leading-relaxed">
+        <p className="text-xs md:text-sm text-zinc-300 leading-relaxed">
           {parsedData.summary}
         </p>
       </div>
 
-      {/* 3 Metric Cards Determinísticos */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+      {/* 3 Metric Cards Determinísticos (com espaçamento perfeito e sem quebras de texto) */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {parsedData.cards.map((card, idx) => (
           <div
             key={idx}
-            className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] flex flex-col justify-between gap-1.5 transition-all duration-300 min-w-0"
+            className="p-4 rounded-xl bg-[#18181B] border border-[#27272A] flex flex-col justify-between gap-2.5 transition-all duration-200 min-w-0"
           >
-            <div className="flex items-center justify-between gap-1.5 text-[11px]">
-              <span className="text-slate-500 dark:text-[#94A3B8] font-medium truncate">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-semibold text-zinc-300">
                 {card.title}
               </span>
               <span
-                className={`px-1.5 py-0.5 rounded text-[10px] font-bold border shrink-0 ${getStatusBadge(
+                className={`px-2 py-0.5 rounded-full text-[10px] font-bold border shrink-0 ${getStatusBadge(
                   card.status
                 )}`}
               >
                 {card.badge}
               </span>
             </div>
-            <div className="text-base font-bold text-slate-900 dark:text-[#F8FAFC] tabular-nums truncate">
+            <div className="text-lg md:text-xl font-bold font-mono text-white tabular-nums">
               {card.value}
             </div>
-            <p className="text-[10px] text-slate-500 dark:text-[#94A3B8] leading-tight line-clamp-2">
+            <p className="text-[11px] text-zinc-400 leading-snug">
               {card.desc}
             </p>
           </div>
         ))}
       </div>
 
-      {/* Ações Imediatas Recomendadas com animação fluida */}
+      {/* Ações Imediatas Recomendadas */}
       {parsedData.actionPoints.length > 0 && (
-        <div className="flex flex-col gap-2 pt-2 border-t border-slate-100 dark:border-[#27272A]/70">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+        <div className="flex flex-col gap-2.5 pt-2 border-t border-[#27272A]">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
             Ações Recomendadas pela Kitsune
           </span>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {parsedData.actionPoints.map((act, idx) => (
               <div
                 key={idx}
-                className="p-3 rounded-xl bg-slate-50/80 dark:bg-[#18181B] border border-slate-200/80 dark:border-[#27272A] flex items-start gap-2.5 transition-all duration-500 hover:border-[#FF8216]/40"
+                className="p-3.5 rounded-xl bg-[#18181B] border border-[#27272A] flex items-start gap-3 transition-colors hover:border-[#FF8216]/40"
               >
-                <div className="w-6 h-6 rounded-lg bg-[#FF8216]/10 text-[#FF8216] flex items-center justify-center shrink-0 mt-0.5">
-                  <span className="material-symbols-outlined text-[14px]">
+                <div className="w-7 h-7 rounded-lg bg-[#FF8216]/10 text-[#FF8216] flex items-center justify-center shrink-0 mt-0.5">
+                  <span className="material-symbols-outlined text-[15px]">
                     {act.icon}
                   </span>
                 </div>
                 <div className="flex flex-col gap-0.5 min-w-0">
-                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                  <span className="text-xs font-bold text-white">
                     {act.title}
                   </span>
-                  <span className="text-[11px] text-slate-500 dark:text-[#94A3B8] leading-tight">
+                  <span className="text-[11px] text-zinc-400 leading-relaxed">
                     {act.desc}
                   </span>
                 </div>
@@ -327,6 +349,7 @@ export function AiDiagnosticPanel({
       <div className="pt-1">
         <button
           onClick={() => setShowFullReport(!showFullReport)}
+          type="button"
           className="text-xs font-bold text-[#FF8216] hover:underline flex items-center gap-1 cursor-pointer"
         >
           <span>{showFullReport ? "Ocultar Parecer" : "Ver Análise Detalhada"}</span>
@@ -336,7 +359,7 @@ export function AiDiagnosticPanel({
         </button>
 
         {showFullReport && (
-          <div className="mt-3 p-4 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] text-xs text-slate-700 dark:text-slate-300 leading-relaxed space-y-2 whitespace-pre-line animate-in fade-in duration-500">
+          <div className="mt-3 p-4 rounded-xl bg-[#18181B] border border-[#27272A] text-xs text-zinc-300 leading-relaxed space-y-2 whitespace-pre-line animate-in fade-in duration-300">
             {parsedData.fullReport}
           </div>
         )}

@@ -153,13 +153,21 @@
   - **Governança Multi-Membros no Espaço Compartilhado (`/shared`):** Pills interativos de seleção de membros (`Consolidado`, `Você`, `Membros 1..10+`), remoção de termos restritos a casais em prol de cooperação universal, cards individuais de custódia e botões diretos de `+ Convidar Membro` e `Desconectar / Sair do Espaço`.
   - **Eliminação de Fricções:** Remoção de tags de marketing ("60 FPS"), desbloqueio de rolagem nativa em caixas internas (restrição do Lenis à Landing Page) e prevenção de recargas acidentais (`overscroll-behavior-y: none`).
 
+- [x] Geração de Documentos IA, Busca Global 360°, Centralização de Modais & Bento Grid Executivo (Release v2.7):
+  - **Exportação Multiformato Kitsune AI (`document-exporter.ts` e `/kitsune`):** Barra de ações acoplada a relatórios da IA com download instantâneo em Word (.doc), Salvar PDF, Abrir no Google Docs (com rich-HTML pré-copiado para Ctrl+V imediato) e Markdown (.md), sem recusa da IA.
+  - **Resolução de Contenção e Centralização de Modais:** Aplicação de `createPortal(..., document.body)` em `PluggyConnectModal`, `AssetModal`, `ManualTransactionModal`, `TransactionDetailModal` e `GlobalFinanceSearchModal`, juntamente com a higienização de `transform: translateY` em `pageFadeIn` (`globals.css`), garantindo que todos os modais abram perfeitamente centralizados no viewport visível sem exigir scroll do usuário.
+  - **Busca Financeira Global 360° (`GlobalFinanceSearchModal.tsx`):** Indexação unificada de páginas do sistema, contas correntes e cartões, carteira de investimentos, ativos imobilizados (FIPE/FGTS/Imóveis) e transações com navegação direta via `useRouter`.
+  - **Overhaul do Diagnóstico da IA & Bento Grid (`AiDiagnosticPanel.tsx` e `/dashboard`):** Formatação estrita com `Intl.NumberFormat('pt-BR')` em 100% dos valores injetados e textos gerados (eliminação de floats brutos como `106561.48`), posicionamento em Bento Grid de largura total para respiração visual e eliminação do truncamento de métricas (`Cobert...`, `Gastos...`).
+  - **Limpeza do Cabeçalho Mobile e Localização:** Aumento da saudação `Olá, {userFirstName}`, remoção de botões redundantes (lupa e CSV) da barra mobile, destaque do botão `Sincronizar` e tradução completa dos períodos (`1 Mês`, `3 Meses`, `6 Meses`, `1 Ano`, `Tudo`) e unidades no Hero Chart.
+
 ---
 
 ## 4. Context Handoff (Memória de Continuidade entre Chats)
-- **Última Etapa Concluída:** Release v2.6 — **Dashboard Executivo, Roteamento Automático IA, Modal Apple Wallet & Multi-Membros**:
-  1. **Dashboard Home Integrado:** `BankBalanceCards` exibindo saldos ao vivo agrupados por banco com gradientes temáticos, modal de transação manual em espécie (`POST /api/transactions/manual`), chat compacto da Kitsune AI e gaveta de detalhes da transação (Apple Wallet Mobbin) com histórico de compras daquele estabelecimento.
-  2. **Roteamento Automático da IA:** Opção `✨ Automático` restaurada como padrão no dropdown e contexto, cascata inteligente para Pro 3.1 em consultas complexas, Flash 3.8 para multimodal/análises e Lite 3.5 para perguntas rápidas, com observabilidade de tokens e cotas gratuitas do Google AI Studio.
-  3. **Espaço Compartilhado Universal:** Suporte nativo a grupos de 2 a 10+ membros com pills de navegação isolada por integrante, visualização consolidada e isolamento estrito da Visão Geral (botão "Conjunto" expurgado do `/dashboard`).
-  4. **Higienização de Rolagem e Tags:** Fim do sequestro de touch/wheel pelo Lenis em caixas internas, remoção do botão "60 FPS" do extrato e bloqueio de pull-to-refresh acidental no celular.
+- **Última Etapa Concluída:** Release v2.7 — **Geração de Documentos IA, Centralização de Modais, Busca 360° e Overhaul do Diagnóstico**:
+  1. **Download de Relatórios pela IA:** Suporte oficial e botões visíveis para Word, PDF, Google Docs e Markdown no chat da Kitsune AI.
+  2. **Modais Centralizados:** Eliminação do bug de posicionamento relativo através de React Portals (`createPortal`) e correção de animação CSS de página.
+  3. **Busca 360° Completa:** O campo de busca agora pesquisa páginas, contas, cartões, investimentos, veículos/terrenos e lançamentos com redirecionamento instantâneo.
+  4. **Diagnóstico Executivo Reestruturado:** Valores corrigidos no padrão brasileiro (`R$ XX.XXX,XX`), proporções fluidas sem cortes de palavras e encaixe harmonioso em Bento Grid.
+  5. **UI Mobile Sólida:** Saudação maior, ações reorganizadas e tradução de todos os termos em inglês.
 - **Próxima Etapa Imediata:** Sincronização dos novos dados patrimoniais e ativos físicos com as ferramentas dos agentes de IA (`src/utils/ai/deterministic-tools.ts`).
-- **Pendências ou Bloqueios:** Nenhum. `tsc --noEmit` validado com 0 erros.
+- **Pendências ou Bloqueios:** Nenhum. `npx tsc --noEmit` validado com 0 erros.
