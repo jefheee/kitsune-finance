@@ -100,13 +100,21 @@ export function InstallmentsTracker({ transactions, formatCurrency }: Installmen
                 const remainingVal = Math.max(0, Number((totalVal - paidVal).toFixed(2)));
                 const remainingCount = Math.max(0, total - instNum);
 
+                // Normalização robusta: remove sufixos "01/03", "Fernan01/03", "parcela 1 de 3" para agrupar na mesma compra raiz
+                const cleanTitle = rawLabel
+                    .replace(/\s*\d{1,2}\s*\/\s*\d{1,2}\b/gi, "")
+                    .replace(/\d{1,2}\s*\/\s*\d{1,2}\b/gi, "")
+                    .replace(/\s*parcela\s*\d{1,2}\s*(de|\/)\s*\d{1,2}\b/gi, "")
+                    .replace(/\s*-\s*parcela\s*\d{1,2}.*$/gi, "")
+                    .trim();
+
                 // Agrupa a mesma compra parcelada mantendo a parcela mais recente (maior currentInstallment)
-                const dedupKey = `${bankSlug}_${rawLabel.toLowerCase()}_${total}_${amt.toFixed(2)}`;
+                const dedupKey = `${bankSlug}_${(cleanTitle || rawLabel).toLowerCase()}_${total}_${amt.toFixed(2)}`;
                 const existing = multiMap.get(dedupKey);
                 if (!existing || instNum > existing.currentInstallment) {
                     multiMap.set(dedupKey, {
                         id: t.id,
-                        description: rawLabel,
+                        description: cleanTitle || rawLabel,
                         category,
                         date: dateStr,
                         currentInstallment: instNum,

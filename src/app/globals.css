@@ -89,7 +89,7 @@ html.pwa-privacy-curtain-active #pwa-privacy-shield-overlay {
 
 #kitsune-app-root {
   transition: filter 0.22s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: filter, opacity;
+  /* will-change removido para não quebrar position: fixed de descendentes (Bottom Navigation) no mobile */
 }
 
 body.pwa-privacy-curtain-active #kitsune-app-root,

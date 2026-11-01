@@ -24,8 +24,8 @@ const FAQ_ITEMS = [
     a: "Absolutamente não. Nossos agentes autônomos e a plataforma possuem apenas permissão de leitura (Read-Only). Nem os modelos de IA nem nossa equipe têm capacidade técnica ou autorização para realizar transferências, pagamentos Pix ou investimentos pelo seu banco.",
   },
   {
-    q: "O que é a arquitetura de IA (MSLR) e por que ela não erra contas?",
-    a: "O Multi-Step Logical Reasoning (MSLR) desacopla a linguagem natural da matemática. Os modelos de linguagem atuam identificando intenções e estruturando consultas contextuais. Todas as operações aritméticas, somas de faturas e saldos são processadas deterministicamente por código relacional. O resultado é zero alucinação numérica.",
+    q: "Como a inteligência da Kitsune garante precisão nos números?",
+    a: "A plataforma separa a linguagem natural do processamento financeiro. Os modelos inteligentes atuam na identificação de dúvidas e organização do contexto, enquanto todas as operações de saldo, faturas, juros e investimentos são calculadas por rotinas contábeis estruturadas. Os valores apresentados são sempre 100% auditados e confiáveis.",
   },
   {
     q: "Quais instituições financeiras e bancos são suportados?",
@@ -52,7 +52,7 @@ const AGENTS = [
     tagline: "Corrige suas categorias sem alucinar e aprende com o seu estilo de vida financeiro.",
     icon: "search",
     accent: "#10B981",
-    badge: "Zero Alucinação",
+    badge: "Classificação Inteligente",
   },
   {
     name: "Ren",
@@ -360,10 +360,10 @@ export default function LandingPage() {
 
           <div className="flex flex-col items-center">
             <span className="text-2xl sm:text-3xl font-extrabold text-emerald-400 tracking-tight">
-              MSLR Engine
+              Cálculo Auditado
             </span>
             <span className="text-xs text-zinc-400 mt-1">
-              Cálculos determinísticos sem alucinação
+              Precisão contábil e rastreabilidade total
             </span>
           </div>
         </div>
@@ -558,10 +558,10 @@ export default function LandingPage() {
                 </div>
                 <div className="min-w-0 text-left">
                   <span className="text-xs font-bold text-white block">
-                    Motor MSLR • Inferência ~140ms
+                    Processamento Ágil • Inferência ~140ms
                   </span>
                   <p className="text-[11px] text-zinc-400 leading-tight mt-0.5">
-                    Categorização com validação determinística sem alucinação matemática.
+                    Categorização e conciliação estruturada com validação de regras financeiras.
                   </p>
                 </div>
               </div>

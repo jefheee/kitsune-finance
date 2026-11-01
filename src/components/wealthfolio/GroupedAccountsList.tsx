@@ -4,14 +4,18 @@ import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { BankLogo } from "@/components/BankLogo";
 import { WfIcons } from "./WealthfolioIcons";
+import type { CustomAsset } from "@/types/finance";
 
 interface GroupedAccountsListProps {
   accounts: any[];
   investments: any[];
   loans: any[];
+  customAssets?: CustomAsset[];
   formatCurrency: (val: number) => string;
   hideValues: boolean;
   onConnectBank?: () => void;
+  onAddAsset?: () => void;
+  onEditAsset?: (asset: CustomAsset) => void;
   monthlyCDIFactor?: number;
 }
 
@@ -19,17 +23,25 @@ export function GroupedAccountsList({
   accounts,
   investments,
   loans,
+  customAssets = [],
   formatCurrency,
   hideValues,
   onConnectBank,
+  onAddAsset,
+  onEditAsset,
   monthlyCDIFactor = 0.0085,
 }: GroupedAccountsListProps) {
   const [viewMode, setViewMode] = useState<"grouped" | "flat">("grouped");
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
     banking: true,
     investments: true,
+    vehicles: true,
+    real_estate: true,
+    fgts: true,
+    other: true,
     liabilities: true,
   });
+
 
   const toggleGroup = (key: string) => {
     setExpandedGroups((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -40,8 +52,16 @@ export function GroupedAccountsList({
     activeInvestments,
     creditAccounts,
     activeLoans,
+    vehicleAssets,
+    realEstateAssets,
+    fgtsAssets,
+    otherAssets,
     bankingTotal,
     investmentsTotal,
+    vehiclesTotal,
+    realEstateTotal,
+    fgtsTotal,
+    othersTotal,
     liabilitiesTotal,
     grossAssetsTotal,
     netWorthTotal,
@@ -75,8 +95,22 @@ export function GroupedAccountsList({
     const actLoans = loans.filter((l) => (Number(l.outstanding_balance) || 0) > 0);
     const lTotal = actLoans.reduce((s, l) => s + (Number(l.outstanding_balance) || 0), 0);
 
+    // Ativos Físicos e Imobilizados (Kitsune Engine)
+    const vehAssets = (customAssets || []).filter((a) => a.category === "vehicle");
+    const reAssets = (customAssets || []).filter(
+      (a) => a.category === "land" || a.category === "real_estate"
+    );
+    const fgAssets = (customAssets || []).filter((a) => a.category === "fgts");
+    const otAssets = (customAssets || []).filter((a) => a.category === "other");
+
+    const vTotal = vehAssets.reduce((s, a) => s + (Number(a.current_value) || 0), 0);
+    const reTotal = reAssets.reduce((s, a) => s + (Number(a.current_value) || 0), 0);
+    const fgTotal = fgAssets.reduce((s, a) => s + (Number(a.current_value) || 0), 0);
+    const otTotal = otAssets.reduce((s, a) => s + (Number(a.current_value) || 0), 0);
+    const physicalTotal = vTotal + reTotal + fgTotal + otTotal;
+
     const liabTotal = cTotal + lTotal;
-    const grossTotal = Math.max(0, bTotal) + iTotal;
+    const grossTotal = Math.max(0, bTotal) + iTotal + physicalTotal;
 
     return {
       bankAccounts: bankAccs.sort((a, b) => (Number(b.balance) || 0) - (Number(a.balance) || 0)),
@@ -85,13 +119,21 @@ export function GroupedAccountsList({
         (a, b) => Math.abs(Number(b.balance) || 0) - Math.abs(Number(a.balance) || 0)
       ),
       activeLoans: actLoans,
+      vehicleAssets: vehAssets,
+      realEstateAssets: reAssets,
+      fgtsAssets: fgAssets,
+      otherAssets: otAssets,
       bankingTotal: bTotal,
       investmentsTotal: iTotal,
+      vehiclesTotal: vTotal,
+      realEstateTotal: reTotal,
+      fgtsTotal: fgTotal,
+      othersTotal: otTotal,
       liabilitiesTotal: liabTotal,
       grossAssetsTotal: grossTotal,
-      netWorthTotal: bTotal + iTotal - liabTotal,
+      netWorthTotal: bTotal + iTotal + physicalTotal - liabTotal,
     };
-  }, [accounts, investments, loans]);
+  }, [accounts, investments, loans, customAssets]);
 
   // Agrupa investimentos por corretora/banco para densidade estilo Wealthfolio
   const investmentsByInstitution = useMemo(() => {
@@ -138,24 +180,35 @@ export function GroupedAccountsList({
     grossAssetsTotal > 0 ? Math.max(0, (Math.max(0, bankingTotal) / grossAssetsTotal) * 100) : 0;
   const invSharePct =
     grossAssetsTotal > 0 ? Math.max(0, (investmentsTotal / grossAssetsTotal) * 100) : 0;
+  const vehiclesSharePct =
+    grossAssetsTotal > 0 ? Math.max(0, (vehiclesTotal / grossAssetsTotal) * 100) : 0;
+  const realEstateSharePct =
+    grossAssetsTotal > 0 ? Math.max(0, (realEstateTotal / grossAssetsTotal) * 100) : 0;
+  const fgtsSharePct =
+    grossAssetsTotal > 0 ? Math.max(0, (fgtsTotal / grossAssetsTotal) * 100) : 0;
 
-  const isEmpty =
-    bankAccounts.length === 0 &&
-    activeInvestments.length === 0 &&
-    creditAccounts.length === 0 &&
-    activeLoans.length === 0;
+  const totalPositionsCount =
+    bankAccounts.length +
+    activeInvestments.length +
+    creditAccounts.length +
+    activeLoans.length +
+    vehicleAssets.length +
+    realEstateAssets.length +
+    fgtsAssets.length +
+    otherAssets.length;
+
+  const isEmpty = totalPositionsCount === 0;
 
   return (
     <section className="rounded-2xl bg-white dark:bg-[#121214] border border-zinc-200 dark:border-[#27272A] overflow-hidden">
-      {/* Header + View Mode Toggle */}
+      {/* Header + View Mode Toggle + Action Buttons */}
       <div className="px-5 py-4 border-b border-zinc-100 dark:border-[#27272A] flex items-center justify-between gap-3">
         <div className="min-w-0">
           <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
-            Contas, Custódia & Passivos
+            Contas, Custódia & Patrimônio Total
           </h3>
           <p className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-0.5 truncate">
-            {bankAccounts.length + activeInvestments.length + creditAccounts.length + activeLoans.length}{" "}
-            posições sincronizadas no balanço
+            {totalPositionsCount} posições consolidadas no balanço
           </p>
         </div>
 
@@ -186,6 +239,18 @@ export function GroupedAccountsList({
               <WfIcons.List size={14} />
             </button>
           </div>
+
+          {onAddAsset && (
+            <button
+              type="button"
+              onClick={onAddAsset}
+              title="Adicionar Veículo FIPE, Terreno/Imóvel ou FGTS"
+              className="h-7 px-2.5 rounded-lg bg-[#18181B] hover:bg-[#27272A] border border-[#FF8216]/40 text-[#FF8216] text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
+            >
+              <WfIcons.Plus size={13} />
+              <span>Ativo Físico</span>
+            </button>
+          )}
 
           {onConnectBank && (
             <button
@@ -222,17 +287,65 @@ export function GroupedAccountsList({
                 title={`Contas Bancárias: ${bankingSharePct.toFixed(1)}%`}
               />
             )}
+            {vehiclesSharePct > 0 && (
+              <div
+                style={{
+                  width: `${vehiclesSharePct}%`,
+                  marginLeft: "2px",
+                }}
+                className="h-full bg-blue-500 transition-all duration-500"
+                title={`Veículos: ${vehiclesSharePct.toFixed(1)}%`}
+              />
+            )}
+            {realEstateSharePct > 0 && (
+              <div
+                style={{
+                  width: `${realEstateSharePct}%`,
+                  marginLeft: "2px",
+                }}
+                className="h-full bg-amber-500 transition-all duration-500"
+                title={`Imóveis/Terrenos: ${realEstateSharePct.toFixed(1)}%`}
+              />
+            )}
+            {fgtsSharePct > 0 && (
+              <div
+                style={{
+                  width: `${fgtsSharePct}%`,
+                  marginLeft: "2px",
+                }}
+                className="h-full bg-purple-500 transition-all duration-500"
+                title={`FGTS: ${fgtsSharePct.toFixed(1)}%`}
+              />
+            )}
           </div>
           <div className="flex flex-wrap items-center justify-between gap-2 mt-2 text-[11px] text-zinc-500 dark:text-zinc-400">
-            <div className="flex items-center gap-3">
-              <span className="inline-flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-[#FF8216]" />
-                <span>Investimentos ({hideValues ? "••%" : `${invSharePct.toFixed(1)}%`})</span>
-              </span>
+            <div className="flex flex-wrap items-center gap-3">
               <span className="inline-flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-500" />
                 <span>Contas ({hideValues ? "••%" : `${bankingSharePct.toFixed(1)}%`})</span>
               </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-[#FF8216]" />
+                <span>Investimentos ({hideValues ? "••%" : `${invSharePct.toFixed(1)}%`})</span>
+              </span>
+              {vehiclesSharePct > 0 && (
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-blue-500" />
+                  <span>Veículos ({hideValues ? "••%" : `${vehiclesSharePct.toFixed(1)}%`})</span>
+                </span>
+              )}
+              {realEstateSharePct > 0 && (
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-amber-500" />
+                  <span>Imóveis ({hideValues ? "••%" : `${realEstateSharePct.toFixed(1)}%`})</span>
+                </span>
+              )}
+              {fgtsSharePct > 0 && (
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-purple-500" />
+                  <span>FGTS ({hideValues ? "••%" : `${fgtsSharePct.toFixed(1)}%`})</span>
+                </span>
+              )}
             </div>
             {liabilitiesTotal > 0 && (
               <span className="inline-flex items-center gap-1.5 text-rose-400">
@@ -413,8 +526,304 @@ export function GroupedAccountsList({
           </div>
 
           {/* =================================================================
-              GRUPO 3: CARTÕES DE CRÉDITO & PASSIVOS
+              GRUPO: VEÍCULOS (FIPE AO VIVO)
              ================================================================= */}
+          {vehicleAssets.length > 0 && (
+            <div>
+              <button
+                type="button"
+                onClick={() => toggleGroup("vehicles")}
+                className="w-full px-5 py-3.5 flex items-center justify-between gap-3 hover:bg-zinc-50 dark:hover:bg-[#18181B]/60 transition-colors cursor-pointer text-left"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <WfIcons.ChevronRight
+                    size={15}
+                    className={`text-zinc-400 shrink-0 transition-transform duration-200 ${
+                      expandedGroups.vehicles ? "rotate-90" : ""
+                    }`}
+                  />
+                  <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
+                  <span className="text-sm font-semibold text-zinc-900 dark:text-[#F4F4F5] truncate">
+                    Veículos (FIPE ao Vivo)
+                  </span>
+                  <span className="px-1.5 py-0.2 rounded text-[10px] font-mono bg-zinc-100 dark:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] text-zinc-500 dark:text-zinc-400">
+                    {vehicleAssets.length}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-3 shrink-0">
+                  <span className="text-sm font-semibold tabular-nums text-zinc-900 dark:text-[#F4F4F5]">
+                    {formatCurrency(vehiclesTotal)}
+                  </span>
+                </div>
+              </button>
+
+              {expandedGroups.vehicles && (
+                <div className="bg-zinc-50/40 dark:bg-[#0E0E10] border-t border-zinc-100 dark:border-[#27272A]/70 divide-y divide-zinc-100 dark:divide-[#27272A]/50">
+                  {vehicleAssets.map((veh) => {
+                    const curPrice = Number(veh.current_value) || 0;
+                    const acqPrice = Number(veh.acquisition_value) || 0;
+                    const delta = curPrice - acqPrice;
+                    const deltaPct = acqPrice > 0 ? (delta / acqPrice) * 100 : 0;
+                    const fipeCode = veh.metadata?.fipe_code as string | undefined;
+                    const year = veh.metadata?.model_year as number | undefined;
+
+                    return (
+                      <div
+                        key={veh.id}
+                        onClick={() => onEditAsset?.(veh)}
+                        className="pl-10 pr-5 py-2.5 flex items-center justify-between gap-3 hover:bg-zinc-100/60 dark:hover:bg-[#18181B]/50 transition-colors cursor-pointer"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center text-xs shrink-0">
+                            🚗
+                          </div>
+                          <div className="min-w-0">
+                            <span className="text-xs font-medium text-zinc-900 dark:text-zinc-100 block truncate">
+                              {veh.name}
+                            </span>
+                            <span className="text-[11px] text-zinc-500 block truncate">
+                              {year ? `Ano ${year} • ` : ""}
+                              {fipeCode ? `FIPE: ${fipeCode}` : "Cotação BrasilAPI"}
+                              {acqPrice > 0 && (
+                                <span
+                                  className={`ml-1.5 font-semibold ${
+                                    delta >= 0 ? "text-emerald-500" : "text-rose-400"
+                                  }`}
+                                >
+                                  {deltaPct >= 0 ? "+" : ""}
+                                  {deltaPct.toFixed(1).replace(".", ",")}%
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                        </div>
+                        <span className="text-xs sm:text-sm font-semibold tabular-nums text-zinc-900 dark:text-[#F4F4F5] shrink-0">
+                          {formatCurrency(curPrice)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* =================================================================
+              GRUPO: IMÓVEIS & TERRENOS (MODELOS A, B E C)
+             ================================================================= */}
+          {realEstateAssets.length > 0 && (
+            <div>
+              <button
+                type="button"
+                onClick={() => toggleGroup("real_estate")}
+                className="w-full px-5 py-3.5 flex items-center justify-between gap-3 hover:bg-zinc-50 dark:hover:bg-[#18181B]/60 transition-colors cursor-pointer text-left"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <WfIcons.ChevronRight
+                    size={15}
+                    className={`text-zinc-400 shrink-0 transition-transform duration-200 ${
+                      expandedGroups.real_estate ? "rotate-90" : ""
+                    }`}
+                  />
+                  <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                  <span className="text-sm font-semibold text-zinc-900 dark:text-[#F4F4F5] truncate">
+                    Imóveis & Terrenos (Radar Local)
+                  </span>
+                  <span className="px-1.5 py-0.2 rounded text-[10px] font-mono bg-zinc-100 dark:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] text-zinc-500 dark:text-zinc-400">
+                    {realEstateAssets.length}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-3 shrink-0">
+                  <span className="text-sm font-semibold tabular-nums text-zinc-900 dark:text-[#F4F4F5]">
+                    {formatCurrency(realEstateTotal)}
+                  </span>
+                </div>
+              </button>
+
+              {expandedGroups.real_estate && (
+                <div className="bg-zinc-50/40 dark:bg-[#0E0E10] border-t border-zinc-100 dark:border-[#27272A]/70 divide-y divide-zinc-100 dark:divide-[#27272A]/50">
+                  {realEstateAssets.map((re) => {
+                    const curPrice = Number(re.current_value) || 0;
+                    const area = re.metadata?.area_m2 as number | undefined;
+                    const city = re.metadata?.city as string | undefined;
+                    const state = re.metadata?.state as string | undefined;
+                    const score = re.metadata?.radar_score as number | undefined;
+
+                    return (
+                      <div
+                        key={re.id}
+                        onClick={() => onEditAsset?.(re)}
+                        className="pl-10 pr-5 py-2.5 flex items-center justify-between gap-3 hover:bg-zinc-100/60 dark:hover:bg-[#18181B]/50 transition-colors cursor-pointer"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center text-xs shrink-0">
+                            {re.category === "land" ? "📐" : "🏢"}
+                          </div>
+                          <div className="min-w-0">
+                            <span className="text-xs font-medium text-zinc-900 dark:text-zinc-100 block truncate">
+                              {re.name}
+                            </span>
+                            <span className="text-[11px] text-zinc-500 block truncate">
+                              {area ? `${area} m² • ` : ""}
+                              {city ? `${city}${state ? ` - ${state}` : ""}` : "Patrimônio Imobiliário"}
+                              {score !== undefined && (
+                                <span className="ml-1.5 px-1 py-0.2 rounded text-[9px] font-semibold bg-[#FF8216]/10 text-[#FF8216] border border-[#FF8216]/20">
+                                  Radar {score}/100
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                        </div>
+                        <span className="text-xs sm:text-sm font-semibold tabular-nums text-zinc-900 dark:text-[#F4F4F5] shrink-0">
+                          {formatCurrency(curPrice)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* =================================================================
+              GRUPO: FGTS CAIXA (CLT)
+             ================================================================= */}
+          {fgtsAssets.length > 0 && (
+            <div>
+              <button
+                type="button"
+                onClick={() => toggleGroup("fgts")}
+                className="w-full px-5 py-3.5 flex items-center justify-between gap-3 hover:bg-zinc-50 dark:hover:bg-[#18181B]/60 transition-colors cursor-pointer text-left"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <WfIcons.ChevronRight
+                    size={15}
+                    className={`text-zinc-400 shrink-0 transition-transform duration-200 ${
+                      expandedGroups.fgts ? "rotate-90" : ""
+                    }`}
+                  />
+                  <span className="w-2 h-2 rounded-full bg-purple-500 shrink-0" />
+                  <span className="text-sm font-semibold text-zinc-900 dark:text-[#F4F4F5] truncate">
+                    FGTS (Caixa Econômica Federal)
+                  </span>
+                  <span className="px-1.5 py-0.2 rounded text-[10px] font-mono bg-zinc-100 dark:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] text-zinc-500 dark:text-zinc-400">
+                    {fgtsAssets.length}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-3 shrink-0">
+                  <span className="text-sm font-semibold tabular-nums text-zinc-900 dark:text-[#F4F4F5]">
+                    {formatCurrency(fgtsTotal)}
+                  </span>
+                </div>
+              </button>
+
+              {expandedGroups.fgts && (
+                <div className="bg-zinc-50/40 dark:bg-[#0E0E10] border-t border-zinc-100 dark:border-[#27272A]/70 divide-y divide-zinc-100 dark:divide-[#27272A]/50">
+                  {fgtsAssets.map((fg) => {
+                    const curPrice = Number(fg.current_value) || 0;
+                    const comp = fg.metadata?.company_name as string | undefined;
+                    const dep = fg.metadata?.monthly_deposit as number | undefined;
+
+                    return (
+                      <div
+                        key={fg.id}
+                        onClick={() => onEditAsset?.(fg)}
+                        className="pl-10 pr-5 py-2.5 flex items-center justify-between gap-3 hover:bg-zinc-100/60 dark:hover:bg-[#18181B]/50 transition-colors cursor-pointer"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-7 h-7 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center text-xs shrink-0">
+                            🏛️
+                          </div>
+                          <div className="min-w-0">
+                            <span className="text-xs font-medium text-zinc-900 dark:text-zinc-100 block truncate">
+                              {fg.name}
+                            </span>
+                            <span className="text-[11px] text-zinc-500 block truncate">
+                              {comp || "Conta Vinculada"} • TR + 3% a.a.
+                              {dep ? ` • Depósito 8%: ${formatCurrency(dep)}` : ""}
+                            </span>
+                          </div>
+                        </div>
+                        <span className="text-xs sm:text-sm font-semibold tabular-nums text-zinc-900 dark:text-[#F4F4F5] shrink-0">
+                          {formatCurrency(curPrice)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* =================================================================
+              GRUPO: OUTROS ATIVOS ALTERNATIVOS
+             ================================================================= */}
+          {otherAssets.length > 0 && (
+            <div>
+              <button
+                type="button"
+                onClick={() => toggleGroup("other")}
+                className="w-full px-5 py-3.5 flex items-center justify-between gap-3 hover:bg-zinc-50 dark:hover:bg-[#18181B]/60 transition-colors cursor-pointer text-left"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <WfIcons.ChevronRight
+                    size={15}
+                    className={`text-zinc-400 shrink-0 transition-transform duration-200 ${
+                      expandedGroups.other ? "rotate-90" : ""
+                    }`}
+                  />
+                  <span className="w-2 h-2 rounded-full bg-zinc-400 shrink-0" />
+                  <span className="text-sm font-semibold text-zinc-900 dark:text-[#F4F4F5] truncate">
+                    Outros Ativos Alternativos
+                  </span>
+                  <span className="px-1.5 py-0.2 rounded text-[10px] font-mono bg-zinc-100 dark:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] text-zinc-500 dark:text-zinc-400">
+                    {otherAssets.length}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-3 shrink-0">
+                  <span className="text-sm font-semibold tabular-nums text-zinc-900 dark:text-[#F4F4F5]">
+                    {formatCurrency(othersTotal)}
+                  </span>
+                </div>
+              </button>
+
+              {expandedGroups.other && (
+                <div className="bg-zinc-50/40 dark:bg-[#0E0E10] border-t border-zinc-100 dark:border-[#27272A]/70 divide-y divide-zinc-100 dark:divide-[#27272A]/50">
+                  {otherAssets.map((ot) => {
+                    const curPrice = Number(ot.current_value) || 0;
+                    return (
+                      <div
+                        key={ot.id}
+                        onClick={() => onEditAsset?.(ot)}
+                        className="pl-10 pr-5 py-2.5 flex items-center justify-between gap-3 hover:bg-zinc-100/60 dark:hover:bg-[#18181B]/50 transition-colors cursor-pointer"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-7 h-7 rounded-lg bg-zinc-500/10 border border-zinc-500/20 text-zinc-400 flex items-center justify-center text-xs shrink-0">
+                            📦
+                          </div>
+                          <div className="min-w-0">
+                            <span className="text-xs font-medium text-zinc-900 dark:text-zinc-100 block truncate">
+                              {ot.name}
+                            </span>
+                            <span className="text-[11px] text-zinc-500 block truncate">
+                              {(ot.metadata?.notes as string) || "Ativo alternativo imobilizado"}
+                            </span>
+                          </div>
+                        </div>
+                        <span className="text-xs sm:text-sm font-semibold tabular-nums text-zinc-900 dark:text-[#F4F4F5] shrink-0">
+                          {formatCurrency(curPrice)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
           <div>
             <button
               type="button"
@@ -552,12 +961,49 @@ export function GroupedAccountsList({
               amount: -Math.abs(Number(c.balance) || 0),
               kind: "liability" as const,
             })),
+            ...vehicleAssets.map((v) => ({
+              id: `veh-${v.id}`,
+              title: v.name,
+              sub: `Veículo (FIPE)${v.metadata?.model_year ? ` • Ano ${v.metadata.model_year}` : ""}`,
+              slug: "fipe",
+              amount: Number(v.current_value) || 0,
+              kind: "asset" as const,
+              asset: v,
+            })),
+            ...realEstateAssets.map((r) => ({
+              id: `re-${r.id}`,
+              title: r.name,
+              sub: `${r.category === "land" ? "Terreno" : "Imóvel"}${r.metadata?.area_m2 ? ` • ${r.metadata.area_m2}m²` : ""}${r.metadata?.radar_score ? ` • Radar ${r.metadata.radar_score}/100` : ""}`,
+              slug: "real_estate",
+              amount: Number(r.current_value) || 0,
+              kind: "asset" as const,
+              asset: r,
+            })),
+            ...fgtsAssets.map((f) => ({
+              id: `fgts-${f.id}`,
+              title: f.name,
+              sub: `FGTS Caixa • ${f.metadata?.company_name || "CLT"}`,
+              slug: "caixa",
+              amount: Number(f.current_value) || 0,
+              kind: "asset" as const,
+              asset: f,
+            })),
+            ...otherAssets.map((o) => ({
+              id: `ot-${o.id}`,
+              title: o.name,
+              sub: "Ativo Alternativo",
+              slug: "generic",
+              amount: Number(o.current_value) || 0,
+              kind: "asset" as const,
+              asset: o,
+            })),
           ]
             .sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount))
             .map((row) => (
               <div
                 key={row.id}
-                className="px-5 py-3 flex items-center justify-between gap-3 hover:bg-zinc-50 dark:hover:bg-[#18181B]/60 transition-colors"
+                onClick={() => (row as any).asset && onEditAsset?.((row as any).asset)}
+                className={`px-5 py-3 flex items-center justify-between gap-3 hover:bg-zinc-50 dark:hover:bg-[#18181B]/60 transition-colors ${(row as any).asset ? "cursor-pointer" : ""}`}
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <BankLogo bank={row.slug} size="xs" />

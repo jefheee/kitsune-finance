@@ -11,4 +11,8 @@ export * from './fisher';
 export * from './cet';
 export * from './debt-payoff';
 export * from './xray-rules';
+export * from './fipe';
+export * from './fgts';
+export * from './land-valuation';
+
 

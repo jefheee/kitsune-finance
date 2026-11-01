@@ -22,6 +22,7 @@ export default function InvestmentsPage() {
     accounts,
     transactions,
     connections,
+    customAssets,
     isPrivacyMode,
     formatSensitiveCurrency,
     selectedBankSlug,
@@ -380,30 +381,29 @@ export default function InvestmentsPage() {
       <AllocationTreemap
         investments={filteredInvestments}
         accounts={filteredAccounts}
+        customAssets={customAssets}
         formatCurrency={formatSensitiveCurrency}
         hideValues={isPrivacyMode}
       />
 
-      {/* Termômetro Macroeconômico BCB Ao Vivo */}
+      {/* Indicadores Macroeconômicos */}
       <section className="p-5 rounded-2xl bg-white dark:bg-[#121214] border border-zinc-200 dark:border-[#27272A] space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-zinc-200 dark:border-[#27272A]">
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-sm font-bold text-zinc-900 dark:text-[#F4F4F5]">
-                Termômetro Macroeconômico BCB Ao Vivo
+                Indicadores Macroeconômicos de Mercado
               </h2>
               <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/12 text-emerald-400 border border-emerald-500/25">
-                {macroSnapshot.source === "brasilapi_live" || macroSnapshot.source === "cache"
-                  ? "BrasilAPI • BCB Sync"
-                  : "Referência BCB"}
+                Taxas Oficiais
               </span>
             </div>
             <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">
-              Indicadores oficiais do Banco Central alimentando o motor DU/252 e a Equação de Fisher.
+              Taxas oficiais de referência para avaliação de rentabilidade e inflação.
             </p>
           </div>
           <span className="text-xs font-mono tabular-nums font-semibold px-2.5 py-1 rounded-full bg-[#FF8216]/12 text-[#FF8216] border border-[#FF8216]/25">
-            Juro Real Fisher: +{realInterestFormatted} a.a.
+            Juro Real: +{realInterestFormatted} a.a.
           </span>
         </div>
 

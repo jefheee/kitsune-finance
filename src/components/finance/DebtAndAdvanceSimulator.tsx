@@ -389,7 +389,7 @@ export function DebtAndAdvanceSimulator({
       advBankAnnualDiscountPct
     )} no app do banco vs manter no CDB 100% CDI (${formatPercentPtBr(
       macroRates.annualCDIPct
-    )} a.a., IR regressivo de ${advanceEvaluation.irRatePct}%). O motor apontou que ${
+    )} a.a., IR regressivo de ${advanceEvaluation.irRatePct}%). A análise indicou que ${
       advanceEvaluation.isWorthAdvancing
         ? "vale a pena antecipar"
         : "é melhor manter investido no CDI"
@@ -415,14 +415,14 @@ export function DebtAndAdvanceSimulator({
               <span className="material-symbols-outlined text-[18px]">calculate</span>
             </span>
             <h2 className="text-base md:text-lg font-black text-slate-900 dark:text-white tracking-tight">
-              Motor Tático de Quitação & Antecipação vs. CDI
+              Quitação Estratégica & Antecipação vs. CDI
             </h2>
             <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#18181B] text-emerald-400 border border-[#27272A] tabular-nums">
-              CDI BCB Ao Vivo: {formatPercentPtBr(macroRates.annualCDIPct)} a.a.
+              CDI de Referência: {formatPercentPtBr(macroRates.annualCDIPct)} a.a.
             </span>
           </div>
           <p className="text-xs text-slate-500 dark:text-zinc-400">
-            Simulações 100% determinísticas com Snowball Rollover exato e desconto composto líquido de IR regressivo.
+            Planejamento financeiro de amortização, comparação de juros e avaliação de antecipação com desconto.
           </p>
         </div>
 

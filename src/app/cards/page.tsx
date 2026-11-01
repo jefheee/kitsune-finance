@@ -43,7 +43,7 @@ export default function CardsPage() {
             </h1>
           </div>
           <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-            Faturas conciliadas, limites concedidos, simulador Avalanche vs. Bola de Neve e desconto de antecipação via Newton-Raphson.
+            Faturas conciliadas, limites concedidos e planejamento financeiro de quitação e antecipação.
           </p>
         </div>
 

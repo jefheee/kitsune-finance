@@ -17,6 +17,9 @@ interface NetWorthHeroChartProps {
   liquidBalance: number;
   investmentsBalance: number;
   liabilitiesBalance: number;
+  vehiclesBalance?: number;
+  realEstateBalance?: number;
+  fgtsBalance?: number;
   transactions: Array<{
     date?: string;
     executed_at?: string;
@@ -31,6 +34,7 @@ interface NetWorthHeroChartProps {
   scopeLabel?: string;
   annualCDIPct?: number;
 }
+
 
 const PERIOD_DAYS_MAP: Record<WealthfolioPeriod, number> = {
   "1M": 30,
@@ -119,6 +123,9 @@ export function NetWorthHeroChart({
   liquidBalance,
   investmentsBalance,
   liabilitiesBalance,
+  vehiclesBalance = 0,
+  realEstateBalance = 0,
+  fgtsBalance = 0,
   transactions,
   hideValues,
   onTogglePrivacy,
@@ -433,11 +440,11 @@ export function NetWorthHeroChart({
           </div>
         </div>
 
-        {/* Sub-strip compacta: Ativos Líquidos + Investimentos - Passivos */}
-        <div className="grid grid-cols-3 gap-3 md:gap-5 pt-2 md:pt-0 border-t md:border-t-0 border-zinc-100 dark:border-[#27272A]">
+        {/* Sub-strip: Caixa & Contas, Investimentos, Veículos (FIPE), Imóveis & Terrenos, FGTS e Passivos */}
+        <div className="flex flex-wrap items-center gap-3 md:gap-5 pt-2 md:pt-0 border-t md:border-t-0 border-zinc-100 dark:border-[#27272A]">
           <div>
             <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-400 dark:text-zinc-500 block">
-              Liquidez
+              Caixa & Contas
             </span>
             <span className="text-xs md:text-sm font-semibold tabular-nums text-zinc-800 dark:text-zinc-200">
               {formatAmount(liquidBalance)}
@@ -445,12 +452,42 @@ export function NetWorthHeroChart({
           </div>
           <div>
             <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-400 dark:text-zinc-500 block">
-              Investido
+              Investimentos Líquidos
             </span>
             <span className="text-xs md:text-sm font-semibold tabular-nums text-emerald-500">
               {formatAmount(investmentsBalance)}
             </span>
           </div>
+          {vehiclesBalance > 0 && (
+            <div>
+              <span className="text-[10px] font-medium uppercase tracking-wider text-[#FF8216] block">
+                Veículos (FIPE)
+              </span>
+              <span className="text-xs md:text-sm font-semibold tabular-nums text-zinc-100">
+                {formatAmount(vehiclesBalance)}
+              </span>
+            </div>
+          )}
+          {realEstateBalance > 0 && (
+            <div>
+              <span className="text-[10px] font-medium uppercase tracking-wider text-[#FF8216] block">
+                Imóveis & Terrenos
+              </span>
+              <span className="text-xs md:text-sm font-semibold tabular-nums text-zinc-100">
+                {formatAmount(realEstateBalance)}
+              </span>
+            </div>
+          )}
+          {fgtsBalance > 0 && (
+            <div>
+              <span className="text-[10px] font-medium uppercase tracking-wider text-[#FF8216] block">
+                FGTS Caixa
+              </span>
+              <span className="text-xs md:text-sm font-semibold tabular-nums text-zinc-100">
+                {formatAmount(fgtsBalance)}
+              </span>
+            </div>
+          )}
           <div>
             <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-400 dark:text-zinc-500 block">
               Passivos

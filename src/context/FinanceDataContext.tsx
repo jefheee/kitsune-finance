@@ -11,8 +11,10 @@ import React, {
 import { createClient } from '@/utils/supabase/client';
 import type { User } from '@supabase/supabase-js';
 import type { BankIdentitySource } from '@/utils/pluggy/identity-consolidator';
+import type { CustomAsset } from '@/types/finance';
 import {
     readUserPortfolioCache,
+
     writeUserPortfolioCache,
     clearUserPortfolioCache,
 } from '@/utils/cache/indexeddb-cache';
@@ -67,6 +69,7 @@ interface FinanceDataContextValue {
     transactions: any[];
     connections: any[];
     familyMembers: FamilyMemberItem[];
+    customAssets: CustomAsset[];
     aiInsight: { text: string; updatedAt: string } | null;
     isInitialLoading: boolean;
     isRevalidating: boolean;
@@ -98,6 +101,9 @@ interface FinanceDataContextValue {
     addFamilyMemberLocal: (member: FamilyMemberItem) => void;
     removeFamilyMemberLocal: (memberId: string) => void;
     removeConnectionLocal: (connectionIdOrItemId: string) => void;
+    addCustomAssetLocal: (asset: CustomAsset) => void;
+    updateCustomAssetLocal: (asset: CustomAsset) => void;
+    removeCustomAssetLocal: (assetId: string) => void;
 }
 
 const FinanceDataContext = createContext<FinanceDataContextValue | undefined>(undefined);
@@ -165,6 +171,7 @@ export function FinanceDataProvider({ children }: { children: React.ReactNode })
     const [transactions, setTransactions] = useState<any[]>([]);
     const [connections, setConnections] = useState<any[]>([]);
     const [familyMembers, setFamilyMembers] = useState<FamilyMemberItem[]>([]);
+    const [customAssets, setCustomAssets] = useState<CustomAsset[]>([]);
     const [aiInsight, setAiInsightState] = useState<{ text: string; updatedAt: string } | null>(null);
     const [isInitialLoading, setIsInitialLoading] = useState<boolean>(true);
     const [isRevalidating, setIsRevalidating] = useState<boolean>(false);
@@ -241,6 +248,7 @@ export function FinanceDataProvider({ children }: { children: React.ReactNode })
         setTransactions([]);
         setConnections([]);
         setFamilyMembers([]);
+        setCustomAssets([]);
         setActivePartner(null);
         setSharedConnection(null);
         setAiInsightState(null);
@@ -392,6 +400,7 @@ export function FinanceDataProvider({ children }: { children: React.ReactNode })
                     txnRes,
                     connRes,
                     insightRes,
+                    customAssetsRes,
                 ] = await Promise.all([
                     supabase
                         .from('users_profile')
@@ -436,6 +445,11 @@ export function FinanceDataProvider({ children }: { children: React.ReactNode })
                         .select('*')
                         .eq('user_id', authUser.id)
                         .maybeSingle(),
+                    supabase
+                        .from('custom_assets')
+                        .select('*')
+                        .in('user_id', targetUserIds)
+                        .order('updated_at', { ascending: false }),
                 ]);
 
                 let resolvedUserProfile: UserProfileData | null = null;
@@ -509,13 +523,42 @@ export function FinanceDataProvider({ children }: { children: React.ReactNode })
                 }
 
                 const resolvedAccounts = bankAccRes.data || [];
-                const resolvedInvestments = invRes.data || [];
+                const rawInvestments = invRes.data || [];
+
+                // Higienização de Safras Open Finance: detecta e neutraliza posições arquivadas com safra defasada
+                const SIXTY_DAYS_MS = 60 * 24 * 60 * 60 * 1000;
+                const maxDateByInst = new Map<string, number>();
+                rawInvestments.forEach((inv: any) => {
+                    const instKey = (inv.institution_slug || inv.institution_name || 'default').toLowerCase();
+                    const dStr = inv.raw_payload?.date || inv.created_at;
+                    if (dStr) {
+                        const ms = new Date(dStr).getTime();
+                        if (!isNaN(ms) && ms > (maxDateByInst.get(instKey) || 0)) {
+                            maxDateByInst.set(instKey, ms);
+                        }
+                    }
+                });
+
+                const resolvedInvestments = rawInvestments.map((inv: any) => {
+                    const instKey = (inv.institution_slug || inv.institution_name || 'default').toLowerCase();
+                    const maxMs = maxDateByInst.get(instKey) || 0;
+                    const dStr = inv.raw_payload?.date;
+                    if (dStr && maxMs > 0 && inv.status === 'ACTIVE') {
+                        const invMs = new Date(dStr).getTime();
+                        if (!isNaN(invMs) && (maxMs - invMs) > SIXTY_DAYS_MS) {
+                            return { ...inv, status: 'TOTAL_WITHDRAWAL', balance: 0 };
+                        }
+                    }
+                    return inv;
+                });
+
                 const resolvedLoans = loansRes.data || [];
                 const resolvedConnections = connRes.data || [];
 
                 setAccounts(resolvedAccounts);
                 setInvestments(resolvedInvestments);
                 setLoans(resolvedLoans);
+                setCustomAssets((customAssetsRes.data as any) || []);
 
                 // Reconciliação inteligente: Transações e Pix mútuos entre o casal são marcados como remanejamento interno
                 const rawTxns = txnRes.data || [];
@@ -647,6 +690,18 @@ export function FinanceDataProvider({ children }: { children: React.ReactNode })
         });
     }, []);
 
+    const addCustomAssetLocal = useCallback((asset: CustomAsset) => {
+        setCustomAssets((prev) => [asset, ...prev.filter((a) => a.id !== asset.id)]);
+    }, []);
+
+    const updateCustomAssetLocal = useCallback((asset: CustomAsset) => {
+        setCustomAssets((prev) => prev.map((a) => (a.id === asset.id ? asset : a)));
+    }, []);
+
+    const removeCustomAssetLocal = useCallback((assetId: string) => {
+        setCustomAssets((prev) => prev.filter((a) => a.id !== assetId));
+    }, []);
+
     return (
         <FinanceDataContext.Provider
             value={{
@@ -658,6 +713,7 @@ export function FinanceDataProvider({ children }: { children: React.ReactNode })
                 transactions,
                 connections,
                 familyMembers,
+                customAssets,
                 aiInsight,
                 isInitialLoading,
                 isRevalidating,
@@ -684,6 +740,9 @@ export function FinanceDataProvider({ children }: { children: React.ReactNode })
                 addFamilyMemberLocal,
                 removeFamilyMemberLocal,
                 removeConnectionLocal,
+                addCustomAssetLocal,
+                updateCustomAssetLocal,
+                removeCustomAssetLocal,
             }}
         >
             {children}

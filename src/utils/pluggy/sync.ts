@@ -574,8 +574,34 @@ export async function syncItemAccountsAndTransactions(
         }
 
         // 6. Sincronizar Investimentos (CDBs, Tesouro, Fundos, Caixinhas, Ações)
+        // Higienização de Safras Open Finance: detecta e expurga posições antigas de safras passadas
+        let maxRefDateMs = 0;
+        for (const inv of investments) {
+            const rawDateStr = (inv as any).rawPayload?.date || (inv as any).date;
+            if (rawDateStr) {
+                const ms = new Date(rawDateStr).getTime();
+                if (!isNaN(ms) && ms > maxRefDateMs) {
+                    maxRefDateMs = ms;
+                }
+            }
+        }
+
+        const SIXTY_DAYS_MS = 60 * 24 * 60 * 60 * 1000;
         let investmentsSynced = 0;
         for (const inv of investments) {
+            let effectiveStatus = inv.status || 'ACTIVE';
+            let effectiveBalance = inv.balance;
+
+            // Se o investimento for de uma safra anterior defasada em > 60 dias em relação à mais recente
+            const rawDateStr = (inv as any).rawPayload?.date || (inv as any).date;
+            if (rawDateStr && maxRefDateMs > 0) {
+                const invDateMs = new Date(rawDateStr).getTime();
+                if (!isNaN(invDateMs) && (maxRefDateMs - invDateMs) > SIXTY_DAYS_MS) {
+                    effectiveStatus = 'TOTAL_WITHDRAWAL';
+                    effectiveBalance = 0;
+                }
+            }
+
             const { error: invErr } = await supabase.rpc('upsert_pluggy_investment', {
                 p_user_id: userId,
                 p_connection_id: connectionId || null,
@@ -584,7 +610,7 @@ export async function syncItemAccountsAndTransactions(
                 p_name: inv.name,
                 p_type: inv.type,
                 p_subtype: inv.subtype,
-                p_balance: inv.balance,
+                p_balance: effectiveBalance,
                 p_currency: inv.currencyCode || 'BRL',
                 p_institution_name: inv.institutionName || institution.name,
                 p_institution_slug: institution.slug,
@@ -597,7 +623,7 @@ export async function syncItemAccountsAndTransactions(
                 p_taxes: inv.taxes,
                 p_due_date: inv.dueDate,
                 p_issue_date: inv.issueDate,
-                p_status: inv.status || 'ACTIVE',
+                p_status: effectiveStatus,
                 p_raw_payload: inv.rawPayload || null,
             });
             if (!invErr) investmentsSynced++;

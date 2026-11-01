@@ -13,11 +13,11 @@ import {
 } from "@/utils/ai/kitsune-agents-registry";
 
 const MACRO_TOOL_LABELS: Record<MacroToolIdentifier, string> = {
-    get_balance_sheet_xray: "X-Ray & FGC",
+    get_balance_sheet_xray: "Balanço & FGC",
     get_income_statement: "DRE Operacional",
-    simulate_debt_payoff: "CET & Avalanche",
-    compare_fixed_income_br: "CDI DU/252 & Fisher",
-    audit_anomalies_and_subscriptions: "Forense & 2σ",
+    simulate_debt_payoff: "Quitação & Parcelas",
+    compare_fixed_income_br: "Renda Fixa & Inflação",
+    audit_anomalies_and_subscriptions: "Assinaturas & Recorrências",
     shared_space_reconciler: "Rateio Proporcional",
 };
 
@@ -93,15 +93,15 @@ export default function AgentsHubPage() {
             {/* Header da Central Multi-Agente */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-[#18181B] border border-[#27272A] text-[11px] font-mono text-[#FF8216] mb-2">
+                    <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-[#18181B] border border-[#27272A] text-[11px] font-medium text-[#FF8216] mb-2">
                         <span className="w-1.5 h-1.5 rounded-full bg-[#FF8216]" />
-                        <span>MOTOR DETERMINÍSTICO MSLR • ZERO ALUCINAÇÃO</span>
+                        <span>CONSULTORES FINANCEIROS ESPECIALIZADOS</span>
                     </div>
                     <h1 className="text-xl md:text-3xl font-bold text-white flex items-center gap-2.5">
                         Agentes Especialistas da Kitsune
                     </h1>
                     <p className="text-xs md:text-sm text-zinc-400 mt-1 max-w-2xl">
-                        Os 7 agentes operam acoplados ao motor matemático determinístico (DU/252 B3, IR/IOF regressivo, Fisher, CET Newton-Raphson e FGC) sobre seus dados reais do Open Finance.
+                        Especialistas dedicados integrados aos seus dados reais do Open Finance para fornecer análises e diagnósticos patrimoniais completos.
                     </p>
                 </div>
 
@@ -167,7 +167,7 @@ export default function AgentsHubPage() {
 
                 <div className="p-4 rounded-2xl bg-[#121214] border border-[#27272A] flex flex-col justify-between gap-1">
                     <span className="text-[11px] font-medium text-zinc-400">
-                        Juro Real da Carteira (Fisher)
+                        Juro Real da Carteira
                     </span>
                     <div className="flex items-baseline justify-between gap-2 mt-0.5">
                         <span className="text-lg md:text-xl font-bold font-mono text-emerald-400 tabular-nums">
@@ -224,9 +224,9 @@ export default function AgentsHubPage() {
                                         </div>
                                     </div>
 
-                                    <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono bg-[#18181B] text-zinc-300 border border-[#27272A] shrink-0">
+                                    <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium bg-[#18181B] text-zinc-300 border border-[#27272A] shrink-0">
                                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                        MSLR
+                                        Ativo
                                     </span>
                                 </div>
 

@@ -4,6 +4,26 @@ Todas as alterações notáveis no projeto Kitsune Finance são registradas de f
 
 ---
 
+## [2026-11-01] - Correções Mobile, Conciliação Itaú/Pluggy, Drawer Fluido e Limpeza de Tags na UI
+- **Arquivos Afetados:** `src/app/globals.css`, `src/components/security/BiometricLockGuard.tsx`, `src/components/layout/AppShell.tsx`, `src/components/finance/WalletCards.tsx`, `src/context/FinanceDataContext.tsx`, `src/utils/pluggy/sync.ts`, `src/app/agents/page.tsx`, `src/app/investments/page.tsx`, `src/app/page.tsx`, `C:\Users\jefhi\.gemini\config\rules\clean-saas-vocabulary.md`.
+- **Objetivo:**
+  - Correção da barra de navegação mobile fixa (remoção de `will-change` no root CSS), fim de bloqueio biométrico indevido ao trocar de rota e snapshot masking com blur abstrato puro sem textos.
+  - Otimização a 60 FPS do menu drawer "Mais" com gesto tátil de arrastar para fechar pelo handle bar superior e desativação do onboarding biométrico em computadores desktop (PC).
+  - Deduplicação inteligente de parcelas de cartão no ciclo correto de fatura e saneamento de registros defasados do Open Finance (>60 dias), igualando o saldo de investimentos ao valor exato do Itaú (R$ 87.205,93).
+  - Remoção de tags genéricas de marketing/fórmulas na UI e criação da regra global permanente `clean-saas-vocabulary.md`.
+
+---
+
+## [2026-11-01] - Módulo de Patrimônio Total: Veículos FIPE, FGTS Caixa e Radar de Terrenos/Imóveis
+- **Arquivos Afetados:** `supabase/migrations/20261101_custom_assets_schema.sql`, `src/utils/finance/engine/{fipe.ts, fgts.ts, land-valuation.ts, index.ts}`, `src/app/api/assets/{route.ts, radar/route.ts}`, `src/components/assets/{VehicleFipeSelector.tsx, LandValuationCard.tsx, FgtsCalculatorCard.tsx, AssetModal.tsx}`, `src/components/wealthfolio/{GroupedAccountsList.tsx, NetWorthHeroChart.tsx, AllocationTreemap.tsx}`, `src/context/FinanceDataContext.tsx`, `src/app/dashboard/page.tsx`, `src/components/layout/AppShell.tsx`, `src/types/finance.ts`.
+- **Objetivo:**
+  - Criação da tabela `custom_assets` no Supabase com isolamento multi-tenant estrito (FORCE RLS) e suporte a veículos, imóveis, terrenos, FGTS e ativos alternativos.
+  - Implementação dos motores determinísticos MSLR: FIPE ao vivo com cache L1/L2 e taxa de depreciação anualizada, FGTS com regra Caixa (TR + 3% a.a. e aporte de 8%) e poder real via Fisher, e Radar de Terrenos com Modelos A (IRPF 15%), B (IPCA vs IGP-M) e C (Overpass OpenStreetMap em 2km com Kitsune Infrastructure Score 0-100 e multiplicador de m²).
+  - Interface no padrão Wealthfolio (Warm Obsidian): seletores em cascata FIPE, card com auto-fill de CEP v2 BrasilAPI, abas comparativas e agregação automática ao Patrimônio Líquido (Net Worth) e breakdown no Dashboard e AppShell.
+
+
+---
+
 ## [2026-11-01] - Correção do Loop de Desbloqueio Biométrico, Snapshot Masking Clean & Google Login Prioritário
 - **Arquivos Afetados:** `src/components/security/BiometricLockGuard.tsx`, `src/app/globals.css`, `src/app/login/page.tsx`, `src/app/signup/page.tsx`, `docs/PROJECT_STATE.md`, `docs/CHANGELOG.md`.
 - **Objetivo:**

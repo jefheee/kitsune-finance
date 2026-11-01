@@ -26,6 +26,7 @@ export default function InsightsPage() {
     investments,
     loans,
     transactions,
+    customAssets,
     isPrivacyMode,
     formatSensitiveCurrency,
   } = useFinanceData();
@@ -174,7 +175,7 @@ export default function InsightsPage() {
       {
         id: "xray-health",
         title: "Saúde Patrimonial",
-        subtitle: "Motor determinístico X-Ray",
+        subtitle: "Diagnóstico consolidado de liquidez e risco",
         percent: xray.kitsuneScore,
         displayValue: isPrivacyMode ? "••/100" : `${xray.kitsuneScore}/100`,
         badgeText: xray.statusLabel,
@@ -185,7 +186,7 @@ export default function InsightsPage() {
             ? "orange"
             : "rose",
         footerLeft: "0 Crítico",
-        footerRight: "100 Blindado",
+        footerRight: "100 Excelente",
       },
       {
         id: "fgc-exposure",
@@ -212,7 +213,7 @@ export default function InsightsPage() {
       {
         id: "credit-risk",
         title: "Uso de Limite Crédito",
-        subtitle: `Juro Real Fisher +${realPct.toFixed(2)}%`,
+        subtitle: "Comprometimento em faturas no ciclo",
         percent: isPrivacyMode ? 22 : creditUtilPct,
         displayValue: isPrivacyMode ? "••%" : `${creditUtilPct}%`,
         badgeText: creditUtilPct <= 30 ? "Saudável (<30%)" : "Elevado",
@@ -221,7 +222,7 @@ export default function InsightsPage() {
         footerRight:
           creditLimitTotal > 0 && !isPrivacyMode
             ? formatSensitiveCurrency(creditLimitTotal)
-            : `Fisher ${fisherGaugePct}%`,
+            : "Controle de fatura",
       },
     ];
 
@@ -301,9 +302,6 @@ export default function InsightsPage() {
             <h1 className="text-xl md:text-2xl font-bold tracking-tight text-zinc-900 dark:text-[#F4F4F5]">
               Insights, Risco & Alocação Patrimonial
             </h1>
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono tabular-nums font-semibold bg-[#FF8216]/12 text-[#FF8216] border border-[#FF8216]/25">
-              X-Ray {isPrivacyMode ? "••" : kitsuneHealthScore}/100
-            </span>
           </div>
           <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
             Gauges semicirculares de exposição, Treemap por classe e instituição, histórico de proventos e mapa de calor.
@@ -319,7 +317,7 @@ export default function InsightsPage() {
             <span>Tabela de Holdings</span>
           </Link>
           <Link
-            href="/kitsune?prompt=Execute%20um%20Raio-X%20completo%20de%20risco%2C%20aloca%C3%A7%C3%A3o%20e%20proventos%20da%20minha%20carteira."
+            href="/kitsune?prompt=Execute%20um%20diagn%C3%B3stico%20completo%20de%20risco%2C%20aloca%C3%A7%C3%A3o%20e%20proventos%20da%20minha%20carteira."
             className="h-9 px-4 rounded-xl bg-[#FF8216] hover:bg-[#FF9438] text-black text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
           >
             <WfIcons.Agents className="w-3.5 h-3.5" />
@@ -340,6 +338,7 @@ export default function InsightsPage() {
       <AllocationTreemap
         investments={investments}
         accounts={accounts}
+        customAssets={customAssets}
         formatCurrency={formatSensitiveCurrency}
         hideValues={isPrivacyMode}
       />

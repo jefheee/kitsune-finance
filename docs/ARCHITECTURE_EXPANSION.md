@@ -14,6 +14,8 @@
 - [x] **Etapa 5:** Reconciliador Dinâmico no Espaço Compartilhado ("Pix de Acerto Único"), UI Interativa do Simulador de Dívidas/Antecipação e Auditoria Upstream (`pluggy-node`, `BrasilAPI` e `minha-receita`).
 - [x] **Release v2.0 (Consolidação em Produção):** Higienização profunda (zero artefatos órfãos), Webhook Real-Time Pluggy com invalidação de cache IA, Monitor de Garantia FGC por Emissor Real e Simulador de Equivalência Tributária em `/investments`, README.md executivo v2.0 e build de produção validado (33/33 rotas).
 - [x] **Release v2.1 (Fusão Total UI/UX Wealthfolio):** Portabilidade completa da navegação (Sidebar colapsável + Mobile Bottom Nav `safe-area`), Net Worth Area Chart (`1M`–`ALL`), tabelas densas `tabular-nums` com modo empilhado mobile, Gauges `180°`, Treemap e Histórico de Proventos em Barras Finas na paleta estrita Warm Obsidian (`#0A0A0A` / `#121214` / `#18181B` / `#27272A` / `#FF8216`).
+- [x] **Release v2.4 (Módulo de Patrimônio Total & Ativos Físicos):** Veículos com FIPE ao vivo via BrasilAPI e taxa de depreciação anualizada, FGTS determinístico Caixa (TR + 3% a.a., aporte de 8% e Fisher), Radar de Terrenos & Imóveis com Modelos A (Custo Contábil & IRPF 15%), B (IPCA vs IGP-M) e C (Overpass OpenStreetMap em 2km com Kitsune Infrastructure Score 0-100 e multiplicador de m²), e agregação ao Net Worth no Dashboard.
+
 
 ---
 

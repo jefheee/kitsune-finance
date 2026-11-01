@@ -15,27 +15,39 @@ interface WalletCardsProps {
 
 export function getCardInvoiceAmount(card: any, transactions: any[]): number {
   if (!card) return 0;
-  const rawBal = Number(card.balance);
-  if (!isNaN(rawBal) && rawBal > 0) {
-    return Math.abs(rawBal);
-  }
 
-  // Se o saldo for 0 ou nulo, busca APENAS compras do ciclo/mês corrente (sem inflar com histórico antigo)
+  // Busca compras que vencem no ciclo/mês corrente (sem inflar com parcelas de faturas futuras)
   const now = new Date();
-  const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth(); // 0 a 11
+  const currentMonthStr = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}`;
+  // Também considera lançamentos dos últimos 7 dias do mês anterior que fecham na fatura atual
+  const prevMonthStr = `${currentYear}-${String(currentMonth).padStart(2, "0")}`;
 
-  const currentMonthTxns = transactions.filter((t) => {
+  const currentCycleTxns = transactions.filter((t) => {
     if (t.is_internal_transfer || t.is_refund || t.operation_type === "BILL_PAYMENT") return false;
     const isThisCard = t.account_id === card.id || t.bank_accounts?.id === card.id;
     if (!isThisCard) return false;
     const dStr = (t.date || t.executed_at || "").split("T")[0];
-    return dStr.startsWith(currentMonthStr);
+    if (!dStr) return false;
+    // Compras do mês atual ou dos últimos dias do mês anterior fechando nesta fatura
+    return dStr.startsWith(currentMonthStr) || (dStr.startsWith(prevMonthStr) && parseInt(dStr.split("-")[2] || "0", 10) >= 20);
   });
 
-  return currentMonthTxns.reduce((acc, t) => {
-    const isExp = Number(t.amount) < 0 || t.type === "DEBIT" || t.operation_type === "CREDIT_CARD";
-    return acc + (isExp ? Math.abs(Number(t.amount) || 0) : 0);
-  }, 0);
+  if (currentCycleTxns.length > 0) {
+    const cycleSum = currentCycleTxns.reduce((acc, t) => {
+      const isExp = Number(t.amount) < 0 || t.type === "DEBIT" || t.operation_type === "CREDIT_CARD";
+      return acc + (isExp ? Math.abs(Number(t.amount) || 0) : 0);
+    }, 0);
+    if (cycleSum > 0) return cycleSum;
+  }
+
+  // Fallback caso não haja transações discriminadas no extrato
+  const rawBal = Number(card.balance);
+  if (!isNaN(rawBal) && rawBal > 0) {
+    return Math.abs(rawBal);
+  }
+  return 0;
 }
 
 export function WalletCards({ accounts, transactions, formatCurrency: propFormatCurrency }: WalletCardsProps) {
@@ -170,7 +182,15 @@ export function WalletCards({ accounts, transactions, formatCurrency: propFormat
 
     installmentTxns.forEach((t) => {
       const rawLabel = t.clean_description || t.description || "Compra Parcelada";
-      const baseKey = rawLabel.replace(/\b\d{1,2}\/\d{1,2}\b/g, "").trim().toLowerCase();
+      // Normalização robusta: remove "01/03", "Fernan01/03", "parcela 1 de 3", etc.
+      const cleanTitle = rawLabel
+        .replace(/\s*\d{1,2}\s*\/\s*\d{1,2}\b/gi, "")
+        .replace(/\d{1,2}\s*\/\s*\d{1,2}\b/gi, "")
+        .replace(/\s*parcela\s*\d{1,2}\s*(de|\/)\s*\d{1,2}\b/gi, "")
+        .replace(/\s*-\s*parcela\s*\d{1,2}.*$/gi, "")
+        .trim();
+      const baseKey = (cleanTitle || rawLabel).toLowerCase();
+
       const inst = Number(t.installment_number) || 1;
       const totalInst = Number(t.total_installments) || 2;
       const amt = Math.abs(Number(t.amount) || 0);
@@ -181,7 +201,7 @@ export function WalletCards({ accounts, transactions, formatCurrency: propFormat
       if (!existing || inst > existing.currentInstallment) {
         const remaining = Math.max(0, totalInst - inst);
         grouped.set(baseKey, {
-          description: rawLabel,
+          description: cleanTitle || rawLabel,
           totalAmount: totalPurchase,
           monthlyAmount: amt,
           currentInstallment: inst,
@@ -192,12 +212,11 @@ export function WalletCards({ accounts, transactions, formatCurrency: propFormat
       }
     });
 
-    const items = Array.from(grouped.values());
-    const totalCommitted = items.reduce((s, i) => s + i.remainingAmount, 0);
-    const monthlySum = items.reduce(
-      (s, i) => s + (i.remainingInstallments > 0 ? i.monthlyAmount : 0),
-      0
-    );
+    // Filtra para exibir em "Parcelamentos Ativos" apenas os que possuem parcelas a vencer no futuro
+    const allItems = Array.from(grouped.values());
+    const activeItems = allItems.filter((i) => i.remainingInstallments > 0);
+    const totalCommitted = activeItems.reduce((s, i) => s + i.remainingAmount, 0);
+    const monthlySum = activeItems.reduce((s, i) => s + i.monthlyAmount, 0);
 
     const monthNames = [
       "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -213,8 +232,8 @@ export function WalletCards({ accounts, transactions, formatCurrency: propFormat
       if (isCurrent) {
         amt = activeCardInvoice;
       } else {
-        // Soma real das parcelas que vencerão no mês `offset`
-        amt = items.reduce((sum, item) => {
+        // Soma real das parcelas que vencerão no mês futuro `offset`
+        amt = activeItems.reduce((sum, item) => {
           return item.remainingInstallments >= offset ? sum + item.monthlyAmount : sum;
         }, 0);
       }
@@ -227,7 +246,7 @@ export function WalletCards({ accounts, transactions, formatCurrency: propFormat
       };
     });
 
-    return { items, totalCommitted, monthlySum, futureMonths };
+    return { items: activeItems, totalCommitted, monthlySum, futureMonths };
   }, [activeCard, transactions, activeCardInvoice]);
 
   // Cálculo dinâmico do deslocamento vertical para caber exatamente em uma tela inteira

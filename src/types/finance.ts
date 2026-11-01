@@ -140,3 +140,79 @@ export const BankAccountSchema = z.object({
 
 export type FamilyMember = z.infer<typeof FamilyMemberSchema>;
 export type BankAccount = z.infer<typeof BankAccountSchema>;
+
+// ── Custom Assets Schema (Physical Assets, Vehicles, Real Estate, FGTS) ──
+export const CustomAssetCategorySchema = z.enum([
+  'vehicle',
+  'real_estate',
+  'land',
+  'fgts',
+  'other',
+]);
+
+export type CustomAssetCategory = z.infer<typeof CustomAssetCategorySchema>;
+
+export interface CustomAssetMetadata {
+  // Veículos (FIPE)
+  fipe_code?: string;
+  vehicle_type?: 'carros' | 'motos' | 'caminhoes';
+  brand?: string;
+  brand_code?: string;
+  model?: string;
+  model_code?: string;
+  model_year?: number;
+  year_code?: string;
+  fuel?: string;
+  reference_month?: string;
+  license_plate?: string;
+
+  // Imóveis & Terrenos (Modelos A, B, C)
+  area_m2?: number;
+  postal_code?: string;
+  street?: string;
+  neighborhood?: string;
+  city?: string;
+  state?: string;
+  latitude?: number;
+  longitude?: number;
+  radar_score?: number;
+  infrastructure_classification?: string;
+  sqm_attractiveness_multiplier?: number;
+  poi_counts?: {
+    transport?: number;
+    health?: number;
+    education?: number;
+    commerce?: number;
+    security?: number;
+    total?: number;
+  };
+
+  // FGTS
+  company_name?: string;
+  gross_salary?: number;
+  monthly_deposit?: number;
+  is_active_employment?: boolean;
+  tr_rate_annual?: number;
+
+  // Genérico / Outros
+  notes?: string;
+  [key: string]: unknown;
+}
+
+export const CustomAssetSchema = z.object({
+  id: z.string().uuid(),
+  user_id: z.string().uuid(),
+  category: CustomAssetCategorySchema,
+  name: z.string().min(1),
+  acquisition_date: z.string().nullable().optional(),
+  acquisition_value: z.number().default(0),
+  current_value: z.number().default(0),
+  metadata: z.record(z.string(), z.unknown()).default({}),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
+});
+
+export type CustomAsset = z.infer<typeof CustomAssetSchema> & {
+  metadata: CustomAssetMetadata;
+};
+

@@ -21,6 +21,7 @@ interface PositionedRect extends TreemapLeaf {
 interface AllocationTreemapProps {
   investments: any[];
   accounts?: any[];
+  customAssets?: any[];
   formatCurrency: (val: number) => string;
   hideValues: boolean;
 }
@@ -86,6 +87,7 @@ function computeTreemapRects(
 export function AllocationTreemap({
   investments,
   accounts = [],
+  customAssets = [],
   formatCurrency,
   hideValues,
 }: AllocationTreemapProps) {
@@ -139,6 +141,21 @@ export function AllocationTreemap({
           value: liquidSum,
         });
       }
+
+      // Ativos Físicos e Não-Líquidos
+      for (const asset of customAssets) {
+        const val = Number(asset.current_value) || 0;
+        if (val <= 0) continue;
+        let cls = "Outros Ativos";
+        if (asset.category === "vehicle") cls = "Veículos (FIPE)";
+        else if (asset.category === "land" || asset.category === "real_estate") cls = "Imóveis & Terrenos";
+        else if (asset.category === "fgts") cls = "FGTS Caixa";
+
+        const cur = map.get(cls) || { label: cls, count: 0, value: 0 };
+        cur.count += 1;
+        cur.value += val;
+        map.set(cls, cur);
+      }
     } else {
       for (const inv of activeInvs) {
         const inst = inv.institution_name || inv.bank_name || inv.issuer || "Custódia";
@@ -157,6 +174,20 @@ export function AllocationTreemap({
         const cur = map.get(inst) || { label: inst, count: 0, value: 0 };
         cur.count += 1;
         cur.value += bal;
+        map.set(inst, cur);
+      }
+
+      for (const asset of customAssets) {
+        const val = Number(asset.current_value) || 0;
+        if (val <= 0) continue;
+        let inst = "Ativos Físicos";
+        if (asset.category === "vehicle") inst = "Veículo (FIPE)";
+        else if (asset.category === "land" || asset.category === "real_estate") inst = "Imobiliário";
+        else if (asset.category === "fgts") inst = "Caixa Econômica";
+
+        const cur = map.get(inst) || { label: inst, count: 0, value: 0 };
+        cur.count += 1;
+        cur.value += val;
         map.set(inst, cur);
       }
     }

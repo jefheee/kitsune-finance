@@ -47,6 +47,13 @@
 ---
 
 ## 3. Módulos Implementados
+- [x] Módulo de Patrimônio Total & Ativos Físicos (Release v2.4):
+  - **Migração Supabase (`20261101_custom_assets_schema.sql`):** Tabela `public.custom_assets` com FORCE RLS e tipagem Zod estrita para veículos, imóveis, terrenos, FGTS e ativos alternativos.
+  - **Motores Determinísticos MSLR (`src/utils/finance/engine/`):**
+    - `fipe.ts`: integração BrasilAPI com cache L1/L2 (0ms), marcas, modelos, anos e cotação instantânea, com taxa de depreciação/valorização anualizada composta.
+    - `fgts.ts`: projeção determinística oficial da Caixa Econômica (TR + 3% a.a. à taxa de 0,2466% a.m., aporte mensal de 8% do salário bruto e poder de compra real via Equação de Fisher).
+    - `land-valuation.ts`: Modelo A (Custo Contábil & Ganho de Capital IRPF progressivo 15%), Modelo B (correção composta por IPCA vs. IGP-M) e Modelo C (Radar Geográfico Overpass OpenStreetMap em 2km com Kitsune Infrastructure Score 0-100 e multiplicador de atratividade por m²).
+  - **Interface Wealthfolio em Warm Obsidian:** `VehicleFipeSelector.tsx` (cascata Tipo -> Marca -> Modelo -> Ano -> Preço ao vivo), `LandValuationCard.tsx` (auto-fill de CEP v2 com coordenadas e abas Custo, Índices e Radar Local), `FgtsCalculatorCard.tsx` e `AssetModal.tsx` integrado no Dashboard (`NetWorthHeroChart.tsx`, `GroupedAccountsList.tsx` e `AllocationTreemap.tsx`) e gaveta de ações rápidas no `AppShell.tsx`.
 - [x] Guardião Biométrico PWA (WebAuthn W3C + Cortina de Privacidade Page Lifecycle + PIN Universal + Snapshot Masking 0ms): módulo `src/utils/security/biometrics.ts` (checagem de `isSecureContext`, diagnóstico de ambiente IP/HTTPS, credenciais de plataforma `navigator.credentials.create` com ES256/RS256, verificação `userVerification: required` e cofre local com PIN SHA-256), componente de bloqueio global `src/components/security/BiometricLockGuard.tsx` em `src/app/layout.tsx` (onboarding proativo para novos dispositivos, cold-start lock ao abrir o PWA, cortina instantânea `#0A0A0A` síncrona via `window.onblur` e `pwa-privacy-curtain-active` no DOM para blindagem total na tela de recentes/multitarefa do Android/iOS, e keypad numérico estilo app de banco com fallback de senha) e painel de controle em `src/app/settings/page.tsx`.
 - [x] Fusão Total de UI/UX — Portabilidade Completa do Wealthfolio em Warm Obsidian (Fases 1 a 4): substituição integral da casca visual e navegação do Kitsune Finance pelo layout, densidade e responsividade do Wealthfolio (`github.com/wealthfolio/wealthfolio`) com paleta estrita Warm Obsidian (`#0A0A0A` / `#121214` / `#18181B` / `#27272A` / `#FF8216`, zero tons azulados):
   - **Fase 1 (`AppShell.tsx` + `WealthfolioIcons.tsx`):** Sidebar desktop vertical enxuta e colapsável (`68px` / `228px` persistida) com ícones lineares 1.75px, busca global `Ctrl+K`, sync Open Finance e privacidade; Mobile (`< 768px`) com Bottom Navigation Bar flutuante (`env(safe-area-inset-bottom)`), feedback tátil, badge de privacidade, botão central `+` de ação rápida e gaveta "Mais".
@@ -143,11 +150,14 @@
 ---
 
 ## 4. Context Handoff (Memória de Continuidade entre Chats)
-- **Última Etapa Concluída:** Release v2.3 — **Refinamento do Guardião Biométrico PWA & Autenticação Google-First**:
-  1. **Cura Definitiva do Loop de Desbloqueio Biométrico:** Implementado cooldown seguro via `recentlyUnlockedRef` (2000ms) e expurgo síncrono de `lastBackgroundTimestamp.current = null` após validação biométrica (Face ID / Digital) ou PIN, prevenindo que o evento `window.onfocus` disparado pelo fechamento da gaveta nativa do Android rebloqueasse a aplicação instantaneamente.
-  2. **Correção do Fluxo Pós-Logout:** Adicionado bloqueio condicional de prompt para rotas públicas (`/login`, `/signup`, `/`) e armazenamento duplo da recusa de ativação biométrica no dispositivo (`kitsune_prompt_dismissed_device`).
-  3. **Snapshot Masking Clean & Transição Fluida:** Camada `#pwa-privacy-shield-overlay` no Task Switcher convertida em visão clean minimalista (fundo `#0A0A0A/96`, `backdrop-blur-24px`, halo sutil `#FF8216/10` e selo discreto "Kitsune Protegido", sem botões ou teclados na miniatura do multitarefa). Transição acelerada e suave via CSS `0.22s cubic-bezier(0.16, 1, 0.3, 1)`.
-  4. **Remoção de Login Apple & Google-First:** Exclusão completa de referências ao provedor Apple (`/login` e `/signup`), priorização do botão "Continuar com Google" como ação principal de alta densidade e adição de gaveta secundária retrátil para autenticação manual padrão por e-mail/senha.
-  5. **Integridade da Stack:** `npx tsc --noEmit` validado com 0 erros de tipagem.
-- **Próxima Etapa Imediata:** Homologação em produção sob HTTPS (ex: Vercel) com testes de hardware WebAuthn em dispositivos reais (Galaxy A54 e iPhones) e acompanhamento de métricas de engajamento do PWA.
-- **Pendências ou Bloqueios:** Nenhum. Zero erros de compilação e `.benchmarks/` higienizado.
+- **Última Etapa Concluída:** Release v2.5 — **Estabilização Mobile PWA, Conciliação Itaú/Pluggy, Drawer 60 FPS e Purificação da UI**:
+  1. **Navegação Mobile & Posicionamento Fixo:** Eliminado o bug da bottom bar rolando com a página através da remoção de `will-change: filter, opacity` do container `#kitsune-app-root` no CSS global.
+  2. **Ciclo de Vida Biométrico & Proteção PWA:** Trava em cold-start executada estritamente uma vez por sessão (`hasColdStartRunRef`), sem disparo em navegações internas (`usePathname`).
+  3. **Snapshot Masking Clean:** Tela de multitarefa purificada com imagem de blur abstrato escuro/laranja em tela cheia, sem nenhum texto, logo ou botão exposto no snapshot do sistema operacional.
+  4. **Gaveta "Mais" & Ações Rápidas Fluida (60 FPS):** Transição acelerada por GPU (`transform-gpu`) e barra de puxar interativa com suporte a gesto tátil de arrastar para baixo (`deltaY > 35px`) e clique direto para fechar.
+  5. **Detecção Desktop vs. Mobile:** Modais e prompts de biometria desativados em computadores desktop (`isMobileClient`), preservando a experiência limpa no PC.
+  6. **Parcelamentos & Faturas de Cartão:** Normalização das descrições de compras parceladas sem espaçamento, exclusão de parcelas passadas quitadas da lista ativa e distribuição real das parcelas nos meses de vencimento futuro.
+  7. **Conciliação Fiel do Saldo Itaú (R$ 87.205,93):** Identificação e saneamento na raiz de 3 posições defasadas (vintage 2025) de R$ 19.331,60 via sanitização temporal de dados no sync e contexto, garantindo correspondência 100% exata ao app do Itaú sem valores fictícios.
+  8. **Purificação da UI & Regra Global:** Remoção total de tags artificiais de marketing e fórmulas internas da interface ("X-Ray 90/100", "BCB Ao Vivo", "MOTOR DETERMINÍSTICO MSLR", "ZERO ALUCINAÇÃO"), com institucionalização da regra global permanente `clean-saas-vocabulary.md` em `~/.gemini/config/rules/`.
+- **Próxima Etapa Imediata:** Sincronização dos novos dados patrimoniais e ativos físicos com as ferramentas dos agentes de IA (`src/utils/ai/deterministic-tools.ts`).
+- **Pendências ou Bloqueios:** Nenhum. `tsc --noEmit` validado com 0 erros.

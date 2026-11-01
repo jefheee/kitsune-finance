@@ -46,7 +46,18 @@ export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
   const lastBackgroundTimestamp = useRef<number | null>(null);
   const isAuthenticatingRef = useRef<boolean>(false);
   const recentlyUnlockedRef = useRef<boolean>(false);
+  const hasColdStartRunRef = useRef<boolean>(false);
   const userId = user?.id;
+
+  // Detecção precisa de dispositivo móvel (ignora PC/desktop para prompt proativo)
+  const isMobileClient = useCallback(() => {
+    if (typeof window === "undefined") return false;
+    const ua = navigator.userAgent || "";
+    const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+    const hasTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+    const isSmall = window.innerWidth < 768;
+    return isMobileUA || (hasTouch && isSmall);
+  }, []);
 
   // Ativação e Desativação Síncrona do Escudo no DOM (0ms Snapshot Masking)
   const applyCurtainClass = useCallback((active: boolean) => {
@@ -81,26 +92,36 @@ export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
 
     const hasProtection = Boolean(currentSettings.enabled || currentSettings.hasPin);
 
-    // COLD-START LOCK: Se a proteção estiver ativa, bloqueia imediatamente no primeiro frame
-    if (hasProtection && currentSettings.lockOnColdStart !== false) {
-      setIsLocked(true);
-      setIsCurtainActive(true);
-      applyCurtainClass(true);
-    } else {
+    // COLD-START LOCK: Roda APENAS UMA VEZ na inicialização do app, NUNCA em trocas de rota interna
+    if (!hasColdStartRunRef.current) {
+      hasColdStartRunRef.current = true;
+      if (hasProtection && currentSettings.lockOnColdStart !== false) {
+        setIsLocked(true);
+        setIsCurtainActive(true);
+        applyCurtainClass(true);
+        return;
+      }
+    }
+
+    // Modal de ativação proativo: EXCLUSIVO para dispositivos móveis reais (nunca no PC)
+    if (!hasProtection && !currentSettings.dismissedPrompt) {
+      if (!isMobileClient()) {
+        return; // No PC, o usuário configura em /settings se desejar; não exibe modal móvel
+      }
+
       let deviceDismissed = false;
       try {
         deviceDismissed = localStorage.getItem("kitsune_prompt_dismissed_device") === "true";
       } catch (_) {}
 
-      if (!hasProtection && !currentSettings.dismissedPrompt && !deviceDismissed) {
-        // Se não configurou ainda, oferece prompt de boas-vindas
+      if (!deviceDismissed) {
         const timer = setTimeout(() => {
           setShowSetupPrompt(true);
         }, 1200);
         return () => clearTimeout(timer);
       }
     }
-  }, [userId, pathname, applyCurtainClass]);
+  }, [userId, pathname, applyCurtainClass, isMobileClient]);
 
   // Listener para atualização de preferências entre abas
   useEffect(() => {
@@ -520,32 +541,18 @@ export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
         role="dialog"
         aria-modal="true"
         aria-label="Bloqueio de Segurança Biométrico"
-        className="fixed inset-0 w-screen h-screen z-[2147483647] flex flex-col items-center justify-between p-6 select-none"
+        className="fixed inset-0 w-screen h-screen z-[2147483647] flex flex-col items-center justify-between p-6 select-none overflow-hidden"
       >
         {!isLocked ? (
-          /* SNAPSHOT MASKING CLEAN (Visão Minimalista para a miniatura do Multitarefa / Recents) */
-          <div className="flex-1 flex flex-col items-center justify-center space-y-4 my-auto animate-in fade-in duration-200">
-            <div className="relative flex items-center justify-center">
-              {/* Halo sutil com micro-brilho laranja */}
-              <div className="absolute w-24 h-24 rounded-full bg-[#FF8216]/10 blur-xl" />
-              <div className="w-20 h-20 rounded-2xl bg-[#121214]/90 border border-[#27272A] flex items-center justify-center shadow-[0_0_30px_rgba(255,130,22,0.12)] relative z-10">
-                <Image
-                  src="/assets/logo/logo_sem_fundo.png"
-                  alt="Kitsune Finance"
-                  width={48}
-                  height={48}
-                  className="w-12 h-12 object-contain drop-shadow-[0_2px_8px_rgba(255,130,22,0.25)]"
-                  priority
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 pt-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#FF8216] animate-pulse" />
-              <span className="text-xs font-semibold tracking-wider text-zinc-400">
-                Kitsune Protegido
-              </span>
-            </div>
+          /* SNAPSHOT MASKING PURO — Blur Abstrato Warm Obsidian / Kitsune Orange (Sem texto, sem logos) */
+          <div className="absolute inset-0 w-full h-full pointer-events-none select-none">
+            <Image
+              src="/assets/security/privacy-mask.webp"
+              alt=""
+              fill
+              priority
+              className="object-cover w-full h-full scale-105"
+            />
           </div>
         ) : (
           /* TELA DE AUTENTICAÇÃO ATIVA (Exibida quando o usuário retorna e o app está bloqueado) */

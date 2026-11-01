@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
@@ -10,6 +10,7 @@ import { useFinanceData } from "@/context/FinanceDataContext";
 import { NotificationsModal } from "@/components/NotificationsModal";
 import { GlobalFinanceSearchModal } from "@/components/finance/GlobalFinanceSearchModal";
 import PluggyConnectModal from "@/components/PluggyConnectModal";
+import { AssetModal } from "@/components/assets/AssetModal";
 import { WfIcons } from "@/components/wealthfolio/WealthfolioIcons";
 
 const SIDEBAR_STORAGE_KEY = "kitsune_wf_sidebar_collapsed";
@@ -48,6 +49,22 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [isQuickActionsOpen, setIsQuickActionsOpen] = useState(false);
   const [isMoreSheetOpen, setIsMoreSheetOpen] = useState(false);
   const [isPluggyModalOpen, setIsPluggyModalOpen] = useState(false);
+  const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
+
+  // Rastreamento de gestos de touch para arrastar e fechar (swipe down to dismiss)
+  const touchStartY = useRef<number>(0);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent, closeFn: () => void) => {
+    const deltaY = e.changedTouches[0].clientY - touchStartY.current;
+    if (deltaY > 35) {
+      triggerHaptic(12);
+      closeFn();
+    }
+  };
 
   // Restore sidebar state from localStorage
   useEffect(() => {
@@ -785,19 +802,35 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
             onClick={() => setIsQuickActionsOpen(false)}
-            className="md:hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-end"
+            className="md:hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end"
           >
             <motion.div
               initial={{ y: "100%" }}
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
-              transition={{ type: "spring", stiffness: 380, damping: 34 }}
+              transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
               onClick={(e) => e.stopPropagation()}
               style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom, 0px))" }}
-              className="w-full rounded-t-[28px] bg-[#121214] border-t border-[#27272A] px-5 pt-3 shadow-2xl"
+              className="transform-gpu will-change-transform w-full rounded-t-[28px] bg-[#121214] border-t border-[#27272A] px-5 pt-2 shadow-2xl"
             >
-              <div className="w-10 h-1 rounded-full bg-[#27272A] mx-auto mb-4" />
+              {/* Drag Handle Interativo (Clique ou Arrasto para Baixo para Fechar) */}
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => {
+                  triggerHaptic(8);
+                  setIsQuickActionsOpen(false);
+                }}
+                onTouchStart={handleTouchStart}
+                onTouchEnd={(e) => handleTouchEnd(e, () => setIsQuickActionsOpen(false))}
+                className="w-full h-8 flex items-center justify-center cursor-pointer touch-none select-none active:opacity-60 mb-2"
+                aria-label="Fechar ações rápidas"
+              >
+                <div className="w-12 h-1.5 rounded-full bg-zinc-600 dark:bg-zinc-700 hover:bg-[#FF8216] transition-colors" />
+              </div>
+
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="text-sm font-bold text-[#F4F4F5]">Ações Rápidas</h3>
@@ -842,6 +875,25 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   </div>
                 </button>
 
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsQuickActionsOpen(false);
+                    setIsAssetModalOpen(true);
+                  }}
+                  className="p-3.5 rounded-xl bg-[#18181B] border border-[#27272A] hover:border-[#FF8216]/50 text-left flex flex-col gap-2 cursor-pointer"
+                >
+                  <span className="w-8 h-8 rounded-lg bg-blue-500/15 text-blue-400 flex items-center justify-center text-sm">
+                    🚗
+                  </span>
+                  <div>
+                    <span className="text-xs font-bold text-[#F4F4F5] block">
+                      Novo Ativo Físico
+                    </span>
+                    <span className="text-[10px] text-zinc-400">Veículo FIPE, Terreno ou FGTS</span>
+                  </div>
+                </button>
+
                 <Link
                   href="/transactions"
                   onClick={() => setIsQuickActionsOpen(false)}
@@ -870,7 +922,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     <span className="text-xs font-bold text-[#F4F4F5] block">
                       Consultar Kitsune AI
                     </span>
-                    <span className="text-[10px] text-zinc-400">Auditoria MSLR blindada</span>
+                    <span className="text-[10px] text-zinc-400">Diagnóstico e consultoria</span>
                   </div>
                 </Link>
 
@@ -910,19 +962,34 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
             onClick={() => setIsMoreSheetOpen(false)}
-            className="md:hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-end"
+            className="md:hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end"
           >
             <motion.div
               initial={{ y: "100%" }}
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
-              transition={{ type: "spring", stiffness: 380, damping: 34 }}
+              transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
               onClick={(e) => e.stopPropagation()}
               style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom, 0px))" }}
-              className="w-full rounded-t-[28px] bg-[#121214] border-t border-[#27272A] px-5 pt-3 shadow-2xl max-h-[82vh] overflow-y-auto"
+              className="transform-gpu will-change-transform w-full rounded-t-[28px] bg-[#121214] border-t border-[#27272A] px-5 pt-2 shadow-2xl max-h-[82vh] overflow-y-auto"
             >
-              <div className="w-10 h-1 rounded-full bg-[#27272A] mx-auto mb-4" />
+              {/* Drag Handle Interativo (Clique ou Arrasto para Baixo para Fechar) */}
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => {
+                  triggerHaptic(8);
+                  setIsMoreSheetOpen(false);
+                }}
+                onTouchStart={handleTouchStart}
+                onTouchEnd={(e) => handleTouchEnd(e, () => setIsMoreSheetOpen(false))}
+                className="w-full h-8 flex items-center justify-center cursor-pointer touch-none select-none active:opacity-60 mb-2"
+                aria-label="Fechar menu"
+              >
+                <div className="w-12 h-1.5 rounded-full bg-zinc-600 dark:bg-zinc-700 hover:bg-[#FF8216] transition-colors" />
+              </div>
 
               {/* User Header */}
               <div className="flex items-center justify-between pb-3.5 mb-3.5 border-b border-[#27272A]">
@@ -992,7 +1059,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   {
                     href: "/agents",
                     label: "7 Agentes IA",
-                    sub: "Especialistas MSLR",
+                    sub: "Consultores Especialistas",
                     Icon: WfIcons.BotGrid,
                   },
                   {
@@ -1072,6 +1139,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           setIsPluggyModalOpen(false);
           revalidate(true);
         }}
+      />
+
+      <AssetModal
+        isOpen={isAssetModalOpen}
+        onClose={() => setIsAssetModalOpen(false)}
       />
 
       <NotificationsModal

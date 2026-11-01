@@ -28,6 +28,9 @@ import {
 import { NetWorthHeroChart } from "@/components/wealthfolio/NetWorthHeroChart";
 import { GroupedAccountsList } from "@/components/wealthfolio/GroupedAccountsList";
 import { WfIcons } from "@/components/wealthfolio/WealthfolioIcons";
+import { AssetModal } from "@/components/assets/AssetModal";
+import type { CustomAsset } from "@/types/finance";
+
 
 const FINANCIAL_GOALS_MAP: Record<string, string> = {
   asset_growth: "Crescimento e Alocação Estratégica",
@@ -66,6 +69,7 @@ export default function DashboardPage() {
     transactions,
     connections,
     familyMembers,
+    customAssets,
     aiInsight,
     isInitialLoading,
     isRevalidating,
@@ -86,6 +90,8 @@ export default function DashboardPage() {
   const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
   const [connectForMemberId, setConnectForMemberId] = useState<string | null>(null);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
+  const [selectedAssetToEdit, setSelectedAssetToEdit] = useState<CustomAsset | null>(null);
   const [timeGranularity, setTimeGranularity] = useState<"day" | "week" | "month" | "year">("month");
 
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
@@ -381,6 +387,10 @@ export default function DashboardPage() {
     totalBalance,
     liquidBalance,
     investmentsBalance,
+    vehiclesBalance,
+    realEstateBalance,
+    fgtsBalance,
+    otherAssetsBalance,
     loansBalance,
     creditCardBalance,
     monthlyIncome,
@@ -410,6 +420,25 @@ export default function DashboardPage() {
       (sum, l) => sum + (Number(l.outstanding_balance) || 0),
       0
     );
+
+    // Ativos Físicos e Imobilizados (Veículos FIPE, Terrenos/Imóveis, FGTS)
+    const vehTotal = (customAssets || [])
+      .filter((a) => a.category === "vehicle")
+      .reduce((sum, a) => sum + (Number(a.current_value) || 0), 0);
+
+    const reTotal = (customAssets || [])
+      .filter((a) => a.category === "land" || a.category === "real_estate")
+      .reduce((sum, a) => sum + (Number(a.current_value) || 0), 0);
+
+    const fgTotal = (customAssets || [])
+      .filter((a) => a.category === "fgts")
+      .reduce((sum, a) => sum + (Number(a.current_value) || 0), 0);
+
+    const otTotal = (customAssets || [])
+      .filter((a) => a.category === "other")
+      .reduce((sum, a) => sum + (Number(a.current_value) || 0), 0);
+
+    const physicalTotal = vehTotal + reTotal + fgTotal + otTotal;
 
     const now = new Date();
     let windowStart = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
@@ -497,9 +526,13 @@ export default function DashboardPage() {
     });
 
     return {
-      totalBalance: liquid + invTotal - credit - loansTotal,
+      totalBalance: liquid + invTotal + physicalTotal - credit - loansTotal,
       liquidBalance: liquid,
       investmentsBalance: invTotal,
+      vehiclesBalance: vehTotal,
+      realEstateBalance: reTotal,
+      fgtsBalance: fgTotal,
+      otherAssetsBalance: otTotal,
       loansBalance: loansTotal,
       creditCardBalance: credit,
       monthlyIncome: income,
@@ -509,6 +542,7 @@ export default function DashboardPage() {
     filteredAccounts,
     filteredInvestments,
     filteredLoans,
+    customAssets,
     filteredTransactions,
     timeGranularity,
     selfAndFamilyNames,
@@ -981,6 +1015,9 @@ export default function DashboardPage() {
             netWorth={totalBalance}
             liquidBalance={liquidBalance}
             investmentsBalance={investmentsBalance}
+            vehiclesBalance={vehiclesBalance}
+            realEstateBalance={realEstateBalance}
+            fgtsBalance={fgtsBalance}
             liabilitiesBalance={creditCardBalance + loansBalance}
             transactions={filteredTransactions}
             hideValues={isPrivacyMode}
@@ -997,11 +1034,20 @@ export default function DashboardPage() {
                 accounts={filteredAccounts}
                 investments={filteredInvestments}
                 loans={filteredLoans}
+                customAssets={customAssets}
                 formatCurrency={formatCurrency}
                 hideValues={isPrivacyMode}
                 onConnectBank={() => {
                   setConnectForMemberId(null);
                   setIsConnectModalOpen(true);
+                }}
+                onAddAsset={() => {
+                  setSelectedAssetToEdit(null);
+                  setIsAssetModalOpen(true);
+                }}
+                onEditAsset={(asset) => {
+                  setSelectedAssetToEdit(asset);
+                  setIsAssetModalOpen(true);
                 }}
                 monthlyCDIFactor={macroRates.monthlyCDICompoundFactor}
               />
@@ -1373,6 +1419,16 @@ export default function DashboardPage() {
         transactions={filteredTransactions}
         formatCurrency={formatCurrency}
         formatDate={formatDate}
+      />
+
+      {/* Modal de Gestão de Ativos Físicos (Veículos FIPE, Terrenos/Imóveis, FGTS) */}
+      <AssetModal
+        isOpen={isAssetModalOpen}
+        onClose={() => {
+          setIsAssetModalOpen(false);
+          setSelectedAssetToEdit(null);
+        }}
+        assetToEdit={selectedAssetToEdit}
       />
     </div>
   );
