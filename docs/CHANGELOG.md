@@ -4,11 +4,11 @@ Todas as alterações notáveis no projeto Kitsune Finance são registradas de f
 
 ---
 
-## [2026-10-31] - Criação da Regra Autônoma de Cursor (.cursor/rules)
-- **Arquivos Afetados:** `.cursor/rules/00-autonomous-protocol.mdc`, `docs/CHANGELOG.md`.
+## [2026-10-31] - Migração de Regras para Padrão Nativo Antigravity (.gemini/rules)
+- **Arquivos Afetados:** `.gemini/rules/autonomous-protocol.md`, `AGENTS.md`, `docs/CHANGELOG.md`.
 - **Objetivo:**
-  - Instalação da regra persistente `.cursor/rules/00-autonomous-protocol.mdc` com `alwaysApply: true`.
-  - Força a leitura obrigatória e silenciosa de `AGENTS.md`, `docs/PROJECT_STATE.md` e `docs/ARCHITECTURE_EXPANSION.md` a cada novo chat ou início de sessão no projeto.
+  - Remoção completa do diretório legado `.cursor/rules` em favor do ecossistema nativo do Google Antigravity.
+  - Criação da regra de workspace `.gemini/rules/autonomous-protocol.md` e atualização do `AGENTS.md` com protocolo de boot silencioso e fechamento Docs-as-Code.
 
 ---
 

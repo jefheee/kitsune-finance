@@ -10,7 +10,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## 🚨 MANDATÓRIO: Protocolo Docs as Code (Documentação Autônoma)
 Toda e qualquer alteração de código, endpoints, componentes, schema ou arquitetura no **Kitsune Finance** deve ser documentada autonomamente:
-1. **Consulte** `docs/PROJECT_STATE.md` para entender o estado atual antes de modificações profundas.
-2. **Atualize** `docs/PROJECT_STATE.md` quando novas rotas, tabelas ou recursos forem adicionados/concluídos.
-3. **Registre** no topo de `docs/CHANGELOG.md` uma entrada curta (4 a 6 linhas) com data, objetivo e arquivos afetados.
+1. **Boot Silencioso:** Consulte `docs/PROJECT_STATE.md` e `docs/ARCHITECTURE_EXPANSION.md` (se existir) para entender o estado atual e ler o `## Context Handoff` antes de qualquer alteração.
+2. **Atualize** `docs/PROJECT_STATE.md` quando novas rotas, tabelas ou recursos forem adicionados/concluídos (mantendo `## Context Handoff` atualizado com o próximo passo).
+3. **Registre** no topo de `docs/CHANGELOG.md` uma entrada curta (4 a 6 linhas) com data `[YYYY-MM-DD]`, objetivo e arquivos afetados.
 Nenhum agente deve finalizar uma alteração no código sem manter a documentação sincronizada.
