@@ -6,6 +6,7 @@ import { useFinanceData } from "@/context/FinanceDataContext";
 import { createClient } from "@/utils/supabase/client";
 import Spinner from "@/components/Spinner";
 import { BankLogo } from "@/components/BankLogo";
+import { WfIcons } from "@/components/wealthfolio/WealthfolioIcons";
 
 const FINANCIAL_GOALS = [
     {
@@ -189,32 +190,29 @@ export default function ProfilePage() {
     const initials = (displayName || fullName || user?.email || "K").slice(0, 2).toUpperCase();
 
     return (
-        <div className="flex flex-col gap-6 md:gap-8 p-4 md:p-8 max-w-4xl mx-auto w-full font-sans">
+        <div className="flex flex-col gap-6 p-4 md:p-7 pb-28 md:pb-10 max-w-[1380px] mx-auto w-full font-sans">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-[#27272A]">
-                <div className="flex flex-col gap-1">
+            <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-zinc-200 dark:border-[#27272A]">
+                <div>
                     <div className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-[#FF8216]">person</span>
-                        <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-[#94A3B8]">
-                            Espaço Pessoal & Open Finance
-                        </span>
+                        <WfIcons.User className="w-5 h-5 text-[#FF8216]" />
+                        <h1 className="text-xl md:text-2xl font-bold tracking-tight text-zinc-900 dark:text-[#F4F4F5]">
+                            Meu Perfil & Identidade Consolidada
+                        </h1>
                     </div>
-                    <h1 className="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-[#F8FAFC]">
-                        Meu Perfil & Identidade Consolidada
-                    </h1>
-                    <p className="text-xs md:text-sm text-slate-500 dark:text-[#94A3B8]">
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                         Visualize seus dados unificados entre bancos e calibre suas metas financeiras.
                     </p>
                 </div>
 
                 <Link
                     href="/dashboard"
-                    className="self-start sm:self-auto h-9 px-4 rounded-xl border border-slate-200 dark:border-[#27272A] hover:bg-slate-100 dark:hover:bg-[#18181B] text-xs font-semibold text-slate-700 dark:text-[#F8FAFC] flex items-center gap-1.5 transition-colors cursor-pointer"
+                    className="self-start sm:self-auto h-9 px-3.5 rounded-xl border border-zinc-200 dark:border-[#27272A] bg-white dark:bg-[#121214] hover:bg-zinc-100 dark:hover:bg-[#18181B] text-xs font-medium text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
-                    <span className="material-symbols-outlined text-[16px]">arrow_back</span>
-                    Voltar ao Início
+                    <WfIcons.ArrowLeft className="w-3.5 h-3.5" />
+                    <span>Voltar ao Início</span>
                 </Link>
-            </div>
+            </header>
 
             {saveSuccess && (
                 <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-semibold flex items-center justify-between">

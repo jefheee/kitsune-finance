@@ -160,14 +160,40 @@
   - **Overhaul do Diagnóstico da IA & Bento Grid (`AiDiagnosticPanel.tsx` e `/dashboard`):** Formatação estrita com `Intl.NumberFormat('pt-BR')` em 100% dos valores injetados e textos gerados (eliminação de floats brutos como `106561.48`), posicionamento em Bento Grid de largura total para respiração visual e eliminação do truncamento de métricas (`Cobert...`, `Gastos...`).
   - **Limpeza do Cabeçalho Mobile e Localização:** Aumento da saudação `Olá, {userFirstName}`, remoção de botões redundantes (lupa e CSV) da barra mobile, destaque do botão `Sincronizar` e tradução completa dos períodos (`1 Mês`, `3 Meses`, `6 Meses`, `1 Ano`, `Tudo`) e unidades no Hero Chart.
 
+- [x] Widgets Interativos Estilo Banco, Limpeza de Cabeçalhos e Tabs 100% Responsivas (Release v2.8):
+  - **Widgets Interativos Executivos (`DashboardExecutiveWidgets.tsx`):** Transformação das 4 seções principais ("Contas & Custódia", "Atividades Recentes Conciliadas", "Metas & Reserva" e "Maiores Posições") em cards idênticos aos `BankBalanceCards` (grid 2x2 no mobile e 4 colunas no desktop). Cada widget é interativo e clicável, permitindo expandir o conteúdo completo com animação fluida e botão de recolher, eliminando a sobrecarga de informações na tela inicial.
+  - **Segmented Tabs Sem Scroll no Mobile:** Redesenho das 4 abas ("Visão Geral", "Fluxo & Gastos", "Transações", "Parcelas & Assinaturas") em layout `grid grid-cols-2 sm:grid-cols-4 gap-1 w-full`, encaixando-se perfeitamente em 100% dos celulares sem barra de rolagem horizontal.
+  - **Ações Rápidas Justificadas e Centralizadas:** Botões "Sincronizar" e "+ Lançamento" organizados em grid de 2 botões de largura igual (50% cada) no mobile, com textos completos e ícones centralizados; no PC, alinhados de forma harmônica na barra superior.
+  - **Remoção de Elementos Poluentes:**
+    - Remoção do botão redundante `+ Conectar Conta` do cabeçalho da página inicial.
+    - Remoção da bolinha/anel laranja do botão `+` na barra de navegação inferior mobile (`AppShell.tsx`).
+    - Remoção do card de "Diagnóstico & Parecer da Kitsune AI" e do "Kitsune Score" da página inicial, limpando o dashboard e priorizando os dados financeiros diretos.
+  - **Correção e Estabilidade:** Resolução de duplicidade de sintaxe no motor FIPE (`src/utils/finance/engine/fipe.ts`) e validação rigorosa de tipagem com `npx tsc --noEmit` zerado (0 erros).
+
+---
+
+- [x] Padronização Global de UI/UX, Busca FIPE Flexível com Fallback e Radar Imobiliário Enriquecido (Release v2.9):
+  - **Padronização Global do Design System Wealthfolio:** Todas as páginas do sistema (`/dashboard`, `/assets`, `/cards`, `/investments`, `/insights`, `/transactions`, `/goals`, `/agents`, `/connections`, `/shared`, `/profile`, `/settings`) unificadas no mesmo container canônico (`max-w-[1380px] p-4 md:p-7 pb-28 md:pb-10 font-sans`), eliminando margens coladas e disparidades entre telas.
+  - **Cabeçalhos e Botões Harmonizados:** Substituição de tags genéricas em caixa alta e pontinhos laranjas por headers limpos com ícone oficial SVG (`WfIcons`), tipografia `text-xl md:text-2xl font-bold tracking-tight text-zinc-900 dark:text-[#F4F4F5]`, subtítulo sem jargões e botões nos padrões primário (`h-9 px-4 rounded-xl bg-[#FF8216]`) e secundário (`h-9 px-3.5 rounded-xl border border-zinc-200 dark:border-[#27272A]`).
+  - **Motor FIPE Tolerante e Resiliente (`fipe.ts` & `VehicleFipeSelector.tsx`):**
+    - Implementação de busca fuzzy e flexível por tokens (insensível a acentuação e ordem dos termos).
+    - Seleção de ano desbloqueada e antecipada (o usuário pode escolher o ano antes mesmo de definir a versão).
+    - Fallback transparente e automático com a API da Parallelum contra falhas de rate limit (erro 429) e erro interno da BrasilAPI, eliminando a mensagem "Nenhum ano disponível para esta versão".
+  - **Identificação Veicular por Placa (`/api/assets/vehicle-plate`):** Consulta por placa (Mercosul ou padrão antigo) com estimativa da UF de emplacamento e suporte nativo a gateways comerciais (APIBrasil/WDAPI).
+  - **Redesenho do Modal de Ativos e Card de Imóveis (`AssetModal.tsx` & `LandValuationCard.tsx`):**
+    - Eliminação de opções duplicadas (fusão de "Terreno" e "Imóvel" em uma categoria única intuitiva com subtipos: Casa, Apartamento, Terreno / Lote e Comercial).
+    - Grid responsivo espaçoso sem truncamento de CEP, Bairro ou Rua.
+    - Abas rebatizadas: "Valor Contábil & IRPF", "Correção por Inflação" e "Radar de Região & Serviços".
+    - Enriquecimento com estimativas de mercado do m² da região do CEP (venda, locação e rental yield) e listagem nominal detalhada de todos os pontos de interesse identificados pelo OpenStreetMap Overpass no raio de 2km com suas respectivas distâncias em metros.
+  - **Compilação e Estabilidade:** Validação TypeScript com 0 erros (`npx tsc --noEmit`) e build de produção bem-sucedido de todas as 42 rotas do Next.js 16.
+
 ---
 
 ## 4. Context Handoff (Memória de Continuidade entre Chats)
-- **Última Etapa Concluída:** Release v2.7 — **Geração de Documentos IA, Centralização de Modais, Busca 360° e Overhaul do Diagnóstico**:
-  1. **Download de Relatórios pela IA:** Suporte oficial e botões visíveis para Word, PDF, Google Docs e Markdown no chat da Kitsune AI.
-  2. **Modais Centralizados:** Eliminação do bug de posicionamento relativo através de React Portals (`createPortal`) e correção de animação CSS de página.
-  3. **Busca 360° Completa:** O campo de busca agora pesquisa páginas, contas, cartões, investimentos, veículos/terrenos e lançamentos com redirecionamento instantâneo.
-  4. **Diagnóstico Executivo Reestruturado:** Valores corrigidos no padrão brasileiro (`R$ XX.XXX,XX`), proporções fluidas sem cortes de palavras e encaixe harmonioso em Bento Grid.
-  5. **UI Mobile Sólida:** Saudação maior, ações reorganizadas e tradução de todos os termos em inglês.
+- **Última Etapa Concluída:** Release v2.9 — **Padronização Global de UI/UX, Busca FIPE Flexível com Fallback e Radar Imobiliário Enriquecido**:
+  1. **Layout Canônico em 100% das Páginas:** Container `max-w-[1380px] p-4 md:p-7 pb-28 md:pb-10 font-sans` e cabeçalhos homogêneos sem tags genéricas.
+  2. **Motor FIPE e Placas:** Busca tolerante/fuzzy, escolha antecipada de ano, fallback resiliente contra erro 429 e consulta veicular por placa.
+  3. **Imóveis & Terrenos:** Modal redesenhado sem redundâncias, estimativa de mercado do m² da região (venda/locação/yield) e listagem nominal dos POIs no raio de 2km.
+  4. **Build e Tipagem:** `npx tsc --noEmit` zerado e `next build` com 42/42 rotas compiladas com sucesso.
 - **Próxima Etapa Imediata:** Sincronização dos novos dados patrimoniais e ativos físicos com as ferramentas dos agentes de IA (`src/utils/ai/deterministic-tools.ts`).
-- **Pendências ou Bloqueios:** Nenhum. `npx tsc --noEmit` validado com 0 erros.
+- **Pendências ou Bloqueios:** Nenhum. Todo o código compila perfeitamente.

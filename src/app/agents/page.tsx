@@ -11,6 +11,7 @@ import {
     KITSUNE_AGENTS_REGISTRY,
     type MacroToolIdentifier,
 } from "@/utils/ai/kitsune-agents-registry";
+import { WfIcons } from "@/components/wealthfolio/WealthfolioIcons";
 
 const MACRO_TOOL_LABELS: Record<MacroToolIdentifier, string> = {
     get_balance_sheet_xray: "Balanço & FGC",
@@ -89,32 +90,29 @@ export default function AgentsHubPage() {
     const fixedIncome = deterministicBundle.fixedIncomeAndGoals;
 
     return (
-        <div className="flex flex-col gap-6 p-4 md:p-8 pt-6 md:pt-8 pb-28 md:pb-10 max-w-6xl mx-auto w-full font-sans animate-fade-in">
+        <div className="flex flex-col gap-6 p-4 md:p-7 pb-28 md:pb-10 max-w-[1380px] mx-auto w-full font-sans">
             {/* Header da Central Multi-Agente */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-zinc-200 dark:border-[#27272A]">
                 <div>
-                    <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-[#18181B] border border-[#27272A] text-[11px] font-medium text-[#FF8216] mb-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#FF8216]" />
-                        <span>CONSULTORES FINANCEIROS ESPECIALIZADOS</span>
+                    <div className="flex items-center gap-2">
+                        <WfIcons.Agents className="w-5 h-5 text-[#FF8216]" />
+                        <h1 className="text-xl md:text-2xl font-bold tracking-tight text-zinc-900 dark:text-[#F4F4F5]">
+                            Agentes Especialistas
+                        </h1>
                     </div>
-                    <h1 className="text-xl md:text-3xl font-bold text-white flex items-center gap-2.5">
-                        Agentes Especialistas da Kitsune
-                    </h1>
-                    <p className="text-xs md:text-sm text-zinc-400 mt-1 max-w-2xl">
-                        Especialistas dedicados integrados aos seus dados reais do Open Finance para fornecer análises e diagnósticos patrimoniais completos.
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                        Consultores integrados aos seus dados de Open Finance para auditoria, alocação e diagnósticos.
                     </p>
                 </div>
 
                 <Link
                     href="/connections"
-                    className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#18181B] hover:bg-[#27272A]/80 text-zinc-200 font-semibold text-xs border border-[#27272A] transition-colors shrink-0 min-h-[44px]"
+                    className="h-9 px-3.5 rounded-xl bg-white dark:bg-[#121214] hover:bg-zinc-100 dark:hover:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] text-xs font-medium text-zinc-700 dark:text-zinc-300 inline-flex items-center gap-1.5 transition-colors self-start md:self-auto"
                 >
-                    <span className="material-symbols-outlined text-[16px] text-[#FF8216]">
-                        account_balance
-                    </span>
-                    <span>Gerenciar Conexões Bancárias</span>
+                    <WfIcons.Bank className="w-3.5 h-3.5 text-[#FF8216]" />
+                    <span>Conexões Bancárias</span>
                 </Link>
-            </div>
+            </header>
 
             {/* Barra Executiva do Motor Determinístico */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">

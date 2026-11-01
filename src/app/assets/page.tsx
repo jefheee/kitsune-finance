@@ -70,21 +70,18 @@ export default function AssetsPage() {
   };
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="flex flex-col gap-6 p-4 md:p-7 pb-28 md:pb-10 max-w-[1380px] mx-auto w-full font-sans">
       {/* CABEÇALHO DO MÓDULO */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#27272A] pb-5">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-zinc-200 dark:border-[#27272A]">
         <div>
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-[#FF8216]" />
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[#FF8216]">
-              Patrimônio Imobilizado & Físico
-            </span>
+            <WfIcons.Assets className="w-5 h-5 text-[#FF8216]" />
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-zinc-900 dark:text-[#F4F4F5]">
+              Patrimônio & Ativos
+            </h1>
           </div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#F4F4F5] mt-1">
-            Ativos Físicos, FIPE & Imóveis
-          </h1>
-          <p className="text-xs sm:text-sm text-zinc-400 mt-0.5">
-            Veículos com FIPE ao vivo, FGTS determinístico Caixa e radar geográfico de terrenos (Modelos A, B e C).
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+            Gestão de patrimônio imobilizado, veículos com cotação FIPE oficial, FGTS e imóveis.
           </p>
         </div>
 
@@ -94,12 +91,12 @@ export default function AssetsPage() {
             setSelectedAssetToEdit(null);
             setIsAssetModalOpen(true);
           }}
-          className="h-9 px-4 rounded-xl bg-[#FF8216] hover:bg-[#FFA047] text-black text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-md shadow-[#FF8216]/20 shrink-0"
+          className="h-9 px-4 rounded-xl bg-[#FF8216] hover:bg-[#FFA047] text-black text-xs font-semibold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-sm self-start md:self-auto"
         >
-          <WfIcons.Plus size={16} />
+          <WfIcons.Plus className="w-4 h-4" />
           <span>Novo Ativo</span>
         </button>
-      </div>
+      </header>
 
       {/* 4 CARDS DE KPI WEALTHFOLIO */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

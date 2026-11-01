@@ -706,7 +706,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 setIsMoreSheetOpen(false);
               }}
               aria-label="Ações Rápidas"
-              className="relative w-11 h-11 rounded-full bg-[#FF8216] hover:bg-[#FFA047] active:scale-92 text-black flex items-center justify-center shadow-[0_4px_20px_rgba(255,130,22,0.4)] transition-transform cursor-pointer"
+              className="relative w-11 h-11 rounded-full bg-[#FF8216] hover:bg-[#FFA047] active:scale-92 text-black flex items-center justify-center shadow-md transition-transform cursor-pointer"
             >
               <WfIcons.Plus
                 size={20}
@@ -714,14 +714,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   isQuickActionsOpen ? "rotate-45" : ""
                 }`}
               />
-              {isPrivacyMode && (
-                <span
-                  title="Modo Privacidade Ativo"
-                  className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-[#0A0A0A] border border-[#FF8216] flex items-center justify-center"
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#FF8216]" />
-                </span>
-              )}
             </button>
           </div>
 

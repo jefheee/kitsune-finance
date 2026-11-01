@@ -4,6 +4,28 @@ Todas as alterações notáveis no projeto Kitsune Finance são registradas de f
 
 ---
 
+## [2026-11-01] - Padronização Global de UI/UX, Busca FIPE Flexível com Fallback e Radar Imobiliário Enriquecido
+- **Arquivos Afetados:** `src/app/assets/page.tsx`, `src/components/assets/{VehicleFipeSelector.tsx, LandValuationCard.tsx, AssetModal.tsx}`, `src/utils/finance/engine/{fipe.ts, land-valuation.ts}`, `src/app/api/assets/{radar/route.ts, vehicle-plate/route.ts}`, `src/app/{agents, shared, profile}/page.tsx`, `src/components/wealthfolio/WealthfolioIcons.tsx`.
+- **Objetivo:**
+  - Padronização em todas as páginas do layout canônico Wealthfolio (`max-w-[1380px] p-4 md:p-7 pb-28 md:pb-10 font-sans`), unificando margens, tamanhos de textos, botões e headers com remoção de tags genéricas e buzzwords na UI.
+  - Implementação de busca fuzzy e flexível por tokens para montadoras e modelos FIPE, com seleção de ano antecipada e fallback resiliente da Parallelum contra o erro 429 da BrasilAPI.
+  - Criação da rota `/api/assets/vehicle-plate` para identificação veicular por placa (Mercosul/antiga) com estimativa de UF e suporte a gateways comerciais (APIBrasil/WDAPI).
+  - Overhaul do modal de ativos e do card de imóveis: eliminação de duplicidades, layout respirado sem corte de textos, dados de mercado regional por m² (venda, locação e yield) e listagem nominal de pontos de interesse no raio de 2km do CEP.
+  - Validação estrita do TypeScript e build bem-sucedido de todas as 42 rotas do Next.js 16.
+
+---
+
+## [2026-11-01] - Widgets Interativos Estilo Banco, Limpeza de Cabeçalhos e Tabs 100% Responsivas
+- **Arquivos Afetados:** `src/components/finance/DashboardExecutiveWidgets.tsx`, `src/app/dashboard/page.tsx`, `src/components/layout/AppShell.tsx`, `src/utils/finance/engine/fipe.ts`.
+- **Objetivo:**
+  - Criação do componente `DashboardExecutiveWidgets` transformando Atividades Recentes, Contas, Metas e Posições em cards compactos idênticos aos cartões de bancos, com expansão interativa e botão de recolher.
+  - Redesenho das Segmented Tabs em grid 2x2/4 colunas sem barra de rolagem horizontal no mobile, cabendo perfeitamente na viewport.
+  - Reorganização e centralização dos botões "Sincronizar" e "+ Lançamento" (50% de largura no mobile, alinhamento simétrico no PC).
+  - Remoção de elementos visuais poluentes: botão `+ Conectar Conta` no dashboard, anel/bolinha laranja no botão `+` da barra mobile e card repetitivo de Diagnóstico da IA.
+  - Correção de sintaxe no motor de cotação FIPE e validação completa do TypeScript com 0 erros.
+
+---
+
 ## [2026-11-01] - Geração de Documentos IA, Busca Global 360°, Centralização de Modais e Overhaul do Diagnóstico
 - **Arquivos Afetados:** `src/app/kitsune/page.tsx`, `src/utils/export/document-exporter.ts`, `src/utils/ai/dossier.ts`, `src/app/dashboard/page.tsx`, `src/components/wealthfolio/NetWorthHeroChart.tsx`, `src/components/finance/GlobalFinanceSearchModal.tsx`, `src/components/AiDiagnosticPanel.tsx`, `src/app/api/ai/generate-insight/route.ts`, `src/components/{PluggyConnectModal.tsx, assets/AssetModal.tsx, finance/ManualTransactionModal.tsx, finance/TransactionDetailModal.tsx}`, `src/app/globals.css`.
 - **Objetivo:**

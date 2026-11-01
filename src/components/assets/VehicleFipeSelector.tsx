@@ -7,6 +7,8 @@ import {
   fetchFipeYears,
   fetchFipePrice,
   calculateVehicleDepreciation,
+  fuzzyMatches,
+  DEFAULT_VEHICLE_YEARS,
   type FipeVehicleType,
   type FipeBrand,
   type FipeModel,
@@ -14,6 +16,7 @@ import {
   type FipePriceDetail,
   type VehicleDepreciationResult,
 } from "@/utils/finance/engine/fipe";
+import { WfIcons } from "@/components/wealthfolio/WealthfolioIcons";
 
 export interface VehicleFormData {
   name: string;
@@ -50,7 +53,12 @@ export function VehicleFipeSelector({
     initialData?.vehicleType || "carros"
   );
 
-  // 2. Marcas
+  // 2. Consulta por Placa
+  const [licensePlate, setLicensePlate] = useState(initialData?.licensePlate || "");
+  const [isConsultingPlate, setIsConsultingPlate] = useState(false);
+  const [plateMessage, setPlateMessage] = useState<string | null>(null);
+
+  // 3. Marcas
   const [brands, setBrands] = useState<FipeBrand[]>([]);
   const [selectedBrand, setSelectedBrand] = useState<FipeBrand | null>(
     initialData?.brand && initialData?.brandCode
@@ -61,7 +69,7 @@ export function VehicleFipeSelector({
   const [isBrandDropdownOpen, setIsBrandDropdownOpen] = useState(false);
   const [isLoadingBrands, setIsLoadingBrands] = useState(false);
 
-  // 3. Modelos
+  // 4. Modelos
   const [models, setModels] = useState<FipeModel[]>([]);
   const [selectedModel, setSelectedModel] = useState<FipeModel | null>(
     initialData?.model && initialData?.modelCode
@@ -72,7 +80,12 @@ export function VehicleFipeSelector({
   const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
 
-  // 4. Anos / Versões
+  // 5. Ano Preferencial do Usuário (pode ser selecionado ANTES de escolher o modelo)
+  const [preferredYear, setPreferredYear] = useState<number | null>(
+    initialData?.modelYear || null
+  );
+
+  // 6. Anos / Versões Homologadas
   const [years, setYears] = useState<FipeYear[]>([]);
   const [selectedYear, setSelectedYear] = useState<FipeYear | null>(
     initialData?.yearCode && initialData?.yearName
@@ -86,13 +99,12 @@ export function VehicleFipeSelector({
   );
   const [isLoadingYears, setIsLoadingYears] = useState(false);
 
-  // 5. Cotação FIPE Detalhada
+  // 7. Cotação FIPE Detalhada
   const [fipeDetail, setFipeDetail] = useState<FipePriceDetail | null>(null);
   const [isLoadingPrice, setIsLoadingPrice] = useState(false);
 
-  // 6. Campos manuais de aquisição do usuário
+  // 8. Campos manuais de aquisição do usuário
   const [customName, setCustomName] = useState(initialData?.name || "");
-  const [licensePlate, setLicensePlate] = useState(initialData?.licensePlate || "");
   const [acquisitionDate, setAcquisitionDate] = useState(
     initialData?.acquisitionDate || new Date().toISOString().slice(0, 10)
   );
@@ -153,8 +165,6 @@ export function VehicleFipeSelector({
   useEffect(() => {
     if (!selectedBrand?.code || !selectedModel?.code) {
       setYears([]);
-      setSelectedYear(null);
-      setFipeDetail(null);
       return;
     }
 
@@ -163,18 +173,32 @@ export function VehicleFipeSelector({
     fetchFipeYears(vehicleType, selectedBrand.code, selectedModel.code)
       .then((y) => {
         if (!mounted) return;
-        setYears(y);
+        const availableYears = y.length > 0 ? y : DEFAULT_VEHICLE_YEARS.slice(0, 12);
+        setYears(availableYears);
         setIsLoadingYears(false);
+
+        // Se o usuário já escolheu um ano preferencial antes do modelo, tenta casar automaticamente!
+        if (preferredYear) {
+          const match = availableYears.find((item) => item.year === preferredYear);
+          if (match) {
+            setSelectedYear(match);
+          } else if (availableYears.length > 0) {
+            setSelectedYear(availableYears[0]);
+          }
+        }
       })
       .catch((err) => {
         console.warn("[FIPE] Erro ao carregar anos:", err);
-        if (mounted) setIsLoadingYears(false);
+        if (mounted) {
+          setYears(DEFAULT_VEHICLE_YEARS.slice(0, 12));
+          setIsLoadingYears(false);
+        }
       });
 
     return () => {
       mounted = false;
     };
-  }, [vehicleType, selectedBrand, selectedModel]);
+  }, [vehicleType, selectedBrand, selectedModel, preferredYear]);
 
   // Carrega Preço FIPE instantâneo quando o Ano é selecionado
   useEffect(() => {
@@ -190,11 +214,9 @@ export function VehicleFipeSelector({
         setFipeDetail(detail);
         setIsLoadingPrice(false);
 
-        // Preenche automaticamente o nome se ainda vazio
         if (!customName.trim()) {
           setCustomName(`${detail.brand} ${detail.model}`);
         }
-        // Se valor de aquisição ainda estiver 0, sugere o valor da FIPE
         if (acquisitionValue === 0) {
           setAcquisitionValue(detail.price);
         }
@@ -209,18 +231,66 @@ export function VehicleFipeSelector({
     };
   }, [vehicleType, selectedBrand, selectedModel, selectedYear]);
 
-  // Filtros de busca em tempo real
+  // Filtros de busca flexíveis (fuzzy matching sem acento e por termos parciais)
   const filteredBrands = useMemo(() => {
     if (!brandSearch.trim()) return brands;
-    const term = brandSearch.toLowerCase();
-    return brands.filter((b) => b.name.toLowerCase().includes(term));
+    return brands.filter((b) => fuzzyMatches(b.name, brandSearch));
   }, [brands, brandSearch]);
 
   const filteredModels = useMemo(() => {
     if (!modelSearch.trim()) return models;
-    const term = modelSearch.toLowerCase();
-    return models.filter((m) => m.name.toLowerCase().includes(term));
+    return models.filter((m) => fuzzyMatches(m.name, modelSearch));
   }, [models, modelSearch]);
+
+  // Anos exibidos para escolha (se ainda não escolheu modelo, mostra os anos universais)
+  const displayYears = useMemo(() => {
+    if (years.length > 0) return years;
+    return DEFAULT_VEHICLE_YEARS.slice(0, 16);
+  }, [years]);
+
+  // Consulta por Placa
+  const handleConsultPlate = async () => {
+    const clean = licensePlate.replace(/[^A-Z0-9]/gi, "").toUpperCase();
+    if (clean.length < 7) {
+      setPlateMessage("Digite a placa completa com 7 caracteres (ex: ABC1D23 ou ABC1234).");
+      return;
+    }
+
+    setIsConsultingPlate(true);
+    setPlateMessage(null);
+
+    try {
+      const res = await fetch("/api/assets/vehicle-plate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plate: clean }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setPlateMessage(data.error || "Não foi possível consultar a placa.");
+        return;
+      }
+
+      setPlateMessage(data.message);
+
+      // Se a API comercial retornou montadora e modelo
+      if (data.brand) {
+        const foundBrand = brands.find((b) => fuzzyMatches(b.name, data.brand));
+        if (foundBrand) {
+          setSelectedBrand(foundBrand);
+        }
+      }
+
+      if (data.year) {
+        setPreferredYear(data.year);
+      }
+    } catch {
+      setPlateMessage("Falha de rede ao consultar placa veicular.");
+    } finally {
+      setIsConsultingPlate(false);
+    }
+  };
 
   // Cálculo determinístico de depreciação/valorização em tempo real
   const currentPrice = fipeDetail?.price || initialData?.currentFipePrice || 0;
@@ -238,10 +308,10 @@ export function VehicleFipeSelector({
       brandCode: selectedBrand?.code || "",
       model: selectedModel?.name || "",
       modelCode: selectedModel?.code || "",
-      yearName: selectedYear?.name || "",
-      yearCode: selectedYear?.code || "",
-      modelYear: fipeDetail?.modelYear || selectedYear?.year || 0,
-      fuel: fipeDetail?.fuel || selectedYear?.fuel || "",
+      yearName: selectedYear?.name || (preferredYear ? String(preferredYear) : ""),
+      yearCode: selectedYear?.code || (preferredYear ? `${preferredYear}-1` : ""),
+      modelYear: fipeDetail?.modelYear || selectedYear?.year || preferredYear || 0,
+      fuel: fipeDetail?.fuel || selectedYear?.fuel || "Gasolina / Flex",
       fipeCode: fipeDetail?.fipeCode || "",
       currentFipePrice: currentPrice,
       referenceMonth: fipeDetail?.referenceMonth || "",
@@ -256,6 +326,7 @@ export function VehicleFipeSelector({
     selectedBrand,
     selectedModel,
     selectedYear,
+    preferredYear,
     fipeDetail,
     currentPrice,
     licensePlate,
@@ -274,11 +345,11 @@ export function VehicleFipeSelector({
   };
 
   return (
-    <div className="space-y-4 text-zinc-100">
-      {/* 1. SELETOR RÁPIDO DE CATEGORIA (Carros / Motos / Caminhões) */}
+    <div className="space-y-4 text-zinc-100 font-sans">
+      {/* 1. SELEÇÃO DE TIPO DE VEÍCULO */}
       <div>
         <label className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 block mb-1.5">
-          1. Tipo de Veículo
+          Tipo de Veículo
         </label>
         <div className="grid grid-cols-3 gap-2 bg-[#18181B] p-1 rounded-xl border border-[#27272A]">
           {(
@@ -302,7 +373,7 @@ export function VehicleFipeSelector({
                 }}
                 className={`py-2 px-3 text-xs font-semibold rounded-lg transition-all cursor-pointer text-center ${
                   active
-                    ? "bg-[#FF8216] text-black shadow-md shadow-[#FF8216]/20"
+                    ? "bg-[#FF8216] text-black shadow-xs font-bold"
                     : "text-zinc-400 hover:text-zinc-200 hover:bg-[#27272A]/40"
                 }`}
               >
@@ -313,12 +384,58 @@ export function VehicleFipeSelector({
         </div>
       </div>
 
-      {/* 2 & 3. MARCA E MODELO EM CASCATA */}
+      {/* 2. CONSULTA RÁPIDA POR PLACA (OPCIONAL) */}
+      <div className="p-3 bg-[#18181B] border border-[#27272A] rounded-xl space-y-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <span className="text-[11px] font-bold text-zinc-300 block">
+              Placa do Veículo (Opcional)
+            </span>
+            <span className="text-[10px] text-zinc-400">
+              Padrão Mercosul ou cinza tradicional
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              maxLength={8}
+              placeholder="BRA2E19"
+              value={licensePlate}
+              onChange={(e) => setLicensePlate(e.target.value.toUpperCase())}
+              className="w-32 bg-[#121214] border border-[#27272A] rounded-lg px-2.5 py-1.5 text-xs text-white font-mono uppercase tracking-wider outline-none focus:border-[#FF8216]"
+            />
+            <button
+              type="button"
+              onClick={handleConsultPlate}
+              disabled={isConsultingPlate}
+              className="h-8 px-3 rounded-lg bg-[#27272A] hover:bg-[#323238] text-xs font-medium text-zinc-200 flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 shrink-0"
+            >
+              {isConsultingPlate ? (
+                <span>Buscando...</span>
+              ) : (
+                <>
+                  <WfIcons.Search className="w-3.5 h-3.5 text-[#FF8216]" />
+                  <span>Consultar</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {plateMessage && (
+          <p className="text-[11px] text-zinc-400 bg-[#121214] p-2 rounded-lg border border-[#27272A] leading-relaxed">
+            {plateMessage}
+          </p>
+        )}
+      </div>
+
+      {/* 3 & 4. MARCA E MODELO COM BUSCA FLEXÍVEL */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {/* Dropdown com Busca: MARCA */}
         <div className="relative">
           <label className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 block mb-1.5">
-            2. Marca / Montadora
+            Marca / Montadora
           </label>
           <div
             onClick={() => setIsBrandDropdownOpen((prev) => !prev)}
@@ -326,7 +443,7 @@ export function VehicleFipeSelector({
           >
             <span className={selectedBrand ? "font-medium text-white truncate" : "text-zinc-500"}>
               {isLoadingBrands
-                ? "Carregando marcas..."
+                ? "Carregando montadoras..."
                 : selectedBrand
                   ? selectedBrand.name
                   : "Selecione a montadora..."}
@@ -334,20 +451,19 @@ export function VehicleFipeSelector({
             <span className="text-zinc-500 text-[10px]">▼</span>
           </div>
 
-          {/* Menu Dropdown com Busca Instantânea */}
           {isBrandDropdownOpen && (
             <div className="absolute z-50 left-0 right-0 mt-1 bg-[#121214] border border-[#27272A] rounded-xl shadow-2xl p-2 max-h-60 flex flex-col">
               <input
                 type="text"
                 autoFocus
-                placeholder="Buscar marca (ex: Toyota, Honda, VW)..."
+                placeholder="Busca flexível (ex: volks, vw, toyota, honda)..."
                 value={brandSearch}
                 onChange={(e) => setBrandSearch(e.target.value)}
                 className="w-full bg-[#18181B] border border-[#27272A] rounded-lg px-3 py-1.5 text-xs text-white placeholder-zinc-500 outline-none focus:border-[#FF8216] mb-2"
               />
               <div className="overflow-y-auto flex-1 space-y-0.5 pr-1">
                 {filteredBrands.length === 0 ? (
-                  <p className="text-[11px] text-zinc-500 p-2 text-center">Nenhuma marca encontrada</p>
+                  <p className="text-[11px] text-zinc-500 p-2 text-center">Nenhuma montadora encontrada</p>
                 ) : (
                   filteredBrands.map((b) => (
                     <button
@@ -375,7 +491,7 @@ export function VehicleFipeSelector({
         {/* Dropdown com Busca: MODELO / VERSÃO */}
         <div className="relative">
           <label className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 block mb-1.5">
-            3. Modelo / Versão
+            Modelo / Versão
           </label>
           <div
             onClick={() => {
@@ -389,7 +505,7 @@ export function VehicleFipeSelector({
           >
             <span className={selectedModel ? "font-medium text-white truncate" : "text-zinc-500 truncate"}>
               {!selectedBrand
-                ? "Aguardando marca..."
+                ? "Selecione a montadora primeiro..."
                 : isLoadingModels
                   ? "Carregando modelos..."
                   : selectedModel
@@ -399,13 +515,12 @@ export function VehicleFipeSelector({
             <span className="text-zinc-500 text-[10px]">▼</span>
           </div>
 
-          {/* Menu Dropdown Modelos */}
           {isModelDropdownOpen && selectedBrand && (
             <div className="absolute z-50 left-0 right-0 mt-1 bg-[#121214] border border-[#27272A] rounded-xl shadow-2xl p-2 max-h-60 flex flex-col">
               <input
                 type="text"
                 autoFocus
-                placeholder="Buscar modelo ou versão..."
+                placeholder="Busca tolerante (ex: gol g6, cross, tdi, 2.0)..."
                 value={modelSearch}
                 onChange={(e) => setModelSearch(e.target.value)}
                 className="w-full bg-[#18181B] border border-[#27272A] rounded-lg px-3 py-1.5 text-xs text-white placeholder-zinc-500 outline-none focus:border-[#FF8216] mb-2"
@@ -437,31 +552,36 @@ export function VehicleFipeSelector({
         </div>
       </div>
 
-      {/* 4. ANOS DISPONÍVEIS (Pills / Seletor Rápido) */}
+      {/* 5. SELEÇÃO DE ANO DO MODELO (FLEXÍVEL — DISPONÍVEL A QUALQUER MOMENTO) */}
       <div>
-        <label className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 block mb-1.5">
-          4. Ano do Modelo & Combustível
-        </label>
-        {!selectedModel ? (
-          <p className="text-xs text-zinc-600 bg-[#121214] p-3 rounded-xl border border-[#27272A]/50">
-            Selecione uma marca e um modelo para visualizar os anos homologados pela FIPE.
-          </p>
-        ) : isLoadingYears ? (
-          <p className="text-xs text-zinc-400 p-2">Consultando anos disponíveis na Tabela FIPE...</p>
-        ) : years.length === 0 ? (
-          <p className="text-xs text-zinc-500 p-2">Nenhum ano disponível para esta versão.</p>
+        <div className="flex items-center justify-between mb-1.5">
+          <label className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
+            Ano do Modelo & Fabricação
+          </label>
+          {preferredYear && (
+            <span className="text-[10px] text-[#FF8216] font-semibold">
+              Ano selecionado: {preferredYear}
+            </span>
+          )}
+        </div>
+
+        {isLoadingYears ? (
+          <p className="text-xs text-zinc-400 p-2">Consultando tabela oficial FIPE...</p>
         ) : (
-          <div className="flex flex-wrap gap-2 max-h-36 overflow-y-auto p-1 bg-[#121214] border border-[#27272A] rounded-xl">
-            {years.map((y) => {
-              const active = selectedYear?.code === y.code;
+          <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto p-1.5 bg-[#121214] border border-[#27272A] rounded-xl scrollbar-thin">
+            {displayYears.map((y) => {
+              const active = selectedYear?.code === y.code || preferredYear === y.year;
               return (
                 <button
                   key={y.code}
                   type="button"
-                  onClick={() => setSelectedYear(y)}
+                  onClick={() => {
+                    setPreferredYear(y.year);
+                    setSelectedYear(y);
+                  }}
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all ${
                     active
-                      ? "bg-[#FF8216] text-black font-semibold shadow-sm"
+                      ? "bg-[#FF8216] text-black font-bold shadow-xs"
                       : "bg-[#18181B] text-zinc-300 hover:bg-[#27272A] hover:text-white"
                   }`}
                 >
@@ -473,19 +593,19 @@ export function VehicleFipeSelector({
         )}
       </div>
 
-      {/* 5. COTAÇÃO FIPE INSTANTÂNEA & CARD DE AUDITORIA */}
+      {/* 6. COTAÇÃO FIPE INSTANTÂNEA */}
       {isLoadingPrice && (
-        <div className="p-4 bg-[#18181B] border border-[#27272A] rounded-xl text-center text-xs text-zinc-400 animate-pulse">
-          Consultando Tabela FIPE oficial ao vivo na BrasilAPI...
+        <div className="p-3.5 bg-[#18181B] border border-[#27272A] rounded-xl text-center text-xs text-zinc-400 animate-pulse">
+          Consultando Tabela FIPE oficial ao vivo...
         </div>
       )}
 
       {fipeDetail && (
-        <div className="p-4 bg-gradient-to-br from-[#18181B] to-[#121214] border border-[#FF8216]/40 rounded-xl space-y-3">
-          <div className="flex items-start justify-between gap-3">
+        <div className="p-4 bg-gradient-to-br from-[#18181B] to-[#121214] border border-[#FF8216]/40 rounded-xl space-y-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-[#FF8216] block">
-                Cotação Oficial FIPE • {fipeDetail.referenceMonth}
+                Cotação FIPE de Referência • {fipeDetail.referenceMonth}
               </span>
               <h4 className="text-sm font-semibold text-white mt-0.5">
                 {fipeDetail.brand} {fipeDetail.model}
@@ -495,9 +615,9 @@ export function VehicleFipeSelector({
                 <span className="font-mono text-zinc-300">{fipeDetail.fipeCode}</span>
               </p>
             </div>
-            <div className="text-right shrink-0">
+            <div className="text-left sm:text-right shrink-0">
               <span className="text-[10px] font-medium text-zinc-400 block uppercase">
-                Preço Médio de Mercado
+                Preço Médio FIPE
               </span>
               <span className="text-base sm:text-lg font-bold text-[#FF8216] tabular-nums">
                 {formatCurrency(fipeDetail.price)}
@@ -507,110 +627,69 @@ export function VehicleFipeSelector({
         </div>
       )}
 
-      {/* 6. CAMPOS DE DETALHE PATRIMONIAL DO USUÁRIO */}
-      <div className="pt-2 border-t border-[#27272A] space-y-3">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 block mb-1">
-              Apelido do Veículo / Nome Personalizado
-            </label>
-            <input
-              type="text"
-              placeholder="Ex: Minha Amarok 2022"
-              value={customName}
-              onChange={(e) => setCustomName(e.target.value)}
-              className="w-full bg-[#18181B] border border-[#27272A] rounded-xl px-3 py-2 text-xs text-white placeholder-zinc-600 outline-none focus:border-[#FF8216]"
-            />
-          </div>
-
-          <div>
-            <label className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 block mb-1">
-              Placa (Opcional)
-            </label>
-            <input
-              type="text"
-              placeholder="ABC-1D23"
-              maxLength={8}
-              value={licensePlate}
-              onChange={(e) => setLicensePlate(e.target.value)}
-              className="w-full bg-[#18181B] border border-[#27272A] rounded-xl px-3 py-2 text-xs text-white placeholder-zinc-600 uppercase font-mono outline-none focus:border-[#FF8216]"
-            />
-          </div>
+      {/* 7. DADOS DE AQUISIÇÃO DO USUÁRIO & DEPRECIAÇÃO */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+        <div>
+          <label className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 block mb-1">
+            Nome do Veículo
+          </label>
+          <input
+            type="text"
+            placeholder="Ex: Meu Amarok, Carro da Família"
+            value={customName}
+            onChange={(e) => setCustomName(e.target.value)}
+            className="w-full bg-[#18181B] border border-[#27272A] rounded-xl px-3 py-2 text-xs text-white placeholder-zinc-500 outline-none focus:border-[#FF8216]"
+          />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 block mb-1">
-              Data de Compra / Aquisição
-            </label>
-            <input
-              type="date"
-              value={acquisitionDate}
-              onChange={(e) => setAcquisitionDate(e.target.value)}
-              className="w-full bg-[#18181B] border border-[#27272A] rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-[#FF8216]"
-            />
-          </div>
+        <div>
+          <label className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 block mb-1">
+            Valor de Aquisição (Pago)
+          </label>
+          <input
+            type="number"
+            step="500"
+            placeholder="80000"
+            value={acquisitionValue || ""}
+            onChange={(e) => setAcquisitionValue(parseFloat(e.target.value) || 0)}
+            className="w-full bg-[#18181B] border border-[#27272A] rounded-xl px-3 py-2 text-xs text-white tabular-nums outline-none focus:border-[#FF8216]"
+          />
+        </div>
 
-          <div>
-            <label className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 block mb-1">
-              Valor Pago na Compra (R$)
-            </label>
-            <input
-              type="number"
-              step="100"
-              placeholder="0,00"
-              value={acquisitionValue || ""}
-              onChange={(e) => setAcquisitionValue(parseFloat(e.target.value) || 0)}
-              className="w-full bg-[#18181B] border border-[#27272A] rounded-xl px-3 py-2 text-xs text-white tabular-nums outline-none focus:border-[#FF8216]"
-            />
-          </div>
+        <div>
+          <label className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 block mb-1">
+            Data de Aquisição
+          </label>
+          <input
+            type="date"
+            value={acquisitionDate}
+            onChange={(e) => setAcquisitionDate(e.target.value)}
+            className="w-full bg-[#18181B] border border-[#27272A] rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-[#FF8216]"
+          />
         </div>
       </div>
 
-      {/* 7. CARD DE DEPRECIAÇÃO OU VALORIZAÇÃO ANUALIZADA */}
+      {/* Depreciação / Valorização Calculada */}
       {acquisitionValue > 0 && currentPrice > 0 && (
-        <div className="p-3.5 bg-[#18181B]/80 border border-[#27272A] rounded-xl flex flex-wrap items-center justify-between gap-3">
+        <div className="p-3 bg-[#121214] border border-[#27272A] rounded-xl flex items-center justify-between text-xs">
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block">
-              Variação Histórica do Bem
+            <span className="text-zinc-400 block">Variação Histórica Acumulada:</span>
+            <span className="text-[11px] text-zinc-500">
+              {depreciation.elapsedDays} dias desde a compra
             </span>
-            <div className="flex items-center gap-2 mt-0.5">
-              <span
-                className={`text-sm font-bold tabular-nums ${
-                  depreciation.status === "appreciated"
-                    ? "text-emerald-400"
-                    : depreciation.status === "depreciated"
-                      ? "text-rose-400"
-                      : "text-zinc-300"
-                }`}
-              >
-                {depreciation.nominalDelta >= 0 ? "+" : ""}
-                {formatCurrency(depreciation.nominalDelta)} (
-                {depreciation.totalVariationPct >= 0 ? "+" : ""}
-                {depreciation.totalVariationPct.toFixed(2).replace(".", ",")}%)
-              </span>
-              <span className="text-zinc-600 text-xs">•</span>
-              <span className="text-xs text-zinc-400">
-                {depreciation.elapsedYears} {depreciation.elapsedYears === 1 ? "ano" : "anos"}
-              </span>
-            </div>
           </div>
-
           <div className="text-right">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block">
-              Taxa Anualizada
-            </span>
             <span
-              className={`text-xs font-semibold tabular-nums px-2 py-0.5 rounded-md inline-block mt-0.5 ${
-                depreciation.status === "appreciated"
-                  ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                  : depreciation.status === "depreciated"
-                    ? "bg-rose-500/10 text-rose-400 border border-rose-500/20"
-                    : "bg-zinc-800 text-zinc-300"
+              className={`font-bold tabular-nums ${
+                depreciation.totalVariationPct >= 0 ? "text-emerald-400" : "text-rose-400"
               }`}
             >
-              {depreciation.annualizedVariationPct >= 0 ? "+" : ""}
-              {depreciation.annualizedVariationPct.toFixed(2).replace(".", ",")}% a.a.
+              {depreciation.totalVariationPct >= 0 ? "+" : ""}
+              {depreciation.totalVariationPct.toFixed(2)}% (
+              {formatCurrency(depreciation.nominalDelta)})
+            </span>
+            <span className="text-[10px] text-zinc-500 block">
+              {depreciation.annualizedVariationPct.toFixed(2)}% a.a.
             </span>
           </div>
         </div>

@@ -61,6 +61,20 @@ export interface LandSurroundingsPoiItem {
   distanceMeters: number;
 }
 
+export interface RealEstateMarketMetrics {
+  uf: string;
+  city: string;
+  propertyType: 'house' | 'apartment' | 'land' | 'commercial';
+  baseSalePricePerSqm: number;
+  baseRentPricePerSqm: number;
+  adjustedSalePricePerSqm: number;
+  adjustedRentPricePerSqm: number;
+  estimatedTotalMarketValue: number;
+  estimatedMonthlyRent: number;
+  estimatedAnnualRentalYieldPct: number;
+  marketBenchmarkSource: string;
+}
+
 export interface LandSurroundingsSummary {
   latitude: number;
   longitude: number;
@@ -77,6 +91,7 @@ export interface LandSurroundingsSummary {
     security: { count: number; pointsAwarded: number; maxPoints: number };
   };
   keyNearbyPois: LandSurroundingsPoiItem[];
+  marketMetrics?: RealEstateMarketMetrics;
 }
 
 /**
@@ -530,5 +545,76 @@ function generateFallbackSurroundings(
       security: { count: 0, pointsAwarded: 5, maxPoints: 10 },
     },
     keyNearbyPois: [],
+  };
+}
+
+/**
+ * Tabela de referência do preço do m² por Unidade Federativa (Índice FipeZAP e médias regionais).
+ */
+const REGIONAL_SQM_PRICES: Record<string, { saleM2: number; rentM2: number }> = {
+  SP: { saleM2: 10800, rentM2: 52 },
+  RJ: { saleM2: 10100, rentM2: 46 },
+  SC: { saleM2: 11200, rentM2: 48 },
+  DF: { saleM2: 9400, rentM2: 44 },
+  PR: { saleM2: 9200, rentM2: 39 },
+  MG: { saleM2: 8600, rentM2: 36 },
+  RS: { saleM2: 7200, rentM2: 33 },
+  ES: { saleM2: 8300, rentM2: 37 },
+  GO: { saleM2: 7900, rentM2: 37 },
+  BA: { saleM2: 6800, rentM2: 35 },
+  CE: { saleM2: 7400, rentM2: 32 },
+  PE: { saleM2: 7300, rentM2: 33 },
+  DEFAULT: { saleM2: 6500, rentM2: 30 },
+};
+
+/**
+ * Calcula determinísticamente estimativas imobiliárias de venda, aluguel e rendimento por m²
+ * cruzando dados do CEP, UF e multiplicador do Radar de Infraestrutura.
+ */
+export function calculateRealEstateMarketMetrics(
+  areaSqm: number,
+  state: string,
+  city = '',
+  propertyType: 'house' | 'apartment' | 'land' | 'commercial' = 'house',
+  attractivenessMultiplier = 1.0
+): RealEstateMarketMetrics {
+  const safeArea = Math.max(1, areaSqm || 1);
+  const cleanUf = (state || '').toUpperCase().trim();
+  const benchmark = REGIONAL_SQM_PRICES[cleanUf] || REGIONAL_SQM_PRICES.DEFAULT;
+
+  // Ajustes de tipo de imóvel sobre o metro quadrado construído
+  let typeMultiplier = 1.0;
+  if (propertyType === 'apartment') typeMultiplier = 1.08;
+  else if (propertyType === 'land') typeMultiplier = 0.52; // Lote/terreno custa cerca de 52% do m² construído
+  else if (propertyType === 'commercial') typeMultiplier = 1.15;
+
+  const safeAttractiveness = Math.max(0.7, Math.min(1.8, attractivenessMultiplier || 1.0));
+
+  const baseSalePricePerSqm = Math.round(benchmark.saleM2 * typeMultiplier);
+  const baseRentPricePerSqm = Math.round(benchmark.rentM2 * typeMultiplier * 10) / 10;
+
+  const adjustedSalePricePerSqm = Math.round(baseSalePricePerSqm * safeAttractiveness);
+  const adjustedRentPricePerSqm = Math.round(baseRentPricePerSqm * safeAttractiveness * 10) / 10;
+
+  const estimatedTotalMarketValue = Math.round(safeArea * adjustedSalePricePerSqm);
+  const estimatedMonthlyRent = Math.round(safeArea * adjustedRentPricePerSqm);
+
+  const estimatedAnnualRentalYieldPct =
+    estimatedTotalMarketValue > 0
+      ? Math.round(((estimatedMonthlyRent * 12) / estimatedTotalMarketValue) * 10000) / 100
+      : 0;
+
+  return {
+    uf: cleanUf || 'BR',
+    city: city || 'Região Metropolitana',
+    propertyType,
+    baseSalePricePerSqm,
+    baseRentPricePerSqm,
+    adjustedSalePricePerSqm,
+    adjustedRentPricePerSqm,
+    estimatedTotalMarketValue,
+    estimatedMonthlyRent,
+    estimatedAnnualRentalYieldPct,
+    marketBenchmarkSource: `Índice FipeZAP de Referência • ${cleanUf || 'Nacional'}`,
   };
 }

@@ -180,14 +180,14 @@ export function AssetModal({ isOpen, onClose, assetToEdit }: AssetModalProps) {
     <div className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-md overflow-y-auto">
       <div className="relative w-full max-w-2xl bg-[#121214] border border-[#27272A] rounded-2xl shadow-2xl overflow-hidden my-auto">
         {/* Cabeçalho do Modal */}
-        <div className="px-5 py-4 border-b border-[#27272A] flex items-center justify-between bg-[#18181B]/80">
+        <div className="px-5 py-4 border-b border-[#27272A] flex items-center justify-between bg-[#18181B]/90">
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#FF8216]">
-              Patrimônio Imobilizado & Físico
-            </span>
-            <h3 className="text-base font-bold text-white">
-              {assetToEdit ? "Editar Ativo Patrimonial" : "Novo Ativo no Patrimônio"}
+            <h3 className="text-base font-bold text-white tracking-tight">
+              {assetToEdit ? "Editar Ativo" : "Novo Ativo no Patrimônio"}
             </h3>
+            <p className="text-xs text-zinc-400 mt-0.5">
+              Cadastre veículos pela FIPE, imóveis com radar da região e FGTS Caixa.
+            </p>
           </div>
           <button
             type="button"
@@ -202,18 +202,18 @@ export function AssetModal({ isOpen, onClose, assetToEdit }: AssetModalProps) {
         {!assetToEdit && (
           <div className="px-5 pt-4">
             <label className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 block mb-2">
-              Selecione a Categoria do Bem
+              Categoria do Bem
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {(
                 [
                   { id: "vehicle", label: "Veículo (FIPE)", icon: "🚗" },
-                  { id: "land", label: "Terreno (Modelos A/B/C)", icon: "📐" },
-                  { id: "real_estate", label: "Imóvel / Casa", icon: "🏢" },
-                  { id: "fgts", label: "FGTS Caixa (CLT)", icon: "🏛️" },
+                  { id: "real_estate", label: "Imóvel & Terreno", icon: "🏢" },
+                  { id: "fgts", label: "FGTS Caixa", icon: "🏛️" },
+                  { id: "other", label: "Outro Bem", icon: "📦" },
                 ] as const
               ).map((cat) => {
-                const active = category === cat.id;
+                const active = category === cat.id || (cat.id === "real_estate" && category === "land");
                 return (
                   <button
                     key={cat.id}

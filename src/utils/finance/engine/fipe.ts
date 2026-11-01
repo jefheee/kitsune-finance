@@ -57,7 +57,51 @@ export interface VehicleDepreciationResult {
 }
 
 const BRASIL_API_BASE_URL = 'https://brasilapi.com.br/api/fipe';
+const PARALLELUM_API_BASE_URL = 'https://parallelum.com.br/fipe/api/v1';
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 horas
+
+/**
+ * Normaliza termo de busca para matching tolerante e flexível (sem acentos, lowercase).
+ */
+export function normalizeSearchTerm(str: string): string {
+  if (!str) return '';
+  return str
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+/**
+ * Verifica se o texto candidato atende à busca (suporta termos soltos e aproximação).
+ * Ex: "vw amarok" dá match em "Volkswagen Amarok 2.0 Highline".
+ */
+export function fuzzyMatches(candidate: string, query: string): boolean {
+  if (!query || !query.trim()) return true;
+  const normCandidate = normalizeSearchTerm(candidate);
+  const normQuery = normalizeSearchTerm(query);
+
+  if (normCandidate.includes(normQuery)) return true;
+
+  const tokens = normQuery.split(/\s+/).filter(Boolean);
+  return tokens.every((token) => normCandidate.includes(token));
+}
+
+/**
+ * Anos padrão para seleção rápida antecipada pelo usuário (mesmo antes de escolher a versão).
+ */
+export const DEFAULT_VEHICLE_YEARS: FipeYear[] = [
+  { code: '32000-1', name: 'Zero KM', year: 32000, fuel: 'Zero KM' },
+  ...Array.from({ length: 37 }, (_, i) => {
+    const yr = 2026 - i;
+    return {
+      code: `${yr}-1`,
+      name: `${yr}`,
+      year: yr,
+      fuel: 'Gasolina / Flex / Diesel',
+    };
+  }),
+];
 
 // Cache L1 (Em memória)
 const memoryCache = new Map<string, { data: unknown; expiresAt: number }>();
@@ -192,7 +236,7 @@ export async function fetchFipeModels(
 }
 
 /**
- * Busca os anos e tipos de combustível disponíveis para o modelo.
+ * Busca os anos e tipos de combustível disponíveis para o modelo com fallback resiliente.
  */
 export async function fetchFipeYears(
   vehicleType: FipeVehicleType,
@@ -202,41 +246,86 @@ export async function fetchFipeYears(
   if (!brandCode || !modelCode) return [];
   const cacheKey = `years_${vehicleType}_${brandCode}_${modelCode}`;
   const cached = getCached<FipeYear[]>(cacheKey);
-  if (cached) return cached;
+  if (cached && cached.length > 0) return cached;
 
-  const response = await fetch(
-    `${BRASIL_API_BASE_URL}/anos/v1/${vehicleType}/${brandCode}/${modelCode}`,
-    {
-      method: 'GET',
-      headers: { Accept: 'application/json' },
+  // 1. Tentativa primária: BrasilAPI
+  try {
+    const response = await fetch(
+      `${BRASIL_API_BASE_URL}/anos/v1/${vehicleType}/${brandCode}/${modelCode}`,
+      {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+        signal: AbortSignal.timeout(4000),
+      }
+    );
+
+    if (response.ok) {
+      const rawList = (await response.json()) as Array<{ nome?: string; valor?: string }>;
+      if (Array.isArray(rawList) && rawList.length > 0) {
+        const normalized: FipeYear[] = rawList.map((item) => {
+          const rawName = String(item.nome || '').trim();
+          const parts = rawName.split(' ');
+          const yearParsed = parseInt(parts[0], 10);
+          const fuel = parts.slice(1).join(' ') || 'Gasolina / Flex';
+
+          return {
+            code: String(item.valor || ''),
+            name: rawName,
+            year: isNaN(yearParsed) ? 0 : yearParsed,
+            fuel,
+          };
+        });
+
+        setCached(cacheKey, normalized);
+        return normalized;
+      }
     }
-  );
-
-  if (!response.ok) {
-    throw new Error(`Falha ao buscar anos FIPE (${response.status})`);
+  } catch {
+    // Falha silenciosa na BrasilAPI, avança para fallback
   }
 
-  const rawList = (await response.json()) as Array<{ nome?: string; valor?: string }>;
-  const normalized: FipeYear[] = rawList.map((item) => {
-    const rawName = String(item.nome || '').trim();
-    const parts = rawName.split(' ');
-    const yearParsed = parseInt(parts[0], 10);
-    const fuel = parts.slice(1).join(' ') || 'Gasolina / Flex';
+  // 2. Fallback resiliente: Parallelum FIPE
+  try {
+    const res = await fetch(
+      `${PARALLELUM_API_BASE_URL}/${vehicleType}/marcas/${brandCode}/modelos/${modelCode}/anos`,
+      {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+        signal: AbortSignal.timeout(5000),
+      }
+    );
 
-    return {
-      code: String(item.valor || ''),
-      name: rawName,
-      year: isNaN(yearParsed) ? 0 : yearParsed,
-      fuel,
-    };
-  });
+    if (res.ok) {
+      const rawList = (await res.json()) as Array<{ codigo?: string; nome?: string }>;
+      if (Array.isArray(rawList) && rawList.length > 0) {
+        const normalized: FipeYear[] = rawList.map((item) => {
+          const rawName = String(item.nome || '').trim();
+          const parts = rawName.split(' ');
+          const yearParsed = parseInt(parts[0], 10);
+          const fuel = parts.slice(1).join(' ') || 'Gasolina / Flex';
 
-  setCached(cacheKey, normalized);
-  return normalized;
+          return {
+            code: String(item.codigo || ''),
+            name: rawName,
+            year: isNaN(yearParsed) ? 0 : yearParsed,
+            fuel,
+          };
+        });
+
+        setCached(cacheKey, normalized);
+        return normalized;
+      }
+    }
+  } catch (err) {
+    console.warn('[FIPE] Fallback Parallelum falhou:', err);
+  }
+
+  // 3. Em caso de instabilidade nas duas APIs públicas, retorna anos padrão para não travar o fluxo
+  return DEFAULT_VEHICLE_YEARS.slice(0, 15);
 }
 
 /**
- * Busca o preço de referência atual e histórico da FIPE para o ano/modelo exato.
+ * Busca o preço de referência atual e histórico da FIPE para o ano/modelo exato com fallback.
  */
 export async function fetchFipePrice(
   vehicleType: FipeVehicleType,
@@ -248,52 +337,104 @@ export async function fetchFipePrice(
   const cached = getCached<FipePriceDetail>(cacheKey);
   if (cached) return cached;
 
-  const response = await fetch(
-    `${BRASIL_API_BASE_URL}/detalhes/v1/${vehicleType}/${brandCode}/${modelCode}/${yearCode}`,
+  // 1. Tentativa primária: BrasilAPI
+  try {
+    const response = await fetch(
+      `${BRASIL_API_BASE_URL}/detalhes/v1/${vehicleType}/${brandCode}/${modelCode}/${yearCode}`,
+      {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+        signal: AbortSignal.timeout(4500),
+      }
+    );
+
+    if (response.ok) {
+      const raw = (await response.json()) as {
+        valor?: string | number;
+        marca?: string;
+        modelo?: string;
+        anoModelo?: number;
+        combustivel?: string;
+        codigoFipe?: string;
+        mesReferencia?: string;
+        tipoVeiculo?: number;
+        siglaCombustivel?: string;
+        dataConsulta?: string;
+      };
+
+      const parsedPrice = parseFipePriceStringToNumber(raw.valor);
+      const detail: FipePriceDetail = {
+        fipeCode: String(raw.codigoFipe || '').trim(),
+        brand: String(raw.marca || '').trim(),
+        model: String(raw.modelo || '').trim(),
+        modelYear: Number(raw.anoModelo) || 0,
+        fuel: String(raw.combustivel || '').trim(),
+        fuelAcronym: String(raw.siglaCombustivel || '').trim(),
+        price: parsedPrice,
+        priceFormatted:
+          typeof raw.valor === 'string'
+            ? raw.valor
+            : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parsedPrice),
+        referenceMonth: String(raw.mesReferencia || '').trim(),
+        consultedAt: String(raw.dataConsulta || new Date().toISOString()),
+        vehicleType: Number(raw.tipoVeiculo) || 1,
+      };
+
+      if (detail.price > 0) {
+        setCached(cacheKey, detail);
+        return detail;
+      }
+    }
+  } catch {
+    // Falha na BrasilAPI, tenta Parallelum
+  }
+
+  // 2. Fallback resiliente: Parallelum FIPE
+  const parallelumRes = await fetch(
+    `${PARALLELUM_API_BASE_URL}/${vehicleType}/marcas/${brandCode}/modelos/${modelCode}/anos/${yearCode}`,
     {
       method: 'GET',
       headers: { Accept: 'application/json' },
+      signal: AbortSignal.timeout(6000),
     }
   );
 
-  if (!response.ok) {
-    throw new Error(`Falha ao obter cotação FIPE detalhada (${response.status})`);
+  if (!parallelumRes.ok) {
+    throw new Error(`Falha ao obter cotação FIPE detalhada (${parallelumRes.status})`);
   }
 
-  const raw = (await response.json()) as {
-    valor?: string | number;
-    marca?: string;
-    modelo?: string;
-    anoModelo?: number;
-    combustivel?: string;
-    codigoFipe?: string;
-    mesReferencia?: string;
-    tipoVeiculo?: number;
-    siglaCombustivel?: string;
-    dataConsulta?: string;
+  const rawP = (await parallelumRes.json()) as {
+    Valor?: string;
+    Marca?: string;
+    Modelo?: string;
+    AnoModelo?: number;
+    Combustivel?: string;
+    CodigoFipe?: string;
+    MesReferencia?: string;
+    TipoVeiculo?: number;
+    SiglaCombustivel?: string;
+    DataConsulta?: string;
   };
 
-  const parsedPrice = parseFipePriceStringToNumber(raw.valor);
-
-  const detail: FipePriceDetail = {
-    fipeCode: String(raw.codigoFipe || '').trim(),
-    brand: String(raw.marca || '').trim(),
-    model: String(raw.modelo || '').trim(),
-    modelYear: Number(raw.anoModelo) || 0,
-    fuel: String(raw.combustivel || '').trim(),
-    fuelAcronym: String(raw.siglaCombustivel || '').trim(),
-    price: parsedPrice,
+  const parsedPriceP = parseFipePriceStringToNumber(rawP.Valor);
+  const detailP: FipePriceDetail = {
+    fipeCode: String(rawP.CodigoFipe || '').trim(),
+    brand: String(rawP.Marca || '').trim(),
+    model: String(rawP.Modelo || '').trim(),
+    modelYear: Number(rawP.AnoModelo) || 0,
+    fuel: String(rawP.Combustivel || '').trim(),
+    fuelAcronym: String(rawP.SiglaCombustivel || '').trim(),
+    price: parsedPriceP,
     priceFormatted:
-      typeof raw.valor === 'string'
-        ? raw.valor
-        : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parsedPrice),
-    referenceMonth: String(raw.mesReferencia || '').trim(),
-    consultedAt: String(raw.dataConsulta || new Date().toISOString()),
-    vehicleType: Number(raw.tipoVeiculo) || 1,
+      rawP.Valor ||
+      new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parsedPriceP),
+    referenceMonth: String(rawP.MesReferencia || '').trim(),
+    consultedAt: String(rawP.DataConsulta || new Date().toISOString()),
+    vehicleType: Number(rawP.TipoVeiculo) || 1,
   };
 
-  setCached(cacheKey, detail);
-  return detail;
+  setCached(cacheKey, detailP);
+  return detailP;
 }
 
 /**

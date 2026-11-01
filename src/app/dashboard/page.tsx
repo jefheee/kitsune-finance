@@ -4,7 +4,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import PluggyConnectModal from "@/components/PluggyConnectModal";
-import { AiDiagnosticPanel } from "@/components/AiDiagnosticPanel";
+import { DashboardExecutiveWidgets } from "@/components/finance/DashboardExecutiveWidgets";
 import { AnomalyAlertCard } from "@/components/AnomalyAlertCard";
 import { SpendingHeatmap } from "@/components/finance/SpendingHeatmap";
 import { SubscriptionsTracker } from "@/components/finance/SubscriptionsTracker";
@@ -646,7 +646,7 @@ export default function DashboardPage() {
     const monthlyCost = monthlyExpense > 0 ? monthlyExpense : 2500;
     const emergencyTarget = monthlyCost * 6;
     const emergencyPct = Math.min(100, Math.max(0, Math.round((liquidBalance / emergencyTarget) * 100)));
-    const emergencyMonths = (liquidBalance / monthlyCost).toFixed(1);
+    const emergencyMonths = Number((liquidBalance / monthlyCost).toFixed(1));
 
     const projectedMonthlyYield = Math.round(
       investmentsBalance * macroRates.monthlyCDICompoundFactor * 100
@@ -781,100 +781,87 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-5 md:gap-6 p-4 md:p-7 pb-28 md:pb-10 max-w-[1380px] mx-auto w-full font-sans">
-      {/* Top Bar Estilo Wealthfolio: Saudação enxuta + Tabs Lineares + Ações Rápidas */}
-      <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 pb-3 border-b border-zinc-200 dark:border-[#27272A]">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
+      {/* Top Bar: Saudação em Destaque + Ações Rápidas + Segmented Tabs */}
+      <header className="flex flex-col gap-4 pb-3 border-b border-zinc-200 dark:border-[#27272A]">
+        {/* Linha 1: Saudação à esquerda, Ações organizadas à direita */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-[#F4F4F5]">
-                Olá, {userFirstName}
-              </h1>
-            </div>
+            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-[#F4F4F5]">
+              Olá, {userFirstName}
+            </h1>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
               {connectedBanks.length} instituições Open Finance • CDI {macroRates.annualCDIPct.toFixed(2)}% a.a.
             </p>
           </div>
 
-          {/* Segmented View Switcher Estilo Wealthfolio */}
-          <div className="inline-flex items-center gap-0.5 p-1 rounded-xl bg-zinc-100 dark:bg-[#121214] border border-zinc-200 dark:border-[#27272A] overflow-x-auto scrollbar-none">
-            {DASHBOARD_TABS.map((tab) => {
-              const active = activeTab === tab;
-              return (
-                <button
-                  key={tab}
-                  type="button"
-                  onClick={() => setActiveTab(tab)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors cursor-pointer ${
-                    active
-                      ? "bg-white dark:bg-[#18181B] text-zinc-900 dark:text-[#F4F4F5] shadow-xs border border-zinc-200/80 dark:border-[#27272A]"
-                      : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
-                  }`}
-                >
-                  {tab}
-                </button>
-              );
-            })}
+          {/* Botões de Ação: No mobile, grid 2 botões iguais (50% cada, justificados e centralizados). No PC, flex row alinhada */}
+          <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={() => setIsSearchModalOpen(true)}
+              className="hidden md:flex h-9 px-3 rounded-xl bg-white dark:bg-[#121214] hover:bg-zinc-100 dark:hover:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] text-xs font-medium text-zinc-600 dark:text-zinc-300 items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              title="Busca Financeira Global (Ctrl+K)"
+            >
+              <WfIcons.Search className="w-3.5 h-3.5 text-[#FF8216]" />
+              <span>Buscar</span>
+              <kbd className="px-1.5 py-0.5 text-[10px] font-mono rounded bg-zinc-100 dark:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] text-zinc-400">
+                ⌘K
+              </kbd>
+            </button>
+
+            <a
+              href="/api/export/spreadsheet"
+              download
+              className="hidden md:flex h-9 px-3 rounded-xl bg-white dark:bg-[#121214] hover:bg-zinc-100 dark:hover:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] text-xs font-medium text-zinc-600 dark:text-zinc-300 items-center justify-center gap-1.5 transition-colors"
+              title="Exportar planilha consolidada CSV"
+            >
+              <WfIcons.Download className="w-3.5 h-3.5 text-zinc-400" />
+              <span>CSV</span>
+            </a>
+
+            <button
+              type="button"
+              onClick={() => revalidate(true)}
+              className="h-10 sm:h-9 px-4 rounded-xl bg-white dark:bg-[#121214] hover:bg-zinc-100 dark:hover:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] text-xs font-semibold text-zinc-800 dark:text-zinc-200 flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-xs"
+              title="Sincronizar Open Finance agora"
+            >
+              <WfIcons.RefreshCw
+                className={`w-3.5 h-3.5 text-emerald-500 ${isRevalidating ? "animate-spin" : ""}`}
+              />
+              <span>Sincronizar</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsManualModalOpen(true)}
+              className="h-10 sm:h-9 px-4 rounded-xl bg-[#FF8216] hover:bg-[#FFA047] active:bg-[#E66E08] text-black font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs"
+              title="Adicionar lançamento manual ou dinheiro em espécie"
+            >
+              <WfIcons.Plus className="w-4 h-4 text-black" />
+              <span>Lançamento</span>
+            </button>
           </div>
         </div>
 
-        {/* Botões de Ação Superiores */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <button
-            type="button"
-            onClick={() => setIsSearchModalOpen(true)}
-            className="hidden sm:flex h-9 px-3 rounded-xl bg-white dark:bg-[#121214] hover:bg-zinc-100 dark:hover:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] text-xs font-medium text-zinc-600 dark:text-zinc-300 items-center gap-1.5 transition-colors cursor-pointer"
-            title="Busca Financeira Global (Ctrl+K)"
-          >
-            <WfIcons.Search className="w-3.5 h-3.5 text-[#FF8216]" />
-            <span>Buscar</span>
-            <kbd className="hidden md:inline-block px-1.5 py-0.5 text-[10px] font-mono rounded bg-zinc-100 dark:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] text-zinc-400">
-              ⌘K
-            </kbd>
-          </button>
-
-          <a
-            href="/api/export/spreadsheet"
-            download
-            className="hidden sm:flex h-9 px-3 rounded-xl bg-white dark:bg-[#121214] hover:bg-zinc-100 dark:hover:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] text-xs font-medium text-zinc-600 dark:text-zinc-300 items-center gap-1.5 transition-colors"
-            title="Exportar planilha consolidada CSV"
-          >
-            <WfIcons.Download className="w-3.5 h-3.5 text-zinc-400" />
-            <span>CSV</span>
-          </a>
-
-          <button
-            type="button"
-            onClick={() => revalidate(true)}
-            className="h-9 px-3.5 rounded-xl bg-white dark:bg-[#121214] hover:bg-zinc-100 dark:hover:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] text-xs font-semibold text-zinc-700 dark:text-zinc-200 flex items-center gap-2 transition-colors cursor-pointer shadow-2xs"
-            title="Sincronizar Open Finance agora"
-          >
-            <WfIcons.RefreshCw
-              className={`w-3.5 h-3.5 text-emerald-500 ${isRevalidating ? "animate-spin" : ""}`}
-            />
-            <span>Sincronizar</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setIsManualModalOpen(true)}
-            className="h-9 px-3 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-[#18181B] dark:hover:bg-[#27272A] border border-zinc-200 dark:border-[#27272A] text-zinc-800 dark:text-zinc-200 font-semibold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
-            title="Adicionar lançamento manual ou dinheiro em espécie"
-          >
-            <WfIcons.Plus className="w-3.5 h-3.5 text-[#FF8216]" />
-            <span>Lançamento</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setConnectForMemberId(null);
-              setIsConnectModalOpen(true);
-            }}
-            className="h-9 px-3.5 rounded-xl bg-[#FF8216] hover:bg-[#FF9438] text-black font-semibold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
-          >
-            <WfIcons.Plus className="w-3.5 h-3.5" />
-            <span>Conectar Conta</span>
-          </button>
+        {/* Linha 2: Segmented Tabs (Caberem 100% no mobile sem barra de rolagem e perfeitamente centralizadas/alinhadas) */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 p-1 rounded-xl bg-zinc-100 dark:bg-[#121214] border border-zinc-200 dark:border-[#27272A] w-full">
+          {DASHBOARD_TABS.map((tab) => {
+            const active = activeTab === tab;
+            return (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setActiveTab(tab)}
+                className={`px-2 py-2 sm:py-1.5 rounded-lg text-xs font-medium text-center transition-colors cursor-pointer ${
+                  active
+                    ? "bg-white dark:bg-[#18181B] text-zinc-900 dark:text-[#F4F4F5] font-semibold shadow-xs border border-zinc-200/80 dark:border-[#27272A]"
+                    : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
+                }`}
+              >
+                {tab}
+              </button>
+            );
+          })}
         </div>
       </header>
 
@@ -971,289 +958,49 @@ export default function DashboardPage() {
             annualCDIPct={macroRates.annualCDIPct}
           />
 
-          {/* Diagnóstico Executivo Kitsune AI + Camada Determinística MSLR (Widget Bento de Largura Total) */}
-          <AiDiagnosticPanel
-            aiInsight={aiInsight}
-            isGenerating={isGeneratingAi}
-            onRefresh={generateAiInsight}
+          {/* 4 Módulos & Widgets Executivos Clicáveis Estilo Cards de Banco (2x2 Mobile, 4 PC) */}
+          <DashboardExecutiveWidgets
+            accounts={filteredAccounts}
+            investments={filteredInvestments}
+            loans={filteredLoans}
+            customAssets={customAssets}
+            recentTransactions={recentConciliatedTxns}
+            monthlyIncome={monthlyIncome}
+            monthlyExpense={monthlyExpense}
             totalBalance={totalBalance}
             liquidBalance={liquidBalance}
             creditCardBalance={creditCardBalance}
-            monthlyIncome={monthlyIncome}
-            monthlyExpense={monthlyExpense}
-            kitsuneScore={kitsuneScore}
             formatCurrency={formatCurrency}
+            formatDate={formatDate}
+            isPrivacyMode={isPrivacyMode}
+            onConnectBank={() => {
+              setConnectForMemberId(null);
+              setIsConnectModalOpen(true);
+            }}
+            onAddAsset={() => {
+              setSelectedAssetToEdit(null);
+              setIsAssetModalOpen(true);
+            }}
+            onEditAsset={(asset) => {
+              setSelectedAssetToEdit(asset);
+              setIsAssetModalOpen(true);
+            }}
+            onSelectTxForDetail={(tx) => setSelectedTxForDetail(tx)}
+            goalsSummary={goalsSummary}
+            topHoldings={topHoldings}
+            monthlyCDIFactor={macroRates.monthlyCDICompoundFactor}
           />
 
-          {/* Grid Assimétrico 2 Colunas Fiel ao Wealthfolio (1.7fr Contas & Extrato | 1fr Metas, Carteira & IA) */}
-          <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.7fr)_minmax(21rem,1fr)] gap-6 items-start">
-            {/* COLUNA ESQUERDA: Contas Agrupadas em Linhas Densas + Atividades Recentes */}
-            <div className="space-y-6 min-w-0">
-              <GroupedAccountsList
-                accounts={filteredAccounts}
-                investments={filteredInvestments}
-                loans={filteredLoans}
-                customAssets={customAssets}
-                formatCurrency={formatCurrency}
-                hideValues={isPrivacyMode}
-                onConnectBank={() => {
-                  setConnectForMemberId(null);
-                  setIsConnectModalOpen(true);
-                }}
-                onAddAsset={() => {
-                  setSelectedAssetToEdit(null);
-                  setIsAssetModalOpen(true);
-                }}
-                onEditAsset={(asset) => {
-                  setSelectedAssetToEdit(asset);
-                  setIsAssetModalOpen(true);
-                }}
-                monthlyCDIFactor={macroRates.monthlyCDICompoundFactor}
-              />
-
-              {/* Atividades Recentes Conciliadas (Linhas densas sem cards soltos) */}
-              <section className="rounded-2xl bg-white dark:bg-[#121214] border border-zinc-200 dark:border-[#27272A] overflow-hidden">
-                <div className="px-4 md:px-5 py-3.5 border-b border-zinc-200 dark:border-[#27272A] flex items-center justify-between gap-2">
-                  <div>
-                    <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
-                      Atividades Recentes Conciliadas
-                    </h3>
-                    <p className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-0.5">
-                      Entradas do mês:{" "}
-                      <span className="font-mono tabular-nums text-emerald-500 font-medium">
-                        {formatCurrency(monthlyIncome)}
-                      </span>{" "}
-                      • Saídas:{" "}
-                      <span className="font-mono tabular-nums text-zinc-700 dark:text-zinc-300 font-medium">
-                        {formatCurrency(monthlyExpense)}
-                      </span>
-                    </p>
-                  </div>
-                  <Link
-                    href="/transactions"
-                    className="text-xs font-medium text-[#FF8216] hover:underline flex items-center gap-1 shrink-0"
-                  >
-                    <span>Ver extrato</span>
-                    <WfIcons.ChevronRight className="w-3.5 h-3.5" />
-                  </Link>
-                </div>
-
-                {recentConciliatedTxns.length === 0 ? (
-                  <div className="p-8 text-center text-xs text-zinc-500">
-                    Nenhuma movimentação recente encontrada para o filtro selecionado.
-                  </div>
-                ) : (
-                  <div className="divide-y divide-zinc-100 dark:divide-[#27272A]/70">
-                    {recentConciliatedTxns.map((tx) => {
-                      const amt = Number(tx.amount) || 0;
-                      const isCreditCard =
-                        tx.bank_accounts?.type === "CREDIT" ||
-                        tx.bank_accounts?.subtype === "CREDIT_CARD" ||
-                        tx.operation_type === "CREDIT_CARD";
-                      const isExpense = amt < 0 || tx.type === "DEBIT" || isCreditCard;
-                      const absAmt = Math.abs(amt);
-                      const title =
-                        tx.clean_description || tx.description || "Movimentação Bancária";
-                      const category = tx.category_pt || tx.category || "Geral";
-                      const bankName =
-                        tx.bank_accounts?.institution_name ||
-                        tx.bank_accounts?.bank_name ||
-                        "Conta";
-
-                      return (
-                        <div
-                          key={tx.id}
-                          onClick={() => setSelectedTxForDetail(tx)}
-                          className="px-4 md:px-5 py-2.5 flex items-center justify-between gap-3 hover:bg-zinc-50 dark:hover:bg-[#18181B]/60 transition-colors cursor-pointer"
-                        >
-                          <div className="flex items-center gap-3 min-w-0">
-                            <MerchantLogo
-                              cleanName={tx.clean_description}
-                              rawDescription={tx.description}
-                              category={category}
-                              size="sm"
-                            />
-                            <div className="min-w-0">
-                              <p className="text-xs font-semibold text-zinc-900 dark:text-[#F4F4F5] truncate">
-                                {title}
-                              </p>
-                              <p className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate">
-                                {category} • {bankName} • {formatDate(tx.executed_at || tx.date)}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="text-right shrink-0">
-                            <span
-                              className={`text-xs font-mono font-semibold tabular-nums ${
-                                tx.is_refund || !isExpense
-                                  ? "text-emerald-500"
-                                  : "text-zinc-900 dark:text-[#F4F4F5]"
-                              }`}
-                            >
-                              {isPrivacyMode
-                                ? "R$ ••••••"
-                                : `${tx.is_refund || !isExpense ? "+" : "-"}${formatCurrency(absAmt)}`}
-                            </span>
-                            {tx.total_installments && Number(tx.total_installments) > 1 && (
-                              <span className="block text-[10px] font-mono tabular-nums text-[#FF8216]">
-                                {tx.installment_number || 1}/{tx.total_installments}x
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </section>
-            </div>
-
-            {/* COLUNA DIREITA: Metas (SavingGoals), Destaques da Carteira & Diagnóstico Kitsune AI */}
-            <div className="space-y-6 min-w-0">
-              {/* Card Estilo SavingGoals do Wealthfolio */}
-              <section className="p-4 md:p-5 rounded-2xl bg-white dark:bg-[#121214] border border-zinc-200 dark:border-[#27272A] space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <WfIcons.Goals className="w-4 h-4 text-[#FF8216]" />
-                    <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
-                      Metas & Reserva
-                    </h3>
-                  </div>
-                  <Link
-                    href="/goals"
-                    className="text-xs font-medium text-[#FF8216] hover:underline"
-                  >
-                    Gerenciar →
-                  </Link>
-                </div>
-
-                <div className="space-y-3.5">
-                  {/* Meta 1: Reserva de Liquidez (6 meses) */}
-                  <div className="p-3 rounded-xl bg-zinc-50 dark:bg-[#18181B] border border-zinc-200/70 dark:border-[#27272A]">
-                    <div className="flex items-center justify-between text-xs mb-1.5">
-                      <span className="font-semibold text-zinc-800 dark:text-zinc-200">
-                        Reserva de Emergência (6m)
-                      </span>
-                      <span className="font-mono tabular-nums font-semibold text-[#FF8216]">
-                        {isPrivacyMode ? "••%" : `${goalsSummary.emergencyPct}%`}
-                      </span>
-                    </div>
-                    <div className="h-1.5 w-full rounded-full bg-zinc-200 dark:bg-[#27272A] overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-[#FF8216] transition-all duration-500"
-                        style={{ width: `${goalsSummary.emergencyPct}%` }}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between text-[11px] text-zinc-500 dark:text-zinc-400 mt-1.5 font-mono tabular-nums">
-                      <span>
-                        {isPrivacyMode ? "•• meses" : `${goalsSummary.emergencyMonths} meses`}
-                      </span>
-                      <span>Alvo: {formatCurrency(goalsSummary.emergencyTarget)}</span>
-                    </div>
-                  </div>
-
-                  {/* Meta 2: Cobertura FIRE (Renda Passiva CDI vs Custo Mensal) */}
-                  <div className="p-3 rounded-xl bg-zinc-50 dark:bg-[#18181B] border border-zinc-200/70 dark:border-[#27272A]">
-                    <div className="flex items-center justify-between text-xs mb-1.5">
-                      <span className="font-semibold text-zinc-800 dark:text-zinc-200">
-                        Cobertura Passiva CDI (FIRE)
-                      </span>
-                      <span className="font-mono tabular-nums font-semibold text-emerald-500">
-                        {isPrivacyMode ? "••%" : `${goalsSummary.fireCoveragePct}%`}
-                      </span>
-                    </div>
-                    <div className="h-1.5 w-full rounded-full bg-zinc-200 dark:bg-[#27272A] overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-emerald-500 transition-all duration-500"
-                        style={{ width: `${goalsSummary.fireCoveragePct}%` }}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between text-[11px] text-zinc-500 dark:text-zinc-400 mt-1.5 font-mono tabular-nums">
-                      <span>+{formatCurrency(goalsSummary.projectedMonthlyYield)}/mês</span>
-                      <span>Custo: {formatCurrency(goalsSummary.monthlyCost)}</span>
-                    </div>
-                  </div>
-
-                  {/* Meta Principal do Perfil */}
-                  <div className="flex items-center justify-between pt-1 text-xs">
-                    <span className="text-zinc-500 dark:text-zinc-400 truncate pr-2">
-                      Foco: <strong className="text-zinc-800 dark:text-zinc-200">{goalsSummary.goalLabel}</strong>
-                    </span>
-                    <span className="font-mono tabular-nums text-zinc-600 dark:text-zinc-300 shrink-0">
-                      {isPrivacyMode ? "••%" : `${goalsSummary.primaryProgress}%`}
-                    </span>
-                  </div>
-                </div>
-              </section>
-
-              {/* Card Destaques de Holdings & Insights */}
-              <section className="p-4 md:p-5 rounded-2xl bg-white dark:bg-[#121214] border border-zinc-200 dark:border-[#27272A] space-y-3.5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <WfIcons.Holdings className="w-4 h-4 text-[#FF8216]" />
-                    <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
-                      Maiores Posições
-                    </h3>
-                  </div>
-                  <div className="flex items-center gap-3 text-xs">
-                    <Link href="/insights" className="text-zinc-500 hover:text-zinc-200">
-                      Insights
-                    </Link>
-                    <Link href="/investments" className="font-medium text-[#FF8216] hover:underline">
-                      Holdings →
-                    </Link>
-                  </div>
-                </div>
-
-                {topHoldings.length === 0 ? (
-                  <p className="text-xs text-zinc-500 py-3">
-                    Nenhum ativo de investimento sincronizado ainda.
-                  </p>
-                ) : (
-                  <div className="divide-y divide-zinc-100 dark:divide-[#27272A]/70">
-                    {topHoldings.map((item) => (
-                      <div
-                        key={item.id}
-                        className="py-2 flex items-center justify-between gap-2.5 text-xs"
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <BankLogo bank={item.slug} size="xs" />
-                          <div className="min-w-0">
-                            <p className="font-medium text-zinc-900 dark:text-[#F4F4F5] truncate">
-                              {item.name}
-                            </p>
-                            <p className="text-[11px] text-zinc-500 truncate">
-                              {item.institution}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right shrink-0 font-mono tabular-nums">
-                          <p className="font-semibold text-zinc-900 dark:text-[#F4F4F5]">
-                            {formatCurrency(item.balance)}
-                          </p>
-                          <p className="text-[10px] text-zinc-500">
-                            {isPrivacyMode ? "••%" : `${item.weightPct.toFixed(1)}%`}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </section>
-
-              {/* Chat Compacto Kitsune AI */}
-              <CompactKitsuneChat
-                onOpenFullChat={(initPrompt) => {
-                  if (initPrompt) {
-                    router.push(`/kitsune?prompt=${encodeURIComponent(initPrompt)}`);
-                  } else {
-                    router.push("/kitsune");
-                  }
-                }}
-              />
-            </div>
-          </div>
+          {/* Chat Compacto Kitsune AI (Discreto e Disponível no Rodapé) */}
+          <CompactKitsuneChat
+            onOpenFullChat={(initPrompt) => {
+              if (initPrompt) {
+                router.push(`/kitsune?prompt=${encodeURIComponent(initPrompt)}`);
+              } else {
+                router.push("/kitsune");
+              }
+            }}
+          />
         </div>
       )}
 
