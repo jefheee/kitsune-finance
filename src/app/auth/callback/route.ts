@@ -8,9 +8,16 @@ export async function GET(request: Request) {
   const code = searchParams.get('code')
   const next = searchParams.get('next') ?? '/dashboard'
 
+  // Determinar a origem pública correta (suporte a proxies de borda na Vercel)
+  const forwardedHost = request.headers.get('x-forwarded-host')
+  const host = forwardedHost || request.headers.get('host')
+  const proto = request.headers.get('x-forwarded-proto') || 'https'
+  const isLocalEnv = process.env.NODE_ENV === 'development'
+  const publicOrigin = isLocalEnv ? origin : (host ? `${proto}://${host}` : origin)
+
   const authError = searchParams.get('error_description') || searchParams.get('error')
   if (authError) {
-    return NextResponse.redirect(`${origin}/login?error_description=${encodeURIComponent(authError)}`)
+    return NextResponse.redirect(`${publicOrigin}/login?error_description=${encodeURIComponent(authError)}`)
   }
 
   if (code) {
@@ -51,23 +58,15 @@ export async function GET(request: Request) {
         const reason = encodeURIComponent(
           `Acesso Restrito: A conta ${userEmail || ''} não possui autorização neste ambiente privado.`
         )
-        return NextResponse.redirect(`${origin}/login?access_denied=true&error_description=${reason}`)
+        return NextResponse.redirect(`${publicOrigin}/login?access_denied=true&error_description=${reason}`)
       }
 
-      const forwardedHost = request.headers.get('x-forwarded-host')
-      const isLocalEnv = process.env.NODE_ENV === 'development'
-      if (isLocalEnv) {
-        return NextResponse.redirect(`${origin}${next}`)
-      } else if (forwardedHost) {
-        return NextResponse.redirect(`https://${forwardedHost}${next}`)
-      } else {
-        return NextResponse.redirect(`${origin}${next}`)
-      }
+      return NextResponse.redirect(`${publicOrigin}${next}`)
     } else {
       const errMsg = error ? error.message : 'Falha na troca de sessão'
-      return NextResponse.redirect(`${origin}/login?error_description=${encodeURIComponent(errMsg)}`)
+      return NextResponse.redirect(`${publicOrigin}/login?error_description=${encodeURIComponent(errMsg)}`)
     }
   }
 
-  return NextResponse.redirect(`${origin}/login?error=true`)
+  return NextResponse.redirect(`${publicOrigin}/login?error=true`)
 }
