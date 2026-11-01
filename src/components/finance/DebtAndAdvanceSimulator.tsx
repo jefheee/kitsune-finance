@@ -411,7 +411,7 @@ export function DebtAndAdvanceSimulator({
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-[#27272A]">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="p-1.5 rounded-xl bg-[#FF8216]/10 text-[#FF8216] border border-[#FF8216]/25 flex items-center justify-center">
+            <span className="p-1.5 rounded-xl bg-[#E11D48]/10 text-[#E11D48] border border-[#E11D48]/25 flex items-center justify-center">
               <span className="material-symbols-outlined text-[18px]">calculate</span>
             </span>
             <h2 className="text-base md:text-lg font-black text-slate-900 dark:text-white tracking-tight">
@@ -432,7 +432,7 @@ export function DebtAndAdvanceSimulator({
             onClick={() => setActiveTab("payoff")}
             className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
               activeTab === "payoff"
-                ? "bg-[#FF8216] text-white shadow-xs"
+                ? "bg-[#E11D48] text-white shadow-xs"
                 : "text-slate-600 dark:text-zinc-400 hover:text-white"
             }`}
           >
@@ -445,7 +445,7 @@ export function DebtAndAdvanceSimulator({
             onClick={() => setActiveTab("advance")}
             className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
               activeTab === "advance"
-                ? "bg-[#FF8216] text-white shadow-xs"
+                ? "bg-[#E11D48] text-white shadow-xs"
                 : "text-slate-600 dark:text-zinc-400 hover:text-white"
             }`}
           >
@@ -482,7 +482,7 @@ export function DebtAndAdvanceSimulator({
                   onChange={(e) =>
                     setExtraMonthlyBudget(Math.max(0, Number(e.target.value) || 0))
                   }
-                  className="w-28 px-3 py-1.5 rounded-lg bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] text-xs font-mono font-black text-[#FF8216] focus:outline-none focus:border-[#FF8216]"
+                  className="w-28 px-3 py-1.5 rounded-lg bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] text-xs font-mono font-black text-[#E11D48] focus:outline-none focus:border-[#E11D48]"
                 />
               </div>
             </div>
@@ -494,7 +494,7 @@ export function DebtAndAdvanceSimulator({
               step={50}
               value={Math.min(10000, extraMonthlyBudget)}
               onChange={(e) => setExtraMonthlyBudget(Number(e.target.value))}
-              className="w-full accent-[#FF8216] cursor-pointer"
+              className="w-full accent-[#E11D48] cursor-pointer"
             />
 
             <div className="flex items-center justify-between flex-wrap gap-2">
@@ -506,7 +506,7 @@ export function DebtAndAdvanceSimulator({
                     onClick={() => setExtraMonthlyBudget(preset)}
                     className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-colors cursor-pointer ${
                       extraMonthlyBudget === preset
-                        ? "bg-[#FF8216] text-white"
+                        ? "bg-[#E11D48] text-white"
                         : "bg-white dark:bg-[#121214] text-zinc-400 border border-slate-200 dark:border-[#27272A] hover:text-white"
                     }`}
                   >
@@ -517,7 +517,7 @@ export function DebtAndAdvanceSimulator({
 
               <Link
                 href={`/kitsune?prompt=${encodeURIComponent(kenjiPayoffPrompt)}`}
-                className="px-3.5 py-1.5 rounded-xl bg-[#FF8216] hover:bg-[#FFA047] text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                className="px-3.5 py-1.5 rounded-xl bg-[#E11D48] hover:bg-[#F43F5E] text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
               >
                 <span className="material-symbols-outlined text-[15px]">shield</span>
                 <span>Estratégia Detalhada com Kenji</span>
@@ -535,7 +535,7 @@ export function DebtAndAdvanceSimulator({
                 <button
                   type="button"
                   onClick={handleLoadInteractivePreset}
-                  className="px-3 py-1.5 rounded-xl bg-[#18181B] hover:bg-[#27272A] border border-[#27272A] text-[#FF8216] text-xs font-bold cursor-pointer flex items-center gap-1.5"
+                  className="px-3 py-1.5 rounded-xl bg-[#18181B] hover:bg-[#27272A] border border-[#27272A] text-[#E11D48] text-xs font-bold cursor-pointer flex items-center gap-1.5"
                 >
                   <span className="material-symbols-outlined text-[15px]">science</span>
                   <span>Carregar Cenário Exemplo Interativo</span>
@@ -614,7 +614,7 @@ export function DebtAndAdvanceSimulator({
                               setRateOverrides((prev) => ({ ...prev, [debt.id]: val }));
                             }
                           }}
-                          className="w-16 px-2 py-1 rounded bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] text-right text-xs font-mono font-bold text-[#FF8216]"
+                          className="w-16 px-2 py-1 rounded bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] text-right text-xs font-mono font-bold text-[#E11D48]"
                         />
                       </div>
 
@@ -698,7 +698,7 @@ export function DebtAndAdvanceSimulator({
                 </div>
                 <button
                   type="submit"
-                  className="h-[30px] px-3 rounded-lg bg-[#18181B] hover:bg-[#FF8216] text-white border border-[#27272A] text-xs font-bold transition-colors cursor-pointer shrink-0 mt-4"
+                  className="h-[30px] px-3 rounded-lg bg-[#18181B] hover:bg-[#E11D48] text-white border border-[#27272A] text-xs font-bold transition-colors cursor-pointer shrink-0 mt-4"
                 >
                   + Incluir
                 </button>
@@ -710,13 +710,13 @@ export function DebtAndAdvanceSimulator({
           {strategyComparison && (
             <div className="flex flex-col gap-4">
               {/* Banner Resumo de Economia */}
-              <div className="p-4 rounded-xl bg-[#18181B] border border-[#FF8216]/35 flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div className="p-4 rounded-xl bg-[#18181B] border border-[#E11D48]/35 flex flex-col md:flex-row md:items-center justify-between gap-3">
                 <div className="flex items-start sm:items-center gap-3">
-                  <span className="material-symbols-outlined text-[#FF8216] text-2xl">
+                  <span className="material-symbols-outlined text-[#E11D48] text-2xl">
                     emoji_events
                   </span>
                   <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#FF8216] block">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#E11D48] block">
                       Veredito Matemático de Amortização (Rollover Ativo)
                     </span>
                     <p className="text-xs text-zinc-200 mt-0.5 leading-relaxed">
@@ -740,7 +740,7 @@ export function DebtAndAdvanceSimulator({
                     <span className="text-[10px] text-zinc-400 uppercase block">
                       Prazo Economizado
                     </span>
-                    <span className="text-base font-black text-[#FF8216] tabular-nums">
+                    <span className="text-base font-black text-[#E11D48] tabular-nums">
                       {strategyComparison.monthsSavedByAvalanche} meses
                     </span>
                   </div>
@@ -806,17 +806,17 @@ export function DebtAndAdvanceSimulator({
                 </div>
 
                 {/* Card Estratégia Bola de Neve */}
-                <div className="p-5 rounded-2xl bg-slate-50 dark:bg-[#18181B] border border-[#FF8216]/35 flex flex-col gap-4">
+                <div className="p-5 rounded-2xl bg-slate-50 dark:bg-[#18181B] border border-[#E11D48]/35 flex flex-col gap-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#FF8216] block">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#E11D48] block">
                         Vitória Comportamental • Tração Rápida
                       </span>
                       <h3 className="text-sm font-black text-slate-900 dark:text-white">
                         Estratégia Bola de Neve (Menor Saldo Primeiro)
                       </h3>
                     </div>
-                    <span className="px-2.5 py-1 rounded-full text-[11px] font-black bg-[#FF8216]/15 text-[#FF8216] border border-[#FF8216]/30 tabular-nums">
+                    <span className="px-2.5 py-1 rounded-full text-[11px] font-black bg-[#E11D48]/15 text-[#E11D48] border border-[#E11D48]/30 tabular-nums">
                       {strategyComparison.snowball.totalMonths} meses
                     </span>
                   </div>
@@ -836,7 +836,7 @@ export function DebtAndAdvanceSimulator({
                     </div>
                     <div className="p-2.5 rounded-xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A]">
                       <span className="text-[10px] text-zinc-400 block">1ª Quitação</span>
-                      <span className="font-black text-[#FF8216] tabular-nums">
+                      <span className="font-black text-[#E11D48] tabular-nums">
                         Mês {strategyComparison.firstDebtClearedMonthSnowball}
                       </span>
                     </div>
@@ -854,7 +854,7 @@ export function DebtAndAdvanceSimulator({
                         <span className="font-semibold text-zinc-200 truncate">
                           {i + 1}º • {rec.debtName}
                         </span>
-                        <span className="text-[11px] font-mono font-bold text-[#FF8216] shrink-0 ml-2">
+                        <span className="text-[11px] font-mono font-bold text-[#E11D48] shrink-0 ml-2">
                           Quitada no Mês {rec.clearedMonth} ↻
                         </span>
                       </div>
@@ -894,11 +894,11 @@ export function DebtAndAdvanceSimulator({
                       onClick={() => handleSelectInstallmentPlan(plan.key)}
                       className={`p-3 rounded-xl border text-left transition-all shrink-0 min-w-[210px] cursor-pointer ${
                         active
-                          ? "bg-[#FF8216]/15 border-[#FF8216] text-white"
+                          ? "bg-[#E11D48]/15 border-[#E11D48] text-white"
                           : "bg-slate-50 dark:bg-[#18181B] border-slate-200 dark:border-[#27272A] text-zinc-300 hover:border-zinc-500"
                       }`}
                     >
-                      <span className="text-[10px] font-bold text-[#FF8216] uppercase block truncate">
+                      <span className="text-[10px] font-bold text-[#E11D48] uppercase block truncate">
                         {plan.institutionName} • Restam {plan.remainingInstallments}x
                       </span>
                       <span className="text-xs font-extrabold text-slate-900 dark:text-white block truncate mt-0.5">
@@ -924,7 +924,7 @@ export function DebtAndAdvanceSimulator({
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-bold text-zinc-300 flex items-center justify-between">
                 <span>Valor de Cada Parcela (R$)</span>
-                <span className="text-[#FF8216] font-mono">
+                <span className="text-[#E11D48] font-mono">
                   {formatCurrency(advInstallmentAmount)}
                 </span>
               </label>
@@ -945,7 +945,7 @@ export function DebtAndAdvanceSimulator({
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-bold text-zinc-300 flex items-center justify-between">
                 <span>Parcelas Restantes</span>
-                <span className="text-[#FF8216] font-mono">{advRemainingInstallments}x</span>
+                <span className="text-[#E11D48] font-mono">{advRemainingInstallments}x</span>
               </label>
               <input
                 type="range"
@@ -957,7 +957,7 @@ export function DebtAndAdvanceSimulator({
                   setSelectedPlanKey("manual");
                   setAdvRemainingInstallments(Number(e.target.value));
                 }}
-                className="w-full accent-[#FF8216] cursor-pointer mt-2"
+                className="w-full accent-[#E11D48] cursor-pointer mt-2"
               />
               <span className="text-[10px] text-zinc-400">
                 Prazo médio ponderado: ~{advanceEvaluation.estCalendarDays} dias (IR{" "}
@@ -979,7 +979,7 @@ export function DebtAndAdvanceSimulator({
                 step={0.1}
                 value={advBankAnnualDiscountPct}
                 onChange={(e) => setAdvBankAnnualDiscountPct(Number(e.target.value))}
-                className="w-full accent-[#FF8216] cursor-pointer mt-2"
+                className="w-full accent-[#E11D48] cursor-pointer mt-2"
               />
               <span className="text-[10px] text-zinc-400">
                 Comparado contra 100% CDI ({formatPercentPtBr(macroRates.annualCDIPct)} a.a.)
@@ -992,7 +992,7 @@ export function DebtAndAdvanceSimulator({
             className={`p-5 rounded-2xl border flex flex-col gap-4 ${
               advanceEvaluation.isWorthAdvancing
                 ? "bg-emerald-500/10 border-emerald-500/35"
-                : "bg-[#18181B] border-[#FF8216]/40"
+                : "bg-[#18181B] border-[#E11D48]/40"
             }`}
           >
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -1001,7 +1001,7 @@ export function DebtAndAdvanceSimulator({
                   className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 border ${
                     advanceEvaluation.isWorthAdvancing
                       ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-400"
-                      : "bg-[#FF8216]/15 border-[#FF8216]/35 text-[#FF8216]"
+                      : "bg-[#E11D48]/15 border-[#E11D48]/35 text-[#E11D48]"
                   }`}
                 >
                   <span className="material-symbols-outlined text-[22px]">
@@ -1013,7 +1013,7 @@ export function DebtAndAdvanceSimulator({
                     className={`text-[10px] font-black uppercase tracking-widest block ${
                       advanceEvaluation.isWorthAdvancing
                         ? "text-emerald-400"
-                        : "text-[#FF8216]"
+                        : "text-[#E11D48]"
                     }`}
                   >
                     Veredito Auditado (Desconto Composto vs. CDI Líquido de IR)
@@ -1035,7 +1035,7 @@ export function DebtAndAdvanceSimulator({
                     className={`text-lg font-black tabular-nums ${
                       advanceEvaluation.isWorthAdvancing
                         ? "text-emerald-400"
-                        : "text-[#FF8216]"
+                        : "text-[#E11D48]"
                     }`}
                   >
                     + {formatCurrency(advanceEvaluation.netFinancialAdvantage)}
@@ -1044,7 +1044,7 @@ export function DebtAndAdvanceSimulator({
 
                 <Link
                   href={`/kitsune?prompt=${encodeURIComponent(kenjiAdvancePrompt)}`}
-                  className="px-3.5 py-2.5 rounded-xl bg-[#FF8216] hover:bg-[#FFA047] text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                  className="px-3.5 py-2.5 rounded-xl bg-[#E11D48] hover:bg-[#F43F5E] text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-[16px]">psychology</span>
                   <span>Validar com Kenji</span>
@@ -1084,7 +1084,7 @@ export function DebtAndAdvanceSimulator({
                 <span className="text-[10px] text-zinc-400 uppercase block">
                   Rendimento Líquido no CDI
                 </span>
-                <span className="text-sm font-black text-[#FF8216] tabular-nums mt-0.5 block">
+                <span className="text-sm font-black text-[#E11D48] tabular-nums mt-0.5 block">
                   + {formatCurrency(advanceEvaluation.netCDIYieldIfInvested)}
                 </span>
               </div>

@@ -1,8 +1,9 @@
-const CACHE_NAME = 'kitsune-finance-v2';
+const CACHE_NAME = 'kitsune-finance-v3';
 const PRECACHE_ASSETS = [
   '/manifest.json',
-  '/assets/logo/logo_sem_fundo.png',
-  '/assets/logo/logo.png',
+  '/assets/logo/logo-transparent.png',
+  '/assets/logo/icon-192x192.png',
+  '/assets/logo/icon-512x512.png',
 ];
 
 self.addEventListener('install', (event) => {

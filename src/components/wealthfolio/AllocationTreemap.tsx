@@ -28,7 +28,7 @@ interface AllocationTreemapProps {
 
 // Paleta estritamente Warm Obsidian + Kitsune Orange / Emerald / Amber / Zinc (Zero tons azulados)
 const TREEMAP_PALETTE = [
-  "#FF8216", // Kitsune Orange
+  "#E11D48", // Kitsune Orange
   "#10B981", // Emerald Mint
   "#F59E0B", // Warm Amber
   "#EA580C", // Deep Ember
@@ -238,7 +238,7 @@ export function AllocationTreemap({
             onClick={() => setGroupBy("asset_class")}
             className={`px-3 py-1 rounded-md font-semibold transition-colors cursor-pointer ${
               groupBy === "asset_class"
-                ? "bg-[#FF8216] text-black"
+                ? "bg-white text-black"
                 : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-[#F4F4F5]"
             }`}
           >
@@ -249,7 +249,7 @@ export function AllocationTreemap({
             onClick={() => setGroupBy("institution")}
             className={`px-3 py-1 rounded-md font-semibold transition-colors cursor-pointer ${
               groupBy === "institution"
-                ? "bg-[#FF8216] text-black"
+                ? "bg-white text-black"
                 : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-[#F4F4F5]"
             }`}
           >
@@ -351,7 +351,7 @@ export function AllocationTreemap({
                 <span className="text-zinc-500 text-[11px]">({activeItem.sublabel})</span>
               </div>
               <div className="flex items-center gap-3 tabular-nums">
-                <span className="font-semibold text-[#FF8216]">
+                <span className="font-semibold text-[#E11D48]">
                   {hideValues
                     ? "••%"
                     : `${activeItem.weightPct.toFixed(2).replace(".", ",")}%`}

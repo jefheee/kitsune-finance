@@ -32,8 +32,12 @@ export const metadata: Metadata = {
     title: 'Kitsune',
   },
   icons: {
-    icon: '/assets/logo/logo_sem_fundo.png',
-    apple: '/assets/logo/logo_sem_fundo.png',
+    icon: [
+      { url: '/assets/logo/icon-192x192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/assets/logo/icon-512x512.png', sizes: '512x512', type: 'image/png' },
+      { url: '/assets/logo/logo-transparent.png', type: 'image/png' },
+    ],
+    apple: '/assets/logo/icon-192x192.png',
   },
 };
 

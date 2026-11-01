@@ -199,11 +199,14 @@
 ---
 
 ## 4. Context Handoff (Memória de Continuidade entre Chats)
-- **Última Etapa Concluída:** Release v3.0 — **Unificação da Kitsune AI, Hierarquia Visual e Abas Estilo Widgets**:
-  1. **Navegação de IA Unificada:** Apenas uma página de IA na navegação ("Kitsune AI" em `/kitsune`), eliminando conflito de seleção dupla com "Squad IA".
-  2. **Abas com Fundo de Widget:** Grid de 4 abas sem cor viva, integrado ao design `#121214` e `#27272A`.
-  3. **Subtítulo Sóbrio:** Substituição de jargões técnicos por texto executivo na saudação.
-  4. **Fluxo Visual Reordenado:** "Falar com Kitsune AI" no topo sobre os bancos, e avisos de agentes posicionados abaixo do gráfico de patrimônio líquido.
-  5. **Estabilidade:** `npx tsc --noEmit` validado com 0 erros.
+- **Última Etapa Concluída:** Release v3.1 — **Expurgo do Histórico Git, Nova Identidade Minimalista e Evolução Warm Obsidian**:
+  1. **Segurança do Git:** Histórico reescrito via `git filter-branch` expurgando permanentemente a pasta `public/assets/screenshots/pierre design system/`, validada com 0 ocorrências em todo o histórico e sincronizada via `git push origin master --force`.
+  2. **Branding & PWA Modernizado:** Nova logo minimalista (`logo-transparent.png`) integrada em Sidebar/AppShell, Mobile Nav, Header, Login, Signup e Biometric Lock Guard; ícones PWA convertidos e configurados em PNG de alta compatibilidade (`icon-192x192.png`, `icon-512x512.png`, `maskable-icon-512x512.png`).
+  3. **Evolução do Design System Warm Obsidian:**
+     - Aposentadoria definitiva do antigo laranja `#FF8216`.
+     - Ações primárias, botões principais e estados ativos convertidos para alto contraste monocromático (`#FFFFFF`/`#FAFAFA` com texto preto `#0A0A0A`).
+     - Brand Accent acentuado com **Kitsune Crimson (`#E11D48`)** para elementos de identidade, Kitsune AI, badges de destaque e anéis de foco cirúrgicos.
+     - Curva patrimonial do gráfico `NetWorthHeroChart` redesenhada com traço e gradiente em Branco Puro (`#FFFFFF`), mantendo superfícies neutras (`#0A0A0A`, `#121214`, `#18181B`, `#27272A`).
+  4. **Estabilidade Técnica:** Validação de tipagem estrita com TypeScript (`npx tsc --noEmit`) aprovada com 0 erros.
 - **Próxima Etapa Imediata:** Sincronização dos novos dados patrimoniais e ativos físicos com as ferramentas dos agentes de IA (`src/utils/ai/deterministic-tools.ts`).
 - **Pendências ou Bloqueios:** Nenhum. Todo o código compila perfeitamente.

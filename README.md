@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="public/assets/logo/logo_sem_fundo.png" width="180" alt="Kitsune Finance Logo" />
+  <img src="public/assets/logo/logo-transparent.png" width="120" alt="Kitsune Finance Logo" />
 </p>
 
 <h1 align="center">Kitsune Finance</h1>
@@ -330,7 +330,7 @@ kitsune-finance/
 |   |-- CHANGELOG.md               # Incremental project modification log
 |   `-- PROJECT_STATE.md           # Authoritative state and feature status
 |-- public/
-|   |-- assets/logo/               # Brand identity (logo_sem_fundo.png)
+|   |-- assets/logo/               # Brand identity (logo-transparent.png, icons PWA)
 |   |-- banks/                     # High-fidelity Brazilian bank SVGs
 |   |-- manifest.json              # Progressive Web App manifest
 |   `-- sw.js                      # Service Worker for offline PWA caching

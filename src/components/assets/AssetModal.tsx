@@ -221,7 +221,7 @@ export function AssetModal({ isOpen, onClose, assetToEdit }: AssetModalProps) {
                     onClick={() => setCategory(cat.id)}
                     className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all ${
                       active
-                        ? "bg-[#18181B] border-[#FF8216] shadow-sm text-white"
+                        ? "bg-[#18181B] border-[#E11D48] shadow-sm text-white"
                         : "bg-[#18181B]/40 border-[#27272A] text-zinc-400 hover:text-zinc-200 hover:border-zinc-700"
                     }`}
                   >
@@ -317,7 +317,7 @@ export function AssetModal({ isOpen, onClose, assetToEdit }: AssetModalProps) {
                   placeholder="Ex: Reserva em Ouro Físico, Coleção de Arte"
                   value={otherName}
                   onChange={(e) => setOtherName(e.target.value)}
-                  className="w-full bg-[#18181B] border border-[#27272A] rounded-xl px-3 py-2 text-xs text-white placeholder-zinc-500 outline-none focus:border-[#FF8216]"
+                  className="w-full bg-[#18181B] border border-[#27272A] rounded-xl px-3 py-2 text-xs text-white placeholder-zinc-500 outline-none focus:border-[#E11D48]"
                 />
               </div>
 
@@ -331,7 +331,7 @@ export function AssetModal({ isOpen, onClose, assetToEdit }: AssetModalProps) {
                   placeholder="0,00"
                   value={otherValue || ""}
                   onChange={(e) => setOtherValue(parseFloat(e.target.value) || 0)}
-                  className="w-full bg-[#18181B] border border-[#27272A] rounded-xl px-3 py-2 text-xs text-white tabular-nums outline-none focus:border-[#FF8216]"
+                  className="w-full bg-[#18181B] border border-[#27272A] rounded-xl px-3 py-2 text-xs text-white tabular-nums outline-none focus:border-[#E11D48]"
                 />
               </div>
 
@@ -344,7 +344,7 @@ export function AssetModal({ isOpen, onClose, assetToEdit }: AssetModalProps) {
                   placeholder="Detalhes adicionais de localização, certificado de autenticidade ou liquidez..."
                   value={otherNotes}
                   onChange={(e) => setOtherNotes(e.target.value)}
-                  className="w-full bg-[#18181B] border border-[#27272A] rounded-xl p-3 text-xs text-white placeholder-zinc-600 outline-none focus:border-[#FF8216]"
+                  className="w-full bg-[#18181B] border border-[#27272A] rounded-xl p-3 text-xs text-white placeholder-zinc-600 outline-none focus:border-[#E11D48]"
                 />
               </div>
             </div>
@@ -376,7 +376,7 @@ export function AssetModal({ isOpen, onClose, assetToEdit }: AssetModalProps) {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="px-5 py-2 bg-[#FF8216] hover:bg-[#e57413] text-black text-xs font-bold rounded-xl transition-colors cursor-pointer shadow-md shadow-[#FF8216]/20 disabled:opacity-50"
+                className="px-5 py-2 bg-[#E11D48] hover:bg-[#e57413] text-black text-xs font-bold rounded-xl transition-colors cursor-pointer shadow-md shadow-[#E11D48]/20 disabled:opacity-50"
               >
                 {isSubmitting
                   ? "Salvando..."

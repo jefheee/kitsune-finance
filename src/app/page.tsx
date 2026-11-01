@@ -43,7 +43,7 @@ const AGENTS = [
     role: "Auditor de Anomalias",
     tagline: "Detecta cobranças indevidas, fraudes e tarifas surpresa antes de você perceber.",
     icon: "shield",
-    accent: "#FF8216",
+    accent: "#E11D48",
     badge: "Antifraude Ativo",
   },
   {
@@ -88,14 +88,14 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white selection:bg-[#FF8216] selection:text-white font-sans overflow-x-hidden">
+    <div className="min-h-screen bg-[#0A0A0A] text-white selection:bg-[#E11D48] selection:text-white font-sans overflow-x-hidden">
       {/* Floating Pill Navbar (Estilo Pierre / Stitch) */}
       <header className="fixed top-5 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-5xl rounded-full bg-[#121214]/90 backdrop-blur-xl border border-white/10 px-4 sm:px-6 py-2.5 flex items-center justify-between shadow-2xl transition-all">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="w-8 h-8 rounded-xl bg-white/5 p-1 flex items-center justify-center border border-white/10 group-hover:border-[#FF8216]/50 transition-colors">
+          <div className="w-8 h-8 rounded-xl bg-white/5 p-1 flex items-center justify-center border border-white/10 group-hover:border-white/30 transition-colors">
             <Image
-              src="/assets/logo/logo_sem_fundo.png"
+              src="/assets/logo/logo-transparent.png"
               alt="Kitsune"
               width={26}
               height={26}
@@ -119,7 +119,7 @@ export default function LandingPage() {
           <a href="#agentes" className="hover:text-white transition-colors">
             Agentes
           </a>
-          <Link href="/kitsune" className="text-[#FF8216] font-bold hover:text-[#FFA047] transition-colors flex items-center gap-1">
+          <Link href="/kitsune" className="text-[#E11D48] font-bold hover:text-[#F43F5E] transition-colors flex items-center gap-1">
             <span className="material-symbols-outlined text-[16px]">psychology</span>
             Kitsune AI
           </Link>
@@ -138,7 +138,7 @@ export default function LandingPage() {
           </Link>
           <Link
             href="/signup"
-            className="text-xs sm:text-[13px] font-bold bg-[#FF8216] hover:bg-[#FFA047] active:scale-95 text-white px-4 sm:px-5 py-2 rounded-full transition-all shadow-sm"
+            className="text-xs sm:text-[13px] font-bold bg-white hover:bg-zinc-200 active:scale-95 text-black px-4 sm:px-5 py-2 rounded-full transition-all shadow-sm"
           >
             Começar agora
           </Link>
@@ -165,7 +165,7 @@ export default function LandingPage() {
           transition={{ duration: 0.5 }}
           className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#161618] border border-white/10 text-xs text-zinc-300 font-medium mb-6 shadow-sm"
         >
-          <span className="w-1.5 h-1.5 rounded-full bg-[#FF8216] animate-pulse" />
+          <span className="w-1.5 h-1.5 rounded-full bg-[#E11D48] animate-pulse" />
           <span>A Revolução do Open Finance Autônomo</span>
         </motion.div>
 
@@ -199,7 +199,7 @@ export default function LandingPage() {
         >
           <Link
             href="/signup"
-            className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-3.5 rounded-full bg-[#FF8216] hover:bg-[#FFA047] active:scale-95 text-white font-bold text-sm tracking-tight transition-transform shadow-lg shadow-[#FF8216]/20 cursor-pointer"
+            className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-3.5 rounded-full bg-white hover:bg-zinc-200 active:scale-95 text-black font-bold text-sm tracking-tight transition-transform shadow-lg shadow-white/10 cursor-pointer"
           >
             Começar gratuitamente
           </Link>
@@ -255,11 +255,11 @@ export default function LandingPage() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
-            className="hidden lg:flex absolute top-20 right-4 z-20 flex-col gap-2 p-4 rounded-2xl bg-[#121214] border border-[#FF8216]/30 shadow-2xl w-64 text-left transform-gpu"
+            className="hidden lg:flex absolute top-20 right-4 z-20 flex-col gap-2 p-4 rounded-2xl bg-[#121214] border border-[#E11D48]/30 shadow-2xl w-64 text-left transform-gpu"
           >
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#FF8216]" />
-              <span className="text-[11px] font-bold text-[#FF8216] uppercase tracking-wider">
+              <span className="w-2 h-2 rounded-full bg-[#E11D48]" />
+              <span className="text-[11px] font-bold text-[#E11D48] uppercase tracking-wider">
                 Sentinela Kitsune
               </span>
             </div>
@@ -283,15 +283,15 @@ export default function LandingPage() {
               {/* Dynamic Island */}
               <div className="w-24 h-5 bg-black rounded-full mx-auto mb-4 flex items-center justify-between px-2 shrink-0">
                 <span className="w-2 h-2 rounded-full bg-[#18181B]" />
-                <span className="w-1.5 h-1.5 rounded-full bg-[#FF8216]/60" />
+                <span className="w-1.5 h-1.5 rounded-full bg-[#E11D48]/60" />
               </div>
 
               {/* Chat Interface Inside Phone */}
               <div className="flex items-center justify-between border-b border-white/5 pb-3 mb-3 shrink-0">
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-[#FF8216]/15 flex items-center justify-center p-1">
+                  <div className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center p-1">
                     <Image
-                      src="/assets/logo/logo_sem_fundo.png"
+                      src="/assets/logo/logo-transparent.png"
                       alt="Kitsune"
                       width={18}
                       height={18}
@@ -310,13 +310,13 @@ export default function LandingPage() {
 
               {/* Mensagens de Exemplo */}
               <div className="flex-1 flex flex-col justify-end gap-2.5 text-left text-xs overflow-hidden pb-2">
-                <div className="self-end bg-[#FF8216] text-white px-3.5 py-2 rounded-2xl rounded-tr-sm max-w-[85%] font-medium shadow-sm">
+                <div className="self-end bg-[#E11D48] text-white px-3.5 py-2 rounded-2xl rounded-tr-sm max-w-[85%] font-medium shadow-sm">
                   Qual o impacto das minhas faturas no fechamento deste mês?
                 </div>
 
                 <div className="self-start bg-[#18181C] text-zinc-200 p-3 rounded-2xl rounded-tl-sm max-w-[90%] border border-white/5 space-y-2">
                   <p className="text-[11px] leading-relaxed text-zinc-300">
-                    Seu saldo disponível é de <strong className="text-white">R$ 220,76</strong>. Com a fatura Nubank de <strong className="text-[#FF8216]">R$ 165,58</strong>, sua margem líquida é de <strong className="text-emerald-400">R$ 55,18</strong>.
+                    Seu saldo disponível é de <strong className="text-white">R$ 220,76</strong>. Com a fatura Nubank de <strong className="text-[#E11D48]">R$ 165,58</strong>, sua margem líquida é de <strong className="text-emerald-400">R$ 55,18</strong>.
                   </p>
                   <div className="p-2 rounded-lg bg-black/40 border border-white/5 flex items-center justify-between text-[10px]">
                     <span className="text-zinc-400">Status de Liquidez:</span>
@@ -330,7 +330,7 @@ export default function LandingPage() {
                 <div className="flex-1 h-9 bg-[#18181C] rounded-full border border-white/10 px-3 flex items-center text-[11px] text-zinc-500">
                   Perguntar à Kitsune...
                 </div>
-                <div className="w-8 h-8 rounded-full bg-[#FF8216] flex items-center justify-center text-white">
+                <div className="w-8 h-8 rounded-full bg-[#E11D48] flex items-center justify-center text-white">
                   <span className="material-symbols-outlined text-[15px]">arrow_upward</span>
                 </div>
               </div>
@@ -350,7 +350,7 @@ export default function LandingPage() {
           </div>
 
           <div className="flex flex-col items-center">
-            <span className="text-2xl sm:text-3xl font-extrabold text-[#FF8216] tracking-tight">
+            <span className="text-2xl sm:text-3xl font-extrabold text-[#E11D48] tracking-tight">
               AES-256
             </span>
             <span className="text-xs text-zinc-400 mt-1">
@@ -442,7 +442,7 @@ export default function LandingPage() {
               ].map((b, idx) => (
                 <div
                   key={`${b.slug}-${idx}`}
-                  className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 hover:border-[#FF8216]/50 hover:bg-white/10 transition-all shadow-sm flex items-center justify-center p-2 shrink-0 group cursor-pointer"
+                  className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 hover:border-[#E11D48]/50 hover:bg-white/10 transition-all shadow-sm flex items-center justify-center p-2 shrink-0 group cursor-pointer"
                   title={b.name}
                 >
                   <BankLogo bank={b.slug} size="sm" className="group-hover:scale-110 transition-transform" />
@@ -456,7 +456,7 @@ export default function LandingPage() {
       {/* Seção Exclusiva: Galeria de Agentes Especialistas da Kitsune */}
       <section className="py-20 px-4 max-w-6xl mx-auto border-t border-white/10">
         <div className="flex flex-col items-center text-center gap-3 mb-12">
-          <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-[#FF8216]/10 text-[#FF8216] border border-[#FF8216]/20">
+          <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-[#E11D48]/10 text-[#E11D48] border border-[#E11D48]/20">
             Inteligência Financeira Autônoma
           </span>
           <h2 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
@@ -500,11 +500,11 @@ export default function LandingPage() {
                   <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-2xl group-hover:scale-105 transition-transform">
                     {ag.emoji}
                   </div>
-                  <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#FF8216]/10 text-[#FF8216] border border-[#FF8216]/20">
+                  <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#E11D48]/10 text-[#E11D48] border border-[#E11D48]/20">
                     {ag.tag}
                   </span>
                 </div>
-                <h3 className="text-lg font-bold text-white group-hover:text-[#FF8216] transition-colors">
+                <h3 className="text-lg font-bold text-white group-hover:text-[#E11D48] transition-colors">
                   {ag.name}
                 </h3>
                 <p className="text-xs text-zinc-400 leading-relaxed">
@@ -538,7 +538,7 @@ export default function LandingPage() {
 
               {/* Event 1 */}
               <div className="p-3.5 rounded-xl bg-[#18181B] border border-white/5 flex items-start gap-3">
-                <div className="w-7 h-7 rounded-lg bg-[#FF8216]/10 text-[#FF8216] flex items-center justify-center shrink-0 mt-0.5">
+                <div className="w-7 h-7 rounded-lg bg-[#E11D48]/10 text-[#E11D48] flex items-center justify-center shrink-0 mt-0.5">
                   <span className="material-symbols-outlined text-sm">shield</span>
                 </div>
                 <div className="min-w-0 text-left">
@@ -585,7 +585,7 @@ export default function LandingPage() {
 
           {/* Right: Copy & Bullets */}
           <div className="lg:col-span-6 text-left space-y-6">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#18181B] border border-white/10 text-[11px] font-bold text-[#FF8216] uppercase tracking-wider">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#18181B] border border-white/10 text-[11px] font-bold text-[#E11D48] uppercase tracking-wider">
               Tecnologia Patrimonial
             </div>
 
@@ -599,7 +599,7 @@ export default function LandingPage() {
 
             <div className="space-y-4 pt-2">
               <div className="flex items-start gap-3">
-                <span className="material-symbols-outlined text-[#FF8216] text-xl shrink-0 mt-0.5">
+                <span className="material-symbols-outlined text-[#E11D48] text-xl shrink-0 mt-0.5">
                   check_circle
                 </span>
                 <div>
@@ -613,7 +613,7 @@ export default function LandingPage() {
               </div>
 
               <div className="flex items-start gap-3">
-                <span className="material-symbols-outlined text-[#FF8216] text-xl shrink-0 mt-0.5">
+                <span className="material-symbols-outlined text-[#E11D48] text-xl shrink-0 mt-0.5">
                   check_circle
                 </span>
                 <div>
@@ -627,7 +627,7 @@ export default function LandingPage() {
               </div>
 
               <div className="flex items-start gap-3">
-                <span className="material-symbols-outlined text-[#FF8216] text-xl shrink-0 mt-0.5">
+                <span className="material-symbols-outlined text-[#E11D48] text-xl shrink-0 mt-0.5">
                   check_circle
                 </span>
                 <div>
@@ -658,7 +658,7 @@ export default function LandingPage() {
 
           <Link
             href="/signup"
-            className="inline-flex items-center justify-center px-6 py-3 rounded-full bg-[#FF8216] hover:bg-[#FFA047] text-white font-bold text-xs shrink-0 self-start shadow-sm"
+            className="inline-flex items-center justify-center px-6 py-3 rounded-full bg-white hover:bg-zinc-200 text-black font-bold text-xs shrink-0 self-start shadow-sm"
           >
             Ativar Agentes
           </Link>
@@ -669,7 +669,7 @@ export default function LandingPage() {
           {AGENTS.map((agent) => (
             <div
               key={agent.name}
-              className="p-5 rounded-3xl bg-[#121214] border border-white/10 hover:border-[#FF8216]/40 transition-colors flex flex-col justify-between gap-4 shadow-xl group"
+              className="p-5 rounded-3xl bg-[#121214] border border-white/10 hover:border-[#E11D48]/40 transition-colors flex flex-col justify-between gap-4 shadow-xl group"
             >
               <div>
                 <div className="flex items-center justify-between mb-4">
@@ -717,7 +717,7 @@ export default function LandingPage() {
       {/* Seção Exclusiva: Inteligência Autônoma & Gestão de Cartões */}
       <section className="py-24 px-4 max-w-6xl mx-auto border-t border-white/10">
         <div className="flex flex-col items-center text-center gap-3 mb-12">
-          <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-[#FF8216]/10 text-[#FF8216] border border-[#FF8216]/20">
+          <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-[#E11D48]/10 text-[#E11D48] border border-[#E11D48]/20">
             Inteligência Patrimonial & Cartões
           </span>
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white tracking-tight">
@@ -733,10 +733,10 @@ export default function LandingPage() {
           <SpotlightCard className="p-8 flex flex-col justify-between gap-6 border-white/10 bg-[#121214]">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <div className="w-12 h-12 rounded-2xl bg-[#FF8216]/10 text-[#FF8216] border border-[#FF8216]/25 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-2xl bg-[#E11D48]/10 text-[#E11D48] border border-[#E11D48]/25 flex items-center justify-center">
                   <span className="material-symbols-outlined text-2xl">psychology</span>
                 </div>
-                <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#FF8216]/10 text-[#FF8216] border border-[#FF8216]/20">
+                <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#E11D48]/10 text-[#E11D48] border border-[#E11D48]/20">
                   Agente Estrategista
                 </span>
               </div>
@@ -749,7 +749,7 @@ export default function LandingPage() {
             </div>
             <Link
               href="/kitsune"
-              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-[#FF8216] hover:bg-[#FFA047] text-white font-bold text-xs tracking-tight transition-transform active:scale-95 shadow-md shadow-[#FF8216]/20 self-start cursor-pointer"
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-white hover:bg-zinc-200 text-black font-bold text-xs tracking-tight transition-transform active:scale-95 shadow-md shadow-white/10 self-start cursor-pointer"
             >
               <span>Conversar com a Kitsune AI</span>
               <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
@@ -789,7 +789,7 @@ export default function LandingPage() {
       <section id="faq" className="py-24 px-4 max-w-4xl mx-auto border-t border-white/10">
         <div className="text-left mb-12 space-y-3">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#18181B] border border-white/10">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#FF8216]" />
+            <span className="w-1.5 h-1.5 rounded-full bg-[#E11D48]" />
             <span className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider">
               Suporte & Transparência
             </span>
@@ -858,7 +858,7 @@ export default function LandingPage() {
             <div className="md:col-span-7 space-y-6 text-left">
               <div className="flex items-center gap-2.5">
                 <Image
-                  src="/assets/logo/logo_sem_fundo.png"
+                  src="/assets/logo/logo-transparent.png"
                   alt="Kitsune"
                   width={32}
                   height={32}

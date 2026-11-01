@@ -211,7 +211,7 @@ export default function GoalsPage() {
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-zinc-200 dark:border-[#27272A]">
         <div>
           <div className="flex items-center gap-2">
-            <WfIcons.Goals className="w-5 h-5 text-[#FF8216]" />
+            <WfIcons.Goals className="w-5 h-5 text-[#E11D48]" />
             <h1 className="text-xl md:text-2xl font-bold tracking-tight text-zinc-900 dark:text-[#F4F4F5]">
               Metas Patrimoniais & Independência (FIRE)
             </h1>
@@ -223,7 +223,7 @@ export default function GoalsPage() {
 
         <Link
           href="/kitsune?prompt=Com%20base%20no%20meu%20patrim%C3%B4nio%20atual%20e%20no%20juro%20real%20de%20Fisher%2C%20monte%20um%20plano%20de%20aportes%20com%20o%20Agente%20Ren."
-          className="h-9 px-4 rounded-xl bg-[#FF8216] hover:bg-[#FF9438] text-black text-xs font-semibold inline-flex items-center gap-1.5 transition-colors self-start md:self-auto"
+          className="h-9 px-4 rounded-xl bg-white hover:bg-zinc-200 active:bg-zinc-300 text-black text-xs font-semibold inline-flex items-center gap-1.5 transition-colors self-start md:self-auto"
         >
           <WfIcons.Agents className="w-3.5 h-3.5" />
           <span>Planejar com Agente Ren</span>
@@ -243,7 +243,7 @@ export default function GoalsPage() {
                 Reserva de Emergência (6 Meses)
               </h2>
             </div>
-            <span className="px-2 py-0.5 rounded-full text-xs font-mono tabular-nums font-semibold bg-[#FF8216]/12 text-[#FF8216] border border-[#FF8216]/25">
+            <span className="px-2 py-0.5 rounded-full text-xs font-mono tabular-nums font-semibold bg-[#E11D48]/12 text-[#E11D48] border border-[#E11D48]/25">
               {isPrivacyMode ? "••%" : `${metrics.emergencyPct}%`}
             </span>
           </div>
@@ -259,7 +259,7 @@ export default function GoalsPage() {
             </div>
             <div className="h-2 w-full rounded-full bg-zinc-100 dark:bg-[#18181B] overflow-hidden">
               <div
-                className="h-full rounded-full bg-[#FF8216] transition-all duration-500"
+                className="h-full rounded-full bg-[#E11D48] transition-all duration-500"
                 style={{ width: `${isPrivacyMode ? 60 : metrics.emergencyPct}%` }}
               />
             </div>
@@ -383,7 +383,7 @@ export default function GoalsPage() {
                 min={10000}
                 value={customTargetPatrimony}
                 onChange={(e) => setCustomTargetPatrimony(Math.max(1000, Number(e.target.value) || 0))}
-                className="w-full px-3 py-1.5 rounded-lg bg-white dark:bg-[#121214] border border-zinc-200 dark:border-[#27272A] text-sm font-mono tabular-nums font-bold text-zinc-900 dark:text-[#F4F4F5] focus:outline-none focus:border-[#FF8216]"
+                className="w-full px-3 py-1.5 rounded-lg bg-white dark:bg-[#121214] border border-zinc-200 dark:border-[#27272A] text-sm font-mono tabular-nums font-bold text-zinc-900 dark:text-[#F4F4F5] focus:outline-none focus:border-[#E11D48]"
               />
             </div>
 
@@ -397,7 +397,7 @@ export default function GoalsPage() {
                 min={0}
                 value={monthlyContribution}
                 onChange={(e) => setMonthlyContribution(Math.max(0, Number(e.target.value) || 0))}
-                className="w-full px-3 py-1.5 rounded-lg bg-white dark:bg-[#121214] border border-zinc-200 dark:border-[#27272A] text-sm font-mono tabular-nums font-bold text-zinc-900 dark:text-[#F4F4F5] focus:outline-none focus:border-[#FF8216]"
+                className="w-full px-3 py-1.5 rounded-lg bg-white dark:bg-[#121214] border border-zinc-200 dark:border-[#27272A] text-sm font-mono tabular-nums font-bold text-zinc-900 dark:text-[#F4F4F5] focus:outline-none focus:border-[#E11D48]"
               />
             </div>
           </div>
@@ -405,13 +405,13 @@ export default function GoalsPage() {
           <div className="p-4 rounded-xl bg-zinc-50 dark:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] space-y-2.5">
             <div className="flex items-center justify-between text-xs">
               <span className="text-zinc-500">Progresso Atual até a Meta</span>
-              <span className="font-mono tabular-nums font-bold text-[#FF8216]">
+              <span className="font-mono tabular-nums font-bold text-[#E11D48]">
                 {isPrivacyMode ? "••%" : `${metrics.customProgressPct}%`}
               </span>
             </div>
             <div className="h-2 w-full rounded-full bg-zinc-200 dark:bg-[#27272A] overflow-hidden">
               <div
-                className="h-full rounded-full bg-[#FF8216] transition-all duration-500"
+                className="h-full rounded-full bg-[#E11D48] transition-all duration-500"
                 style={{ width: `${isPrivacyMode ? 45 : metrics.customProgressPct}%` }}
               />
             </div>
@@ -457,7 +457,7 @@ export default function GoalsPage() {
                   onClick={() => handleSavePrimaryGoal(g.id)}
                   className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
                     active
-                      ? "bg-[#FF8216]/10 border-[#FF8216] text-zinc-900 dark:text-[#F4F4F5]"
+                      ? "bg-[#E11D48]/10 border-[#E11D48] text-zinc-900 dark:text-[#F4F4F5]"
                       : "bg-zinc-50 dark:bg-[#18181B] border-zinc-200 dark:border-[#27272A] hover:border-zinc-400 dark:hover:border-zinc-600"
                   }`}
                 >
@@ -466,7 +466,7 @@ export default function GoalsPage() {
                       {g.title}
                     </span>
                     {active && (
-                      <span className="w-2 h-2 rounded-full bg-[#FF8216] shrink-0" />
+                      <span className="w-2 h-2 rounded-full bg-[#E11D48] shrink-0" />
                     )}
                   </div>
                   <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-relaxed">

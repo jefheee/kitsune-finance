@@ -95,7 +95,7 @@ export default function AgentsHubPage() {
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-zinc-200 dark:border-[#27272A]">
                 <div>
                     <div className="flex items-center gap-2">
-                        <WfIcons.Agents className="w-5 h-5 text-[#FF8216]" />
+                        <WfIcons.Agents className="w-5 h-5 text-[#E11D48]" />
                         <h1 className="text-xl md:text-2xl font-bold tracking-tight text-zinc-900 dark:text-[#F4F4F5]">
                             Agentes Especialistas
                         </h1>
@@ -109,7 +109,7 @@ export default function AgentsHubPage() {
                     href="/connections"
                     className="h-9 px-3.5 rounded-xl bg-white dark:bg-[#121214] hover:bg-zinc-100 dark:hover:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] text-xs font-medium text-zinc-700 dark:text-zinc-300 inline-flex items-center gap-1.5 transition-colors self-start md:self-auto"
                 >
-                    <WfIcons.Bank className="w-3.5 h-3.5 text-[#FF8216]" />
+                    <WfIcons.Bank className="w-3.5 h-3.5 text-[#E11D48]" />
                     <span>Conexões Bancárias</span>
                 </Link>
             </header>
@@ -128,7 +128,7 @@ export default function AgentsHubPage() {
                                   ? "••/100"
                                   : `${xray.kitsuneScore}/100`}
                         </span>
-                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#FF8216]/15 text-[#FF8216] border border-[#FF8216]/30">
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#E11D48]/15 text-[#E11D48] border border-[#E11D48]/30">
                             {xray.statusLabel}
                         </span>
                     </div>
@@ -201,7 +201,7 @@ export default function AgentsHubPage() {
                     return (
                         <div
                             key={agent.id}
-                            className="group relative flex flex-col justify-between p-5 rounded-2xl bg-[#121214] border border-[#27272A] hover:border-[#FF8216]/45 transition-all duration-300 hover:-translate-y-0.5"
+                            className="group relative flex flex-col justify-between p-5 rounded-2xl bg-[#121214] border border-[#27272A] hover:border-[#E11D48]/45 transition-all duration-300 hover:-translate-y-0.5"
                         >
                             <div className="space-y-4">
                                 {/* Topo: Avatar e Identidade */}
@@ -213,7 +213,7 @@ export default function AgentsHubPage() {
                                             <span>{agent.avatarEmoji}</span>
                                         </div>
                                         <div>
-                                            <h3 className="text-base font-bold text-white group-hover:text-[#FF8216] transition-colors">
+                                            <h3 className="text-base font-bold text-white group-hover:text-[#E11D48] transition-colors">
                                                 {agent.name}
                                             </h3>
                                             <p className="text-xs text-zinc-400 font-medium leading-snug">
@@ -270,7 +270,7 @@ export default function AgentsHubPage() {
                             <div className="mt-5 pt-3 border-t border-[#27272A]">
                                 <Link
                                     href={`/kitsune?prompt=${encodeURIComponent(agent.suggestedPrompt)}`}
-                                    className="w-full min-h-[44px] py-2.5 px-4 rounded-xl bg-[#18181B] hover:bg-[#FF8216] text-white hover:text-black font-semibold text-xs border border-[#27272A] hover:border-[#FF8216] flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98]"
+                                    className="w-full min-h-[44px] py-2.5 px-4 rounded-xl bg-[#18181B] hover:bg-[#E11D48] text-white hover:text-black font-semibold text-xs border border-[#27272A] hover:border-[#E11D48] flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98]"
                                 >
                                     <span>Acionar {agent.name}</span>
                                     <span className="material-symbols-outlined text-[16px]">

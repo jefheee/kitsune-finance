@@ -82,9 +82,9 @@ export const KITSUNE_AGENTS_REGISTRY: readonly KitsuneSpecialistAgent[] = [
         role: 'Orquestrador Geral & Diagnóstico 360°',
         personality: 'Estratégico, sereno, holístico e guardião da saúde patrimonial integral.',
         tagline: 'Cruza balanço patrimonial, liquidez, reserva de emergência e fluxo operacional em visão 360°.',
-        avatarBg: 'from-[#FF8216]/30 to-amber-600/15',
+        avatarBg: 'from-[#E11D48]/30 to-amber-600/15',
         avatarEmoji: '🦊',
-        accentColor: '#FF8216',
+        accentColor: '#E11D48',
         consumedTools: ['get_balance_sheet_xray', 'get_income_statement'],
         suggestedPrompt:
             'Sentinela Kitsune, execute meu Diagnóstico 360° completo com Kitsune Score, cobertura de reserva de emergência e margem operacional do mês.',
@@ -182,7 +182,7 @@ export const KITSUNE_AGENTS_REGISTRY: readonly KitsuneSpecialistAgent[] = [
         tagline: 'Simula Avalanche vs. Bola de Neve com rollover real e calcula se vale antecipar parcelas frente ao CDI.',
         avatarBg: 'from-zinc-700/45 to-neutral-800/40',
         avatarEmoji: '🐱‍👓',
-        accentColor: '#FF8216',
+        accentColor: '#E11D48',
         consumedTools: ['simulate_debt_payoff'],
         suggestedPrompt:
             'Kenji, analise minhas faturas de cartão, parcelamentos ativos e empréstimos: compare Avalanche vs Bola de Neve e diga matematicamente se vale antecipar parcelas ou deixar no CDI.',

@@ -101,7 +101,7 @@ export function DashboardExecutiveWidgets({
           onClick={() => toggleWidget("accounts")}
           className={`p-3.5 rounded-2xl bg-gradient-to-br from-blue-600/15 to-[#121214] border transition-all text-left flex flex-col justify-between gap-2.5 cursor-pointer relative overflow-hidden group ${
             activeWidget === "accounts"
-              ? "border-[#FF8216] ring-1 ring-[#FF8216] shadow-lg shadow-[#FF8216]/10"
+              ? "border-[#E11D48] ring-1 ring-[#E11D48] shadow-lg shadow-[#E11D48]/10"
               : "border-blue-500/30 hover:border-blue-500/60 hover:-translate-y-0.5"
           }`}
         >
@@ -116,7 +116,7 @@ export function DashboardExecutiveWidgets({
             </div>
             <span
               className={`w-2 h-2 rounded-full shrink-0 transition-colors ${
-                activeWidget === "accounts" ? "bg-[#FF8216]" : "bg-blue-400"
+                activeWidget === "accounts" ? "bg-[#E11D48]" : "bg-blue-400"
               }`}
             />
           </div>
@@ -134,7 +134,7 @@ export function DashboardExecutiveWidgets({
             <span className="text-zinc-400 truncate">
               {accounts.length} contas • {investments.length} ativos
             </span>
-            <span className="text-[#FF8216] font-semibold shrink-0">
+            <span className="text-[#E11D48] font-semibold shrink-0">
               {activeWidget === "accounts" ? "Aberto ▾" : "Expandir →"}
             </span>
           </div>
@@ -146,7 +146,7 @@ export function DashboardExecutiveWidgets({
           onClick={() => toggleWidget("recent_tx")}
           className={`p-3.5 rounded-2xl bg-gradient-to-br from-emerald-600/15 to-[#121214] border transition-all text-left flex flex-col justify-between gap-2.5 cursor-pointer relative overflow-hidden group ${
             activeWidget === "recent_tx"
-              ? "border-[#FF8216] ring-1 ring-[#FF8216] shadow-lg shadow-[#FF8216]/10"
+              ? "border-[#E11D48] ring-1 ring-[#E11D48] shadow-lg shadow-[#E11D48]/10"
               : "border-emerald-500/30 hover:border-emerald-500/60 hover:-translate-y-0.5"
           }`}
         >
@@ -161,7 +161,7 @@ export function DashboardExecutiveWidgets({
             </div>
             <span
               className={`w-2 h-2 rounded-full shrink-0 transition-colors ${
-                activeWidget === "recent_tx" ? "bg-[#FF8216]" : "bg-emerald-400"
+                activeWidget === "recent_tx" ? "bg-[#E11D48]" : "bg-emerald-400"
               }`}
             />
           </div>
@@ -179,7 +179,7 @@ export function DashboardExecutiveWidgets({
             <span className="text-zinc-400 truncate">
               Entradas: {isPrivacyMode ? "R$ •••" : formatCurrency(monthlyIncome)}
             </span>
-            <span className="text-[#FF8216] font-semibold shrink-0">
+            <span className="text-[#E11D48] font-semibold shrink-0">
               {activeWidget === "recent_tx" ? "Aberto ▾" : "Expandir →"}
             </span>
           </div>
@@ -191,7 +191,7 @@ export function DashboardExecutiveWidgets({
           onClick={() => toggleWidget("goals")}
           className={`p-3.5 rounded-2xl bg-gradient-to-br from-amber-600/15 to-[#121214] border transition-all text-left flex flex-col justify-between gap-2.5 cursor-pointer relative overflow-hidden group ${
             activeWidget === "goals"
-              ? "border-[#FF8216] ring-1 ring-[#FF8216] shadow-lg shadow-[#FF8216]/10"
+              ? "border-[#E11D48] ring-1 ring-[#E11D48] shadow-lg shadow-[#E11D48]/10"
               : "border-amber-500/30 hover:border-amber-500/60 hover:-translate-y-0.5"
           }`}
         >
@@ -206,7 +206,7 @@ export function DashboardExecutiveWidgets({
             </div>
             <span
               className={`w-2 h-2 rounded-full shrink-0 transition-colors ${
-                activeWidget === "goals" ? "bg-[#FF8216]" : "bg-amber-400"
+                activeWidget === "goals" ? "bg-[#E11D48]" : "bg-amber-400"
               }`}
             />
           </div>
@@ -224,7 +224,7 @@ export function DashboardExecutiveWidgets({
             <span className="text-zinc-400 truncate">
               {goalsSummary.emergencyMonths} meses de custo
             </span>
-            <span className="text-[#FF8216] font-semibold shrink-0">
+            <span className="text-[#E11D48] font-semibold shrink-0">
               {activeWidget === "goals" ? "Aberto ▾" : "Expandir →"}
             </span>
           </div>
@@ -236,7 +236,7 @@ export function DashboardExecutiveWidgets({
           onClick={() => toggleWidget("holdings")}
           className={`p-3.5 rounded-2xl bg-gradient-to-br from-purple-600/15 to-[#121214] border transition-all text-left flex flex-col justify-between gap-2.5 cursor-pointer relative overflow-hidden group ${
             activeWidget === "holdings"
-              ? "border-[#FF8216] ring-1 ring-[#FF8216] shadow-lg shadow-[#FF8216]/10"
+              ? "border-[#E11D48] ring-1 ring-[#E11D48] shadow-lg shadow-[#E11D48]/10"
               : "border-purple-500/30 hover:border-purple-500/60 hover:-translate-y-0.5"
           }`}
         >
@@ -251,7 +251,7 @@ export function DashboardExecutiveWidgets({
             </div>
             <span
               className={`w-2 h-2 rounded-full shrink-0 transition-colors ${
-                activeWidget === "holdings" ? "bg-[#FF8216]" : "bg-purple-400"
+                activeWidget === "holdings" ? "bg-[#E11D48]" : "bg-purple-400"
               }`}
             />
           </div>
@@ -269,7 +269,7 @@ export function DashboardExecutiveWidgets({
             <span className="text-zinc-400 truncate">
               {topHoldings.length} posições em custódia
             </span>
-            <span className="text-[#FF8216] font-semibold shrink-0">
+            <span className="text-[#E11D48] font-semibold shrink-0">
               {activeWidget === "holdings" ? "Aberto ▾" : "Expandir →"}
             </span>
           </div>
@@ -290,7 +290,7 @@ export function DashboardExecutiveWidgets({
             {/* Header da Gaveta Expandida */}
             <div className="px-4 md:px-6 py-3.5 border-b border-[#27272A] flex items-center justify-between bg-[#18181B]/60">
               <div className="flex items-center gap-2.5">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#FF8216]">
+                <span className="text-xs font-bold uppercase tracking-wider text-[#E11D48]">
                   {activeWidget === "accounts" && "Contas, Custódia & Patrimônio Total"}
                   {activeWidget === "recent_tx" && "Atividades Recentes Conciliadas"}
                   {activeWidget === "goals" && "Metas & Reserva de Emergência"}
@@ -334,7 +334,7 @@ export function DashboardExecutiveWidgets({
                     </p>
                     <Link
                       href="/transactions"
-                      className="text-xs font-semibold text-[#FF8216] hover:underline flex items-center gap-1"
+                      className="text-xs font-semibold text-[#E11D48] hover:underline flex items-center gap-1"
                     >
                       <span>Ver extrato completo</span>
                       <WfIcons.ChevronRight className="w-3.5 h-3.5" />
@@ -396,7 +396,7 @@ export function DashboardExecutiveWidgets({
                                   : `${tx.is_refund || !isExpense ? "+" : "-"}${formatCurrency(absAmt)}`}
                               </span>
                               {tx.total_installments && Number(tx.total_installments) > 1 && (
-                                <span className="block text-[10px] font-mono tabular-nums text-[#FF8216]">
+                                <span className="block text-[10px] font-mono tabular-nums text-[#E11D48]">
                                   {tx.installment_number || 1}/{tx.total_installments}x
                                 </span>
                               )}
@@ -416,7 +416,7 @@ export function DashboardExecutiveWidgets({
                     <p className="text-xs text-zinc-400">
                       Metas patrimoniais calculadas com base em despesas reais
                     </p>
-                    <Link href="/goals" className="text-xs font-semibold text-[#FF8216] hover:underline">
+                    <Link href="/goals" className="text-xs font-semibold text-[#E11D48] hover:underline">
                       Gerenciar Metas →
                     </Link>
                   </div>
@@ -426,13 +426,13 @@ export function DashboardExecutiveWidgets({
                     <div className="p-4 rounded-xl bg-[#18181B] border border-[#27272A] space-y-2">
                       <div className="flex items-center justify-between text-xs">
                         <span className="font-bold text-white">Reserva de Emergência (6 meses)</span>
-                        <span className="font-mono tabular-nums font-bold text-[#FF8216]">
+                        <span className="font-mono tabular-nums font-bold text-[#E11D48]">
                           {isPrivacyMode ? "••%" : `${goalsSummary.emergencyPct}%`}
                         </span>
                       </div>
                       <div className="h-2 w-full rounded-full bg-[#27272A] overflow-hidden">
                         <div
-                          className="h-full rounded-full bg-[#FF8216] transition-all duration-500"
+                          className="h-full rounded-full bg-[#E11D48] transition-all duration-500"
                           style={{ width: `${goalsSummary.emergencyPct}%` }}
                         />
                       </div>
@@ -476,7 +476,7 @@ export function DashboardExecutiveWidgets({
                       <Link href="/insights" className="text-zinc-400 hover:text-white">
                         Alocação & Treemap
                       </Link>
-                      <Link href="/investments" className="font-semibold text-[#FF8216] hover:underline">
+                      <Link href="/investments" className="font-semibold text-[#E11D48] hover:underline">
                         Custódia Completa →
                       </Link>
                     </div>

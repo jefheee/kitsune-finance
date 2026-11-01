@@ -264,7 +264,7 @@ export function HoldingsDataTable({
           alignRight ? "justify-end ml-auto" : "justify-start"
         } ${
           isActive
-            ? "text-[#FF8216]"
+            ? "text-[#E11D48]"
             : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-[#F4F4F5]"
         }`}
       >
@@ -293,7 +293,7 @@ export function HoldingsDataTable({
                 setPage(1);
               }}
               placeholder="Filtrar ativo, emissor ou banco..."
-              className="w-full h-9 pl-9 pr-3 rounded-lg bg-zinc-50 dark:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] text-xs text-zinc-900 dark:text-[#F4F4F5] placeholder:text-zinc-500 focus:outline-none focus:border-[#FF8216]"
+              className="w-full h-9 pl-9 pr-3 rounded-lg bg-zinc-50 dark:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] text-xs text-zinc-900 dark:text-[#F4F4F5] placeholder:text-zinc-500 focus:outline-none focus:border-[#E11D48]"
             />
           </div>
 
@@ -308,7 +308,7 @@ export function HoldingsDataTable({
                 }}
                 className={`h-8 px-3 rounded-lg border text-xs font-medium transition-colors cursor-pointer ${
                   showRedeemed
-                    ? "bg-[#FF8216]/12 border-[#FF8216]/35 text-[#FF8216]"
+                    ? "bg-[#E11D48]/12 border-[#E11D48]/35 text-[#E11D48]"
                     : "bg-zinc-50 dark:bg-[#18181B] border-zinc-200 dark:border-[#27272A] text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-[#F4F4F5]"
                 }`}
               >
@@ -322,9 +322,9 @@ export function HoldingsDataTable({
               href="/api/export/spreadsheet"
               download
               title="Exportar planilha consolidada"
-              className="h-8 px-3 rounded-lg bg-zinc-50 dark:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] hover:border-[#FF8216]/40 text-xs font-medium text-zinc-700 dark:text-zinc-300 inline-flex items-center gap-1.5 transition-colors"
+              className="h-8 px-3 rounded-lg bg-zinc-50 dark:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] hover:border-[#E11D48]/40 text-xs font-medium text-zinc-700 dark:text-zinc-300 inline-flex items-center gap-1.5 transition-colors"
             >
-              <WfIcons.Download size={13} className="text-[#FF8216]" />
+              <WfIcons.Download size={13} className="text-[#E11D48]" />
               <span className="hidden sm:inline">CSV</span>
             </a>
           </div>
@@ -344,7 +344,7 @@ export function HoldingsDataTable({
                 }}
                 className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
                   active
-                    ? "bg-[#FF8216] text-black"
+                    ? "bg-white text-black"
                     : "bg-zinc-100 dark:bg-[#18181B] text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-[#F4F4F5]"
                 }`}
               >
@@ -480,7 +480,7 @@ export function HoldingsDataTable({
                           <div className="w-10 h-1.5 rounded-full bg-zinc-200 dark:bg-[#27272A] overflow-hidden hidden lg:block">
                             <div
                               style={{ width: `${Math.min(100, row.weightPct)}%` }}
-                              className="h-full bg-[#FF8216]"
+                              className="h-full bg-[#E11D48]"
                             />
                           </div>
                           <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
@@ -559,7 +559,7 @@ export function HoldingsDataTable({
                   setPageSize(Number(e.target.value));
                   setPage(1);
                 }}
-                className="h-7 px-2 rounded-md bg-white dark:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] text-xs font-semibold text-zinc-800 dark:text-zinc-200 focus:outline-none focus:border-[#FF8216] cursor-pointer"
+                className="h-7 px-2 rounded-md bg-white dark:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] text-xs font-semibold text-zinc-800 dark:text-zinc-200 focus:outline-none focus:border-[#E11D48] cursor-pointer"
               >
                 <option value={10}>10</option>
                 <option value={20}>20</option>
@@ -597,8 +597,8 @@ export function HoldingsDataTable({
                       onClick={() => setPage(pNum)}
                       className={`w-7 h-7 rounded-md text-xs font-bold tabular-nums transition-colors cursor-pointer ${
                         pNum === safePage
-                          ? "bg-[#FF8216] text-black"
-                          : "border border-zinc-200 dark:border-[#27272A] bg-white dark:bg-[#18181B] text-zinc-600 dark:text-zinc-300 hover:border-[#FF8216]/40"
+                          ? "bg-white text-black"
+                          : "border border-zinc-200 dark:border-[#27272A] bg-white dark:bg-[#18181B] text-zinc-600 dark:text-zinc-300 hover:border-[#E11D48]/40"
                       }`}
                     >
                       {pNum}

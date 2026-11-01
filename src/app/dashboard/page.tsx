@@ -606,7 +606,7 @@ export default function DashboardPage() {
       xray.statusLabel === "EXCELENTE" || xray.statusLabel === "SAUDÁVEL"
         ? "text-emerald-500"
         : xray.statusLabel === "ATENÇÃO"
-        ? "text-[#FF8216]"
+        ? "text-amber-400"
         : "text-rose-500";
 
     const label =
@@ -769,7 +769,7 @@ export default function DashboardPage() {
   if (isInitialLoading && accounts.length === 0 && transactions.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] p-8">
-        <div className="w-10 h-10 rounded-2xl bg-white dark:bg-[#121214] border border-zinc-200 dark:border-[#27272A] flex items-center justify-center animate-pulse text-[#FF8216]">
+        <div className="w-10 h-10 rounded-2xl bg-white dark:bg-[#121214] border border-zinc-200 dark:border-[#27272A] flex items-center justify-center animate-pulse text-white">
           <WfIcons.Overview className="w-5 h-5" />
         </div>
         <span className="text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-3">
@@ -802,7 +802,7 @@ export default function DashboardPage() {
               className="hidden md:flex h-9 px-3 rounded-xl bg-white dark:bg-[#121214] hover:bg-zinc-100 dark:hover:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] text-xs font-medium text-zinc-600 dark:text-zinc-300 items-center justify-center gap-1.5 transition-colors cursor-pointer"
               title="Busca Financeira Global (Ctrl+K)"
             >
-              <WfIcons.Search className="w-3.5 h-3.5 text-[#FF8216]" />
+              <WfIcons.Search className="w-3.5 h-3.5 text-zinc-300" />
               <span>Buscar</span>
               <kbd className="px-1.5 py-0.5 text-[10px] font-mono rounded bg-zinc-100 dark:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] text-zinc-400">
                 ⌘K
@@ -834,7 +834,7 @@ export default function DashboardPage() {
             <button
               type="button"
               onClick={() => setIsManualModalOpen(true)}
-              className="h-10 sm:h-9 px-4 rounded-xl bg-[#FF8216] hover:bg-[#FFA047] active:bg-[#E66E08] text-black font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs"
+              className="h-10 sm:h-9 px-4 rounded-xl bg-white hover:bg-zinc-200 active:bg-zinc-300 text-black font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs"
               title="Adicionar lançamento manual ou dinheiro em espécie"
             >
               <WfIcons.Plus className="w-4 h-4 text-black" />
@@ -873,7 +873,7 @@ export default function DashboardPage() {
             onClick={() => setSelectedBankSlug("all")}
             className={`h-8 px-3 rounded-full text-xs font-medium flex items-center gap-1.5 shrink-0 border transition-colors cursor-pointer ${
               selectedBankSlug === "all"
-                ? "bg-[#FF8216]/15 border-[#FF8216]/40 text-[#FF8216]"
+                ? "bg-white text-black font-bold border-white"
                 : "bg-white dark:bg-[#121214] border-zinc-200 dark:border-[#27272A] text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
             }`}
           >
@@ -889,7 +889,7 @@ export default function DashboardPage() {
                 onClick={() => setSelectedBankSlug(isSelected ? "all" : bank.slug)}
                 className={`h-8 pl-2 pr-3 rounded-full text-xs font-medium flex items-center gap-1.5 shrink-0 border transition-colors cursor-pointer ${
                   isSelected
-                    ? "bg-[#FF8216]/15 border-[#FF8216]/40 text-[#FF8216]"
+                    ? "bg-white text-black font-bold border-white"
                     : "bg-white dark:bg-[#121214] border-zinc-200 dark:border-[#27272A] text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
                 }`}
               >
@@ -927,7 +927,7 @@ export default function DashboardPage() {
             onSelectBank={setSelectedBankSlug}
           />
 
-          {/* Hero Net Worth + Gráfico de Área Gradiente #FF8216 + Seletor 1M / 3M / 6M / 1Y / ALL */}
+          {/* Hero Net Worth + Gráfico de Área Gradiente Branco + Seletor 1M / 3M / 6M / 1Y / ALL */}
           <NetWorthHeroChart
             netWorth={totalBalance}
             liquidBalance={liquidBalance}
@@ -952,7 +952,7 @@ export default function DashboardPage() {
                 <WfIcons.ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
                 <p className="text-xs text-zinc-800 dark:text-zinc-200">
                   <strong>Atenção ao Teto do FGC:</strong> Emissor{" "}
-                  <span className="font-semibold text-[#FF8216]">{fgcWarning.issuerName}</span>{" "}
+                  <span className="font-semibold text-amber-400">{fgcWarning.issuerName}</span>{" "}
                   acumula{" "}
                   <span className="font-mono tabular-nums font-semibold">
                     {formatCurrency(fgcWarning.total)}
@@ -962,7 +962,7 @@ export default function DashboardPage() {
               </div>
               <Link
                 href="/investments"
-                className="text-xs font-semibold text-[#FF8216] hover:underline shrink-0"
+                className="text-xs font-semibold text-white hover:underline shrink-0"
               >
                 Ver Auditoria FGC →
               </Link>
@@ -1028,7 +1028,7 @@ export default function DashboardPage() {
                   onClick={() => setTimeGranularity(g.id)}
                   className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
                     timeGranularity === g.id
-                      ? "bg-[#FF8216] text-black font-semibold"
+                      ? "bg-white text-black font-bold"
                       : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
                   }`}
                 >

@@ -249,7 +249,7 @@ export default function InsightsPage() {
     });
 
     const slices: AllocationSlice[] = [
-      { id: "fixed", name: "Renda Fixa & CDB/LCI", value: fixed, color: "#FF8216" },
+      { id: "fixed", name: "Renda Fixa & CDB/LCI", value: fixed, color: "#E11D48" },
       { id: "cash", name: "Liquidez em Conta", value: liquid, color: "#10B981" },
       { id: "treasury", name: "Tesouro Direto", value: treasury, color: "#F59E0B" },
       { id: "funds", name: "Fundos Multimercado/DI", value: funds, color: "#EA580C" },
@@ -268,16 +268,16 @@ export default function InsightsPage() {
       grossTotal < 50000
         ? [
             { label: "Liquidez Diária (100%+ CDI / Selic)", target: 85, color: "#10B981" },
-            { label: "Inflação Soberana (IPCA+)", target: 15, color: "#FF8216" },
+            { label: "Inflação Soberana (IPCA+)", target: 15, color: "#E11D48" },
           ]
         : grossTotal < 200000
         ? [
-            { label: "Renda Fixa Pós-Fixada (CDI / LCI)", target: 55, color: "#FF8216" },
+            { label: "Renda Fixa Pós-Fixada (CDI / LCI)", target: 55, color: "#E11D48" },
             { label: "Tesouro IPCA+ (Juro Real)", target: 30, color: "#10B981" },
             { label: "FIIs & Dividendos Isentos", target: 15, color: "#F59E0B" },
           ]
         : [
-            { label: "Renda Fixa Pós & Crédito Isento", target: 45, color: "#FF8216" },
+            { label: "Renda Fixa Pós & Crédito Isento", target: 45, color: "#E11D48" },
             { label: "Tesouro IPCA+ Longo Prazo", target: 25, color: "#10B981" },
             { label: "FIIs & Ações Pagadoras", target: 20, color: "#F59E0B" },
             { label: "Reserva Cambial / Global", target: 10, color: "#71717A" },
@@ -298,7 +298,7 @@ export default function InsightsPage() {
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-zinc-200 dark:border-[#27272A]">
         <div>
           <div className="flex items-center gap-2">
-            <WfIcons.Insights className="w-5 h-5 text-[#FF8216]" />
+            <WfIcons.Insights className="w-5 h-5 text-[#E11D48]" />
             <h1 className="text-xl md:text-2xl font-bold tracking-tight text-zinc-900 dark:text-[#F4F4F5]">
               Insights, Risco & Alocação Patrimonial
             </h1>
@@ -313,12 +313,12 @@ export default function InsightsPage() {
             href="/investments"
             className="h-9 px-3.5 rounded-xl bg-white dark:bg-[#121214] hover:bg-zinc-100 dark:hover:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] text-xs font-medium text-zinc-700 dark:text-zinc-300 inline-flex items-center gap-1.5 transition-colors"
           >
-            <WfIcons.Holdings className="w-3.5 h-3.5 text-[#FF8216]" />
+            <WfIcons.Holdings className="w-3.5 h-3.5 text-[#E11D48]" />
             <span>Tabela de Holdings</span>
           </Link>
           <Link
             href="/kitsune?prompt=Execute%20um%20diagn%C3%B3stico%20completo%20de%20risco%2C%20aloca%C3%A7%C3%A3o%20e%20proventos%20da%20minha%20carteira."
-            className="h-9 px-4 rounded-xl bg-[#FF8216] hover:bg-[#FF9438] text-black text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
+            className="h-9 px-4 rounded-xl bg-white hover:bg-zinc-200 active:bg-zinc-300 text-black text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
           >
             <WfIcons.Agents className="w-3.5 h-3.5" />
             <span>Consultar Kitsune AI</span>
@@ -359,7 +359,7 @@ export default function InsightsPage() {
           <section className="p-5 rounded-2xl bg-white dark:bg-[#121214] border border-zinc-200 dark:border-[#27272A] space-y-4">
             <div className="flex items-center justify-between gap-2">
               <div>
-                <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#FF8216] block">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#E11D48] block">
                   Alocação Alvo Sugerida
                 </span>
                 <h3 className="text-sm font-bold text-zinc-900 dark:text-[#F4F4F5] mt-0.5">
@@ -368,7 +368,7 @@ export default function InsightsPage() {
               </div>
               <Link
                 href="/goals"
-                className="text-xs font-medium text-[#FF8216] hover:underline shrink-0"
+                className="text-xs font-medium text-[#E11D48] hover:underline shrink-0"
               >
                 Ver Metas →
               </Link>

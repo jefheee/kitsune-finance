@@ -149,8 +149,8 @@ export function TransactionDetailModal({
         <div className="p-5 md:p-6 space-y-6 overflow-y-auto overscroll-contain">
           {/* Topo do Estabelecimento (Ícone com cor vibrante + Categoria + Nome) */}
           <div className="flex flex-col items-center text-center space-y-2">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#FF8216]/20 to-[#FF8216]/5 border border-[#FF8216]/30 flex items-center justify-center text-3xl shadow-inner">
-              <span className="material-symbols-outlined text-[#FF8216] text-3xl">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#E11D48]/20 to-[#E11D48]/5 border border-[#E11D48]/30 flex items-center justify-center text-3xl shadow-inner">
+              <span className="material-symbols-outlined text-[#E11D48] text-3xl">
                 {isCard ? "credit_card" : isCredit ? "savings" : "storefront"}
               </span>
             </div>
@@ -206,8 +206,8 @@ export function TransactionDetailModal({
                 <span className="font-semibold text-zinc-200">{paymentMethod}</span>
               </div>
               {isInstallment && (
-                <div className="p-3.5 flex items-center justify-between bg-[#FF8216]/5">
-                  <span className="text-[#FF8216] font-semibold">Parcelamento Ativo</span>
+                <div className="p-3.5 flex items-center justify-between bg-[#E11D48]/5">
+                  <span className="text-[#E11D48] font-semibold">Parcelamento Ativo</span>
                   <span className="font-mono font-bold text-white tabular-nums">
                     Parcela {currentInst} de {totalInst}
                   </span>
@@ -257,7 +257,7 @@ export function TransactionDetailModal({
             {/* Pílula de Resumo Acumulado */}
             <div className="p-3 rounded-xl bg-zinc-900 border border-[#27272A] flex items-center justify-between text-xs font-medium">
               <span className="text-zinc-400">Total acumulado:</span>
-              <span className="font-mono font-bold text-[#FF8216] tabular-nums">
+              <span className="font-mono font-bold text-[#E11D48] tabular-nums">
                 {isPrivacyMode ? "R$ ••••••" : formatCurrency(totalSpentWithMerchant)}
               </span>
             </div>
@@ -272,7 +272,7 @@ export function TransactionDetailModal({
                 )} em "${title}" (${dateFormatted}). Como esse gasto impacta meu orçamento e o que você recomenda?`
               )}`}
               onClick={onClose}
-              className="w-full h-11 rounded-2xl bg-[#18181B] hover:bg-[#FF8216] text-white hover:text-black border border-[#27272A] hover:border-[#FF8216] font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm active:scale-[0.98]"
+              className="w-full h-11 rounded-2xl bg-[#18181B] hover:bg-[#E11D48] text-white hover:text-black border border-[#27272A] hover:border-[#E11D48] font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm active:scale-[0.98]"
             >
               <span className="material-symbols-outlined text-[18px]">smart_toy</span>
               <span>Analisar este gasto com Kitsune AI</span>

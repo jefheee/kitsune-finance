@@ -95,7 +95,7 @@ export function ManualTransactionModal({
         {/* Top Header */}
         <div className="flex items-center justify-between pb-3 border-b border-[#27272A]">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-[#FF8216]/10 text-[#FF8216] border border-[#FF8216]/25 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-[#E11D48]/10 text-[#E11D48] border border-[#E11D48]/25 flex items-center justify-center">
               <span className="material-symbols-outlined text-[18px]">payments</span>
             </div>
             <div>
@@ -165,7 +165,7 @@ export function ManualTransactionModal({
                 onChange={(e) => setAmountStr(e.target.value.replace(/[^\d,.]/g, ""))}
                 placeholder="0,00"
                 required
-                className="w-full h-11 pl-11 pr-4 rounded-xl bg-[#18181B] border border-[#27272A] text-white text-lg font-bold font-mono focus:outline-none focus:border-[#FF8216] transition-colors"
+                className="w-full h-11 pl-11 pr-4 rounded-xl bg-[#18181B] border border-[#27272A] text-white text-lg font-bold font-mono focus:outline-none focus:border-[#E11D48] transition-colors"
               />
             </div>
           </div>
@@ -181,7 +181,7 @@ export function ManualTransactionModal({
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Ex: Padaria em dinheiro, Feira, Gorjeta..."
               required
-              className="w-full h-10 px-3.5 rounded-xl bg-[#18181B] border border-[#27272A] text-white text-xs focus:outline-none focus:border-[#FF8216] transition-colors"
+              className="w-full h-10 px-3.5 rounded-xl bg-[#18181B] border border-[#27272A] text-white text-xs focus:outline-none focus:border-[#E11D48] transition-colors"
             />
           </div>
 
@@ -194,7 +194,7 @@ export function ManualTransactionModal({
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full h-10 px-3 rounded-xl bg-[#18181B] border border-[#27272A] text-white text-xs focus:outline-none focus:border-[#FF8216] transition-colors"
+                className="w-full h-10 px-3 rounded-xl bg-[#18181B] border border-[#27272A] text-white text-xs focus:outline-none focus:border-[#E11D48] transition-colors"
               >
                 {COMMON_CATEGORIES.map((cat) => (
                   <option key={cat} value={cat}>
@@ -212,7 +212,7 @@ export function ManualTransactionModal({
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full h-10 px-3 rounded-xl bg-[#18181B] border border-[#27272A] text-white text-xs focus:outline-none focus:border-[#FF8216] transition-colors"
+                className="w-full h-10 px-3 rounded-xl bg-[#18181B] border border-[#27272A] text-white text-xs focus:outline-none focus:border-[#E11D48] transition-colors"
               />
             </div>
           </div>
@@ -225,7 +225,7 @@ export function ManualTransactionModal({
             <select
               value={accountId}
               onChange={(e) => setAccountId(e.target.value)}
-              className="w-full h-10 px-3 rounded-xl bg-[#18181B] border border-[#27272A] text-white text-xs focus:outline-none focus:border-[#FF8216] transition-colors"
+              className="w-full h-10 px-3 rounded-xl bg-[#18181B] border border-[#27272A] text-white text-xs focus:outline-none focus:border-[#E11D48] transition-colors"
             >
               <option value="">Carteira / Dinheiro em Espécie (Físico)</option>
               {accounts.map((acc) => (
@@ -249,7 +249,7 @@ export function ManualTransactionModal({
             <button
               type="submit"
               disabled={isLoading}
-              className="flex-1 h-10 rounded-xl bg-[#FF8216] hover:bg-[#FFA047] text-black text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md disabled:opacity-50"
+              className="flex-1 h-10 rounded-xl bg-white hover:bg-zinc-200 active:bg-zinc-300 text-black text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md disabled:opacity-50"
             >
               {isLoading ? (
                 <Spinner size={16} className="text-black" />

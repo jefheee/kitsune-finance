@@ -37,7 +37,7 @@ export default function CardsPage() {
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-zinc-200 dark:border-[#27272A]">
         <div>
           <div className="flex items-center gap-2">
-            <WfIcons.Cards className="w-5 h-5 text-[#FF8216]" />
+            <WfIcons.Cards className="w-5 h-5 text-[#E11D48]" />
             <h1 className="text-xl md:text-2xl font-bold tracking-tight text-zinc-900 dark:text-[#F4F4F5]">
               Carteira de Cartões & Passivos
             </h1>
@@ -49,7 +49,7 @@ export default function CardsPage() {
 
         <Link
           href={`/kitsune?prompt=${encodeURIComponent(auditPrompt)}`}
-          className="h-9 px-4 rounded-xl bg-[#FF8216] hover:bg-[#FF9438] text-black text-xs font-semibold inline-flex items-center gap-1.5 transition-colors self-start md:self-auto"
+          className="h-9 px-4 rounded-xl bg-white hover:bg-zinc-200 active:bg-zinc-300 text-black text-xs font-semibold inline-flex items-center gap-1.5 transition-colors self-start md:self-auto"
         >
           <WfIcons.Agents className="w-3.5 h-3.5" />
           <span>Auditar com Agente Kenji</span>
@@ -72,7 +72,7 @@ export default function CardsPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="p-4 rounded-2xl bg-white dark:bg-[#121214] border border-zinc-200 dark:border-[#27272A]">
-          <span className="text-xs font-bold text-[#FF8216] block mb-1.5">
+          <span className="text-xs font-bold text-[#E11D48] block mb-1.5">
             Melhor Dia de Compra
           </span>
           <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">

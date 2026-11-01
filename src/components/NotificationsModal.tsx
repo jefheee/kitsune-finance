@@ -156,7 +156,7 @@ export function NotificationsModal({ isOpen, onClose, onRefreshData }: Notificat
         {/* Header */}
         <div className="p-4 md:p-5 border-b border-slate-100 dark:border-[#27272A] flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-[#FF8216]/10 text-[#FF8216] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-[#E11D48]/10 text-[#E11D48] flex items-center justify-center">
               <span className="material-symbols-outlined text-[18px]">notifications</span>
             </div>
             <div>
@@ -174,7 +174,7 @@ export function NotificationsModal({ isOpen, onClose, onRefreshData }: Notificat
               <button
                 type="button"
                 onClick={handleMarkAllRead}
-                className="text-[11px] font-semibold text-[#FF8216] hover:underline px-2 py-1 cursor-pointer"
+                className="text-[11px] font-semibold text-[#E11D48] hover:underline px-2 py-1 cursor-pointer"
               >
                 Ler todas
               </button>
@@ -209,7 +209,7 @@ export function NotificationsModal({ isOpen, onClose, onRefreshData }: Notificat
         <div className="p-4 overflow-y-auto flex flex-col gap-3">
           {isLoading ? (
             <div className="p-10 flex flex-col items-center justify-center gap-2 text-slate-400">
-              <Spinner size={22} className="text-[#FF8216]" />
+              <Spinner size={22} className="text-[#E11D48]" />
               <span className="text-xs">Carregando notificações...</span>
             </div>
           ) : notifications.length === 0 ? (
@@ -235,7 +235,7 @@ export function NotificationsModal({ isOpen, onClose, onRefreshData }: Notificat
                   key={notif.id}
                   className={`p-3.5 rounded-2xl border transition-all ${
                     !notif.is_read
-                      ? 'bg-slate-50 dark:bg-[#18181B] border-[#FF8216]/40 shadow-xs'
+                      ? 'bg-slate-50 dark:bg-[#18181B] border-[#E11D48]/40 shadow-xs'
                       : 'bg-white dark:bg-[#121214] border-slate-200 dark:border-[#27272A]'
                   }`}
                 >
@@ -244,7 +244,7 @@ export function NotificationsModal({ isOpen, onClose, onRefreshData }: Notificat
                       <div
                         className={`w-8 h-8 rounded-xl shrink-0 flex items-center justify-center ${
                           isInvite
-                            ? 'bg-[#FF8216]/10 text-[#FF8216]'
+                            ? 'bg-[#E11D48]/10 text-[#E11D48]'
                             : isAccepted
                             ? 'bg-emerald-500/10 text-emerald-500'
                             : 'bg-slate-100 dark:bg-[#27272A] text-slate-400'
@@ -260,7 +260,7 @@ export function NotificationsModal({ isOpen, onClose, onRefreshData }: Notificat
                             {notif.title}
                           </span>
                           {!notif.is_read && (
-                            <span className="w-2 h-2 rounded-full bg-[#FF8216] shrink-0" />
+                            <span className="w-2 h-2 rounded-full bg-[#E11D48] shrink-0" />
                           )}
                         </div>
                         <p className="text-xs text-slate-600 dark:text-[#CBD5E1] mt-0.5 leading-relaxed">
@@ -301,7 +301,7 @@ export function NotificationsModal({ isOpen, onClose, onRefreshData }: Notificat
                             type="button"
                             disabled={isLoadingThis}
                             onClick={() => handleAcceptInvite(notif)}
-                            className="px-3 py-1.5 rounded-xl bg-[#FF8216] hover:bg-[#FFA047] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer disabled:opacity-50"
+                            className="px-3 py-1.5 rounded-xl bg-[#E11D48] hover:bg-[#F43F5E] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer disabled:opacity-50"
                           >
                             {isLoadingThis ? (
                               <Spinner size={12} className="text-white" />

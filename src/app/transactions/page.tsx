@@ -79,7 +79,7 @@ export default function TransactionsPage() {
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-zinc-200 dark:border-[#27272A]">
         <div>
           <div className="flex items-center gap-2">
-            <WfIcons.Transactions className="w-5 h-5 text-[#FF8216]" />
+            <WfIcons.Transactions className="w-5 h-5 text-[#E11D48]" />
             <h1 className="text-xl md:text-2xl font-bold tracking-tight text-zinc-900 dark:text-[#F4F4F5]">
               Transações & Atividades Conciliadas
             </h1>
@@ -104,7 +104,7 @@ export default function TransactionsPage() {
           <a
             href="/api/export/spreadsheet"
             download
-            className="h-9 px-3.5 rounded-xl bg-[#FF8216] hover:bg-[#FF9438] text-black text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
+            className="h-9 px-3.5 rounded-xl bg-white hover:bg-zinc-200 active:bg-zinc-300 text-black text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
           >
             <WfIcons.Download className="w-3.5 h-3.5" />
             <span>Exportar CSV</span>
@@ -119,7 +119,7 @@ export default function TransactionsPage() {
             onClick={() => setSelectedBankSlug("all")}
             className={`h-8 px-3 rounded-full text-xs font-medium shrink-0 border transition-colors cursor-pointer ${
               selectedBankSlug === "all"
-                ? "bg-[#FF8216]/15 border-[#FF8216]/40 text-[#FF8216]"
+                ? "bg-[#E11D48]/15 border-[#E11D48]/40 text-[#E11D48]"
                 : "bg-white dark:bg-[#121214] border-zinc-200 dark:border-[#27272A] text-zinc-600 dark:text-zinc-400"
             }`}
           >
@@ -134,7 +134,7 @@ export default function TransactionsPage() {
                 onClick={() => setSelectedBankSlug(active ? "all" : bank.slug)}
                 className={`h-8 pl-2 pr-3 rounded-full text-xs font-medium flex items-center gap-1.5 shrink-0 border transition-colors cursor-pointer ${
                   active
-                    ? "bg-[#FF8216]/15 border-[#FF8216]/40 text-[#FF8216]"
+                    ? "bg-[#E11D48]/15 border-[#E11D48]/40 text-[#E11D48]"
                     : "bg-white dark:bg-[#121214] border-zinc-200 dark:border-[#27272A] text-zinc-600 dark:text-zinc-400"
                 }`}
               >

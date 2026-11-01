@@ -8,7 +8,7 @@ const QRCodeComponent = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="w-32 h-32 flex items-center justify-center bg-zinc-900 rounded-2xl animate-pulse text-[#FF8216]">
+      <div className="w-32 h-32 flex items-center justify-center bg-zinc-900 rounded-2xl animate-pulse text-[#E11D48]">
         <span className="material-symbols-outlined text-3xl">qr_code_2</span>
       </div>
     ),
@@ -30,11 +30,11 @@ export function LandingQrCode() {
             type: "rounded",
           },
           cornersSquareOptions: {
-            color: "#FF8216",
+            color: "#E11D48",
             type: "extra-rounded",
           },
           cornersDotOptions: {
-            color: "#FF8216",
+            color: "#E11D48",
             type: "dot",
           },
           backgroundOptions: {
@@ -45,7 +45,7 @@ export function LandingQrCode() {
       {/* Central Mascot Badge */}
       <div className="absolute w-12 h-12 bg-black rounded-xl border border-white/20 p-2 flex items-center justify-center shadow-xl pointer-events-none group-hover:scale-110 transition-transform">
         <Image
-          src="/assets/logo/logo_sem_fundo.png"
+          src="/assets/logo/logo-transparent.png"
           alt="Kitsune Logo"
           width={28}
           height={28}

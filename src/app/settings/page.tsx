@@ -239,7 +239,7 @@ export default function SettingsPage() {
       {/* Header Estilo Wealthfolio */}
       <header className="flex flex-col gap-1 pb-4 border-b border-zinc-200 dark:border-[#27272A]">
         <div className="flex items-center gap-2">
-          <WfIcons.Settings className="w-5 h-5 text-[#FF8216]" />
+          <WfIcons.Settings className="w-5 h-5 text-[#E11D48]" />
           <h1 className="text-xl md:text-2xl font-bold tracking-tight text-zinc-900 dark:text-[#F4F4F5]">
             Configurações & Preferências
           </h1>
@@ -275,7 +275,7 @@ export default function SettingsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-[20px] text-[#FF8216]">fingerprint</span>
+              <span className="material-symbols-outlined text-[20px] text-[#E11D48]">fingerprint</span>
               <h2 className="text-sm font-bold text-zinc-900 dark:text-[#F4F4F5]">
                 Guardião Biométrico & Cortina PWA
               </h2>
@@ -334,7 +334,7 @@ export default function SettingsPage() {
                     type="button"
                     onClick={handleRegisterBiometrics}
                     disabled={isProcessingBiometrics}
-                    className="h-9 px-4 rounded-xl bg-[#FF8216] hover:bg-[#FF9438] text-black text-xs font-bold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                    className="h-9 px-4 rounded-xl bg-white hover:bg-zinc-200 active:bg-zinc-300 text-black text-xs font-bold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
                   >
                     {isProcessingBiometrics ? (
                       <Spinner size={14} className="text-black" />
@@ -352,7 +352,7 @@ export default function SettingsPage() {
                   onClick={() => setShowPinModal(true)}
                   className="h-9 px-4 rounded-xl bg-[#18181B] hover:bg-[#27272A] border border-[#27272A] text-white text-xs font-bold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                 >
-                  <span className="material-symbols-outlined text-[16px] text-[#FF8216]">pin</span>
+                  <span className="material-symbols-outlined text-[16px] text-[#E11D48]">pin</span>
                   <span>Criar PIN</span>
                 </button>
               </div>
@@ -373,7 +373,7 @@ export default function SettingsPage() {
                   type="button"
                   onClick={handleToggleColdStart}
                   className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer ${
-                    biometricConfig.lockOnColdStart ? "bg-[#FF8216]" : "bg-zinc-700"
+                    biometricConfig.lockOnColdStart ? "bg-[#E11D48]" : "bg-zinc-700"
                   }`}
                 >
                   <div
@@ -404,7 +404,7 @@ export default function SettingsPage() {
                         onClick={() => handleChangeTimeout(opt.sec)}
                         className={`py-2 px-3 rounded-xl border text-xs font-medium font-mono tabular-nums transition-colors cursor-pointer ${
                           isSel
-                            ? "bg-[#FF8216]/12 border-[#FF8216] text-[#FF8216] font-bold"
+                            ? "bg-[#E11D48]/12 border-[#E11D48] text-[#E11D48] font-bold"
                             : "bg-zinc-50 dark:bg-[#18181B] border-zinc-200 dark:border-[#27272A] text-zinc-600 dark:text-zinc-400 hover:text-white"
                         }`}
                       >
@@ -424,7 +424,7 @@ export default function SettingsPage() {
                     disabled={isProcessingBiometrics}
                     className="h-9 px-4 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-[#18181B] dark:hover:bg-[#27272A] border border-zinc-200 dark:border-[#27272A] text-xs font-medium text-zinc-700 dark:text-zinc-300 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
                   >
-                    <span className="material-symbols-outlined text-[16px] text-[#FF8216]">fingerprint</span>
+                    <span className="material-symbols-outlined text-[16px] text-[#E11D48]">fingerprint</span>
                     <span>Testar Biometria Agora</span>
                   </button>
                 ) : diagnosis?.isSupported ? (
@@ -432,7 +432,7 @@ export default function SettingsPage() {
                     type="button"
                     onClick={handleRegisterBiometrics}
                     disabled={isProcessingBiometrics}
-                    className="h-9 px-4 rounded-xl bg-[#FF8216] hover:bg-[#FF9438] text-black text-xs font-bold inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                    className="h-9 px-4 rounded-xl bg-white hover:bg-zinc-200 active:bg-zinc-300 text-black text-xs font-bold inline-flex items-center gap-1.5 transition-colors cursor-pointer"
                   >
                     <span className="material-symbols-outlined text-[16px]">fingerprint</span>
                     <span>Cadastrar Digital</span>
@@ -444,7 +444,7 @@ export default function SettingsPage() {
                   onClick={() => setShowPinModal(true)}
                   className="h-9 px-4 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-[#18181B] dark:hover:bg-[#27272A] border border-zinc-200 dark:border-[#27272A] text-xs font-medium text-zinc-700 dark:text-zinc-300 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
-                  <span className="material-symbols-outlined text-[16px] text-[#FF8216]">pin</span>
+                  <span className="material-symbols-outlined text-[16px] text-[#E11D48]">pin</span>
                   <span>{biometricConfig.hasPin ? "Alterar PIN" : "Criar PIN"}</span>
                 </button>
 
@@ -467,7 +467,7 @@ export default function SettingsPage() {
           <div className="w-full max-w-sm rounded-3xl bg-[#121214] border border-[#27272A] p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between pb-2 border-b border-[#27272A]">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <span className="material-symbols-outlined text-[#FF8216]">pin</span>
+                <span className="material-symbols-outlined text-[#E11D48]">pin</span>
                 <span>Configurar PIN Numérico</span>
               </h3>
               <button
@@ -491,7 +491,7 @@ export default function SettingsPage() {
                   value={inputNewPin}
                   onChange={(e) => setInputNewPin(e.target.value.replace(/\D/g, ""))}
                   placeholder="••••"
-                  className="w-full px-3 py-2 rounded-xl bg-[#18181B] border border-[#27272A] text-white text-center text-lg tracking-[0.4em] font-mono focus:outline-none focus:border-[#FF8216]"
+                  className="w-full px-3 py-2 rounded-xl bg-[#18181B] border border-[#27272A] text-white text-center text-lg tracking-[0.4em] font-mono focus:outline-none focus:border-[#E11D48]"
                   autoFocus
                 />
               </div>
@@ -507,7 +507,7 @@ export default function SettingsPage() {
                   value={inputConfirmPin}
                   onChange={(e) => setInputConfirmPin(e.target.value.replace(/\D/g, ""))}
                   placeholder="••••"
-                  className="w-full px-3 py-2 rounded-xl bg-[#18181B] border border-[#27272A] text-white text-center text-lg tracking-[0.4em] font-mono focus:outline-none focus:border-[#FF8216]"
+                  className="w-full px-3 py-2 rounded-xl bg-[#18181B] border border-[#27272A] text-white text-center text-lg tracking-[0.4em] font-mono focus:outline-none focus:border-[#E11D48]"
                 />
               </div>
 
@@ -521,7 +521,7 @@ export default function SettingsPage() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 h-10 rounded-xl bg-[#FF8216] text-black text-xs font-bold cursor-pointer"
+                  className="flex-1 h-10 rounded-xl bg-white text-black text-xs font-bold cursor-pointer"
                 >
                   Salvar PIN
                 </button>
@@ -535,7 +535,7 @@ export default function SettingsPage() {
       <section className="bg-white dark:bg-[#121214] border border-zinc-200 dark:border-[#27272A] rounded-2xl p-5 md:p-6 flex flex-col gap-4 shadow-xs">
         <div className="flex flex-col gap-0.5">
           <h2 className="text-sm font-bold text-zinc-900 dark:text-[#F4F4F5] flex items-center gap-2">
-            <span className="material-symbols-outlined text-[18px] text-[#FF8216]">palette</span>
+            <span className="material-symbols-outlined text-[18px] text-[#E11D48]">palette</span>
             Tema Visual & Interface
           </h2>
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
@@ -549,11 +549,11 @@ export default function SettingsPage() {
             onClick={() => setTheme("dark")}
             className={`p-3.5 rounded-xl border flex flex-col items-center gap-2 transition-all cursor-pointer ${
               theme === "dark"
-                ? "border-[#FF8216] bg-[#FF8216]/10 text-zinc-900 dark:text-white font-bold ring-1 ring-[#FF8216]"
+                ? "border-[#E11D48] bg-[#E11D48]/10 text-zinc-900 dark:text-white font-bold ring-1 ring-[#E11D48]"
                 : "border-zinc-200 dark:border-[#27272A] hover:bg-zinc-50 dark:hover:bg-[#18181B] text-zinc-600 dark:text-zinc-400"
             }`}
           >
-            <span className="material-symbols-outlined text-2xl text-[#FF8216]">dark_mode</span>
+            <span className="material-symbols-outlined text-2xl text-[#E11D48]">dark_mode</span>
             <span className="text-xs">Modo Escuro (Obsidian)</span>
           </button>
 
@@ -562,11 +562,11 @@ export default function SettingsPage() {
             onClick={() => setTheme("light")}
             className={`p-3.5 rounded-xl border flex flex-col items-center gap-2 transition-all cursor-pointer ${
               theme === "light"
-                ? "border-[#FF8216] bg-[#FF8216]/10 text-zinc-900 font-bold ring-1 ring-[#FF8216]"
+                ? "border-[#E11D48] bg-[#E11D48]/10 text-zinc-900 font-bold ring-1 ring-[#E11D48]"
                 : "border-zinc-200 dark:border-[#27272A] hover:bg-zinc-50 dark:hover:bg-[#18181B] text-zinc-600 dark:text-zinc-400"
             }`}
           >
-            <span className="material-symbols-outlined text-2xl text-[#FF8216]">light_mode</span>
+            <span className="material-symbols-outlined text-2xl text-[#E11D48]">light_mode</span>
             <span className="text-xs">Modo Claro</span>
           </button>
 
@@ -575,7 +575,7 @@ export default function SettingsPage() {
             onClick={() => setTheme("system")}
             className={`p-3.5 rounded-xl border flex flex-col items-center gap-2 transition-all cursor-pointer col-span-2 sm:col-span-1 ${
               theme === "system"
-                ? "border-[#FF8216] bg-[#FF8216]/10 text-zinc-900 dark:text-white font-bold ring-1 ring-[#FF8216]"
+                ? "border-[#E11D48] bg-[#E11D48]/10 text-zinc-900 dark:text-white font-bold ring-1 ring-[#E11D48]"
                 : "border-zinc-200 dark:border-[#27272A] hover:bg-zinc-50 dark:hover:bg-[#18181B] text-zinc-600 dark:text-zinc-400"
             }`}
           >
@@ -589,7 +589,7 @@ export default function SettingsPage() {
       <section className="bg-white dark:bg-[#121214] border border-zinc-200 dark:border-[#27272A] rounded-2xl p-5 md:p-6 flex flex-col gap-4 shadow-xs">
         <div className="flex flex-col gap-0.5">
           <h2 className="text-sm font-bold text-zinc-900 dark:text-[#F4F4F5] flex items-center gap-2">
-            <WfIcons.Agents className="w-4 h-4 text-[#FF8216]" />
+            <WfIcons.Agents className="w-4 h-4 text-[#E11D48]" />
             Inteligência Artificial & Agentes
           </h2>
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
@@ -605,7 +605,7 @@ export default function SettingsPage() {
             <select
               value={selectedAiModel}
               onChange={(e) => setSelectedAiModel(e.target.value)}
-              className="p-3 bg-zinc-50 dark:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] rounded-xl text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-[#FF8216] cursor-pointer"
+              className="p-3 bg-zinc-50 dark:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] rounded-xl text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-[#E11D48] cursor-pointer"
             >
               <option value="gemini-3.8-flash">✨ Kitsune Smart (Intermediário • Recomendado)</option>
               <option value="gemini-3.5-flash-lite">⚡ Kitsune Flash (Ultra Rápido & Respostas Imediatas)</option>
@@ -632,7 +632,7 @@ export default function SettingsPage() {
                     onClick={() => setReasoningLevel(level)}
                     className={`py-2 px-3 rounded-xl border text-xs font-medium transition-all cursor-pointer ${
                       isSelected
-                        ? "border-[#FF8216] bg-[#FF8216]/10 text-[#FF8216] font-bold"
+                        ? "border-[#E11D48] bg-[#E11D48]/10 text-[#E11D48] font-bold"
                         : "border-zinc-200 dark:border-[#27272A] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-[#18181B]"
                     }`}
                   >
@@ -649,7 +649,7 @@ export default function SettingsPage() {
       <section className="bg-white dark:bg-[#121214] border border-zinc-200 dark:border-[#27272A] rounded-2xl p-5 md:p-6 flex flex-col gap-4 shadow-xs">
         <div className="flex flex-col gap-0.5">
           <h2 className="text-sm font-bold text-zinc-900 dark:text-[#F4F4F5] flex items-center gap-2">
-            <WfIcons.ShieldCheck className="w-4 h-4 text-[#FF8216]" />
+            <WfIcons.ShieldCheck className="w-4 h-4 text-[#E11D48]" />
             Privacidade & Gestão de Dados
           </h2>
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
@@ -665,9 +665,9 @@ export default function SettingsPage() {
             className="flex-1 py-3 px-4 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-[#18181B] dark:hover:bg-[#27272A] border border-zinc-200 dark:border-[#27272A] text-zinc-900 dark:text-white text-xs font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer"
           >
             {isExporting ? (
-              <Spinner size={14} className="text-[#FF8216]" />
+              <Spinner size={14} className="text-[#E11D48]" />
             ) : (
-              <WfIcons.Download className="w-4 h-4 text-[#FF8216]" />
+              <WfIcons.Download className="w-4 h-4 text-[#E11D48]" />
             )}
             <span>Exportar Dados em JSON</span>
           </button>
@@ -686,7 +686,7 @@ export default function SettingsPage() {
           <span>Conexões Bancárias Open Finance</span>
           <Link
             href="/connections"
-            className="text-[#FF8216] font-bold hover:underline flex items-center gap-1"
+            className="text-[#E11D48] font-bold hover:underline flex items-center gap-1"
           >
             Gerenciar Instituições
             <WfIcons.ChevronRight className="w-3.5 h-3.5" />

@@ -198,7 +198,7 @@ export function SubscriptionsTracker({ transactions, formatCurrency }: Subscript
                         Projeção Anual
                     </span>
                     <div className="mt-1">
-                        <span className="text-xl md:text-2xl font-extrabold text-[#FF8216] tabular-nums">
+                        <span className="text-xl md:text-2xl font-extrabold text-[#E11D48] tabular-nums">
                             {formatCurrency(annualProjection)}
                         </span>
                     </div>
@@ -243,7 +243,7 @@ export function SubscriptionsTracker({ transactions, formatCurrency }: Subscript
                     subscriptions.map((sub) => (
                         <div
                             key={sub.id}
-                            className="p-3.5 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] hover:border-[#FF8216]/40 transition-colors flex items-center justify-between gap-3 shadow-xs"
+                            className="p-3.5 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] hover:border-[#E11D48]/40 transition-colors flex items-center justify-between gap-3 shadow-xs"
                         >
                             <div className="flex items-center gap-3 min-w-0">
                                 <BankLogo bank={sub.bankSlug} size="sm" />
@@ -263,7 +263,7 @@ export function SubscriptionsTracker({ transactions, formatCurrency }: Subscript
                                         <span>•</span>
                                         <span>{sub.paymentCount} cobrança(s) no histórico</span>
                                         <span>•</span>
-                                        <span className="text-[#FF8216] font-semibold">{sub.bankName}</span>
+                                        <span className="text-[#E11D48] font-semibold">{sub.bankName}</span>
                                     </div>
                                 </div>
                             </div>
@@ -284,7 +284,7 @@ export function SubscriptionsTracker({ transactions, formatCurrency }: Subscript
                                         )}). Vale a pena manter esse serviço ou cortar/otimizar?`
                                     )}`}
                                     title="Auditar assinatura com a Kitsune AI"
-                                    className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-[#18181B] dark:hover:bg-[#27272A] flex items-center justify-center text-slate-500 hover:text-[#FF8216] transition-colors"
+                                    className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-[#18181B] dark:hover:bg-[#27272A] flex items-center justify-center text-slate-500 hover:text-[#E11D48] transition-colors"
                                 >
                                     <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
                                 </Link>

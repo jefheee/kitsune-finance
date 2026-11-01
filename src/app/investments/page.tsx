@@ -240,7 +240,7 @@ export default function InvestmentsPage() {
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-zinc-200 dark:border-[#27272A]">
         <div>
           <div className="flex items-center gap-2">
-            <WfIcons.Holdings className="w-5 h-5 text-[#FF8216]" />
+            <WfIcons.Holdings className="w-5 h-5 text-[#E11D48]" />
             <h1 className="text-xl md:text-2xl font-bold tracking-tight text-zinc-900 dark:text-[#F4F4F5]">
               Holdings & Custódia Consolidada
             </h1>
@@ -255,13 +255,13 @@ export default function InvestmentsPage() {
             href="/insights"
             className="h-9 px-3.5 rounded-xl bg-white dark:bg-[#121214] hover:bg-zinc-100 dark:hover:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] text-xs font-medium text-zinc-700 dark:text-zinc-300 inline-flex items-center gap-1.5 transition-colors"
           >
-            <WfIcons.Insights className="w-3.5 h-3.5 text-[#FF8216]" />
+            <WfIcons.Insights className="w-3.5 h-3.5 text-[#E11D48]" />
             <span>Insights & Gauges</span>
           </Link>
 
           <Link
             href={`/kitsune?prompt=${encodeURIComponent(auditPrompt)}`}
-            className="h-9 px-4 rounded-xl bg-[#FF8216] hover:bg-[#FF9438] text-black text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
+            className="h-9 px-4 rounded-xl bg-white hover:bg-zinc-200 active:bg-zinc-300 text-black text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
           >
             <WfIcons.Agents className="w-3.5 h-3.5" />
             <span>Auditar com Agente Daiko</span>
@@ -277,7 +277,7 @@ export default function InvestmentsPage() {
             onClick={() => setSelectedBankSlug("all")}
             className={`h-8 px-3 rounded-full text-xs font-medium shrink-0 border transition-colors cursor-pointer ${
               selectedBankSlug === "all"
-                ? "bg-[#FF8216]/15 border-[#FF8216]/40 text-[#FF8216]"
+                ? "bg-[#E11D48]/15 border-[#E11D48]/40 text-[#E11D48]"
                 : "bg-white dark:bg-[#121214] border-zinc-200 dark:border-[#27272A] text-zinc-600 dark:text-zinc-400"
             }`}
           >
@@ -292,7 +292,7 @@ export default function InvestmentsPage() {
                 onClick={() => setSelectedBankSlug(active ? "all" : bank.slug)}
                 className={`h-8 pl-2 pr-3 rounded-full text-xs font-medium flex items-center gap-1.5 shrink-0 border transition-colors cursor-pointer ${
                   active
-                    ? "bg-[#FF8216]/15 border-[#FF8216]/40 text-[#FF8216]"
+                    ? "bg-[#E11D48]/15 border-[#E11D48]/40 text-[#E11D48]"
                     : "bg-white dark:bg-[#121214] border-zinc-200 dark:border-[#27272A] text-zinc-600 dark:text-zinc-400"
                 }`}
               >
@@ -322,7 +322,7 @@ export default function InvestmentsPage() {
           <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400 block">
             Total Investido
           </span>
-          <span className="text-lg md:text-xl font-bold font-mono tabular-nums text-[#FF8216] mt-1 block">
+          <span className="text-lg md:text-xl font-bold font-mono tabular-nums text-[#E11D48] mt-1 block">
             {formatSensitiveCurrency(totalInvested)}
           </span>
           <span className="text-[11px] text-zinc-500 mt-0.5 block">
@@ -402,7 +402,7 @@ export default function InvestmentsPage() {
               Taxas oficiais de referência para avaliação de rentabilidade e inflação.
             </p>
           </div>
-          <span className="text-xs font-mono tabular-nums font-semibold px-2.5 py-1 rounded-full bg-[#FF8216]/12 text-[#FF8216] border border-[#FF8216]/25">
+          <span className="text-xs font-mono tabular-nums font-semibold px-2.5 py-1 rounded-full bg-[#E11D48]/12 text-[#E11D48] border border-[#E11D48]/25">
             Juro Real: +{realInterestFormatted} a.a.
           </span>
         </div>
@@ -432,7 +432,7 @@ export default function InvestmentsPage() {
             <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 block">
               IPCA 12m
             </span>
-            <span className="text-base font-bold font-mono tabular-nums text-[#FF8216] mt-0.5 block">
+            <span className="text-base font-bold font-mono tabular-nums text-[#E11D48] mt-0.5 block">
               {ipcaFormatted}
             </span>
             <span className="text-[10px] text-zinc-500 block mt-0.5">Inflação Oficial IBGE</span>
@@ -506,7 +506,7 @@ export default function InvestmentsPage() {
                             isExceeded
                               ? "text-rose-500"
                               : isCaution
-                              ? "text-[#FF8216]"
+                              ? "text-[#E11D48]"
                               : "text-emerald-500"
                           }
                         >
@@ -522,7 +522,7 @@ export default function InvestmentsPage() {
                           isExceeded
                             ? "bg-rose-500"
                             : isCaution
-                            ? "bg-[#FF8216]"
+                            ? "bg-[#E11D48]"
                             : "bg-emerald-500"
                         }`}
                       />
@@ -571,7 +571,7 @@ export default function InvestmentsPage() {
                   onClick={() => setTaxCompDays(b.days)}
                   className={`px-2 py-1 rounded-lg text-[11px] font-mono tabular-nums font-medium cursor-pointer transition-colors ${
                     taxCompDays === b.days
-                      ? "bg-[#FF8216] text-black font-semibold"
+                      ? "bg-white text-black font-semibold"
                       : "text-zinc-500 hover:text-zinc-200"
                   }`}
                 >
@@ -593,7 +593,7 @@ export default function InvestmentsPage() {
                   max={220}
                   value={cdbRateInput}
                   onChange={(e) => setCdbRateInput(Number(e.target.value) || 100)}
-                  className="w-20 px-2.5 py-1 rounded-lg bg-white dark:bg-[#121214] border border-zinc-200 dark:border-[#27272A] text-sm font-mono tabular-nums font-bold text-zinc-900 dark:text-[#F4F4F5] focus:outline-none focus:border-[#FF8216]"
+                  className="w-20 px-2.5 py-1 rounded-lg bg-white dark:bg-[#121214] border border-zinc-200 dark:border-[#27272A] text-sm font-mono tabular-nums font-bold text-zinc-900 dark:text-[#F4F4F5] focus:outline-none focus:border-[#E11D48]"
                 />
                 <span className="text-xs text-zinc-500 font-medium">% do CDI</span>
               </div>
@@ -613,7 +613,7 @@ export default function InvestmentsPage() {
                   max={220}
                   value={lciRateInput}
                   onChange={(e) => setLciRateInput(Number(e.target.value) || 85)}
-                  className="w-20 px-2.5 py-1 rounded-lg bg-white dark:bg-[#121214] border border-zinc-200 dark:border-[#27272A] text-sm font-mono tabular-nums font-bold text-zinc-900 dark:text-[#F4F4F5] focus:outline-none focus:border-[#FF8216]"
+                  className="w-20 px-2.5 py-1 rounded-lg bg-white dark:bg-[#121214] border border-zinc-200 dark:border-[#27272A] text-sm font-mono tabular-nums font-bold text-zinc-900 dark:text-[#F4F4F5] focus:outline-none focus:border-[#E11D48]"
                 />
                 <span className="text-xs text-zinc-500 font-medium">% do CDI</span>
               </div>
@@ -631,7 +631,7 @@ export default function InvestmentsPage() {
                     taxCompResult.winner === "CDB"
                       ? "bg-emerald-500/12 text-emerald-400 border-emerald-500/25"
                       : taxCompResult.winner === "LCI_LCA"
-                      ? "bg-[#FF8216]/12 text-[#FF8216] border-[#FF8216]/25"
+                      ? "bg-[#E11D48]/12 text-[#E11D48] border-[#E11D48]/25"
                       : "bg-zinc-500/15 text-zinc-400 border-zinc-500/25"
                   }`}
                 >

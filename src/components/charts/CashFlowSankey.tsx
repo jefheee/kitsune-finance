@@ -11,7 +11,7 @@
  *   • Hub central: retângulo de precisão para encaixe contínuo sem frestas.
  *   • Nós de destino (direita): cantos esquerdos retos, cantos direitos arredondados.
  * - SVG responsivo via `ResizeObserver` + curvas de Bézier cúbicas com `<linearGradient gradientUnits="userSpaceOnUse">`.
- * - Paleta estrita Warm Obsidian (`#0A0A0A`, `#121214`, `#18181B`, `#27272A`, `#FF8216` — zero tons azulados/marinho).
+ * - Paleta estrita Warm Obsidian (`#0A0A0A`, `#121214`, `#18181B`, `#27272A`, `#E11D48` — zero tons azulados/marinho).
  * - Respeito absoluto ao `isPrivacyMode` (`R$ ••••••`).
  */
 
@@ -95,10 +95,10 @@ const SOURCE_COLORS = {
     reserveDraw: "#F59E0B", // Âmbar (uso de caixa anterior quando saídas > entradas do período)
 } as const;
 
-const HUB_COLOR = "#FF8216"; // Laranja Kitsune oficial
+const HUB_COLOR = "#E11D48"; // Laranja Kitsune oficial
 
 const EXPENSE_PALETTE = [
-    "#FF8216", // Laranja Kitsune
+    "#E11D48", // Laranja Kitsune
     "#F43F5E", // Coral / Rose
     "#F59E0B", // Âmbar
     "#EA580C", // Terracota
@@ -771,7 +771,7 @@ export function CashFlowSankey({
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                     <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-[#FF8216]" />
+                        <span className="w-2 h-2 rounded-full bg-[#E11D48]" />
                         <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
                             Fluxo de Caixa Sankey • {periodLabel}
                         </span>
@@ -801,11 +801,11 @@ export function CashFlowSankey({
                             </span>
                         </div>
 
-                        <div className="px-3 py-1.5 rounded-xl bg-[#FF8216]/10 border border-[#FF8216]/25 flex items-center gap-2">
-                            <span className="text-[10px] font-bold uppercase text-[#FF8216]">
+                        <div className="px-3 py-1.5 rounded-xl bg-[#E11D48]/10 border border-[#E11D48]/25 flex items-center gap-2">
+                            <span className="text-[10px] font-bold uppercase text-[#E11D48]">
                                 Taxa de Retenção
                             </span>
-                            <span className="text-xs font-black text-[#FF8216] tabular-nums">
+                            <span className="text-xs font-black text-[#E11D48] tabular-nums">
                                 {isPrivacyMode
                                     ? "••%"
                                     : `${Math.max(0, graphModel.savingsRatePct).toFixed(1)}%`}

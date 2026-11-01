@@ -106,7 +106,7 @@ export function AppsModal({ isOpen, onClose }: AppsModalProps) {
         {/* Modal Header */}
         <div className="p-5 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-[#FF8216]/10 text-[#FF8216] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-[#E11D48]/10 text-[#E11D48] flex items-center justify-center">
               <span className="material-symbols-outlined text-[18px]">extension</span>
             </div>
             <h2 className="text-base font-bold text-slate-900 dark:text-white">
@@ -132,7 +132,7 @@ export function AppsModal({ isOpen, onClose }: AppsModalProps) {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar aplicativo..."
-              className="w-full pl-9 pr-4 py-2 rounded-xl bg-white dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] text-xs text-slate-900 dark:text-white placeholder:text-slate-400 outline-none focus:border-[#FF8216]"
+              className="w-full pl-9 pr-4 py-2 rounded-xl bg-white dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] text-xs text-slate-900 dark:text-white placeholder:text-slate-400 outline-none focus:border-[#E11D48]"
             />
           </div>
         </div>
@@ -144,10 +144,10 @@ export function AppsModal({ isOpen, onClose }: AppsModalProps) {
             return (
               <div
                 key={app.id}
-                className="p-3 rounded-2xl bg-slate-50/70 dark:bg-[#18181B]/70 border border-slate-200/70 dark:border-[#27272A]/70 flex items-center justify-between gap-3 hover:border-[#FF8216]/30 transition-colors"
+                className="p-3 rounded-2xl bg-slate-50/70 dark:bg-[#18181B]/70 border border-slate-200/70 dark:border-[#27272A]/70 flex items-center justify-between gap-3 hover:border-[#E11D48]/30 transition-colors"
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-white dark:bg-[#27272A] border border-slate-200 dark:border-white/10 flex items-center justify-center text-[#FF8216] shrink-0">
+                  <div className="w-10 h-10 rounded-xl bg-white dark:bg-[#27272A] border border-slate-200 dark:border-white/10 flex items-center justify-center text-[#E11D48] shrink-0">
                     <span className="material-symbols-outlined text-xl">{app.icon}</span>
                   </div>
                   <div className="min-w-0">
@@ -167,7 +167,7 @@ export function AppsModal({ isOpen, onClose }: AppsModalProps) {
                     isConnected
                       ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
                       : app.id === "sheets"
-                      ? "bg-[#FF8216] hover:bg-[#FFA047] text-white"
+                      ? "bg-[#E11D48] hover:bg-[#F43F5E] text-white"
                       : "bg-white dark:bg-[#18181B] hover:bg-slate-100 dark:hover:bg-[#27272A] text-slate-700 dark:text-white border border-slate-200 dark:border-[#27272A]"
                   }`}
                 >

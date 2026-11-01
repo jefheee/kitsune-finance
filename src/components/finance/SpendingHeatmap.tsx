@@ -80,10 +80,10 @@ export function SpendingHeatmap({ transactions, formatCurrency }: SpendingHeatma
   const getIntensityClass = (amount: number) => {
     if (amount === 0) return "bg-zinc-100 dark:bg-[#18181B] text-zinc-400 dark:text-zinc-500";
     if (amount < dailyAverage * 0.5)
-      return "bg-[#FF8216]/20 text-[#FF8216] border border-[#FF8216]/25";
-    if (amount <= dailyAverage * 1.2) return "bg-[#FF8216]/45 text-white font-semibold";
-    if (amount <= dailyAverage * 2) return "bg-[#FF8216]/75 text-white font-bold";
-    return "bg-[#FF8216] text-black font-bold";
+      return "bg-[#E11D48]/20 text-[#E11D48] border border-[#E11D48]/25";
+    if (amount <= dailyAverage * 1.2) return "bg-[#E11D48]/45 text-white font-semibold";
+    if (amount <= dailyAverage * 2) return "bg-[#E11D48]/75 text-white font-bold";
+    return "bg-white text-black font-bold";
   };
 
   const daysList = Object.keys(daysData).map(Number);
@@ -141,15 +141,15 @@ export function SpendingHeatmap({ transactions, formatCurrency }: SpendingHeatma
         <div className="flex items-center gap-1.5">
           <span>Menos</span>
           <span className="w-2.5 h-2.5 rounded bg-zinc-100 dark:bg-[#18181B]" />
-          <span className="w-2.5 h-2.5 rounded bg-[#FF8216]/30" />
-          <span className="w-2.5 h-2.5 rounded bg-[#FF8216]/70" />
-          <span className="w-2.5 h-2.5 rounded bg-[#FF8216]" />
+          <span className="w-2.5 h-2.5 rounded bg-[#E11D48]/30" />
+          <span className="w-2.5 h-2.5 rounded bg-[#E11D48]/70" />
+          <span className="w-2.5 h-2.5 rounded bg-[#E11D48]" />
           <span>Mais</span>
         </div>
 
         {maxDaySpend > 0 && (
           <span className="text-[11px] text-zinc-500 dark:text-zinc-400 font-mono tabular-nums">
-            Pico: <strong className="text-[#FF8216]">{formatCurrency(maxDaySpend)}</strong> (dia {maxDayNumber})
+            Pico: <strong className="text-[#E11D48]">{formatCurrency(maxDaySpend)}</strong> (dia {maxDayNumber})
           </span>
         )}
       </div>

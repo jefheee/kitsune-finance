@@ -373,7 +373,7 @@ export function VehicleFipeSelector({
                 }}
                 className={`py-2 px-3 text-xs font-semibold rounded-lg transition-all cursor-pointer text-center ${
                   active
-                    ? "bg-[#FF8216] text-black shadow-xs font-bold"
+                    ? "bg-white text-black shadow-xs font-bold"
                     : "text-zinc-400 hover:text-zinc-200 hover:bg-[#27272A]/40"
                 }`}
               >
@@ -403,7 +403,7 @@ export function VehicleFipeSelector({
               placeholder="BRA2E19"
               value={licensePlate}
               onChange={(e) => setLicensePlate(e.target.value.toUpperCase())}
-              className="w-32 bg-[#121214] border border-[#27272A] rounded-lg px-2.5 py-1.5 text-xs text-white font-mono uppercase tracking-wider outline-none focus:border-[#FF8216]"
+              className="w-32 bg-[#121214] border border-[#27272A] rounded-lg px-2.5 py-1.5 text-xs text-white font-mono uppercase tracking-wider outline-none focus:border-[#E11D48]"
             />
             <button
               type="button"
@@ -415,7 +415,7 @@ export function VehicleFipeSelector({
                 <span>Buscando...</span>
               ) : (
                 <>
-                  <WfIcons.Search className="w-3.5 h-3.5 text-[#FF8216]" />
+                  <WfIcons.Search className="w-3.5 h-3.5 text-[#E11D48]" />
                   <span>Consultar</span>
                 </>
               )}
@@ -459,7 +459,7 @@ export function VehicleFipeSelector({
                 placeholder="Busca flexível (ex: volks, vw, toyota, honda)..."
                 value={brandSearch}
                 onChange={(e) => setBrandSearch(e.target.value)}
-                className="w-full bg-[#18181B] border border-[#27272A] rounded-lg px-3 py-1.5 text-xs text-white placeholder-zinc-500 outline-none focus:border-[#FF8216] mb-2"
+                className="w-full bg-[#18181B] border border-[#27272A] rounded-lg px-3 py-1.5 text-xs text-white placeholder-zinc-500 outline-none focus:border-[#E11D48] mb-2"
               />
               <div className="overflow-y-auto flex-1 space-y-0.5 pr-1">
                 {filteredBrands.length === 0 ? (
@@ -477,7 +477,7 @@ export function VehicleFipeSelector({
                         setSelectedYear(null);
                         setFipeDetail(null);
                       }}
-                      className="w-full text-left px-3 py-1.5 text-xs rounded-md text-zinc-300 hover:bg-[#18181B] hover:text-[#FF8216] transition-colors"
+                      className="w-full text-left px-3 py-1.5 text-xs rounded-md text-zinc-300 hover:bg-[#18181B] hover:text-[#E11D48] transition-colors"
                     >
                       {b.name}
                     </button>
@@ -523,7 +523,7 @@ export function VehicleFipeSelector({
                 placeholder="Busca tolerante (ex: gol g6, cross, tdi, 2.0)..."
                 value={modelSearch}
                 onChange={(e) => setModelSearch(e.target.value)}
-                className="w-full bg-[#18181B] border border-[#27272A] rounded-lg px-3 py-1.5 text-xs text-white placeholder-zinc-500 outline-none focus:border-[#FF8216] mb-2"
+                className="w-full bg-[#18181B] border border-[#27272A] rounded-lg px-3 py-1.5 text-xs text-white placeholder-zinc-500 outline-none focus:border-[#E11D48] mb-2"
               />
               <div className="overflow-y-auto flex-1 space-y-0.5 pr-1">
                 {filteredModels.length === 0 ? (
@@ -540,7 +540,7 @@ export function VehicleFipeSelector({
                         setSelectedYear(null);
                         setFipeDetail(null);
                       }}
-                      className="w-full text-left px-3 py-1.5 text-xs rounded-md text-zinc-300 hover:bg-[#18181B] hover:text-[#FF8216] transition-colors truncate"
+                      className="w-full text-left px-3 py-1.5 text-xs rounded-md text-zinc-300 hover:bg-[#18181B] hover:text-[#E11D48] transition-colors truncate"
                     >
                       {m.name}
                     </button>
@@ -559,7 +559,7 @@ export function VehicleFipeSelector({
             Ano do Modelo & Fabricação
           </label>
           {preferredYear && (
-            <span className="text-[10px] text-[#FF8216] font-semibold">
+            <span className="text-[10px] text-[#E11D48] font-semibold">
               Ano selecionado: {preferredYear}
             </span>
           )}
@@ -581,7 +581,7 @@ export function VehicleFipeSelector({
                   }}
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all ${
                     active
-                      ? "bg-[#FF8216] text-black font-bold shadow-xs"
+                      ? "bg-white text-black font-bold shadow-xs"
                       : "bg-[#18181B] text-zinc-300 hover:bg-[#27272A] hover:text-white"
                   }`}
                 >
@@ -601,10 +601,10 @@ export function VehicleFipeSelector({
       )}
 
       {fipeDetail && (
-        <div className="p-4 bg-gradient-to-br from-[#18181B] to-[#121214] border border-[#FF8216]/40 rounded-xl space-y-2">
+        <div className="p-4 bg-gradient-to-br from-[#18181B] to-[#121214] border border-[#E11D48]/40 rounded-xl space-y-2">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#FF8216] block">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#E11D48] block">
                 Cotação FIPE de Referência • {fipeDetail.referenceMonth}
               </span>
               <h4 className="text-sm font-semibold text-white mt-0.5">
@@ -619,7 +619,7 @@ export function VehicleFipeSelector({
               <span className="text-[10px] font-medium text-zinc-400 block uppercase">
                 Preço Médio FIPE
               </span>
-              <span className="text-base sm:text-lg font-bold text-[#FF8216] tabular-nums">
+              <span className="text-base sm:text-lg font-bold text-[#E11D48] tabular-nums">
                 {formatCurrency(fipeDetail.price)}
               </span>
             </div>
@@ -638,7 +638,7 @@ export function VehicleFipeSelector({
             placeholder="Ex: Meu Amarok, Carro da Família"
             value={customName}
             onChange={(e) => setCustomName(e.target.value)}
-            className="w-full bg-[#18181B] border border-[#27272A] rounded-xl px-3 py-2 text-xs text-white placeholder-zinc-500 outline-none focus:border-[#FF8216]"
+            className="w-full bg-[#18181B] border border-[#27272A] rounded-xl px-3 py-2 text-xs text-white placeholder-zinc-500 outline-none focus:border-[#E11D48]"
           />
         </div>
 
@@ -652,7 +652,7 @@ export function VehicleFipeSelector({
             placeholder="80000"
             value={acquisitionValue || ""}
             onChange={(e) => setAcquisitionValue(parseFloat(e.target.value) || 0)}
-            className="w-full bg-[#18181B] border border-[#27272A] rounded-xl px-3 py-2 text-xs text-white tabular-nums outline-none focus:border-[#FF8216]"
+            className="w-full bg-[#18181B] border border-[#27272A] rounded-xl px-3 py-2 text-xs text-white tabular-nums outline-none focus:border-[#E11D48]"
           />
         </div>
 
@@ -664,7 +664,7 @@ export function VehicleFipeSelector({
             type="date"
             value={acquisitionDate}
             onChange={(e) => setAcquisitionDate(e.target.value)}
-            className="w-full bg-[#18181B] border border-[#27272A] rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-[#FF8216]"
+            className="w-full bg-[#18181B] border border-[#27272A] rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-[#E11D48]"
           />
         </div>
       </div>

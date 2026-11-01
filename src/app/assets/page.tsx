@@ -75,7 +75,7 @@ export default function AssetsPage() {
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-zinc-200 dark:border-[#27272A]">
         <div>
           <div className="flex items-center gap-2">
-            <WfIcons.Assets className="w-5 h-5 text-[#FF8216]" />
+            <WfIcons.Assets className="w-5 h-5 text-[#E11D48]" />
             <h1 className="text-xl md:text-2xl font-bold tracking-tight text-zinc-900 dark:text-[#F4F4F5]">
               Patrimônio & Ativos
             </h1>
@@ -91,7 +91,7 @@ export default function AssetsPage() {
             setSelectedAssetToEdit(null);
             setIsAssetModalOpen(true);
           }}
-          className="h-9 px-4 rounded-xl bg-[#FF8216] hover:bg-[#FFA047] text-black text-xs font-semibold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-sm self-start md:self-auto"
+          className="h-9 px-4 rounded-xl bg-white hover:bg-zinc-200 active:bg-zinc-300 text-black text-xs font-semibold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-sm self-start md:self-auto"
         >
           <WfIcons.Plus className="w-4 h-4" />
           <span>Novo Ativo</span>
@@ -180,7 +180,7 @@ export default function AssetsPage() {
               onClick={() => setActiveTab(tab.id)}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
                 active
-                  ? "bg-[#FF8216] text-black shadow-md shadow-[#FF8216]/20 font-bold"
+                  ? "bg-white text-black shadow-md shadow-[#E11D48]/20 font-bold"
                   : "bg-[#18181B] text-zinc-400 hover:text-white hover:bg-[#27272A]"
               }`}
             >
@@ -201,7 +201,7 @@ export default function AssetsPage() {
       {customAssets.length === 0 ? (
         <div className="p-8 sm:p-12 rounded-2xl bg-[#121214] border border-[#27272A] text-center space-y-6">
           <div className="max-w-md mx-auto space-y-2">
-            <div className="w-12 h-12 rounded-2xl bg-[#FF8216]/10 border border-[#FF8216]/20 text-[#FF8216] flex items-center justify-center mx-auto text-xl">
+            <div className="w-12 h-12 rounded-2xl bg-[#E11D48]/10 border border-[#E11D48]/20 text-[#E11D48] flex items-center justify-center mx-auto text-xl">
               📦
             </div>
             <h3 className="text-base sm:text-lg font-bold text-white">
@@ -219,10 +219,10 @@ export default function AssetsPage() {
                 setSelectedAssetToEdit(null);
                 setIsAssetModalOpen(true);
               }}
-              className="p-4 rounded-xl bg-[#18181B] border border-[#27272A] hover:border-[#FF8216]/60 text-left transition-all cursor-pointer group"
+              className="p-4 rounded-xl bg-[#18181B] border border-[#27272A] hover:border-[#E11D48]/60 text-left transition-all cursor-pointer group"
             >
               <span className="text-xl block mb-1">🚗</span>
-              <h4 className="text-xs font-bold text-white group-hover:text-[#FF8216] transition-colors">
+              <h4 className="text-xs font-bold text-white group-hover:text-[#E11D48] transition-colors">
                 Cadastrar Veículo
               </h4>
               <p className="text-[11px] text-zinc-500 mt-0.5">
@@ -236,10 +236,10 @@ export default function AssetsPage() {
                 setSelectedAssetToEdit(null);
                 setIsAssetModalOpen(true);
               }}
-              className="p-4 rounded-xl bg-[#18181B] border border-[#27272A] hover:border-[#FF8216]/60 text-left transition-all cursor-pointer group"
+              className="p-4 rounded-xl bg-[#18181B] border border-[#27272A] hover:border-[#E11D48]/60 text-left transition-all cursor-pointer group"
             >
               <span className="text-xl block mb-1">📐</span>
-              <h4 className="text-xs font-bold text-white group-hover:text-[#FF8216] transition-colors">
+              <h4 className="text-xs font-bold text-white group-hover:text-[#E11D48] transition-colors">
                 Cadastrar Terreno / Imóvel
               </h4>
               <p className="text-[11px] text-zinc-500 mt-0.5">
@@ -253,10 +253,10 @@ export default function AssetsPage() {
                 setSelectedAssetToEdit(null);
                 setIsAssetModalOpen(true);
               }}
-              className="p-4 rounded-xl bg-[#18181B] border border-[#27272A] hover:border-[#FF8216]/60 text-left transition-all cursor-pointer group"
+              className="p-4 rounded-xl bg-[#18181B] border border-[#27272A] hover:border-[#E11D48]/60 text-left transition-all cursor-pointer group"
             >
               <span className="text-xl block mb-1">🏛️</span>
-              <h4 className="text-xs font-bold text-white group-hover:text-[#FF8216] transition-colors">
+              <h4 className="text-xs font-bold text-white group-hover:text-[#E11D48] transition-colors">
                 Cadastrar Conta FGTS
               </h4>
               <p className="text-[11px] text-zinc-500 mt-0.5">
@@ -306,7 +306,7 @@ export default function AssetsPage() {
                       setSelectedAssetToEdit(asset);
                       setIsAssetModalOpen(true);
                     }}
-                    className="p-4 rounded-2xl bg-[#121214] border border-[#27272A] hover:border-[#FF8216]/40 transition-all cursor-pointer space-y-3"
+                    className="p-4 rounded-2xl bg-[#121214] border border-[#27272A] hover:border-[#E11D48]/40 transition-all cursor-pointer space-y-3"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
@@ -314,7 +314,7 @@ export default function AssetsPage() {
                           {icon}
                         </div>
                         <div className="min-w-0">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-[#FF8216] block">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-[#E11D48] block">
                             {categoryLabel}
                           </span>
                           <h4 className="text-sm font-bold text-white truncate">{asset.name}</h4>
@@ -355,7 +355,7 @@ export default function AssetsPage() {
                           : "Valor de avaliação atualizado"}
                       </span>
                       {asset.metadata?.radar_score !== undefined && (
-                        <span className="text-[#FF8216] font-semibold">
+                        <span className="text-[#E11D48] font-semibold">
                           Radar {String(asset.metadata.radar_score)}/100
                         </span>
                       )}
@@ -391,7 +391,7 @@ export default function AssetsPage() {
                           setSelectedAssetToEdit(veh);
                           setIsAssetModalOpen(true);
                         }}
-                        className="p-4 rounded-2xl bg-[#121214] border border-[#27272A] hover:border-[#FF8216]/50 transition-all cursor-pointer space-y-3"
+                        className="p-4 rounded-2xl bg-[#121214] border border-[#27272A] hover:border-[#E11D48]/50 transition-all cursor-pointer space-y-3"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div>
@@ -462,7 +462,7 @@ export default function AssetsPage() {
                           setSelectedAssetToEdit(re);
                           setIsAssetModalOpen(true);
                         }}
-                        className="p-4 rounded-2xl bg-[#121214] border border-[#27272A] hover:border-[#FF8216]/50 transition-all cursor-pointer space-y-3"
+                        className="p-4 rounded-2xl bg-[#121214] border border-[#27272A] hover:border-[#E11D48]/50 transition-all cursor-pointer space-y-3"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div>
@@ -504,7 +504,7 @@ export default function AssetsPage() {
 
                           <div className="p-2 bg-[#18181B] rounded-lg border border-[#27272A] text-center">
                             <span className="text-[9px] text-zinc-500 uppercase block">Radar 2km</span>
-                            <span className="text-xs font-bold text-[#FF8216] tabular-nums">
+                            <span className="text-xs font-bold text-[#E11D48] tabular-nums">
                               {String(re.metadata?.radar_score ?? 75)}/100
                             </span>
                           </div>
@@ -538,7 +538,7 @@ export default function AssetsPage() {
                           setSelectedAssetToEdit(fg);
                           setIsAssetModalOpen(true);
                         }}
-                        className="p-4 rounded-2xl bg-[#121214] border border-[#27272A] hover:border-[#FF8216]/50 transition-all cursor-pointer space-y-3"
+                        className="p-4 rounded-2xl bg-[#121214] border border-[#27272A] hover:border-[#E11D48]/50 transition-all cursor-pointer space-y-3"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div>

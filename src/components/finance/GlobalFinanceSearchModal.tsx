@@ -339,7 +339,7 @@ export function GlobalFinanceSearchModal({
       >
         {/* Header de Pesquisa */}
         <div className="p-4 md:p-5 border-b border-[#27272A] flex items-center gap-3 bg-[#18181B]/60">
-          <div className="w-9 h-9 rounded-xl bg-[#FF8216]/10 border border-[#FF8216]/20 flex items-center justify-center text-[#FF8216] shrink-0">
+          <div className="w-9 h-9 rounded-xl bg-[#E11D48]/10 border border-[#E11D48]/20 flex items-center justify-center text-[#E11D48] shrink-0">
             <span className="material-symbols-outlined text-[20px]">search</span>
           </div>
           <input
@@ -384,7 +384,7 @@ export function GlobalFinanceSearchModal({
                     onClick={() => setSearchTerm(term)}
                     className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#18181B] hover:bg-[#27272A] border border-[#27272A] text-xs font-medium text-zinc-300 transition-colors cursor-pointer"
                   >
-                    <span className="material-symbols-outlined text-[14px] text-[#FF8216]">
+                    <span className="material-symbols-outlined text-[14px] text-[#E11D48]">
                       arrow_forward
                     </span>
                     <span>{term}</span>
@@ -401,13 +401,13 @@ export function GlobalFinanceSearchModal({
                     onClick={() => handleNavigate(page.path)}
                     className="flex items-center gap-3 p-3 rounded-xl bg-[#18181B]/50 hover:bg-[#18181B] border border-[#27272A] text-left transition-colors cursor-pointer group"
                   >
-                    <div className="w-8 h-8 rounded-lg bg-[#27272A] text-zinc-300 group-hover:text-[#FF8216] flex items-center justify-center shrink-0 transition-colors">
+                    <div className="w-8 h-8 rounded-lg bg-[#27272A] text-zinc-300 group-hover:text-[#E11D48] flex items-center justify-center shrink-0 transition-colors">
                       <span className="material-symbols-outlined text-[18px]">
                         {page.icon}
                       </span>
                     </div>
                     <div className="min-w-0">
-                      <p className="text-xs font-bold text-white group-hover:text-[#FF8216] transition-colors truncate">
+                      <p className="text-xs font-bold text-white group-hover:text-[#E11D48] transition-colors truncate">
                         {page.title}
                       </p>
                       <p className="text-[10px] text-zinc-400">{page.category}</p>
@@ -422,7 +422,7 @@ export function GlobalFinanceSearchModal({
           {matchedPages.length > 0 && (
             <div className="space-y-2">
               <h4 className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 px-1 flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-[14px] text-[#FF8216]">
+                <span className="material-symbols-outlined text-[14px] text-[#E11D48]">
                   navigation
                 </span>
                 Páginas & Navegação ({matchedPages.length})
@@ -436,7 +436,7 @@ export function GlobalFinanceSearchModal({
                     className="w-full p-3 flex items-center justify-between hover:bg-[#27272A]/50 transition-colors text-left cursor-pointer"
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-8 h-8 rounded-lg bg-[#27272A] text-[#FF8216] flex items-center justify-center shrink-0">
+                      <div className="w-8 h-8 rounded-lg bg-[#27272A] text-[#E11D48] flex items-center justify-center shrink-0">
                         <span className="material-symbols-outlined text-[18px]">
                           {page.icon}
                         </span>
@@ -446,7 +446,7 @@ export function GlobalFinanceSearchModal({
                         <p className="text-[10px] text-zinc-400">Ir para {page.path}</p>
                       </div>
                     </div>
-                    <span className="text-[11px] font-semibold text-[#FF8216] flex items-center gap-0.5">
+                    <span className="text-[11px] font-semibold text-[#E11D48] flex items-center gap-0.5">
                       Acessar
                       <span className="material-symbols-outlined text-[13px]">chevron_right</span>
                     </span>
@@ -460,7 +460,7 @@ export function GlobalFinanceSearchModal({
           {matchedAccounts.length > 0 && (
             <div className="space-y-2">
               <h4 className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 px-1 flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-[14px] text-[#FF8216]">
+                <span className="material-symbols-outlined text-[14px] text-[#E11D48]">
                   account_balance
                 </span>
                 Contas Bancárias & Cartões ({matchedAccounts.length})
@@ -496,7 +496,7 @@ export function GlobalFinanceSearchModal({
                         <p className="text-xs font-mono font-bold text-white">
                           {isPrivacyMode ? "R$ ••••••" : formatCurrency(bal)}
                         </p>
-                        <p className="text-[10px] text-[#FF8216]">Ver detalhes →</p>
+                        <p className="text-[10px] text-[#E11D48]">Ver detalhes →</p>
                       </div>
                     </button>
                   );
@@ -608,7 +608,7 @@ export function GlobalFinanceSearchModal({
           {searchAnalytics && searchAnalytics.count > 0 && (
             <div className="space-y-4 pt-2">
               <h4 className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 px-1 flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-[14px] text-[#FF8216]">
+                <span className="material-symbols-outlined text-[14px] text-[#E11D48]">
                   receipt_long
                 </span>
                 Extrato & Dossiê de Consumo ({searchAnalytics.count})
@@ -639,7 +639,7 @@ export function GlobalFinanceSearchModal({
                       `Faça uma análise profunda dos meus gastos com ${searchAnalytics.resolvedBrand.cleanName}. Me diga se estou gastando demais e sugira como otimizar.`
                     )}`}
                     onClick={onClose}
-                    className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#FF8216] text-black text-xs font-semibold hover:bg-[#FF8216]/90 transition-transform active:scale-95 shadow-md"
+                    className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white text-black text-xs font-semibold hover:bg-[#E11D48]/90 transition-transform active:scale-95 shadow-md"
                   >
                     <span>✨ Analisar com IA</span>
                   </Link>
@@ -661,7 +661,7 @@ export function GlobalFinanceSearchModal({
                   </div>
                   <div className="p-2.5 rounded-xl bg-white/[0.03]">
                     <span className="text-[10px] text-zinc-400 block mb-0.5">Mês Atual</span>
-                    <span className="text-xs md:text-sm font-bold text-[#FF8216]">
+                    <span className="text-xs md:text-sm font-bold text-[#E11D48]">
                       {isPrivacyMode
                         ? "R$ ••••••"
                         : formatCurrency(searchAnalytics.currentMonthSpent)}

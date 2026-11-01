@@ -4,6 +4,16 @@ Todas as alterações notáveis no projeto Kitsune Finance são registradas de f
 
 ---
 
+## [2026-11-01] - Expurgado Histórico Git, Nova Identidade Minimalista e Evolução Warm Obsidian
+- **Arquivos Afetados:** `public/assets/logo/*`, `public/manifest.json`, `public/sw.js`, `src/app/globals.css`, `src/components/layout/AppShell.tsx`, `src/components/wealthfolio/NetWorthHeroChart.tsx`, `src/app/page.tsx`, `src/app/login/page.tsx`, `src/app/dashboard/page.tsx`, `src/app/kitsune/page.tsx`.
+- **Objetivo:**
+  - Expurgada permanentemente do histórico de commits do Git a pasta de screenshots de referência (`pierre design system`), com validação e `git push origin master --force`.
+  - Integrada a nova logo minimalista (`logo-transparent.png`) e convertidos os ícones PWA para PNG de alta compatibilidade (`icon-192x192.png`, `icon-512x512.png`, `maskable-icon-512x512.png`).
+  - Evolução do Design System Warm Obsidian: aposentadoria do antigo Kitsune Orange (`#FF8216`), adoção de botões e estados ativos monocromáticos de alto contraste (`#FFFFFF`/`#FAFAFA`) e marca acentuada cirurgicamente com Kitsune Crimson (`#E11D48`).
+  - Curva de patrimônio líquido convertida para traço e gradiente em Branco Puro (`#FFFFFF`), preservando a precisão matemática e os tokens neutros.
+
+---
+
 ## [2026-11-01] - Unificação da Kitsune AI na Navegação, Hierarquia Visual e Abas Estilo Widgets
 - **Arquivos Afetados:** `src/app/dashboard/page.tsx`, `src/components/layout/AppShell.tsx`.
 - **Objetivo:**

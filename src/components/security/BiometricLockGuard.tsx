@@ -450,7 +450,7 @@ export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
       {showSetupPrompt && !shouldShowCurtain && (
         <div className="fixed inset-0 z-[99990] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="w-full max-w-sm rounded-3xl bg-[#121214] border border-[#27272A] p-6 shadow-2xl space-y-5 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-[#FF8216]/10 border border-[#FF8216]/30 flex items-center justify-center mx-auto text-[#FF8216]">
+            <div className="w-14 h-14 rounded-2xl bg-[#E11D48]/10 border border-[#E11D48]/30 flex items-center justify-center mx-auto text-[#E11D48]">
               <span className="material-symbols-outlined text-3xl">fingerprint</span>
             </div>
 
@@ -482,7 +482,7 @@ export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
                     type="button"
                     onClick={handleQuickEnableBiometrics}
                     disabled={isAuthenticating}
-                    className="w-full h-11 rounded-xl bg-[#FF8216] hover:bg-[#FFA047] text-black font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md disabled:opacity-50"
+                    className="w-full h-11 rounded-xl bg-white hover:bg-zinc-200 active:bg-zinc-300 text-black font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md disabled:opacity-50"
                   >
                     {isAuthenticating ? (
                       <Spinner size={16} className="text-black" />
@@ -500,7 +500,7 @@ export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
                   onClick={() => setIsCreatingPin(true)}
                   className="w-full h-11 rounded-xl bg-[#18181B] hover:bg-[#27272A] border border-[#27272A] text-white font-semibold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
                 >
-                  <span className="material-symbols-outlined text-[18px] text-[#FF8216]">pin</span>
+                  <span className="material-symbols-outlined text-[18px] text-[#E11D48]">pin</span>
                   <span>Criar PIN Numérico (4 Dígitos)</span>
                 </button>
 
@@ -525,7 +525,7 @@ export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
                     value={newPinValue}
                     onChange={(e) => setNewPinValue(e.target.value.replace(/\D/g, ""))}
                     placeholder="••••"
-                    className="w-full px-3 py-2 rounded-xl bg-[#18181B] border border-[#27272A] text-white text-center text-lg tracking-[0.4em] font-mono focus:outline-none focus:border-[#FF8216]"
+                    className="w-full px-3 py-2 rounded-xl bg-[#18181B] border border-[#27272A] text-white text-center text-lg tracking-[0.4em] font-mono focus:outline-none focus:border-[#E11D48]"
                     autoFocus
                   />
                 </div>
@@ -541,7 +541,7 @@ export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
                     value={confirmPinValue}
                     onChange={(e) => setConfirmPinValue(e.target.value.replace(/\D/g, ""))}
                     placeholder="••••"
-                    className="w-full px-3 py-2 rounded-xl bg-[#18181B] border border-[#27272A] text-white text-center text-lg tracking-[0.4em] font-mono focus:outline-none focus:border-[#FF8216]"
+                    className="w-full px-3 py-2 rounded-xl bg-[#18181B] border border-[#27272A] text-white text-center text-lg tracking-[0.4em] font-mono focus:outline-none focus:border-[#E11D48]"
                   />
                 </div>
 
@@ -555,7 +555,7 @@ export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 h-10 rounded-xl bg-[#FF8216] text-black text-xs font-bold cursor-pointer"
+                    className="flex-1 h-10 rounded-xl bg-white text-black text-xs font-bold cursor-pointer"
                   >
                     Salvar PIN
                   </button>
@@ -579,7 +579,7 @@ export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
           <>
             {/* Topo: Marca e Segurança */}
             <div className="flex items-center gap-2 pt-6">
-              <span className="w-2 h-2 rounded-full bg-[#FF8216] animate-pulse" />
+              <span className="w-2 h-2 rounded-full bg-[#E11D48] animate-pulse" />
               <span className="text-[11px] font-mono tracking-[0.2em] uppercase text-zinc-400 font-bold">
                 KITSUNE BIOMETRIC GUARDIAN
               </span>
@@ -588,14 +588,14 @@ export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
             {/* Centro: Ícone da Raposa e Ação de Desbloqueio */}
             <div className="flex flex-col items-center max-w-sm w-full text-center space-y-5 my-auto px-4">
               <div className="relative flex items-center justify-center">
-                <div className="absolute w-28 h-28 rounded-full bg-[#FF8216]/10 animate-ping" />
-                <div className="w-24 h-24 rounded-3xl bg-[#121214] border-2 border-[#FF8216]/40 flex items-center justify-center shadow-[0_0_40px_rgba(255,130,22,0.18)] relative z-10">
+                <div className="absolute w-28 h-28 rounded-full bg-[#E11D48]/10 animate-ping" />
+                <div className="w-24 h-24 rounded-3xl bg-[#121214] border-2 border-[#E11D48]/40 flex items-center justify-center shadow-[0_0_40px_rgba(225,29,72,0.18)] relative z-10">
                   <Image
-                    src="/assets/logo/logo_sem_fundo.png"
+                    src="/assets/logo/logo-transparent.png"
                     alt="Kitsune Finance"
                     width={56}
                     height={56}
-                    className="w-14 h-14 object-contain drop-shadow-[0_4px_12px_rgba(255,130,22,0.35)]"
+                    className="w-14 h-14 object-contain"
                     priority
                   />
                 </div>
@@ -626,7 +626,7 @@ export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
                       type="button"
                       onClick={handleUnlockWithBiometrics}
                       disabled={isAuthenticating}
-                      className="w-full h-13 px-6 rounded-2xl bg-[#FF8216] hover:bg-[#FFA047] active:bg-[#E66E08] text-black font-extrabold text-sm flex items-center justify-center gap-2.5 shadow-[0_4px_20px_rgba(255,130,22,0.3)] transition-all cursor-pointer disabled:opacity-50"
+                      className="w-full h-13 px-6 rounded-2xl bg-white hover:bg-zinc-200 active:bg-zinc-300 text-black font-extrabold text-sm flex items-center justify-center gap-2.5 shadow-[0_4px_20px_rgba(255,130,22,0.3)] transition-all cursor-pointer disabled:opacity-50"
                     >
                       {isAuthenticating ? (
                         <>
@@ -648,7 +648,7 @@ export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
                       onClick={() => setIsPinModeActive(true)}
                       className="w-full h-11 rounded-2xl bg-[#18181B] hover:bg-[#27272A] border border-[#27272A] text-white font-semibold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
                     >
-                      <span className="material-symbols-outlined text-[18px] text-[#FF8216]">pin</span>
+                      <span className="material-symbols-outlined text-[18px] text-[#E11D48]">pin</span>
                       <span>Desbloquear com PIN</span>
                     </button>
                   )}
@@ -674,7 +674,7 @@ export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
                           key={idx}
                           className={`w-4 h-4 rounded-full border-2 transition-all ${
                             filled
-                              ? "bg-[#FF8216] border-[#FF8216] scale-110"
+                              ? "bg-[#E11D48] border-[#E11D48] scale-110"
                               : "border-zinc-600 bg-zinc-900"
                           }`}
                         />
@@ -689,7 +689,7 @@ export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
                         key={num}
                         type="button"
                         onClick={() => handleKeypadPress(num)}
-                        className="h-13 rounded-2xl bg-[#18181B] hover:bg-[#27272A] active:bg-[#FF8216]/20 border border-[#27272A] text-xl font-bold font-mono text-white transition-all cursor-pointer"
+                        className="h-13 rounded-2xl bg-[#18181B] hover:bg-[#27272A] active:bg-[#E11D48]/20 border border-[#27272A] text-xl font-bold font-mono text-white transition-all cursor-pointer"
                       >
                         {num}
                       </button>
@@ -698,7 +698,7 @@ export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
                       <button
                         type="button"
                         onClick={() => setIsPinModeActive(false)}
-                        className="h-13 rounded-2xl bg-[#18181B] hover:bg-[#27272A] border border-[#27272A] flex items-center justify-center text-[#FF8216] transition-all cursor-pointer"
+                        className="h-13 rounded-2xl bg-[#18181B] hover:bg-[#27272A] border border-[#27272A] flex items-center justify-center text-[#E11D48] transition-all cursor-pointer"
                         title="Voltar para Biometria"
                       >
                         <span className="material-symbols-outlined text-2xl">fingerprint</span>
@@ -709,7 +709,7 @@ export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
                     <button
                       type="button"
                       onClick={() => handleKeypadPress("0")}
-                      className="h-13 rounded-2xl bg-[#18181B] hover:bg-[#27272A] active:bg-[#FF8216]/20 border border-[#27272A] text-xl font-bold font-mono text-white transition-all cursor-pointer"
+                      className="h-13 rounded-2xl bg-[#18181B] hover:bg-[#27272A] active:bg-[#E11D48]/20 border border-[#27272A] text-xl font-bold font-mono text-white transition-all cursor-pointer"
                     >
                       0
                     </button>
@@ -728,7 +728,7 @@ export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
                       <button
                         type="button"
                         onClick={() => setIsPinModeActive(false)}
-                        className="text-xs text-[#FF8216] hover:underline cursor-pointer"
+                        className="text-xs text-[#E11D48] hover:underline cursor-pointer"
                       >
                         Usar Biometria
                       </button>

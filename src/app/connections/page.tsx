@@ -170,7 +170,7 @@ export default function ConnectionsPage() {
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-zinc-200 dark:border-[#27272A]">
         <div>
           <div className="flex items-center gap-2">
-            <WfIcons.Connections className="w-5 h-5 text-[#FF8216]" />
+            <WfIcons.Connections className="w-5 h-5 text-[#E11D48]" />
             <h1 className="text-xl md:text-2xl font-bold tracking-tight text-zinc-900 dark:text-[#F4F4F5]">
               Conexões Bancárias & Open Finance Brasil
             </h1>
@@ -184,7 +184,7 @@ export default function ConnectionsPage() {
           type="button"
           onClick={handleAddConnection}
           disabled={isLoadingToken}
-          className="h-9 px-4 rounded-xl bg-[#FF8216] hover:bg-[#FF9438] text-black font-semibold text-xs inline-flex items-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer self-start md:self-auto"
+          className="h-9 px-4 rounded-xl bg-white hover:bg-zinc-200 active:bg-zinc-300 text-black font-semibold text-xs inline-flex items-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer self-start md:self-auto"
         >
           {isLoadingToken ? (
             <>
@@ -343,7 +343,7 @@ export default function ConnectionsPage() {
                         className="h-8 px-3 rounded-lg bg-zinc-100 dark:bg-[#18181B] hover:bg-zinc-200 dark:hover:bg-[#27272A] border border-zinc-200 dark:border-[#27272A] text-xs font-medium text-zinc-700 dark:text-zinc-300 inline-flex items-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer"
                       >
                         <WfIcons.RefreshCw
-                          className={`w-3.5 h-3.5 ${isSyncing ? "animate-spin text-[#FF8216]" : ""}`}
+                          className={`w-3.5 h-3.5 ${isSyncing ? "animate-spin text-[#E11D48]" : ""}`}
                         />
                         <span>{isSyncing ? "Sync..." : "Sync"}</span>
                       </button>

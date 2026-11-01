@@ -30,14 +30,14 @@ interface AllocationGaugesProps {
 }
 
 const TONE_COLOR_MAP: Record<SemicircularGaugeItem["tone"], string> = {
-  orange: "#FF8216",
+  orange: "#E11D48",
   emerald: "#10B981",
   amber: "#F59E0B",
   rose: "#EF4444",
 };
 
 const TONE_BADGE_MAP: Record<SemicircularGaugeItem["tone"], string> = {
-  orange: "bg-[#FF8216]/12 text-[#FF8216] border-[#FF8216]/25",
+  orange: "bg-[#E11D48]/12 text-[#E11D48] border-[#E11D48]/25",
   emerald: "bg-emerald-500/12 text-emerald-400 border-emerald-500/25",
   amber: "bg-amber-500/12 text-amber-400 border-amber-500/25",
   rose: "bg-rose-500/12 text-rose-400 border-rose-500/25",
@@ -250,7 +250,7 @@ export function AllocationGauges({
                   <span className="text-base font-bold text-zinc-900 dark:text-[#F4F4F5] tabular-nums block">
                     {formatCurrency(activeSlice.value)}
                   </span>
-                  <span className="text-[11px] font-semibold text-[#FF8216] tabular-nums">
+                  <span className="text-[11px] font-semibold text-[#E11D48] tabular-nums">
                     {hideValues
                       ? "••%"
                       : `${((activeSlice.value / totalSliceValue) * 100).toFixed(1).replace(".", ",")}%`}

@@ -451,7 +451,7 @@ export function CategoriesView({
       <SpotlightCard className="p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6">
         {/* Total Gasto no Período */}
         <div className="flex flex-col items-center md:items-start text-center md:text-left">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-[#FF8216]">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[#E11D48]">
             Despesas Reais Conciliadas
           </span>
           <div className="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white tabular-nums tracking-tight mt-1">

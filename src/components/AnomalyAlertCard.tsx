@@ -53,13 +53,13 @@ export function AnomalyAlertCard() {
       className={`p-4 rounded-2xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3.5 transition-all duration-700 ease-out animate-in fade-in slide-in-from-top-2 shadow-xs ${
         isDanger
           ? "bg-rose-500/10 border-rose-500/30 text-rose-950 dark:text-rose-100"
-          : "bg-[#FF8216]/10 border-[#FF8216]/30 text-amber-950 dark:text-orange-100"
+          : "bg-[#E11D48]/10 border-[#E11D48]/30 text-amber-950 dark:text-orange-100"
       }`}
     >
       <div className="flex items-start gap-3 min-w-0">
         <div
           className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-            isDanger ? "bg-rose-500 text-white" : "bg-[#FF8216] text-white"
+            isDanger ? "bg-rose-500 text-white" : "bg-[#E11D48] text-white"
           }`}
         >
           <span className="material-symbols-outlined text-lg">
@@ -72,7 +72,7 @@ export function AnomalyAlertCard() {
               className={`text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full ${
                 isDanger
                   ? "bg-rose-500/20 text-rose-700 dark:text-rose-300"
-                  : "bg-[#FF8216]/20 text-[#FF8216]"
+                  : "bg-[#E11D48]/20 text-[#E11D48]"
               }`}
             >
               Sentinela Kitsune • Alerta Preventivo
@@ -92,7 +92,7 @@ export function AnomalyAlertCard() {
           href={`/kitsune?prompt=${encodeURIComponent(
             `Kitsune AI, o Sentinela Kitsune detectou um alerta preventivo: "${current.title} - ${current.description}". Por favor, faça uma auditoria aprofundada desse lançamento com base nos meus dados bancários. É uma cobrança duplicada ou parcelamento legítimo? Qual recomendação prática você me dá?`
           )}`}
-          className="flex-1 sm:flex-initial h-8 px-3 rounded-lg bg-[#FF8216] hover:bg-[#FFA047] text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+          className="flex-1 sm:flex-initial h-8 px-3 rounded-lg bg-[#E11D48] hover:bg-[#F43F5E] text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
         >
           <span>Auditar com IA</span>
         </Link>

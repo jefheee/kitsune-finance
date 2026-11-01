@@ -210,7 +210,7 @@ export function VisionAnalyzer() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="p-2 rounded-xl bg-[#FF8216]/10 text-[#FF8216] border border-[#FF8216]/20 flex items-center justify-center">
+            <span className="p-2 rounded-xl bg-[#E11D48]/10 text-[#E11D48] border border-[#E11D48]/20 flex items-center justify-center">
               <span className="material-symbols-outlined text-[20px]">visibility</span>
             </span>
             <ShinyText
@@ -245,7 +245,7 @@ export function VisionAnalyzer() {
               onClick={() => setSelectedMode(sc.id)}
               className={`flex flex-col items-start p-3.5 rounded-2xl border text-left transition-all duration-200 cursor-pointer relative overflow-hidden ${
                 isSelected
-                  ? "bg-[#FF8216]/10 border-[#FF8216] text-[#FF8216] ring-1 ring-[#FF8216]"
+                  ? "bg-[#E11D48]/10 border-[#E11D48] text-[#E11D48] ring-1 ring-[#E11D48]"
                   : "bg-white/60 dark:bg-[#121214]/80 border-slate-200 dark:border-[#27272A] text-slate-700 dark:text-[#94A3B8] hover:border-slate-300 dark:hover:border-slate-600"
               }`}
             >
@@ -270,7 +270,7 @@ export function VisionAnalyzer() {
       <SpotlightCard className="p-6 md:p-8 flex flex-col items-center justify-center">
         {isCameraActive ? (
           /* Câmera Ao Vivo */
-          <div className="relative w-full max-w-lg aspect-video rounded-2xl overflow-hidden bg-black flex items-center justify-center border border-[#FF8216]/40 shadow-xl">
+          <div className="relative w-full max-w-lg aspect-video rounded-2xl overflow-hidden bg-black flex items-center justify-center border border-[#E11D48]/40 shadow-xl">
             <video
               ref={videoRef}
               autoPlay
@@ -282,10 +282,10 @@ export function VisionAnalyzer() {
               <button
                 type="button"
                 onClick={captureSnapshot}
-                className="w-14 h-14 rounded-full bg-white border-4 border-[#FF8216] shadow-xl flex items-center justify-center cursor-pointer hover:scale-105 active:scale-95 transition-all"
+                className="w-14 h-14 rounded-full bg-white border-4 border-[#E11D48] shadow-xl flex items-center justify-center cursor-pointer hover:scale-105 active:scale-95 transition-all"
                 title="Tirar Foto"
               >
-                <div className="w-8 h-8 rounded-full bg-[#FF8216]" />
+                <div className="w-8 h-8 rounded-full bg-[#E11D48]" />
               </button>
               <button
                 type="button"
@@ -326,7 +326,7 @@ export function VisionAnalyzer() {
                   placeholder="Instrução adicional (opcional, ex: 'Posso dar R$ 20k de entrada?')"
                   value={customPrompt}
                   onChange={(e) => setCustomPrompt(e.target.value)}
-                  className="w-full pl-4 pr-10 py-3 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[#FF8216]"
+                  className="w-full pl-4 pr-10 py-3 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[#E11D48]"
                 />
                 <span className="material-symbols-outlined absolute right-3 top-3 text-[18px] text-slate-400">
                   edit_note
@@ -339,7 +339,7 @@ export function VisionAnalyzer() {
               type="button"
               onClick={handleAnalyze}
               disabled={isLoading}
-              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-[#FF8216] hover:bg-[#FFA047] active:bg-[#E66E08] text-white font-bold text-sm shadow-lg shadow-[#FF8216]/25 transition-all duration-200 cursor-pointer disabled:opacity-50"
+              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-[#E11D48] hover:bg-[#F43F5E] active:bg-[#BE123C] text-white font-bold text-sm shadow-lg shadow-[#E11D48]/25 transition-all duration-200 cursor-pointer disabled:opacity-50"
             >
               {isLoading ? (
                 <>
@@ -373,7 +373,7 @@ export function VisionAnalyzer() {
               <button
                 type="button"
                 onClick={startCamera}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#FF8216] hover:bg-[#FFA047] text-white font-bold text-xs shadow-md transition-all cursor-pointer"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#E11D48] hover:bg-[#F43F5E] text-white font-bold text-xs shadow-md transition-all cursor-pointer"
               >
                 <span className="material-symbols-outlined text-[18px]">photo_camera</span>
                 <span>Tirar Foto Agora</span>
@@ -447,7 +447,7 @@ export function VisionAnalyzer() {
                     <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
                       Horas de Trabalho
                     </span>
-                    <div className="text-lg font-black text-[#FF8216] tabular-nums">
+                    <div className="text-lg font-black text-[#E11D48] tabular-nums">
                       {analysisResult.financialImpact.workHoursRequired
                         ? `${analysisResult.financialImpact.workHoursRequired.toFixed(1)}h`
                         : "—"}
@@ -474,7 +474,7 @@ export function VisionAnalyzer() {
                       key={idx}
                       className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200/60 dark:border-[#27272A]/60 text-xs text-slate-800 dark:text-[#CBD5E1]"
                     >
-                      <span className="material-symbols-outlined text-[#FF8216] text-[18px] shrink-0 mt-0.5">
+                      <span className="material-symbols-outlined text-[#E11D48] text-[18px] shrink-0 mt-0.5">
                         check_circle
                       </span>
                       <span>{rec}</span>
@@ -486,12 +486,12 @@ export function VisionAnalyzer() {
 
             {/* Estratégia Alternativa */}
             {analysisResult.alternativeStrategy && (
-              <div className="mt-4 p-4 rounded-2xl bg-[#FF8216]/10 border border-[#FF8216]/25 text-xs text-slate-800 dark:text-[#F8FAFC] flex items-start gap-3">
-                <span className="material-symbols-outlined text-[#FF8216] text-[20px] shrink-0 mt-0.5">
+              <div className="mt-4 p-4 rounded-2xl bg-[#E11D48]/10 border border-[#E11D48]/25 text-xs text-slate-800 dark:text-[#F8FAFC] flex items-start gap-3">
+                <span className="material-symbols-outlined text-[#E11D48] text-[20px] shrink-0 mt-0.5">
                   lightbulb
                 </span>
                 <div>
-                  <strong className="text-[#FF8216] font-bold block mb-0.5">
+                  <strong className="text-[#E11D48] font-bold block mb-0.5">
                     Estratégia Mais Inteligente:
                   </strong>
                   <span>{analysisResult.alternativeStrategy}</span>

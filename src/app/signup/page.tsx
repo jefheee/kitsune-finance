@@ -103,7 +103,7 @@ export default function SignupPage() {
         <div className="w-full flex items-center justify-between mb-8">
           <Link
             href="/"
-            className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500 hover:text-[#FF8216] dark:text-zinc-400 dark:hover:text-[#FF8216] transition-colors"
+            className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500 hover:text-white dark:text-zinc-400 dark:hover:text-white transition-colors"
           >
             <span className="material-symbols-outlined text-[16px]">arrow_back</span>
             <span>Voltar ao início</span>
@@ -111,13 +111,14 @@ export default function SignupPage() {
 
           <Link href="/" className="flex items-center gap-2">
             <Image
-              src="/assets/logo/logo_sem_fundo.png"
+              src="/assets/logo/logo-transparent.png"
               alt="Logo Kitsune"
-              width={32}
-              height={32}
+              width={28}
+              height={28}
               priority
-              className="object-contain drop-shadow-[0_2px_8px_rgba(255,130,22,0.25)]"
+              className="object-contain"
             />
+            <span className="font-bold text-sm tracking-tight text-white font-sans">Kitsune</span>
           </Link>
         </div>
         
@@ -168,7 +169,7 @@ export default function SignupPage() {
           <button
             type="button"
             onClick={() => setShowEmailForm((prev) => !prev)}
-            className="text-[11px] font-semibold text-zinc-400 hover:text-[#FF8216] dark:hover:text-[#FF8216] transition-colors cursor-pointer flex items-center gap-1 uppercase tracking-wider"
+            className="text-[11px] font-semibold text-zinc-400 hover:text-white dark:hover:text-white transition-colors cursor-pointer flex items-center gap-1 uppercase tracking-wider"
           >
             <span>{showEmailForm ? "Ocultar cadastro por e-mail" : "ou criar com e-mail manualmente"}</span>
             <span className="material-symbols-outlined text-xs">
@@ -191,7 +192,7 @@ export default function SignupPage() {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 disabled={isLoadingEmail}
-                className="w-full h-11 bg-gray-50 dark:bg-[#18181B] border border-gray-200 dark:border-[#27272A] rounded-xl px-4 text-sm text-gray-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-[#FF8216] transition-colors"
+                className="w-full h-11 bg-gray-50 dark:bg-[#18181B] border border-gray-200 dark:border-[#27272A] rounded-xl px-4 text-sm text-gray-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-white transition-colors"
                 autoComplete="name"
               />
             </div>
@@ -205,7 +206,7 @@ export default function SignupPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isLoadingEmail}
-                className="w-full h-11 bg-gray-50 dark:bg-[#18181B] border border-gray-200 dark:border-[#27272A] rounded-xl px-4 text-sm text-gray-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-[#FF8216] transition-colors"
+                className="w-full h-11 bg-gray-50 dark:bg-[#18181B] border border-gray-200 dark:border-[#27272A] rounded-xl px-4 text-sm text-gray-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-white transition-colors"
                 autoComplete="email"
               />
             </div>
@@ -219,7 +220,7 @@ export default function SignupPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={isLoadingEmail}
-                className="w-full h-11 bg-gray-50 dark:bg-[#18181B] border border-gray-200 dark:border-[#27272A] rounded-xl px-4 text-sm text-gray-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-[#FF8216] transition-colors"
+                className="w-full h-11 bg-gray-50 dark:bg-[#18181B] border border-gray-200 dark:border-[#27272A] rounded-xl px-4 text-sm text-gray-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-white transition-colors"
                 autoComplete="new-password"
               />
             </div>
@@ -227,7 +228,7 @@ export default function SignupPage() {
             <button 
               type="submit" 
               disabled={isLoadingEmail || isLoadingGoogle}
-              className="w-full h-11 flex items-center justify-center gap-2 bg-[#FF8216] hover:bg-[#FFA047] active:bg-[#E66E08] text-black rounded-xl font-bold text-xs transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed mt-1 cursor-pointer"
+              className="w-full h-11 flex items-center justify-center gap-2 bg-white hover:bg-zinc-200 active:bg-zinc-300 text-black rounded-xl font-bold text-xs transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed mt-1 cursor-pointer"
             >
               {isLoadingEmail ? (
                 <div className="flex items-center gap-2">
@@ -243,7 +244,7 @@ export default function SignupPage() {
         
         <div className="mt-4 text-center">
           <Link href="/login" className="text-xs font-sans text-zinc-500 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white transition-colors">
-            Já possui uma conta? <strong className="font-bold text-[#FF8216] hover:underline">Entre aqui</strong>
+            Já possui uma conta? <strong className="font-bold text-white hover:underline">Entre aqui</strong>
           </Link>
         </div>
       </div>

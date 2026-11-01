@@ -85,7 +85,7 @@ export function FgtsCalculatorCard({
             placeholder="Ex: Empresa X Ltda"
             value={companyName}
             onChange={(e) => setCompanyName(e.target.value)}
-            className="w-full bg-[#18181B] border border-[#27272A] rounded-xl px-3 py-2 text-xs text-white placeholder-zinc-500 outline-none focus:border-[#FF8216]"
+            className="w-full bg-[#18181B] border border-[#27272A] rounded-xl px-3 py-2 text-xs text-white placeholder-zinc-500 outline-none focus:border-[#E11D48]"
           />
         </div>
 
@@ -96,7 +96,7 @@ export function FgtsCalculatorCard({
           <select
             value={projectionMonths}
             onChange={(e) => setProjectionMonths(parseInt(e.target.value, 10))}
-            className="w-full bg-[#18181B] border border-[#27272A] rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-[#FF8216]"
+            className="w-full bg-[#18181B] border border-[#27272A] rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-[#E11D48]"
           >
             <option value={12}>12 meses (1 ano)</option>
             <option value={24}>24 meses (2 anos)</option>
@@ -118,7 +118,7 @@ export function FgtsCalculatorCard({
             placeholder="8.500,00"
             value={grossSalary || ""}
             onChange={(e) => setGrossSalary(parseFloat(e.target.value) || 0)}
-            className="w-full bg-[#18181B] border border-[#27272A] rounded-xl px-3 py-2 text-xs text-white tabular-nums outline-none focus:border-[#FF8216]"
+            className="w-full bg-[#18181B] border border-[#27272A] rounded-xl px-3 py-2 text-xs text-white tabular-nums outline-none focus:border-[#E11D48]"
           />
           <span className="text-[10px] text-zinc-500 mt-1 block">
             Aporte compulsório mensal (8% CLT):{" "}
@@ -136,7 +136,7 @@ export function FgtsCalculatorCard({
             placeholder="35.000,00"
             value={currentBalance || ""}
             onChange={(e) => setCurrentBalance(parseFloat(e.target.value) || 0)}
-            className="w-full bg-[#18181B] border border-[#27272A] rounded-xl px-3 py-2 text-xs text-white tabular-nums outline-none focus:border-[#FF8216]"
+            className="w-full bg-[#18181B] border border-[#27272A] rounded-xl px-3 py-2 text-xs text-white tabular-nums outline-none focus:border-[#E11D48]"
           />
           <span className="text-[10px] text-zinc-500 mt-1 block">
             Corrigido todo dia 10 por (1+TR) × (1+0,002466)
@@ -148,7 +148,7 @@ export function FgtsCalculatorCard({
       <div className="p-4 bg-gradient-to-br from-[#18181B] to-[#121214] border border-[#27272A] rounded-xl space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#FF8216] block">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#E11D48] block">
               Projeção Caixa • {projectionMonths} Meses
             </span>
             <h4 className="text-sm font-semibold text-white">Saldo Nominal Projetado</h4>

@@ -4,14 +4,14 @@ export default function Loading() {
   return (
     <div className="flex-1 w-full min-h-[60vh] flex flex-col items-center justify-center relative p-6 select-none bg-slate-50 dark:bg-[#0A0A0A]">
       {/* Sutil ambient glow */}
-      <div className="absolute w-64 h-64 rounded-full bg-[#FF8216]/10 blur-[80px] pointer-events-none" />
+      <div className="absolute w-64 h-64 rounded-full bg-[#E11D48]/10 blur-[80px] pointer-events-none" />
 
       <div className="relative z-10 flex flex-col items-center gap-4">
         {/* Breathing Logo Container */}
         <div className="relative flex items-center justify-center">
           <div className="w-14 h-14 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] flex items-center justify-center shadow-md relative">
             <Image
-              src="/assets/logo/logo_sem_fundo.png"
+              src="/assets/logo/logo-transparent.png"
               alt="Kitsune"
               width={34}
               height={34}

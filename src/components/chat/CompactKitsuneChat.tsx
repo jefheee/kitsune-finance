@@ -58,8 +58,8 @@ export function CompactKitsuneChat({ onOpenFullChat }: CompactKitsuneChatProps) 
       {/* Top Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-[#FF8216]/10 text-[#FF8216] border border-[#FF8216]/25 flex items-center justify-center">
-            <WfIcons.Agents className="w-4 h-4 text-[#FF8216]" />
+          <div className="w-8 h-8 rounded-xl bg-[#E11D48]/10 text-[#E11D48] border border-[#E11D48]/25 flex items-center justify-center">
+            <WfIcons.Agents className="w-4 h-4 text-[#E11D48]" />
           </div>
           <div>
             <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-900 dark:text-[#F4F4F5]">
@@ -73,7 +73,7 @@ export function CompactKitsuneChat({ onOpenFullChat }: CompactKitsuneChatProps) 
 
         <Link
           href={`/kitsune${prompt ? `?prompt=${encodeURIComponent(prompt)}` : ""}`}
-          className="text-xs font-semibold text-[#FF8216] hover:text-[#FFA047] flex items-center gap-1 transition-colors"
+          className="text-xs font-semibold text-[#E11D48] hover:text-[#F43F5E] flex items-center gap-1 transition-colors"
         >
           <span>Abrir Chat Completo</span>
           <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
@@ -113,7 +113,7 @@ export function CompactKitsuneChat({ onOpenFullChat }: CompactKitsuneChatProps) 
             onChange={(e) => setPrompt(e.target.value)}
             placeholder="Pergunte sobre saldos, faturas, gastos ou investimentos..."
             disabled={isLoading}
-            className="w-full h-10 pl-3.5 pr-10 rounded-xl bg-zinc-50 dark:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] text-xs text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:border-[#FF8216] transition-colors"
+            className="w-full h-10 pl-3.5 pr-10 rounded-xl bg-zinc-50 dark:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] text-xs text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:border-[#E11D48] transition-colors"
           />
           {prompt && (
             <button
@@ -133,7 +133,7 @@ export function CompactKitsuneChat({ onOpenFullChat }: CompactKitsuneChatProps) 
         <button
           type="submit"
           disabled={isLoading || !prompt.trim()}
-          className="h-10 px-4 rounded-xl bg-[#FF8216] hover:bg-[#FFA047] active:bg-[#E66E08] text-black font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-xs shrink-0"
+          className="h-10 px-4 rounded-xl bg-white hover:bg-zinc-200 active:bg-zinc-300 text-black font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-xs shrink-0"
         >
           {isLoading ? (
             <Spinner size={14} className="text-black" />
@@ -149,9 +149,9 @@ export function CompactKitsuneChat({ onOpenFullChat }: CompactKitsuneChatProps) 
       {/* Resposta Rápida Inline */}
       {response && (
         <div className="p-3.5 rounded-xl bg-zinc-50 dark:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] text-xs text-zinc-700 dark:text-zinc-200 leading-relaxed space-y-2 animate-in fade-in">
-          <div className="flex items-center justify-between text-[11px] font-semibold text-[#FF8216]">
+          <div className="flex items-center justify-between text-[11px] font-semibold text-[#E11D48]">
             <span className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#FF8216] animate-pulse" />
+              <span className="w-1.5 h-1.5 rounded-full bg-[#E11D48] animate-pulse" />
               Parecer da Kitsune
             </span>
             <Link

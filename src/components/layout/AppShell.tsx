@@ -278,9 +278,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               className="flex items-center gap-2.5 min-w-0 group"
               title="Kitsune Finance • Wealth OS"
             >
-              <div className="w-8 h-8 rounded-xl bg-[#121214] border border-[#27272A] flex items-center justify-center shrink-0 group-hover:border-[#FF8216]/50 transition-colors">
+              <div className="w-8 h-8 rounded-xl bg-[#121214] border border-[#27272A] flex items-center justify-center shrink-0 group-hover:border-white/40 transition-colors">
                 <Image
-                  src="/assets/logo/logo_sem_fundo.png"
+                  src="/assets/logo/logo-transparent.png"
                   alt="Kitsune"
                   width={22}
                   height={22}
@@ -305,11 +305,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 type="button"
                 onClick={() => revalidate(true)}
                 title="Sincronizar Open Finance"
-                className="w-7 h-7 rounded-lg flex items-center justify-center text-zinc-400 hover:text-[#FF8216] hover:bg-zinc-100 dark:hover:bg-[#121214] transition-colors cursor-pointer"
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-100 dark:hover:bg-[#121214] transition-colors cursor-pointer"
               >
                 <WfIcons.RefreshCw
                   size={14}
-                  className={isRevalidating ? "animate-spin text-[#FF8216]" : ""}
+                  className={isRevalidating ? "animate-spin text-white" : ""}
                 />
               </button>
             )}
@@ -320,7 +320,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             type="button"
             onClick={() => setIsSearchOpen(true)}
             title="Buscar no patrimônio e extrato (Ctrl+K)"
-            className={`h-9 rounded-lg border border-zinc-200 dark:border-[#27272A] bg-zinc-50 dark:bg-[#121214] hover:border-[#FF8216]/40 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-[#F4F4F5] transition-all cursor-pointer flex items-center ${
+            className={`h-9 rounded-lg border border-zinc-200 dark:border-[#27272A] bg-zinc-50 dark:bg-[#121214] hover:border-white/30 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-[#F4F4F5] transition-all cursor-pointer flex items-center ${
               isSidebarCollapsed ? "justify-center px-0" : "justify-between px-2.5"
             }`}
           >
@@ -358,12 +358,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   }`}
                 >
                   {active && (
-                    <span className="absolute left-0 top-2 bottom-2 w-[2.5px] rounded-r-full bg-[#FF8216]" />
+                    <span className="absolute left-0 top-2 bottom-2 w-[2.5px] rounded-r-full bg-white" />
                   )}
                   <Icon
                     size={18}
                     className={`shrink-0 transition-colors ${
-                      active ? "text-[#FF8216]" : "text-current group-hover:text-zinc-900 dark:group-hover:text-[#F4F4F5]"
+                      active ? "text-white" : "text-current group-hover:text-zinc-900 dark:group-hover:text-[#F4F4F5]"
                     }`}
                   />
                   {!isSidebarCollapsed && (
@@ -398,12 +398,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     }`}
                   >
                     {active && (
-                      <span className="absolute left-0 top-2 bottom-2 w-[2.5px] rounded-r-full bg-[#FF8216]" />
+                      <span className="absolute left-0 top-2 bottom-2 w-[2.5px] rounded-r-full bg-white" />
                     )}
                     <Icon
                       size={18}
                       className={`shrink-0 transition-colors ${
-                        active ? "text-[#FF8216]" : "text-current"
+                        active ? "text-white" : "text-current"
                       }`}
                     />
                     {!isSidebarCollapsed && (
@@ -431,7 +431,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               isSidebarCollapsed ? "justify-center px-0" : "justify-between px-2.5"
             } ${
               isPrivacyMode
-                ? "bg-[#FF8216]/12 text-[#FF8216] border border-[#FF8216]/25"
+                ? "bg-white/10 text-white border border-white/20"
                 : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-[#F4F4F5] hover:bg-zinc-100 dark:hover:bg-[#121214]"
             }`}
           >
@@ -444,7 +444,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               )}
             </span>
             {!isSidebarCollapsed && isPrivacyMode && (
-              <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-[#FF8216]/20 text-[#FF8216]">
+              <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-white/20 text-white">
                 ON
               </span>
             )}
@@ -467,7 +467,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               <WfIcons.Bell size={17} className="shrink-0" />
               {!isSidebarCollapsed && <span className="text-xs font-medium">Alertas</span>}
               {unreadNotifsCount > 0 && (
-                <span className="ml-auto min-w-[16px] h-4 px-1 rounded-full bg-[#FF8216] text-black text-[9px] font-extrabold flex items-center justify-center">
+                <span className="ml-auto min-w-[16px] h-4 px-1 rounded-full bg-[#E11D48] text-white text-[9px] font-extrabold flex items-center justify-center">
                   {unreadNotifsCount > 9 ? "9+" : unreadNotifsCount}
                 </span>
               )}
@@ -480,7 +480,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 isSidebarCollapsed ? "w-full" : "w-9 shrink-0"
               } ${
                 pathname === "/settings"
-                  ? "bg-zinc-100 dark:bg-[#18181B] text-[#FF8216]"
+                  ? "bg-zinc-100 dark:bg-[#18181B] text-white"
                   : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-[#F4F4F5] hover:bg-zinc-100 dark:hover:bg-[#121214]"
               }`}
             >
@@ -526,7 +526,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <span className="text-[11px] font-bold text-[#FF8216]">{userInitials}</span>
+                <span className="text-[11px] font-bold text-white">{userInitials}</span>
               )}
             </div>
             {!isSidebarCollapsed && (
@@ -552,7 +552,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <Link href="/dashboard" className="flex items-center gap-2 min-w-0">
             <div className="w-7 h-7 rounded-lg bg-[#121214] border border-[#27272A] flex items-center justify-center shrink-0">
               <Image
-                src="/assets/logo/logo_sem_fundo.png"
+                src="/assets/logo/logo-transparent.png"
                 alt="Kitsune"
                 width={18}
                 height={18}
@@ -575,7 +575,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               }}
               className={`h-8 px-2.5 rounded-full border text-[11px] font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
                 isPrivacyMode
-                  ? "bg-[#FF8216]/15 border-[#FF8216]/35 text-[#FF8216]"
+                  ? "bg-white/10 border-white/25 text-white"
                   : "bg-zinc-100 dark:bg-[#121214] border-zinc-200 dark:border-[#27272A] text-zinc-500 dark:text-zinc-400"
               }`}
               title={isPrivacyMode ? "Modo Privacidade Ativo" : "Ocultar valores"}
@@ -608,7 +608,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             >
               <WfIcons.Bell size={15} />
               {unreadNotifsCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-3.5 px-1 rounded-full bg-[#FF8216] text-black text-[9px] font-black flex items-center justify-center">
+                <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-3.5 px-1 rounded-full bg-[#E11D48] text-white text-[9px] font-black flex items-center justify-center">
                   {unreadNotifsCount > 9 ? "9+" : unreadNotifsCount}
                 </span>
               )}
@@ -649,7 +649,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 onClick={() => triggerHaptic(10)}
                 className={`relative flex-1 h-11 rounded-full flex flex-col items-center justify-center gap-0.5 transition-colors ${
                   active
-                    ? "text-[#FF8216]"
+                    ? "text-white"
                     : "text-zinc-500 dark:text-zinc-400 active:scale-95"
                 }`}
               >
@@ -657,7 +657,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   <motion.span
                     layoutId="wf-mobile-nav-pill"
                     transition={{ type: "spring", stiffness: 420, damping: 32 }}
-                    className="absolute inset-x-1.5 inset-y-0.5 rounded-full bg-[#FF8216]/12 border border-[#FF8216]/25"
+                    className="absolute inset-x-1.5 inset-y-0.5 rounded-full bg-white/12 border border-white/25"
                   />
                 )}
                 <Icon size={19} className="relative z-10" />
@@ -678,7 +678,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 setIsMoreSheetOpen(false);
               }}
               aria-label="Ações Rápidas"
-              className="relative w-11 h-11 rounded-full bg-[#FF8216] hover:bg-[#FFA047] active:scale-92 text-black flex items-center justify-center shadow-md transition-transform cursor-pointer"
+              className="relative w-11 h-11 rounded-full bg-white hover:bg-zinc-200 active:scale-92 text-black flex items-center justify-center shadow-md transition-transform cursor-pointer"
             >
               <WfIcons.Plus
                 size={20}
@@ -698,7 +698,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 onClick={() => triggerHaptic(10)}
                 className={`relative flex-1 h-11 rounded-full flex flex-col items-center justify-center gap-0.5 transition-colors ${
                   active
-                    ? "text-[#FF8216]"
+                    ? "text-white"
                     : "text-zinc-500 dark:text-zinc-400 active:scale-95"
                 }`}
               >
@@ -706,7 +706,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   <motion.span
                     layoutId="wf-mobile-nav-pill"
                     transition={{ type: "spring", stiffness: 420, damping: 32 }}
-                    className="absolute inset-x-1.5 inset-y-0.5 rounded-full bg-[#FF8216]/12 border border-[#FF8216]/25"
+                    className="absolute inset-x-1.5 inset-y-0.5 rounded-full bg-white/12 border border-white/25"
                   />
                 )}
                 <WfIcons.Insights size={19} className="relative z-10" />
@@ -742,7 +742,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 }}
                 className={`relative flex-1 h-11 rounded-full flex flex-col items-center justify-center gap-0.5 transition-colors cursor-pointer ${
                   moreActive
-                    ? "text-[#FF8216]"
+                    ? "text-white"
                     : "text-zinc-500 dark:text-zinc-400 active:scale-95"
                 }`}
               >
@@ -750,7 +750,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   <motion.span
                     layoutId="wf-mobile-nav-pill"
                     transition={{ type: "spring", stiffness: 420, damping: 32 }}
-                    className="absolute inset-x-1.5 inset-y-0.5 rounded-full bg-[#FF8216]/12 border border-[#FF8216]/25"
+                    className="absolute inset-x-1.5 inset-y-0.5 rounded-full bg-white/12 border border-white/25"
                   />
                 )}
                 <WfIcons.CirclesFour size={19} className="relative z-10" />
@@ -798,7 +798,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 className="w-full h-8 flex items-center justify-center cursor-pointer touch-none select-none active:opacity-60 mb-2"
                 aria-label="Fechar ações rápidas"
               >
-                <div className="w-12 h-1.5 rounded-full bg-zinc-600 dark:bg-zinc-700 hover:bg-[#FF8216] transition-colors" />
+                <div className="w-12 h-1.5 rounded-full bg-zinc-600 dark:bg-zinc-700 hover:bg-white transition-colors" />
               </div>
 
               <div className="flex items-center justify-between mb-4">
@@ -816,7 +816,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   }}
                   className={`px-3 py-1.5 rounded-full text-[11px] font-bold border flex items-center gap-1.5 cursor-pointer ${
                     isPrivacyMode
-                      ? "bg-[#FF8216]/15 border-[#FF8216]/35 text-[#FF8216]"
+                      ? "bg-white/10 border-white/25 text-white"
                       : "bg-[#18181B] border-[#27272A] text-zinc-300"
                   }`}
                 >
@@ -832,9 +832,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     setIsQuickActionsOpen(false);
                     setIsPluggyModalOpen(true);
                   }}
-                  className="p-3.5 rounded-xl bg-[#18181B] border border-[#27272A] hover:border-[#FF8216]/50 text-left flex flex-col gap-2 cursor-pointer"
+                  className="p-3.5 rounded-xl bg-[#18181B] border border-[#27272A] hover:border-white/30 text-left flex flex-col gap-2 cursor-pointer"
                 >
-                  <span className="w-8 h-8 rounded-lg bg-[#FF8216]/15 text-[#FF8216] flex items-center justify-center">
+                  <span className="w-8 h-8 rounded-lg bg-white/10 text-white flex items-center justify-center">
                     <WfIcons.Connections size={17} />
                   </span>
                   <div>
@@ -851,7 +851,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     setIsQuickActionsOpen(false);
                     setIsAssetModalOpen(true);
                   }}
-                  className="p-3.5 rounded-xl bg-[#18181B] border border-[#27272A] hover:border-[#FF8216]/50 text-left flex flex-col gap-2 cursor-pointer"
+                  className="p-3.5 rounded-xl bg-[#18181B] border border-[#27272A] hover:border-white/30 text-left flex flex-col gap-2 cursor-pointer"
                 >
                   <span className="w-8 h-8 rounded-lg bg-blue-500/15 text-blue-400 flex items-center justify-center text-sm">
                     🚗
@@ -867,7 +867,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 <Link
                   href="/transactions"
                   onClick={() => setIsQuickActionsOpen(false)}
-                  className="p-3.5 rounded-xl bg-[#18181B] border border-[#27272A] hover:border-[#FF8216]/50 text-left flex flex-col gap-2"
+                  className="p-3.5 rounded-xl bg-[#18181B] border border-[#27272A] hover:border-white/30 text-left flex flex-col gap-2"
                 >
                   <span className="w-8 h-8 rounded-lg bg-emerald-500/15 text-emerald-400 flex items-center justify-center">
                     <WfIcons.Transactions size={17} />
@@ -883,9 +883,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 <Link
                   href="/kitsune"
                   onClick={() => setIsQuickActionsOpen(false)}
-                  className="p-3.5 rounded-xl bg-[#18181B] border border-[#27272A] hover:border-[#FF8216]/50 text-left flex flex-col gap-2"
+                  className="p-3.5 rounded-xl bg-[#18181B] border border-[#27272A] hover:border-[#E11D48]/40 text-left flex flex-col gap-2"
                 >
-                  <span className="w-8 h-8 rounded-lg bg-[#FF8216]/15 text-[#FF8216] flex items-center justify-center">
+                  <span className="w-8 h-8 rounded-lg bg-[#E11D48]/15 text-[#E11D48] flex items-center justify-center">
                     <WfIcons.Agents size={17} />
                   </span>
                   <div>
@@ -902,12 +902,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     setIsQuickActionsOpen(false);
                     revalidate(true);
                   }}
-                  className="p-3.5 rounded-xl bg-[#18181B] border border-[#27272A] hover:border-[#FF8216]/50 text-left flex flex-col gap-2 cursor-pointer"
+                  className="p-3.5 rounded-xl bg-[#18181B] border border-[#27272A] hover:border-white/30 text-left flex flex-col gap-2 cursor-pointer"
                 >
                   <span className="w-8 h-8 rounded-lg bg-zinc-800 text-zinc-200 flex items-center justify-center">
                     <WfIcons.RefreshCw
                       size={16}
-                      className={isRevalidating ? "animate-spin text-[#FF8216]" : ""}
+                      className={isRevalidating ? "animate-spin text-white" : ""}
                     />
                   </span>
                   <div>
@@ -958,7 +958,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 className="w-full h-8 flex items-center justify-center cursor-pointer touch-none select-none active:opacity-60 mb-2"
                 aria-label="Fechar menu"
               >
-                <div className="w-12 h-1.5 rounded-full bg-zinc-600 dark:bg-zinc-700 hover:bg-[#FF8216] transition-colors" />
+                <div className="w-12 h-1.5 rounded-full bg-zinc-600 dark:bg-zinc-700 hover:bg-white transition-colors" />
               </div>
 
               {/* User Header */}
@@ -968,7 +968,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   onClick={() => setIsMoreSheetOpen(false)}
                   className="flex items-center gap-3 min-w-0"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-[#18181B] border border-[#27272A] flex items-center justify-center text-[#FF8216] font-bold text-xs shrink-0 overflow-hidden">
+                  <div className="w-10 h-10 rounded-xl bg-[#18181B] border border-[#27272A] flex items-center justify-center text-white font-bold text-xs shrink-0 overflow-hidden">
                     {userProfile?.avatar_url ? (
                       <img
                         src={userProfile.avatar_url}
@@ -1062,13 +1062,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                       }}
                       className={`p-3 rounded-xl border flex items-center gap-3 transition-colors ${
                         active
-                          ? "bg-[#FF8216]/12 border-[#FF8216]/35 text-[#F4F4F5]"
+                          ? "bg-white/10 border-white/25 text-[#F4F4F5]"
                           : "bg-[#18181B] border-[#27272A] text-zinc-200"
                       }`}
                     >
                       <Icon
                         size={18}
-                        className={active ? "text-[#FF8216] shrink-0" : "text-zinc-400 shrink-0"}
+                        className={active ? "text-white shrink-0" : "text-zinc-400 shrink-0"}
                       />
                       <div className="min-w-0">
                         <span className="text-xs font-semibold block truncate">{label}</span>

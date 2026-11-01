@@ -360,7 +360,7 @@ export function WalletCards({ accounts, transactions, formatCurrency: propFormat
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
               Limite Livre para Compras
             </span>
-            <div className="w-7 h-7 rounded-lg bg-[#FF8216]/10 flex items-center justify-center text-[#FF8216]">
+            <div className="w-7 h-7 rounded-lg bg-[#E11D48]/10 flex items-center justify-center text-[#E11D48]">
               <span className="material-symbols-outlined text-[16px]">verified</span>
             </div>
           </div>
@@ -443,7 +443,7 @@ export function WalletCards({ accounts, transactions, formatCurrency: propFormat
           {/* Header com Navegação Bidirecional por Setas */}
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-lg text-[#FF8216]">wallet</span>
+              <span className="material-symbols-outlined text-lg text-[#E11D48]">wallet</span>
               <h2 className="text-sm font-bold text-slate-900 dark:text-white">
                 Carteira ({creditCards.length})
               </h2>
@@ -563,7 +563,7 @@ export function WalletCards({ accounts, transactions, formatCurrency: propFormat
                     onClick={() => setSelectedCardIndex(idx)}
                     className={`w-full p-2.5 rounded-xl border transition-all text-left flex items-center justify-between gap-2.5 cursor-pointer ${
                       isSelected
-                        ? "bg-[#18181B] border-[#FF8216] shadow-sm ring-1 ring-[#FF8216]/30"
+                        ? "bg-[#18181B] border-[#E11D48] shadow-sm ring-1 ring-[#E11D48]/30"
                         : "bg-white dark:bg-[#121214] border-zinc-200 dark:border-[#27272A] hover:border-zinc-400 dark:hover:border-zinc-600"
                     }`}
                   >
@@ -619,7 +619,7 @@ export function WalletCards({ accounts, transactions, formatCurrency: propFormat
                   className="h-full rounded-full transition-all duration-500"
                   style={{
                     width: `${Math.max(limitUsagePercent, 4)}%`,
-                    backgroundColor: activeTheme.accentColor || "#FF8216",
+                    backgroundColor: activeTheme.accentColor || "#E11D48",
                   }}
                 />
               </div>
@@ -657,7 +657,7 @@ export function WalletCards({ accounts, transactions, formatCurrency: propFormat
                     key={i}
                     className={`p-3 rounded-xl border flex flex-col justify-between gap-1 transition-all ${
                       inv.isCurrent
-                        ? "bg-[#18181B] border-[#FF8216]/50 text-white shadow-sm ring-1 ring-[#FF8216]/20"
+                        ? "bg-[#18181B] border-[#E11D48]/50 text-white shadow-sm ring-1 ring-[#E11D48]/20"
                         : "bg-slate-50 dark:bg-[#121214] border-slate-200 dark:border-[#27272A] text-slate-800 dark:text-zinc-200"
                     }`}
                   >
@@ -666,7 +666,7 @@ export function WalletCards({ accounts, transactions, formatCurrency: propFormat
                       <span
                         className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-md ${
                           inv.status === "Aberta"
-                            ? "bg-[#FF8216]/20 text-[#FF8216]"
+                            ? "bg-[#E11D48]/20 text-[#E11D48]"
                             : inv.status === "Prevista"
                             ? "bg-blue-500/20 text-blue-400"
                             : "bg-slate-500/20 text-slate-400"
@@ -738,7 +738,7 @@ export function WalletCards({ accounts, transactions, formatCurrency: propFormat
             {/* Dicas Estratégicas Inteligentes para este Cartão */}
             <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-lg bg-[#FF8216]/10 text-[#FF8216] flex items-center justify-center shrink-0 mt-0.5">
+                <div className="w-8 h-8 rounded-lg bg-[#E11D48]/10 text-[#E11D48] flex items-center justify-center shrink-0 mt-0.5">
                   <span className="material-symbols-outlined text-base">lightbulb</span>
                 </div>
                 <div>
@@ -761,7 +761,7 @@ export function WalletCards({ accounts, transactions, formatCurrency: propFormat
                     activeCardInvoice
                   )}). Há risco de anuidade oculta? Como posso obter isenção ou melhorar meu limite?`
                 )}`}
-                className="shrink-0 px-3 py-1.5 rounded-lg bg-[#FF8216] hover:bg-[#FFA047] text-white text-xs font-bold transition-colors cursor-pointer"
+                className="shrink-0 px-3 py-1.5 rounded-lg bg-[#E11D48] hover:bg-[#F43F5E] text-white text-xs font-bold transition-colors cursor-pointer"
               >
                 Consultar Kitsune AI
               </Link>
@@ -775,7 +775,7 @@ export function WalletCards({ accounts, transactions, formatCurrency: propFormat
                 </span>
                 <Link
                   href="/dashboard?tab=Transações"
-                  className="text-xs text-[#FF8216] hover:underline font-semibold"
+                  className="text-xs text-[#E11D48] hover:underline font-semibold"
                 >
                   Ver extrato completo
                 </Link>

@@ -3,9 +3,9 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  --color-kitsune: #FF8216; /* Laranja Oficial Kitsune Finance */
-  --color-kitsune-hover: #FFA047;
-  --color-kitsune-active: #E66E08;
+  --color-kitsune: #E11D48; /* Kitsune Crimson Oficial */
+  --color-kitsune-hover: #F43F5E;
+  --color-kitsune-active: #BE123C;
   --color-surface-lowest: #050505;
   --color-surface-base: #0A0A0A;
   --color-surface-card: #121214;
@@ -300,8 +300,8 @@ body {
 }
 
 .kitsune-markdown th {
-  background-color: rgba(255, 130, 22, 0.08);
-  color: #FF8216;
+  background-color: rgba(225, 29, 72, 0.08);
+  color: #E11D48;
   font-weight: 600;
   text-align: left;
   padding: 0.7rem 0.9rem;
@@ -320,8 +320,8 @@ body {
 /* Blocos de Código Inline e Fenced Code */
 .kitsune-markdown code:not(pre code) {
   font-family: var(--font-jetbrains-mono), monospace;
-  background-color: rgba(255, 130, 22, 0.1);
-  color: #FF8216;
+  background-color: rgba(225, 29, 72, 0.1);
+  color: #E11D48;
   padding: 0.2rem 0.4rem;
   border-radius: 0.375rem;
   font-size: 0.85em;
@@ -347,7 +347,7 @@ body {
 
 /* Citações / Blockquotes */
 .kitsune-markdown blockquote {
-  border-left: 3px solid #FF8216;
+  border-left: 3px solid #E11D48;
   margin: 1rem 0;
   padding-left: 1rem;
   opacity: 0.85;
@@ -367,7 +367,7 @@ body {
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #FF8216;
+  background: #E11D48;
 }
 
 /* Animação Marquee Infinita e Fluida para Logos de Bancos */

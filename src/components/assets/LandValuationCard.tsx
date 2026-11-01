@@ -284,7 +284,7 @@ export function LandValuationCard({
                 onClick={() => setSubtype(t.id)}
                 className={`py-2 px-2 text-xs font-semibold rounded-lg transition-all cursor-pointer text-center ${
                   active
-                    ? "bg-[#FF8216] text-black shadow-xs font-bold"
+                    ? "bg-white text-black shadow-xs font-bold"
                     : "text-zinc-400 hover:text-white hover:bg-[#27272A]/40"
                 }`}
               >
@@ -303,7 +303,7 @@ export function LandValuationCard({
             placeholder="Ex: Apartamento Jardins, Terreno Lote 12"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full bg-[#18181B] border border-[#27272A] rounded-xl px-3.5 py-2 text-xs text-white placeholder-zinc-500 outline-none focus:border-[#FF8216]"
+            className="w-full bg-[#18181B] border border-[#27272A] rounded-xl px-3.5 py-2 text-xs text-white placeholder-zinc-500 outline-none focus:border-[#E11D48]"
           />
         </div>
       </div>
@@ -315,7 +315,7 @@ export function LandValuationCard({
             Localização & Endereço
           </span>
           {isLoadingCep && (
-            <span className="text-[11px] text-[#FF8216] animate-pulse">
+            <span className="text-[11px] text-[#E11D48] animate-pulse">
               Buscando endereço pelo CEP...
             </span>
           )}
@@ -338,7 +338,7 @@ export function LandValuationCard({
                   handleCepLookup(val);
                 }
               }}
-              className="w-full bg-[#121214] border border-[#27272A] rounded-lg px-3 py-2 text-xs text-white placeholder-zinc-600 outline-none focus:border-[#FF8216] font-mono"
+              className="w-full bg-[#121214] border border-[#27272A] rounded-lg px-3 py-2 text-xs text-white placeholder-zinc-600 outline-none focus:border-[#E11D48] font-mono"
             />
           </div>
 
@@ -351,7 +351,7 @@ export function LandValuationCard({
               placeholder="Bairro, Cidade - UF"
               value={neighborhood ? `${neighborhood}, ${city} - ${state}` : city}
               onChange={(e) => setNeighborhood(e.target.value)}
-              className="w-full bg-[#121214] border border-[#27272A] rounded-lg px-3 py-2 text-xs text-white placeholder-zinc-600 outline-none focus:border-[#FF8216]"
+              className="w-full bg-[#121214] border border-[#27272A] rounded-lg px-3 py-2 text-xs text-white placeholder-zinc-600 outline-none focus:border-[#E11D48]"
             />
           </div>
         </div>
@@ -365,7 +365,7 @@ export function LandValuationCard({
             placeholder="Avenida / Rua / Número"
             value={street}
             onChange={(e) => setStreet(e.target.value)}
-            className="w-full bg-[#121214] border border-[#27272A] rounded-lg px-3 py-2 text-xs text-white placeholder-zinc-600 outline-none focus:border-[#FF8216]"
+            className="w-full bg-[#121214] border border-[#27272A] rounded-lg px-3 py-2 text-xs text-white placeholder-zinc-600 outline-none focus:border-[#E11D48]"
           />
         </div>
 
@@ -378,7 +378,7 @@ export function LandValuationCard({
               type="button"
               onClick={() => triggerRadarAnalysis(latitude, longitude)}
               disabled={isLoadingRadar}
-              className="text-[#FF8216] hover:underline font-semibold cursor-pointer disabled:opacity-50 self-start sm:self-auto"
+              className="text-[#E11D48] hover:underline font-semibold cursor-pointer disabled:opacity-50 self-start sm:self-auto"
             >
               {isLoadingRadar ? "Consultando serviços..." : "Atualizar Radar 2km"}
             </button>
@@ -398,7 +398,7 @@ export function LandValuationCard({
             placeholder="250"
             value={areaSqm || ""}
             onChange={(e) => setAreaSqm(parseFloat(e.target.value) || 0)}
-            className="w-full bg-[#18181B] border border-[#27272A] rounded-xl px-3 py-2 text-xs text-white tabular-nums outline-none focus:border-[#FF8216]"
+            className="w-full bg-[#18181B] border border-[#27272A] rounded-xl px-3 py-2 text-xs text-white tabular-nums outline-none focus:border-[#E11D48]"
           />
         </div>
 
@@ -412,7 +412,7 @@ export function LandValuationCard({
             placeholder="250000"
             value={acquisitionValue || ""}
             onChange={(e) => setAcquisitionValue(parseFloat(e.target.value) || 0)}
-            className="w-full bg-[#18181B] border border-[#27272A] rounded-xl px-3 py-2 text-xs text-white tabular-nums outline-none focus:border-[#FF8216]"
+            className="w-full bg-[#18181B] border border-[#27272A] rounded-xl px-3 py-2 text-xs text-white tabular-nums outline-none focus:border-[#E11D48]"
           />
         </div>
 
@@ -426,7 +426,7 @@ export function LandValuationCard({
             placeholder="380000"
             value={currentValue || ""}
             onChange={(e) => setCurrentValue(parseFloat(e.target.value) || 0)}
-            className="w-full bg-[#18181B] border border-[#27272A] rounded-xl px-3 py-2 text-xs text-white tabular-nums outline-none focus:border-[#FF8216]"
+            className="w-full bg-[#18181B] border border-[#27272A] rounded-xl px-3 py-2 text-xs text-white tabular-nums outline-none focus:border-[#E11D48]"
           />
         </div>
       </div>
@@ -449,7 +449,7 @@ export function LandValuationCard({
                 onClick={() => setActiveTab(tab.id)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                   active
-                    ? "bg-[#27272A] text-[#FF8216] border border-[#FF8216]/30 shadow-xs"
+                    ? "bg-[#27272A] text-[#E11D48] border border-[#E11D48]/30 shadow-xs"
                     : "text-zinc-400 hover:text-zinc-200 hover:bg-[#18181B]"
                 }`}
               >
@@ -536,7 +536,7 @@ export function LandValuationCard({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-[#27272A]">
                 <div className="p-3 bg-[#121214] rounded-xl border border-[#27272A]/80 space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-[#FF8216]">Corrigido pelo IPCA</span>
+                    <span className="text-[11px] font-bold text-[#E11D48]">Corrigido pelo IPCA</span>
                     <span className="text-[10px] text-zinc-400">+{modelB.ipcaAccumulatedPct.toFixed(1)}%</span>
                   </div>
                   <div className="text-base font-bold text-white tabular-nums">
@@ -568,7 +568,7 @@ export function LandValuationCard({
             <div className="p-4 bg-[#18181B] border border-[#27272A] rounded-xl space-y-3.5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#FF8216] block">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#E11D48] block">
                     Radar de Infraestrutura Urbana (Raio 2km)
                   </span>
                   <h4 className="text-sm font-semibold text-white">
@@ -578,7 +578,7 @@ export function LandValuationCard({
 
                 <div className="text-left sm:text-right">
                   <span className="text-[10px] text-zinc-400 uppercase block">Infrastructure Score</span>
-                  <span className="text-base sm:text-lg font-black text-[#FF8216] tabular-nums">
+                  <span className="text-base sm:text-lg font-black text-[#E11D48] tabular-nums">
                     {radarSummary?.score ?? 78}/100
                   </span>
                 </div>
@@ -697,7 +697,7 @@ export function LandValuationCard({
                             {poi.name}
                           </span>
                         </div>
-                        <span className="font-mono text-[10px] text-[#FF8216] shrink-0 pl-2">
+                        <span className="font-mono text-[10px] text-[#E11D48] shrink-0 pl-2">
                           {poi.distanceMeters}m
                         </span>
                       </div>

@@ -85,7 +85,7 @@ function buildFullDocumentHtml(title: string, markdown: string, userName?: strin
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-bottom: 2px solid #FF8216;
+      border-bottom: 2px solid #E11D48;
       padding-bottom: 14px;
       margin-bottom: 24px;
     }
@@ -141,7 +141,7 @@ function buildFullDocumentHtml(title: string, markdown: string, userName?: strin
     <div class="doc-meta">
       <div><strong>Titular:</strong> ${escapeHtml(userName || "Titular")}</div>
       <div><strong>Emissão:</strong> ${nowStr}</div>
-      <div style="color: #FF8216; font-weight: 600;">Auditoria Open Finance Brasil</div>
+      <div style="color: #E11D48; font-weight: 600;">Auditoria Open Finance Brasil</div>
     </div>
   </div>
 

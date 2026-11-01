@@ -149,7 +149,7 @@ export function BankBalanceCards({
           <button
             type="button"
             onClick={() => onSelectBank("all")}
-            className="text-[11px] text-[#FF8216] hover:underline cursor-pointer"
+            className="text-[11px] text-[#E11D48] hover:underline cursor-pointer"
           >
             Ver Todos os Bancos
           </button>
@@ -166,7 +166,7 @@ export function BankBalanceCards({
               onClick={() => onSelectBank(isSelected ? "all" : bank.slug)}
               className={`p-3.5 rounded-2xl bg-gradient-to-br ${bank.colorBg} border transition-all text-left flex flex-col justify-between gap-2.5 cursor-pointer relative overflow-hidden group ${
                 isSelected
-                  ? "border-[#FF8216] ring-1 ring-[#FF8216] shadow-lg shadow-[#FF8216]/10"
+                  ? "border-[#E11D48] ring-1 ring-[#E11D48] shadow-lg shadow-[#E11D48]/10"
                   : `${bank.borderColor} hover:-translate-y-0.5`
               }`}
             >

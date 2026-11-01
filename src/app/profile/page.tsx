@@ -195,7 +195,7 @@ export default function ProfilePage() {
             <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-zinc-200 dark:border-[#27272A]">
                 <div>
                     <div className="flex items-center gap-2">
-                        <WfIcons.User className="w-5 h-5 text-[#FF8216]" />
+                        <WfIcons.User className="w-5 h-5 text-[#E11D48]" />
                         <h1 className="text-xl md:text-2xl font-bold tracking-tight text-zinc-900 dark:text-[#F4F4F5]">
                             Meu Perfil & Identidade Consolidada
                         </h1>
@@ -336,7 +336,7 @@ export default function ProfilePage() {
                                         className="w-full h-full object-cover"
                                     />
                                 ) : (
-                                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#FF8216]/20 to-[#FF8216]/5 text-[#FF8216] font-extrabold text-2xl">
+                                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#E11D48]/20 to-[#E11D48]/5 text-[#E11D48] font-extrabold text-2xl">
                                         {initials}
                                     </div>
                                 )}
@@ -350,7 +350,7 @@ export default function ProfilePage() {
 
                             <label
                                 htmlFor="avatar-upload"
-                                className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-[#FF8216] hover:bg-[#FFA047] text-white flex items-center justify-center shadow-md cursor-pointer transition-transform hover:scale-105"
+                                className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-[#E11D48] hover:bg-[#F43F5E] text-white flex items-center justify-center shadow-md cursor-pointer transition-transform hover:scale-105"
                                 title="Carregar foto"
                             >
                                 <span className="material-symbols-outlined text-[16px]">
@@ -370,7 +370,7 @@ export default function ProfilePage() {
                         <div className="flex flex-col items-center gap-1">
                             <label
                                 htmlFor="avatar-upload"
-                                className="text-xs font-semibold text-[#FF8216] hover:underline cursor-pointer"
+                                className="text-xs font-semibold text-[#E11D48] hover:underline cursor-pointer"
                             >
                                 {avatarUrl ? "Trocar foto" : "Adicionar foto"}
                             </label>
@@ -396,7 +396,7 @@ export default function ProfilePage() {
                                 value={fullName}
                                 onChange={(e) => setFullName(e.target.value)}
                                 placeholder="Ex: Jefherson Silva"
-                                className="w-full h-11 px-3.5 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] focus:border-[#FF8216] outline-none text-xs md:text-sm text-slate-900 dark:text-[#F8FAFC] transition-colors"
+                                className="w-full h-11 px-3.5 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] focus:border-[#E11D48] outline-none text-xs md:text-sm text-slate-900 dark:text-[#F8FAFC] transition-colors"
                             />
                         </div>
 
@@ -410,7 +410,7 @@ export default function ProfilePage() {
                                 onChange={(e) => setDisplayName(e.target.value)}
                                 placeholder="Ex: Jefherson"
                                 required
-                                className="w-full h-11 px-3.5 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] focus:border-[#FF8216] outline-none text-xs md:text-sm text-slate-900 dark:text-[#F8FAFC] transition-colors"
+                                className="w-full h-11 px-3.5 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] focus:border-[#E11D48] outline-none text-xs md:text-sm text-slate-900 dark:text-[#F8FAFC] transition-colors"
                             />
                         </div>
 
@@ -433,7 +433,7 @@ export default function ProfilePage() {
                 <section className="bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] rounded-2xl p-5 md:p-6 flex flex-col gap-4 shadow-sm">
                     <div className="flex items-center justify-between flex-wrap gap-2">
                         <div className="flex items-center gap-2.5">
-                            <div className="w-9 h-9 rounded-xl bg-[#FF8216]/10 text-[#FF8216] flex items-center justify-center">
+                            <div className="w-9 h-9 rounded-xl bg-[#E11D48]/10 text-[#E11D48] flex items-center justify-center">
                                 <span className="material-symbols-outlined text-xl">payments</span>
                             </div>
                             <div className="flex flex-col">
@@ -463,7 +463,7 @@ export default function ProfilePage() {
                                     value={monthlyIncome}
                                     onChange={(e) => setMonthlyIncome(e.target.value)}
                                     placeholder="0,00"
-                                    className="w-full h-11 pl-10 pr-4 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] focus:border-[#FF8216] outline-none text-sm text-slate-900 dark:text-[#F8FAFC] font-semibold tabular-nums"
+                                    className="w-full h-11 pl-10 pr-4 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] focus:border-[#E11D48] outline-none text-sm text-slate-900 dark:text-[#F8FAFC] font-semibold tabular-nums"
                                 />
                             </div>
                         </div>
@@ -487,7 +487,7 @@ export default function ProfilePage() {
                                     <span className="text-[10px] text-slate-400 block">
                                         30% Estilo de Vida
                                     </span>
-                                    <span className="text-xs font-bold text-[#FF8216] tabular-nums">
+                                    <span className="text-xs font-bold text-[#E11D48] tabular-nums">
                                         R$ {budget30.toFixed(0)}
                                     </span>
                                 </div>
@@ -531,20 +531,20 @@ export default function ProfilePage() {
                                     onClick={() => setFinancialGoal(goal.id)}
                                     className={`p-3.5 rounded-xl border text-left flex flex-col justify-between gap-2 transition-all cursor-pointer ${
                                         isSelected
-                                            ? "border-[#FF8216] bg-[#FF8216]/10 ring-1 ring-[#FF8216]"
+                                            ? "border-[#E11D48] bg-[#E11D48]/10 ring-1 ring-[#E11D48]"
                                             : "border-slate-200 dark:border-[#27272A] hover:bg-slate-50 dark:hover:bg-[#18181B]"
                                     }`}
                                 >
                                     <div className="flex items-center justify-between">
                                         <span
                                             className={`material-symbols-outlined text-xl ${
-                                                isSelected ? "text-[#FF8216]" : "text-slate-400"
+                                                isSelected ? "text-[#E11D48]" : "text-slate-400"
                                             }`}
                                         >
                                             {goal.icon}
                                         </span>
                                         {isSelected && (
-                                            <span className="material-symbols-outlined text-[16px] text-[#FF8216]">
+                                            <span className="material-symbols-outlined text-[16px] text-[#E11D48]">
                                                 check_circle
                                             </span>
                                         )}
@@ -553,7 +553,7 @@ export default function ProfilePage() {
                                         <span
                                             className={`text-xs font-bold ${
                                                 isSelected
-                                                    ? "text-[#FF8216]"
+                                                    ? "text-[#E11D48]"
                                                     : "text-slate-800 dark:text-slate-200"
                                             }`}
                                         >
@@ -573,7 +573,7 @@ export default function ProfilePage() {
                     <button
                         type="submit"
                         disabled={isSaving}
-                        className="h-11 px-6 rounded-xl bg-[#FF8216] hover:bg-[#FFA047] active:bg-[#E66E08] text-white text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-all disabled:opacity-50 cursor-pointer"
+                        className="h-11 px-6 rounded-xl bg-[#E11D48] hover:bg-[#F43F5E] active:bg-[#BE123C] text-white text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-all disabled:opacity-50 cursor-pointer"
                     >
                         {isSaving ? (
                             <>

@@ -19,7 +19,7 @@ export function ShinyText({
 
   return (
     <span
-      className={`inline-block bg-clip-text text-transparent bg-gradient-to-r from-slate-900 via-orange-500 to-slate-900 dark:from-white dark:via-[#FF8216] dark:to-white bg-[200%_auto] ${
+      className={`inline-block bg-clip-text text-transparent bg-gradient-to-r from-slate-900 via-orange-500 to-slate-900 dark:from-white dark:via-[#E11D48] dark:to-white bg-[200%_auto] ${
         disabled ? "" : "animate-shine"
       } ${className}`}
       style={{

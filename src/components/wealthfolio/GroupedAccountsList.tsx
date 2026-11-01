@@ -243,7 +243,7 @@ export function GroupedAccountsList({
               title="Visão Agrupada (Wealthfolio)"
               className={`p-1.5 rounded-md transition-colors cursor-pointer ${
                 viewMode === "grouped"
-                  ? "bg-white dark:bg-[#27272A] text-[#FF8216]"
+                  ? "bg-white dark:bg-[#27272A] text-[#E11D48]"
                   : "text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
               }`}
             >
@@ -255,7 +255,7 @@ export function GroupedAccountsList({
               title="Lista Plana Ordenada"
               className={`p-1.5 rounded-md transition-colors cursor-pointer ${
                 viewMode === "flat"
-                  ? "bg-white dark:bg-[#27272A] text-[#FF8216]"
+                  ? "bg-white dark:bg-[#27272A] text-[#E11D48]"
                   : "text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
               }`}
             >
@@ -268,7 +268,7 @@ export function GroupedAccountsList({
               type="button"
               onClick={onAddAsset}
               title="Adicionar Veículo FIPE, Terreno/Imóvel ou FGTS"
-              className="h-7 px-2.5 rounded-lg bg-[#18181B] hover:bg-[#27272A] border border-[#FF8216]/40 text-[#FF8216] text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
+              className="h-7 px-2.5 rounded-lg bg-[#18181B] hover:bg-[#27272A] border border-[#E11D48]/40 text-[#E11D48] text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
             >
               <WfIcons.Plus size={13} />
               <span>Ativo Físico</span>
@@ -280,7 +280,7 @@ export function GroupedAccountsList({
               type="button"
               onClick={onConnectBank}
               title="Conectar nova instituição via Open Finance"
-              className="h-7 px-2.5 rounded-lg bg-[#FF8216] hover:bg-[#FFA047] text-black text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
+              className="h-7 px-2.5 rounded-lg bg-white hover:bg-zinc-200 active:bg-zinc-300 text-black text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
             >
               <WfIcons.Plus size={13} />
               <span className="hidden sm:inline">Conta</span>
@@ -296,7 +296,7 @@ export function GroupedAccountsList({
             {invSharePct > 0 && (
               <div
                 style={{ width: `${invSharePct}%` }}
-                className="h-full bg-[#FF8216] transition-all duration-500"
+                className="h-full bg-[#E11D48] transition-all duration-500"
                 title={`Investimentos: ${invSharePct.toFixed(1)}%`}
               />
             )}
@@ -348,7 +348,7 @@ export function GroupedAccountsList({
                 <span>Contas ({hideValues ? "••%" : `${bankingSharePct.toFixed(1)}%`})</span>
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-[#FF8216]" />
+                <span className="w-2 h-2 rounded-full bg-[#E11D48]" />
                 <span>Investimentos ({hideValues ? "••%" : `${invSharePct.toFixed(1)}%`})</span>
               </span>
               {vehiclesSharePct > 0 && (
@@ -382,7 +382,7 @@ export function GroupedAccountsList({
 
       {isEmpty ? (
         <div className="p-8 text-center flex flex-col items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] flex items-center justify-center text-[#FF8216]">
+          <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] flex items-center justify-center text-[#E11D48]">
             <WfIcons.Connections size={20} />
           </div>
           <div>
@@ -397,7 +397,7 @@ export function GroupedAccountsList({
             <button
               type="button"
               onClick={onConnectBank}
-              className="mt-1 px-4 py-2 rounded-lg bg-[#FF8216] hover:bg-[#FFA047] text-black text-xs font-bold cursor-pointer"
+              className="mt-1 px-4 py-2 rounded-lg bg-white hover:bg-zinc-200 active:bg-zinc-300 text-black text-xs font-bold cursor-pointer"
             >
               Conectar Instituição
             </button>
@@ -492,7 +492,7 @@ export function GroupedAccountsList({
                     expandedGroups.investments ? "rotate-90" : ""
                   }`}
                 />
-                <span className="w-2 h-2 rounded-full bg-[#FF8216] shrink-0" />
+                <span className="w-2 h-2 rounded-full bg-[#E11D48] shrink-0" />
                 <span className="text-sm font-semibold text-zinc-900 dark:text-[#F4F4F5] truncate">
                   Investimentos & Custódia
                 </span>
@@ -692,7 +692,7 @@ export function GroupedAccountsList({
                               {area ? `${area} m² • ` : ""}
                               {city ? `${city}${state ? ` - ${state}` : ""}` : "Patrimônio Imobiliário"}
                               {score !== undefined && (
-                                <span className="ml-1.5 px-1 py-0.2 rounded text-[9px] font-semibold bg-[#FF8216]/10 text-[#FF8216] border border-[#FF8216]/20">
+                                <span className="ml-1.5 px-1 py-0.2 rounded text-[9px] font-semibold bg-[#E11D48]/10 text-[#E11D48] border border-[#E11D48]/20">
                                   Radar {score}/100
                                 </span>
                               )}
@@ -912,7 +912,7 @@ export function GroupedAccountsList({
                           </div>
                         </div>
                         <div className="text-right shrink-0">
-                          <span className="text-xs sm:text-sm font-semibold tabular-nums text-[#FF8216] block">
+                          <span className="text-xs sm:text-sm font-semibold tabular-nums text-[#E11D48] block">
                             -{formatCurrency(invoice)}
                           </span>
                           {limit > 0 && (
@@ -1061,7 +1061,7 @@ export function GroupedAccountsList({
       {!isEmpty && (
         <div className="px-5 py-3.5 bg-zinc-50 dark:bg-[#18181B]/70 border-t border-zinc-200 dark:border-[#27272A] flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <span className="w-5 h-5 rounded-md bg-[#FF8216]/15 text-[#FF8216] font-mono text-xs font-bold flex items-center justify-center">
+            <span className="w-5 h-5 rounded-md bg-[#E11D48]/15 text-[#E11D48] font-mono text-xs font-bold flex items-center justify-center">
               =
             </span>
             <span className="text-xs font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-200">

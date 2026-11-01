@@ -795,13 +795,13 @@ export default function SharedSpacePage() {
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-[#27272A]">
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="p-1.5 rounded-xl bg-[#FF8216]/10 text-[#FF8216] border border-[#FF8216]/25 flex items-center justify-center">
+              <span className="p-1.5 rounded-xl bg-[#E11D48]/10 text-[#E11D48] border border-[#E11D48]/25 flex items-center justify-center">
                 <span className="material-symbols-outlined text-[18px]">bolt</span>
               </span>
               <h3 className="text-sm md:text-base font-extrabold text-slate-900 dark:text-white tracking-tight">
                 Acerto Inteligente do Mês (Pix Único)
               </h3>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#18181B] text-[#FF8216] border border-[#27272A] uppercase tracking-wider">
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#18181B] text-[#E11D48] border border-[#27272A] uppercase tracking-wider">
                 {monthLabel}
               </span>
               {isSimulationWithoutPartner && (
@@ -849,7 +849,7 @@ export default function SharedSpacePage() {
                 onClick={() => setSplitMode("proportional")}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                   splitMode === "proportional"
-                    ? "bg-[#FF8216] text-white shadow-xs"
+                    ? "bg-[#E11D48] text-white shadow-xs"
                     : "text-slate-600 dark:text-zinc-400 hover:text-white"
                 }`}
               >
@@ -860,7 +860,7 @@ export default function SharedSpacePage() {
                 onClick={() => setSplitMode("equal")}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                   splitMode === "equal"
-                    ? "bg-[#FF8216] text-white shadow-xs"
+                    ? "bg-[#E11D48] text-white shadow-xs"
                     : "text-slate-600 dark:text-zinc-400 hover:text-white"
                 }`}
               >
@@ -876,7 +876,7 @@ export default function SharedSpacePage() {
             <div className="flex flex-col gap-1">
               <label className="text-[11px] font-bold text-zinc-400 flex items-center justify-between">
                 <span>Renda Líquida do Parceiro(a) (Simulação):</span>
-                <span className="text-[#FF8216] font-mono">{formatCurrency(simPartnerIncome)}</span>
+                <span className="text-[#E11D48] font-mono">{formatCurrency(simPartnerIncome)}</span>
               </label>
               <input
                 type="range"
@@ -885,7 +885,7 @@ export default function SharedSpacePage() {
                 step={250}
                 value={simPartnerIncome}
                 onChange={(e) => setSimPartnerIncome(Number(e.target.value))}
-                className="w-full accent-[#FF8216] cursor-pointer"
+                className="w-full accent-[#E11D48] cursor-pointer"
               />
             </div>
             <div className="flex flex-col gap-1">
@@ -900,7 +900,7 @@ export default function SharedSpacePage() {
                 step={50}
                 value={simPartnerPaid}
                 onChange={(e) => setSimPartnerPaid(Number(e.target.value))}
-                className="w-full accent-[#FF8216] cursor-pointer"
+                className="w-full accent-[#E11D48] cursor-pointer"
               />
             </div>
           </div>
@@ -925,7 +925,7 @@ export default function SharedSpacePage() {
                   <div className="flex items-center gap-2 min-w-0">
                     <span
                       className={`w-2.5 h-2.5 rounded-full shrink-0 ${
-                        member.isSelf ? "bg-[#FF8216]" : "bg-emerald-500"
+                        member.isSelf ? "bg-[#E11D48]" : "bg-emerald-500"
                       }`}
                     />
                     <span className="text-xs font-extrabold text-slate-900 dark:text-white truncate">
@@ -953,7 +953,7 @@ export default function SharedSpacePage() {
                   </div>
                   <div>
                     <span className="text-[10px] text-zinc-400 uppercase block">Cota Ideal</span>
-                    <span className="font-bold text-[#FF8216] tabular-nums">
+                    <span className="font-bold text-[#E11D48] tabular-nums">
                       {formatCurrency(member.fairShareBRL)}
                     </span>
                   </div>
@@ -967,7 +967,7 @@ export default function SharedSpacePage() {
                         isCreditor
                           ? "bg-emerald-500"
                           : isDebtor
-                          ? "bg-[#FF8216]"
+                          ? "bg-[#E11D48]"
                           : "bg-zinc-400"
                       }`}
                       style={{ width: `${paidBarPct}%` }}
@@ -1010,15 +1010,15 @@ export default function SharedSpacePage() {
         </div>
 
         {/* Bloco Direto de Liquidação Mínima ("Pix de Acerto Único") + Ações WhatsApp / Agente Takeshi */}
-        <div className="p-4 md:p-5 rounded-2xl bg-[#18181B] border border-[#FF8216]/35 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="p-4 md:p-5 rounded-2xl bg-[#18181B] border border-[#E11D48]/35 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="flex items-start sm:items-center gap-3.5">
-            <div className="w-11 h-11 rounded-2xl bg-[#FF8216]/15 border border-[#FF8216]/30 text-[#FF8216] flex items-center justify-center shrink-0">
+            <div className="w-11 h-11 rounded-2xl bg-[#E11D48]/15 border border-[#E11D48]/30 text-[#E11D48] flex items-center justify-center shrink-0">
               <span className="material-symbols-outlined text-[22px]">
                 {result.isAlreadyBalanced ? "verified" : "currency_exchange"}
               </span>
             </div>
             <div className="flex flex-col gap-1">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-[#FF8216]">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-[#E11D48]">
                 {result.isAlreadyBalanced
                   ? "Balanço Familiar Equilibrado"
                   : result.transfers.length === 1
@@ -1041,11 +1041,11 @@ export default function SharedSpacePage() {
                       className="flex items-center gap-2 flex-wrap text-xs md:text-sm"
                     >
                       <span className="font-extrabold text-white">{tr.fromMember}</span>
-                      <span className="material-symbols-outlined text-[16px] text-[#FF8216]">
+                      <span className="material-symbols-outlined text-[16px] text-[#E11D48]">
                         arrow_forward
                       </span>
                       <span className="font-extrabold text-emerald-400">{tr.toMember}</span>
-                      <span className="px-2.5 py-0.5 rounded-lg bg-[#FF8216] text-white font-black tabular-nums text-xs md:text-sm">
+                      <span className="px-2.5 py-0.5 rounded-lg bg-[#E11D48] text-white font-black tabular-nums text-xs md:text-sm">
                         {formatCurrency(tr.amountBRL)}
                       </span>
                     </div>
@@ -1080,7 +1080,7 @@ export default function SharedSpacePage() {
 
             <Link
               href={`/kitsune?prompt=${encodeURIComponent(takeshiPrompt)}`}
-              className="px-3.5 py-2.5 rounded-xl bg-[#FF8216] hover:bg-[#FFA047] text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+              className="px-3.5 py-2.5 rounded-xl bg-[#E11D48] hover:bg-[#F43F5E] text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
             >
               <span className="material-symbols-outlined text-[16px]">diversity_3</span>
               <span>Consultar Agente Takeshi</span>
@@ -1097,7 +1097,7 @@ export default function SharedSpacePage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-[#27272A]">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2.5 flex-wrap">
-            <div className="w-9 h-9 rounded-xl bg-[#FF8216]/10 text-[#FF8216] flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-[#E11D48]/10 text-[#E11D48] flex items-center justify-center">
               <span className="material-symbols-outlined text-[20px]">diversity_3</span>
             </div>
             <h1 className="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
@@ -1135,7 +1135,7 @@ export default function SharedSpacePage() {
           <button
             type="button"
             onClick={() => setActiveFeatureTab("members")}
-            className="h-9 px-3.5 rounded-xl bg-[#FF8216] hover:bg-[#FFA047] text-black text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+            className="h-9 px-3.5 rounded-xl bg-white hover:bg-zinc-200 active:bg-zinc-300 text-black text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
           >
             <span className="material-symbols-outlined text-[16px]">person_add</span>
             <span>+ Convidar Membro</span>
@@ -1150,7 +1150,7 @@ export default function SharedSpacePage() {
           onClick={() => setActiveMemberTab("consolidated")}
           className={`h-8 px-3.5 rounded-full text-xs font-bold flex items-center gap-1.5 shrink-0 border transition-colors cursor-pointer ${
             activeMemberTab === "consolidated"
-              ? "bg-[#FF8216] text-black border-[#FF8216]"
+              ? "bg-white text-black border-[#E11D48]"
               : "bg-white dark:bg-[#121214] border-slate-200 dark:border-[#27272A] text-slate-600 dark:text-zinc-400 hover:text-white"
           }`}
         >
@@ -1163,11 +1163,11 @@ export default function SharedSpacePage() {
           onClick={() => setActiveMemberTab(user?.id || "me")}
           className={`h-8 px-3.5 rounded-full text-xs font-bold flex items-center gap-1.5 shrink-0 border transition-colors cursor-pointer ${
             activeMemberTab === (user?.id || "me")
-              ? "bg-[#FF8216] text-black border-[#FF8216]"
+              ? "bg-white text-black border-[#E11D48]"
               : "bg-white dark:bg-[#121214] border-slate-200 dark:border-[#27272A] text-slate-600 dark:text-zinc-400 hover:text-white"
           }`}
         >
-          <span className="w-2 h-2 rounded-full bg-[#FF8216]" />
+          <span className="w-2 h-2 rounded-full bg-[#E11D48]" />
           <span>{myDisplayName} (Você)</span>
         </button>
 
@@ -1180,7 +1180,7 @@ export default function SharedSpacePage() {
               onClick={() => setActiveMemberTab(partner.id)}
               className={`h-8 px-3.5 rounded-full text-xs font-bold flex items-center gap-1.5 shrink-0 border transition-colors cursor-pointer ${
                 isSelected
-                  ? "bg-[#FF8216] text-black border-[#FF8216]"
+                  ? "bg-white text-black border-[#E11D48]"
                   : "bg-white dark:bg-[#121214] border-slate-200 dark:border-[#27272A] text-slate-600 dark:text-zinc-400 hover:text-white"
               }`}
             >
@@ -1235,7 +1235,7 @@ export default function SharedSpacePage() {
           </div>
           <Link
             href="/connections"
-            className="px-4 py-2 rounded-xl bg-[#FF8216] text-white font-bold text-xs hover:bg-[#FFA047] transition-all flex items-center gap-1.5 self-start sm:self-auto shrink-0 shadow-xs"
+            className="px-4 py-2 rounded-xl bg-[#E11D48] text-white font-bold text-xs hover:bg-[#F43F5E] transition-all flex items-center gap-1.5 self-start sm:self-auto shrink-0 shadow-xs"
           >
             <span className="material-symbols-outlined text-[16px]">add_link</span>
             <span>Conectar Banco</span>
@@ -1250,7 +1250,7 @@ export default function SharedSpacePage() {
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
               Patrimônio Líquido
             </span>
-            <div className="w-7 h-7 rounded-lg bg-[#FF8216]/10 text-[#FF8216] flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-[#E11D48]/10 text-[#E11D48] flex items-center justify-center">
               <span className="material-symbols-outlined text-[16px]">account_balance</span>
             </div>
           </div>
@@ -1360,7 +1360,7 @@ export default function SharedSpacePage() {
               onClick={() => setActiveFeatureTab(tab.id as any)}
               className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
                 isActive
-                  ? "bg-[#FF8216] text-white shadow-xs"
+                  ? "bg-[#E11D48] text-white shadow-xs"
                   : "bg-white dark:bg-[#121214] text-slate-600 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-[#27272A]"
               }`}
             >
@@ -1376,15 +1376,15 @@ export default function SharedSpacePage() {
         <div className="flex flex-col gap-6 animate-in fade-in">
           {/* Card de Foco do Integrante Selecionado */}
           {selectedMemberData && (
-            <div className="p-4 md:p-5 rounded-2xl bg-[#121214] border border-[#FF8216]/35 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+            <div className="p-4 md:p-5 rounded-2xl bg-[#121214] border border-[#E11D48]/35 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
               <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-2xl bg-[#FF8216]/15 border border-[#FF8216]/30 text-[#FF8216] font-bold text-sm flex items-center justify-center shrink-0">
+                <div className="w-11 h-11 rounded-2xl bg-[#E11D48]/15 border border-[#E11D48]/30 text-[#E11D48] font-bold text-sm flex items-center justify-center shrink-0">
                   {selectedMemberData.name.slice(0, 2).toUpperCase()}
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="text-sm font-bold text-white">{selectedMemberData.name}</h3>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#FF8216]/10 text-[#FF8216]">
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#E11D48]/10 text-[#E11D48]">
                       {selectedMemberData.role}
                     </span>
                   </div>
@@ -1409,7 +1409,7 @@ export default function SharedSpacePage() {
             <SpotlightCard className="p-5 flex flex-col gap-3.5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[#FF8216] text-lg">pie_chart</span>
+                  <span className="material-symbols-outlined text-[#E11D48] text-lg">pie_chart</span>
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white">
                     Distribuição do Patrimônio Compartilhado
                   </h3>
@@ -1422,7 +1422,7 @@ export default function SharedSpacePage() {
                   const myPercent = Math.max(0, Math.min(100, Math.round((totals.myNet / (totals.net || 1)) * 100)));
                   return (
                     <div
-                      className="h-full bg-[#FF8216] transition-all duration-500"
+                      className="h-full bg-[#E11D48] transition-all duration-500"
                       style={{ width: `${myPercent}%` }}
                       title={`${myDisplayName}: ${myPercent}%`}
                     />
@@ -1444,7 +1444,7 @@ export default function SharedSpacePage() {
 
               <div className="flex items-center gap-4 flex-wrap text-xs pt-1">
                 <div className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#FF8216]" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#E11D48]" />
                   <span className="font-bold text-slate-900 dark:text-white">{myDisplayName} (Você):</span>
                   <span className="text-slate-400 font-mono">
                     {Math.max(0, Math.min(100, Math.round((totals.myNet / (totals.net || 1)) * 100)))}% ({formatCurrency(totals.myNet)})
@@ -1476,7 +1476,7 @@ export default function SharedSpacePage() {
             <div className="lg:col-span-6 flex flex-col gap-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[#FF8216] text-lg">account_balance_wallet</span>
+                  <span className="material-symbols-outlined text-[#E11D48] text-lg">account_balance_wallet</span>
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white">
                     Contas e Cartões Conectados ({totals.allAccounts.length})
                   </h3>
@@ -1505,7 +1505,7 @@ export default function SharedSpacePage() {
                           <span className="text-[11px] text-slate-400 truncate flex items-center gap-1.5">
                             <span
                               className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${
-                                isMine ? "bg-[#FF8216]/10 text-[#FF8216]" : "bg-emerald-500/10 text-emerald-500"
+                                isMine ? "bg-[#E11D48]/10 text-[#E11D48]" : "bg-emerald-500/10 text-emerald-500"
                               }`}
                             >
                               {ownerName}
@@ -1518,7 +1518,7 @@ export default function SharedSpacePage() {
                       <div className="flex flex-col items-end shrink-0 pl-2">
                         <span
                           className={`text-xs md:text-sm font-extrabold tabular-nums ${
-                            isCredit ? "text-[#FF8216]" : "text-slate-900 dark:text-white"
+                            isCredit ? "text-[#E11D48]" : "text-slate-900 dark:text-white"
                           }`}
                         >
                           {formatCurrency(Math.abs(Number(account.balance) || 0))}
@@ -1536,7 +1536,7 @@ export default function SharedSpacePage() {
             <div className="lg:col-span-6 flex flex-col gap-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[#FF8216] text-lg">receipt_long</span>
+                  <span className="material-symbols-outlined text-[#E11D48] text-lg">receipt_long</span>
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white">
                     Extrato Consolidado Recente
                   </h3>
@@ -1565,7 +1565,7 @@ export default function SharedSpacePage() {
                           <span className="text-[10px] text-slate-400 flex items-center gap-1.5 truncate">
                             <span
                               className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${
-                                isMine ? "bg-[#FF8216]/10 text-[#FF8216]" : "bg-emerald-500/10 text-emerald-500"
+                                isMine ? "bg-[#E11D48]/10 text-[#E11D48]" : "bg-emerald-500/10 text-emerald-500"
                               }`}
                             >
                               {ownerName}
@@ -1631,15 +1631,15 @@ export default function SharedSpacePage() {
               </div>
             </SpotlightCard>
 
-            <SpotlightCard className="p-5 flex flex-col justify-between gap-3 bg-[#FF8216]/5 border-[#FF8216]/20">
+            <SpotlightCard className="p-5 flex flex-col justify-between gap-3 bg-[#E11D48]/5 border-[#E11D48]/20">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-[#FF8216] uppercase tracking-wider">
+                <span className="text-xs font-bold text-[#E11D48] uppercase tracking-wider">
                   Capacidade de Poupança do Casal
                 </span>
-                <span className="material-symbols-outlined text-[#FF8216]">savings</span>
+                <span className="material-symbols-outlined text-[#E11D48]">savings</span>
               </div>
               <div>
-                <span className="text-2xl font-black text-[#FF8216] tabular-nums">
+                <span className="text-2xl font-black text-[#E11D48] tabular-nums">
                   {formatCurrency(monthlyFlow.netSaving)}
                 </span>
                 <p className="text-xs text-slate-400 mt-1">
@@ -1652,7 +1652,7 @@ export default function SharedSpacePage() {
           {/* Comparativo de Renda e Gastos por Membro */}
           <div className="p-5 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] flex flex-col gap-4">
             <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <span className="material-symbols-outlined text-[#FF8216]">compare_arrows</span>
+              <span className="material-symbols-outlined text-[#E11D48]">compare_arrows</span>
               <span>Divisão do Fluxo por Integrante</span>
             </h3>
 
@@ -1660,8 +1660,8 @@ export default function SharedSpacePage() {
               {/* Você */}
               <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] flex flex-col gap-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-[#FF8216] flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-[#FF8216]" />
+                  <span className="text-xs font-bold text-[#E11D48] flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-[#E11D48]" />
                     <span>{myDisplayName} (Você)</span>
                   </span>
                   <span className="text-[11px] text-slate-400">Titular Principal</span>
@@ -1801,7 +1801,7 @@ export default function SharedSpacePage() {
                           <span className="text-[11px] text-slate-400 flex items-center gap-1.5 truncate">
                             <span
                               className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${
-                                b.isMine ? "bg-[#FF8216]/10 text-[#FF8216]" : "bg-purple-500/10 text-purple-400"
+                                b.isMine ? "bg-[#E11D48]/10 text-[#E11D48]" : "bg-purple-500/10 text-purple-400"
                               }`}
                             >
                               {b.assignedTo}
@@ -1852,7 +1852,7 @@ export default function SharedSpacePage() {
                           <span className="text-[11px] text-slate-400 flex items-center gap-1.5 truncate">
                             <span
                               className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${
-                                b.isMine ? "bg-[#FF8216]/10 text-[#FF8216]" : "bg-emerald-500/10 text-emerald-500"
+                                b.isMine ? "bg-[#E11D48]/10 text-[#E11D48]" : "bg-emerald-500/10 text-emerald-500"
                               }`}
                             >
                               Pago por {b.paidBy}
@@ -1913,12 +1913,12 @@ export default function SharedSpacePage() {
               </div>
             </SpotlightCard>
 
-            <SpotlightCard className="p-5 flex flex-col justify-between gap-3 bg-[#FF8216]/5 border-[#FF8216]/20">
-              <span className="text-xs font-bold text-[#FF8216] uppercase tracking-wider">
+            <SpotlightCard className="p-5 flex flex-col justify-between gap-3 bg-[#E11D48]/5 border-[#E11D48]/20">
+              <span className="text-xs font-bold text-[#E11D48] uppercase tracking-wider">
                 Rendimento Anual Estimado
               </span>
               <div>
-                <span className="text-2xl font-black text-[#FF8216] tabular-nums">
+                <span className="text-2xl font-black text-[#E11D48] tabular-nums">
                   + {formatCurrency(investmentYields.annualIncome)}/ano
                 </span>
                 <p className="text-xs text-slate-400 mt-1">
@@ -1932,7 +1932,7 @@ export default function SharedSpacePage() {
           <div className="p-5 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] flex flex-col gap-4">
             <div className="flex flex-col gap-1">
               <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <span className="material-symbols-outlined text-[#FF8216]">candlestick_chart</span>
+                <span className="material-symbols-outlined text-[#E11D48]">candlestick_chart</span>
                 <span>Termômetro Comparativo: Quanto renderia o dinheiro do casal?</span>
               </h3>
               <p className="text-xs text-slate-400">
@@ -1963,12 +1963,12 @@ export default function SharedSpacePage() {
                 </span>
               </div>
 
-              <div className="p-4 rounded-xl bg-[#FF8216]/10 border border-[#FF8216]/30 flex flex-col gap-2">
-                <span className="text-xs font-bold text-[#FF8216] uppercase">Tesouro IPCA+ (Juro Real + Inflação)</span>
-                <span className="text-lg font-black text-[#FF8216] tabular-nums">
+              <div className="p-4 rounded-xl bg-[#E11D48]/10 border border-[#E11D48]/30 flex flex-col gap-2">
+                <span className="text-xs font-bold text-[#E11D48] uppercase">Tesouro IPCA+ (Juro Real + Inflação)</span>
+                <span className="text-lg font-black text-[#E11D48] tabular-nums">
                   {formatCurrency(investmentYields.ipcaPlusYield)}/ano
                 </span>
-                <span className="text-[11px] text-[#FF8216] font-semibold">
+                <span className="text-[11px] text-[#E11D48] font-semibold">
                   Proteção máxima contra inflação no longo prazo.
                 </span>
               </div>
@@ -1983,7 +1983,7 @@ export default function SharedSpacePage() {
           <div className="p-6 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] flex flex-col gap-6 shadow-xs">
             <div className="flex flex-col gap-1">
               <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                <span className="material-symbols-outlined text-[#FF8216]">savings</span>
+                <span className="material-symbols-outlined text-[#E11D48]">savings</span>
                 <span>Simulador de Metas & Patrimônio Familiar</span>
               </h3>
               <p className="text-xs text-slate-400">
@@ -1997,7 +1997,7 @@ export default function SharedSpacePage() {
               <div className="flex flex-col gap-2">
                 <label className="text-xs font-bold text-slate-700 dark:text-zinc-300 flex items-center justify-between">
                   <span>Aporte Mensal Conjunto:</span>
-                  <span className="text-[#FF8216] font-mono font-black">{formatCurrency(simMonthlyDeposit)}</span>
+                  <span className="text-[#E11D48] font-mono font-black">{formatCurrency(simMonthlyDeposit)}</span>
                 </label>
                 <input
                   type="range"
@@ -2006,7 +2006,7 @@ export default function SharedSpacePage() {
                   step="100"
                   value={simMonthlyDeposit}
                   onChange={(e) => setSimMonthlyDeposit(Number(e.target.value))}
-                  className="w-full accent-[#FF8216] cursor-pointer"
+                  className="w-full accent-[#E11D48] cursor-pointer"
                 />
                 <div className="flex items-center gap-1.5 flex-wrap pt-1">
                   {[500, 1000, 2000, 5000].map((val) => (
@@ -2016,7 +2016,7 @@ export default function SharedSpacePage() {
                       onClick={() => setSimMonthlyDeposit(val)}
                       className={`px-2.5 py-1 rounded-lg text-[10px] font-bold cursor-pointer transition-colors ${
                         simMonthlyDeposit === val
-                          ? "bg-[#FF8216] text-white"
+                          ? "bg-[#E11D48] text-white"
                           : "bg-slate-100 dark:bg-[#18181B] text-slate-600 dark:text-zinc-400 hover:text-white"
                       }`}
                     >
@@ -2030,7 +2030,7 @@ export default function SharedSpacePage() {
               <div className="flex flex-col gap-2">
                 <label className="text-xs font-bold text-slate-700 dark:text-zinc-300 flex items-center justify-between">
                   <span>Prazo da Meta:</span>
-                  <span className="text-[#FF8216] font-mono font-black">{simYears} {simYears === 1 ? "Ano" : "Anos"}</span>
+                  <span className="text-[#E11D48] font-mono font-black">{simYears} {simYears === 1 ? "Ano" : "Anos"}</span>
                 </label>
                 <input
                   type="range"
@@ -2039,7 +2039,7 @@ export default function SharedSpacePage() {
                   step="1"
                   value={simYears}
                   onChange={(e) => setSimYears(Number(e.target.value))}
-                  className="w-full accent-[#FF8216] cursor-pointer"
+                  className="w-full accent-[#E11D48] cursor-pointer"
                 />
                 <div className="flex items-center gap-1.5 flex-wrap pt-1">
                   {[1, 3, 5, 10].map((yrs) => (
@@ -2049,7 +2049,7 @@ export default function SharedSpacePage() {
                       onClick={() => setSimYears(yrs)}
                       className={`px-2.5 py-1 rounded-lg text-[10px] font-bold cursor-pointer transition-colors ${
                         simYears === yrs
-                          ? "bg-[#FF8216] text-white"
+                          ? "bg-[#E11D48] text-white"
                           : "bg-slate-100 dark:bg-[#18181B] text-slate-600 dark:text-zinc-400 hover:text-white"
                       }`}
                     >
@@ -2063,7 +2063,7 @@ export default function SharedSpacePage() {
               <div className="flex flex-col gap-2">
                 <label className="text-xs font-bold text-slate-700 dark:text-zinc-300 flex items-center justify-between">
                   <span>Rentabilidade Anual:</span>
-                  <span className="text-[#FF8216] font-mono font-black">{simAnnualRate}% a.a.</span>
+                  <span className="text-[#E11D48] font-mono font-black">{simAnnualRate}% a.a.</span>
                 </label>
                 <input
                   type="range"
@@ -2072,7 +2072,7 @@ export default function SharedSpacePage() {
                   step="0.25"
                   value={simAnnualRate}
                   onChange={(e) => setSimAnnualRate(Number(e.target.value))}
-                  className="w-full accent-[#FF8216] cursor-pointer"
+                  className="w-full accent-[#E11D48] cursor-pointer"
                 />
                 <div className="flex items-center gap-1.5 flex-wrap pt-1">
                   {[6.17, 10.65, 12.0, 14.0].map((rate) => (
@@ -2082,7 +2082,7 @@ export default function SharedSpacePage() {
                       onClick={() => setSimAnnualRate(rate)}
                       className={`px-2.5 py-1 rounded-lg text-[10px] font-bold cursor-pointer transition-colors ${
                         simAnnualRate === rate
-                          ? "bg-[#FF8216] text-white"
+                          ? "bg-[#E11D48] text-white"
                           : "bg-slate-100 dark:bg-[#18181B] text-slate-600 dark:text-zinc-400 hover:text-white"
                       }`}
                     >
@@ -2094,9 +2094,9 @@ export default function SharedSpacePage() {
             </div>
 
             {/* Resultado da Projeção */}
-            <div className="p-5 rounded-2xl bg-gradient-to-br from-[#FF8216]/10 via-[#18181B] to-[#121214] border border-[#FF8216]/30 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="p-5 rounded-2xl bg-gradient-to-br from-[#E11D48]/10 via-[#18181B] to-[#121214] border border-[#E11D48]/30 flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div className="flex flex-col gap-1">
-                <span className="text-xs font-bold text-[#FF8216] uppercase tracking-wider">
+                <span className="text-xs font-bold text-[#E11D48] uppercase tracking-wider">
                   Patrimônio Futuro Acumulado em {simYears} anos
                 </span>
                 <span className="text-2xl md:text-4xl font-black text-white tabular-nums tracking-tight">
@@ -2149,7 +2149,7 @@ export default function SharedSpacePage() {
                     className="p-3.5 rounded-xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] flex items-center justify-between gap-3 shadow-xs"
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-10 h-10 rounded-xl bg-[#FF8216]/10 text-[#FF8216] font-bold text-sm flex items-center justify-center shrink-0">
+                      <div className="w-10 h-10 rounded-xl bg-[#E11D48]/10 text-[#E11D48] font-bold text-sm flex items-center justify-center shrink-0">
                         {(partner.display_name || partner.full_name || "MB").slice(0, 2).toUpperCase()}
                       </div>
                       <div className="min-w-0">
@@ -2190,7 +2190,7 @@ export default function SharedSpacePage() {
               >
                 <div className="flex flex-col gap-1">
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[#FF8216] text-[18px]">send</span>
+                    <span className="material-symbols-outlined text-[#E11D48] text-[18px]">send</span>
                     <span>Convidar Novo Membro por E-mail</span>
                   </h3>
                   <p className="text-xs text-slate-400">
@@ -2205,19 +2205,19 @@ export default function SharedSpacePage() {
                     placeholder="E-mail do integrante cadastrado"
                     value={inviteEmail}
                     onChange={(e) => setInviteEmail(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#FF8216]"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#E11D48]"
                   />
                   <input
                     type="text"
                     placeholder="Nome do integrante (opcional)"
                     value={inviteName}
                     onChange={(e) => setInviteName(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#FF8216]"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#E11D48]"
                   />
                   <select
                     value={inviteRole}
                     onChange={(e) => setInviteRole(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] text-xs text-slate-900 dark:text-white focus:outline-none focus:border-[#FF8216]"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] text-xs text-slate-900 dark:text-white focus:outline-none focus:border-[#E11D48]"
                   >
                     <option value="Cônjuge / Parceiro(a)">Cônjuge / Parceiro(a)</option>
                     <option value="Familiar / Parente">Familiar / Parente</option>
@@ -2233,7 +2233,7 @@ export default function SharedSpacePage() {
                 <button
                   type="submit"
                   disabled={actionLoading}
-                  className="w-full py-2.5 rounded-xl bg-[#FF8216] hover:bg-[#FFA047] text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50"
+                  className="w-full py-2.5 rounded-xl bg-[#E11D48] hover:bg-[#F43F5E] text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50"
                 >
                   {actionLoading ? <Spinner size={14} className="text-white" /> : <span className="material-symbols-outlined text-[16px]">mail</span>}
                   <span>Enviar Convite Seguro</span>
@@ -2256,13 +2256,13 @@ export default function SharedSpacePage() {
                     </div>
 
                     <div className="flex items-center gap-2 bg-black/40 p-2 rounded-lg border border-white/10">
-                      <code className="text-xs font-mono font-bold text-[#FF8216] flex-1">
+                      <code className="text-xs font-mono font-bold text-[#E11D48] flex-1">
                         {lastCreatedInvite.code}
                       </code>
                       <button
                         type="button"
                         onClick={() => copyToClipboard(lastCreatedInvite.code, "last_code")}
-                        className="px-2.5 py-1 rounded bg-[#FF8216] text-white text-[10px] font-bold hover:bg-[#FFA047] cursor-pointer"
+                        className="px-2.5 py-1 rounded bg-[#E11D48] text-white text-[10px] font-bold hover:bg-[#F43F5E] cursor-pointer"
                       >
                         {copiedKey === "last_code" ? "Copiado!" : "Copiar Código"}
                       </button>
@@ -2293,7 +2293,7 @@ export default function SharedSpacePage() {
               <div className="lg:col-span-6 p-5 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] flex flex-col justify-between gap-4 shadow-xs">
                 <div className="flex flex-col gap-1">
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[#FF8216] text-[18px]">key</span>
+                    <span className="material-symbols-outlined text-[#E11D48] text-[18px]">key</span>
                     <span>Possui um Código de Convite?</span>
                   </h3>
                   <p className="text-xs text-slate-400">

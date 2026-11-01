@@ -23,7 +23,7 @@ Antes de escrever qualquer código, leia silenciosamente:
 - **Blindagem MSLR (Zero Alucinação Matemática):** É estritamente PROIBIDO pedir para LLMs (Gemini/Groq) calcularem saldos, juros, CDI, IR/IOF, amortizações ou divisões. Todo cálculo deve ser executado nos motores determinísticos em `src/utils/finance/engine/` e passado pronto via JSON/Tool Calling para a IA.
 - **Precisão Monetária e Calendário:** Proibido usar aritmética flutuante ingênua que estoure `Number.MAX_SAFE_INTEGER` (53 bits). Datas sem hora devem usar `parseLocalDate` para evitar deslocamento UTC no dia 1º do mês.
 - **Segurança & Multi-Tenancy:** Todas as rotas `/api/**` exigem `supabase.auth.getUser()`. Zero mocks (`MOCK_*` proibidos). Respeito absoluto ao `isPrivacyMode` (`hideValues`).
-- **Design System Warm Obsidian:** Manter fundo `#0A0A0A`, cards `#121214`, subcontainers `#18181B`, bordas `#27272A` e acento `#FF8216`. Proibido usar tons azulados/marinho.
+- **Design System Warm Obsidian:** Manter fundo `#0A0A0A`, cards `#121214`, subcontainers `#18181B`, bordas `#27272A`, primárias monocromáticas (#FFFFFF/#FAFAFA) e acento de marca Kitsune Crimson (`#E11D48`). Proibido usar tons azulados/marinho.
 - **Proibição de Buzzwords Técnicos na UI:** É estritamente proibido exibir jargões de engenharia ("MSLR", "Motor Determinístico", "Zero Alucinação", "X-Ray 90/100", "BCB Ao Vivo", "Newton-Raphson", etc.) na interface do usuário (cards, badges, títulos e botões). Toda sofisticação deve residir no backend/engine; a UI deve ser limpa, sóbria e refinada (conforme regra global em `clean-saas-vocabulary.md`).
 
 ### 3. Sincronização Obrigatória Pós-Tarefa

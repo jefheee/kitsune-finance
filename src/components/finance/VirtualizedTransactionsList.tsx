@@ -8,7 +8,7 @@
  * - Coalescência de scroll via `requestAnimationFrame` + `ResizeObserver` nativo (zero travamento da main thread mobile).
  * - Largura pré-computada da coluna monetária (`tabular-nums`) para zero layout shift horizontal durante rolagem rápida.
  * - Respeito absoluto ao `isPrivacyMode` (`R$ ••••••`), `BankLogo`, `MerchantLogo` e clique para abrir o Modal de Detalhes.
- * - Paleta estrita Warm Obsidian (`#0A0A0A`, `#121214`, `#18181B`, `#27272A`, `#FF8216` — zero tons azulados).
+ * - Paleta estrita Warm Obsidian (`#0A0A0A`, `#121214`, `#18181B`, `#27272A`, `#E11D48` — zero tons azulados).
  */
 
 import React, {
@@ -116,7 +116,7 @@ function resolveKindBadgeLabel(tx: VirtualizedTransactionItem): {
         return {
             label: `Parcela ${tx.installment_number || 1}/${tx.total_installments}`,
             className:
-                "bg-[#FF8216]/15 text-[#FF8216] border border-[#FF8216]/25",
+                "bg-[#E11D48]/15 text-[#E11D48] border border-[#E11D48]/25",
         };
     }
     if (tx.is_subscription) {
@@ -369,7 +369,7 @@ export function VirtualizedTransactionsList({
                                         />
                                         <div className="flex flex-col min-w-0">
                                             <div className="flex items-center gap-1.5 min-w-0">
-                                                <span className="font-bold text-xs text-zinc-900 dark:text-white truncate group-hover:text-[#FF8216] transition-colors">
+                                                <span className="font-bold text-xs text-zinc-900 dark:text-white truncate group-hover:text-[#E11D48] transition-colors">
                                                     {cleanDesc}
                                                 </span>
                                                 {badge && (
@@ -391,7 +391,7 @@ export function VirtualizedTransactionsList({
                                                     </span>
                                                 )}
                                                 {!tx.merchant_cnpj && badge && (
-                                                    <span className="lg:hidden font-semibold text-[#FF8216]">
+                                                    <span className="lg:hidden font-semibold text-[#E11D48]">
                                                         • {badge.label}
                                                     </span>
                                                 )}
@@ -491,7 +491,7 @@ export function VirtualizedTransactionsList({
                                 size="lg"
                             />
                             <div className="min-w-0">
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-[#FF8216] block">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-[#E11D48] block">
                                     Dossiê de Transação Conciliada
                                 </span>
                                 <h3 className="text-base md:text-lg font-extrabold text-zinc-900 dark:text-white truncate">
@@ -620,8 +620,8 @@ export function VirtualizedTransactionsList({
 
                             {(selectedModalTx.reconciled_from_pending_id ||
                                 selectedModalTx.matched_transfer_id) && (
-                                <div className="p-3 rounded-xl bg-[#FF8216]/5 border border-[#FF8216]/20 sm:col-span-2 flex flex-col gap-1">
-                                    <span className="text-[10px] font-bold uppercase text-[#FF8216]">
+                                <div className="p-3 rounded-xl bg-[#E11D48]/5 border border-[#E11D48]/20 sm:col-span-2 flex flex-col gap-1">
+                                    <span className="text-[10px] font-bold uppercase text-[#E11D48]">
                                         Trilha de Auditoria Anti-Duplicidade
                                     </span>
                                     {selectedModalTx.reconciled_from_pending_id && (

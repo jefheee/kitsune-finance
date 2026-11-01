@@ -201,8 +201,8 @@ export function AiDiagnosticPanel({
       {/* Top Header do Painel */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 border-b border-[#27272A] pb-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#FF8216]/10 border border-[#FF8216]/25 flex items-center justify-center shrink-0">
-            <span className="material-symbols-outlined text-xl text-[#FF8216]">
+          <div className="w-10 h-10 rounded-xl bg-[#E11D48]/10 border border-[#E11D48]/25 flex items-center justify-center shrink-0">
+            <span className="material-symbols-outlined text-xl text-[#E11D48]">
               psychology
             </span>
           </div>
@@ -250,7 +250,7 @@ export function AiDiagnosticPanel({
                 creditCardBalance
               )}. Quais são as recomendações mais estratégicas para mim hoje?`
             )}`}
-            className="h-8 px-3 rounded-lg bg-[#FF8216] hover:bg-[#FFA047] active:bg-[#E66E08] text-black text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+            className="h-8 px-3 rounded-lg bg-white hover:bg-zinc-200 active:bg-zinc-300 text-black text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
           >
             <span className="material-symbols-outlined text-[15px]">chat</span>
             <span>Conversar</span>
@@ -265,7 +265,7 @@ export function AiDiagnosticPanel({
           >
             <span
               className={`material-symbols-outlined text-[15px] ${
-                isGenerating ? "animate-spin text-[#FF8216]" : ""
+                isGenerating ? "animate-spin text-[#E11D48]" : ""
               }`}
             >
               sync
@@ -324,9 +324,9 @@ export function AiDiagnosticPanel({
             {parsedData.actionPoints.map((act, idx) => (
               <div
                 key={idx}
-                className="p-3.5 rounded-xl bg-[#18181B] border border-[#27272A] flex items-start gap-3 transition-colors hover:border-[#FF8216]/40"
+                className="p-3.5 rounded-xl bg-[#18181B] border border-[#27272A] flex items-start gap-3 transition-colors hover:border-[#E11D48]/40"
               >
-                <div className="w-7 h-7 rounded-lg bg-[#FF8216]/10 text-[#FF8216] flex items-center justify-center shrink-0 mt-0.5">
+                <div className="w-7 h-7 rounded-lg bg-[#E11D48]/10 text-[#E11D48] flex items-center justify-center shrink-0 mt-0.5">
                   <span className="material-symbols-outlined text-[15px]">
                     {act.icon}
                   </span>
@@ -350,7 +350,7 @@ export function AiDiagnosticPanel({
         <button
           onClick={() => setShowFullReport(!showFullReport)}
           type="button"
-          className="text-xs font-bold text-[#FF8216] hover:underline flex items-center gap-1 cursor-pointer"
+          className="text-xs font-bold text-[#E11D48] hover:underline flex items-center gap-1 cursor-pointer"
         >
           <span>{showFullReport ? "Ocultar Parecer" : "Ver Análise Detalhada"}</span>
           <span className="material-symbols-outlined text-sm">

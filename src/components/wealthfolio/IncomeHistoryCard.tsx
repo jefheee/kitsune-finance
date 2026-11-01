@@ -187,7 +187,7 @@ export function IncomeHistoryCard({
       : monthsData[monthsData.length - 1];
 
   const sourceSum = topSources.reduce((s, i) => s + i.monthlyYield, 0);
-  const SOURCE_COLORS = ["#FF8216", "#10B981", "#F59E0B", "#71717A"];
+  const SOURCE_COLORS = ["#E11D48", "#10B981", "#F59E0B", "#71717A"];
 
   return (
     <section className="p-5 rounded-2xl bg-white dark:bg-[#121214] border border-zinc-200 dark:border-[#27272A] flex flex-col gap-5">
@@ -208,7 +208,7 @@ export function IncomeHistoryCard({
             onClick={() => setMode("yields")}
             className={`px-3 py-1 rounded-md font-semibold transition-colors cursor-pointer ${
               mode === "yields"
-                ? "bg-[#FF8216] text-black"
+                ? "bg-white text-black"
                 : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-[#F4F4F5]"
             }`}
           >
@@ -219,7 +219,7 @@ export function IncomeHistoryCard({
             onClick={() => setMode("all_incomes")}
             className={`px-3 py-1 rounded-md font-semibold transition-colors cursor-pointer ${
               mode === "all_incomes"
-                ? "bg-[#FF8216] text-black"
+                ? "bg-white text-black"
                 : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-[#F4F4F5]"
             }`}
           >
@@ -252,7 +252,7 @@ export function IncomeHistoryCard({
           <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-500 dark:text-zinc-400 block">
             Projeção Passiva Atual
           </span>
-          <span className="text-lg font-bold text-[#FF8216] tabular-nums mt-0.5 block">
+          <span className="text-lg font-bold text-[#E11D48] tabular-nums mt-0.5 block">
             +{formatCurrency(projectedMonthlyCDI)}/mês
           </span>
         </div>
@@ -306,15 +306,15 @@ export function IncomeHistoryCard({
                       style={{ height: `${heightPct}%` }}
                       className={`w-[8px] sm:w-[11px] rounded-t-[4px] transition-all duration-200 ${
                         isSelected
-                          ? "bg-[#FF8216] shadow-[0_0_12px_rgba(255,130,22,0.45)]"
-                          : "bg-emerald-500/80 group-hover:bg-[#FF8216]"
+                          ? "bg-[#E11D48] shadow-[0_0_12px_rgba(255,130,22,0.45)]"
+                          : "bg-emerald-500/80 group-hover:bg-[#E11D48]"
                       }`}
                     />
                   </div>
                   <span
                     className={`text-[10px] font-medium leading-none ${
                       isSelected
-                        ? "text-[#FF8216] font-bold"
+                        ? "text-[#E11D48] font-bold"
                         : "text-zinc-400 dark:text-zinc-500"
                     }`}
                   >

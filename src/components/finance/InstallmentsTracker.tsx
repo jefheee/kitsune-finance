@@ -219,7 +219,7 @@ export function InstallmentsTracker({ transactions, formatCurrency }: Installmen
                         Saldo Vincendo
                     </span>
                     <div className="mt-1">
-                        <span className="text-xl md:text-2xl font-extrabold text-[#FF8216] tabular-nums">
+                        <span className="text-xl md:text-2xl font-extrabold text-[#E11D48] tabular-nums">
                             {formatCurrency(totalRemaining)}
                         </span>
                     </div>
@@ -250,7 +250,7 @@ export function InstallmentsTracker({ transactions, formatCurrency }: Installmen
                     onClick={() => setActiveTab("ongoing")}
                     className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                         activeTab === "ongoing"
-                            ? "bg-[#FF8216] text-white shadow-xs"
+                            ? "bg-[#E11D48] text-white shadow-xs"
                             : "bg-white dark:bg-[#121214] text-slate-600 dark:text-[#94A3B8] border border-slate-200 dark:border-[#27272A]"
                     }`}
                 >
@@ -260,7 +260,7 @@ export function InstallmentsTracker({ transactions, formatCurrency }: Installmen
                     onClick={() => setActiveTab("finished")}
                     className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                         activeTab === "finished"
-                            ? "bg-[#FF8216] text-white shadow-xs"
+                            ? "bg-[#E11D48] text-white shadow-xs"
                             : "bg-white dark:bg-[#121214] text-slate-600 dark:text-[#94A3B8] border border-slate-200 dark:border-[#27272A]"
                     }`}
                 >
@@ -270,7 +270,7 @@ export function InstallmentsTracker({ transactions, formatCurrency }: Installmen
                     onClick={() => setActiveTab("single")}
                     className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                         activeTab === "single"
-                            ? "bg-[#FF8216] text-white shadow-xs"
+                            ? "bg-[#E11D48] text-white shadow-xs"
                             : "bg-white dark:bg-[#121214] text-slate-600 dark:text-[#94A3B8] border border-slate-200 dark:border-[#27272A]"
                     }`}
                 >
@@ -304,7 +304,7 @@ export function InstallmentsTracker({ transactions, formatCurrency }: Installmen
                         return (
                             <div
                                 key={item.id}
-                                className="p-4 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] hover:border-[#FF8216]/40 transition-colors flex flex-col gap-3 shadow-xs"
+                                className="p-4 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] hover:border-[#E11D48]/40 transition-colors flex flex-col gap-3 shadow-xs"
                             >
                                 <div className="flex items-start justify-between gap-3">
                                     <div className="flex items-center gap-3 min-w-0">
@@ -341,7 +341,7 @@ export function InstallmentsTracker({ transactions, formatCurrency }: Installmen
                                             <div className="text-[11px] text-slate-400 mt-0.5">
                                                 <span>Total parcelado: <strong className="text-slate-700 dark:text-slate-200">{formatCurrency(item.totalAmount)}</strong></span>
                                                 <span className="mx-1">•</span>
-                                                <span className="text-[#FF8216] font-semibold">Resta {formatCurrency(item.remainingAmount)} ({item.remainingCount}x)</span>
+                                                <span className="text-[#E11D48] font-semibold">Resta {formatCurrency(item.remainingAmount)} ({item.remainingCount}x)</span>
                                             </div>
                                         ) : (
                                             <span className="text-[11px] text-emerald-500 font-medium">
@@ -355,7 +355,7 @@ export function InstallmentsTracker({ transactions, formatCurrency }: Installmen
                                     <div className="flex items-center gap-3">
                                         <div className="flex-1 h-1.5 bg-slate-100 dark:bg-[#18181B] rounded-full overflow-hidden">
                                             <div
-                                                className="h-full bg-[#FF8216] rounded-full transition-all duration-300"
+                                                className="h-full bg-[#E11D48] rounded-full transition-all duration-300"
                                                 style={{ width: `${pct}%` }}
                                             />
                                         </div>

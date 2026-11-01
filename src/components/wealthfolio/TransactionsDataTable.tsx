@@ -304,7 +304,7 @@ export function TransactionsDataTable({
           right ? "justify-end ml-auto" : "justify-start"
         } ${
           active
-            ? "text-[#FF8216]"
+            ? "text-[#E11D48]"
             : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-[#F4F4F5]"
         }`}
       >
@@ -380,7 +380,7 @@ export function TransactionsDataTable({
                   setCurrentPage(1);
                 }}
                 placeholder="Buscar estabelecimento, categoria ou descrição..."
-                className="w-full h-9 pl-9 pr-3 rounded-lg bg-zinc-50 dark:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] text-xs text-zinc-900 dark:text-[#F4F4F5] placeholder:text-zinc-500 focus:outline-none focus:border-[#FF8216]"
+                className="w-full h-9 pl-9 pr-3 rounded-lg bg-zinc-50 dark:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] text-xs text-zinc-900 dark:text-[#F4F4F5] placeholder:text-zinc-500 focus:outline-none focus:border-[#E11D48]"
               />
             </div>
 
@@ -405,7 +405,7 @@ export function TransactionsDataTable({
                     }}
                     className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors cursor-pointer ${
                       periodFilter === p.id
-                        ? "bg-[#FF8216] text-black"
+                        ? "bg-white text-black"
                         : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-[#F4F4F5]"
                     }`}
                   >
@@ -417,7 +417,7 @@ export function TransactionsDataTable({
               <button
                 type="button"
                 onClick={() => setIsNewTxModalOpen(true)}
-                className="h-8 px-3 rounded-lg bg-[#FF8216] hover:bg-[#FFA047] text-black text-xs font-bold inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                className="h-8 px-3 rounded-lg bg-white hover:bg-zinc-200 active:bg-zinc-300 text-black text-xs font-bold inline-flex items-center gap-1.5 transition-colors cursor-pointer"
               >
                 <WfIcons.Plus size={14} />
                 <span>Nova</span>
@@ -462,7 +462,7 @@ export function TransactionsDataTable({
                   setCategoryFilter(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="h-8 px-2.5 rounded-lg bg-zinc-50 dark:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] text-xs font-medium text-zinc-700 dark:text-zinc-300 focus:outline-none focus:border-[#FF8216] cursor-pointer"
+                className="h-8 px-2.5 rounded-lg bg-zinc-50 dark:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] text-xs font-medium text-zinc-700 dark:text-zinc-300 focus:outline-none focus:border-[#E11D48] cursor-pointer"
               >
                 <option value="all">Todas Categorias</option>
                 {uniqueCategories.map((c) => (
@@ -480,7 +480,7 @@ export function TransactionsDataTable({
                     setBankFilter(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="h-8 px-2.5 rounded-lg bg-zinc-50 dark:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] text-xs font-medium text-zinc-700 dark:text-zinc-300 focus:outline-none focus:border-[#FF8216] cursor-pointer"
+                  className="h-8 px-2.5 rounded-lg bg-zinc-50 dark:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] text-xs font-medium text-zinc-700 dark:text-zinc-300 focus:outline-none focus:border-[#E11D48] cursor-pointer"
                 >
                   <option value="all">Todas Contas</option>
                   {uniqueBanks.map((b) => (
@@ -498,7 +498,7 @@ export function TransactionsDataTable({
                 onClick={() => setShowHidden((prev) => !prev)}
                 className={`h-8 px-2.5 rounded-lg border text-[11px] font-medium transition-colors cursor-pointer ${
                   showHidden
-                    ? "bg-[#FF8216]/12 border-[#FF8216]/35 text-[#FF8216]"
+                    ? "bg-[#E11D48]/12 border-[#E11D48]/35 text-[#E11D48]"
                     : "bg-zinc-50 dark:bg-[#18181B] border-zinc-200 dark:border-[#27272A] text-zinc-500 dark:text-zinc-400"
                 }`}
               >
@@ -578,7 +578,7 @@ export function TransactionsDataTable({
                               </span>
                               <div className="flex items-center gap-1.5 mt-0.5">
                                 {tx.total_installments && tx.total_installments > 1 && (
-                                  <span className="text-[10px] font-semibold text-[#FF8216]">
+                                  <span className="text-[10px] font-semibold text-[#E11D48]">
                                     Parcela {tx.installment_number || 1}/{tx.total_installments}
                                   </span>
                                 )}
@@ -701,7 +701,7 @@ export function TransactionsDataTable({
                               {formatCurrency(absAmt)}
                             </span>
                             {tx.total_installments && tx.total_installments > 1 ? (
-                              <span className="mt-0.5 px-1.5 py-0.2 rounded text-[10px] font-semibold bg-[#FF8216]/12 text-[#FF8216]">
+                              <span className="mt-0.5 px-1.5 py-0.2 rounded text-[10px] font-semibold bg-[#E11D48]/12 text-[#E11D48]">
                                 {tx.installment_number || 1}/{tx.total_installments}x
                               </span>
                             ) : isExpense && shareOfExpensesPct > 0 ? (
@@ -734,7 +734,7 @@ export function TransactionsDataTable({
                     setItemsPerPage(Number(e.target.value));
                     setCurrentPage(1);
                   }}
-                  className="h-7 px-2 rounded-md bg-white dark:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] text-xs font-semibold text-zinc-800 dark:text-zinc-200 focus:outline-none focus:border-[#FF8216] cursor-pointer"
+                  className="h-7 px-2 rounded-md bg-white dark:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] text-xs font-semibold text-zinc-800 dark:text-zinc-200 focus:outline-none focus:border-[#E11D48] cursor-pointer"
                 >
                   <option value={15}>15</option>
                   <option value={30}>30</option>
@@ -769,7 +769,7 @@ export function TransactionsDataTable({
                         onClick={() => setCurrentPage(pNum)}
                         className={`w-7 h-7 rounded-md text-xs font-bold tabular-nums transition-colors cursor-pointer ${
                           pNum === validPage
-                            ? "bg-[#FF8216] text-black"
+                            ? "bg-white text-black"
                             : "border border-zinc-200 dark:border-[#27272A] bg-white dark:bg-[#18181B] text-zinc-600 dark:text-zinc-300"
                         }`}
                       >
@@ -846,7 +846,7 @@ export function TransactionsDataTable({
                   placeholder="Ex: Supermercado, Dividendos, Aluguel..."
                   value={newTxDesc}
                   onChange={(e) => setNewTxDesc(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-[#18181B] border border-[#27272A] text-[#F4F4F5] focus:outline-none focus:border-[#FF8216]"
+                  className="w-full px-3 py-2 rounded-lg bg-[#18181B] border border-[#27272A] text-[#F4F4F5] focus:outline-none focus:border-[#E11D48]"
                 />
               </div>
 
@@ -859,7 +859,7 @@ export function TransactionsDataTable({
                     placeholder="0,00"
                     value={newTxAmount}
                     onChange={(e) => setNewTxAmount(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg bg-[#18181B] border border-[#27272A] text-[#F4F4F5] tabular-nums font-bold focus:outline-none focus:border-[#FF8216]"
+                    className="w-full px-3 py-2 rounded-lg bg-[#18181B] border border-[#27272A] text-[#F4F4F5] tabular-nums font-bold focus:outline-none focus:border-[#E11D48]"
                   />
                 </div>
                 <div>
@@ -868,7 +868,7 @@ export function TransactionsDataTable({
                     type="date"
                     value={newTxDate}
                     onChange={(e) => setNewTxDate(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg bg-[#18181B] border border-[#27272A] text-[#F4F4F5] focus:outline-none focus:border-[#FF8216]"
+                    className="w-full px-3 py-2 rounded-lg bg-[#18181B] border border-[#27272A] text-[#F4F4F5] focus:outline-none focus:border-[#E11D48]"
                   />
                 </div>
               </div>
@@ -878,7 +878,7 @@ export function TransactionsDataTable({
                 <select
                   value={newTxCategory}
                   onChange={(e) => setNewTxCategory(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-[#18181B] border border-[#27272A] text-[#F4F4F5] focus:outline-none focus:border-[#FF8216] cursor-pointer"
+                  className="w-full px-3 py-2 rounded-lg bg-[#18181B] border border-[#27272A] text-[#F4F4F5] focus:outline-none focus:border-[#E11D48] cursor-pointer"
                 >
                   <option value="Alimentação">Alimentação</option>
                   <option value="Compras">Compras</option>
@@ -893,7 +893,7 @@ export function TransactionsDataTable({
 
               <button
                 type="submit"
-                className="w-full py-2.5 mt-1 rounded-lg bg-[#FF8216] hover:bg-[#FFA047] text-black font-bold text-xs cursor-pointer transition-colors"
+                className="w-full py-2.5 mt-1 rounded-lg bg-white hover:bg-zinc-200 active:bg-zinc-300 text-black font-bold text-xs cursor-pointer transition-colors"
               >
                 Salvar Transação
               </button>

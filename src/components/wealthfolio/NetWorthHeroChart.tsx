@@ -446,7 +446,7 @@ export function NetWorthHeroChart({
           </div>
           {vehiclesBalance > 0 && (
             <div>
-              <span className="text-[10px] font-medium uppercase tracking-wider text-[#FF8216] block">
+              <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-400 block">
                 Veículos (FIPE)
               </span>
               <span className="text-xs md:text-sm font-semibold tabular-nums text-zinc-100">
@@ -456,7 +456,7 @@ export function NetWorthHeroChart({
           )}
           {realEstateBalance > 0 && (
             <div>
-              <span className="text-[10px] font-medium uppercase tracking-wider text-[#FF8216] block">
+              <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-400 block">
                 Imóveis & Terrenos
               </span>
               <span className="text-xs md:text-sm font-semibold tabular-nums text-zinc-100">
@@ -466,7 +466,7 @@ export function NetWorthHeroChart({
           )}
           {fgtsBalance > 0 && (
             <div>
-              <span className="text-[10px] font-medium uppercase tracking-wider text-[#FF8216] block">
+              <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-400 block">
                 FGTS Caixa
               </span>
               <span className="text-xs md:text-sm font-semibold tabular-nums text-zinc-100">
@@ -505,10 +505,10 @@ export function NetWorthHeroChart({
           className="w-full h-full overflow-visible"
         >
           <defs>
-            <linearGradient id="wfNetWorthOrangeGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#FF8216" stopOpacity={0.25} />
-              <stop offset="52%" stopColor="#FF8216" stopOpacity={0.08} />
-              <stop offset="100%" stopColor="#FF8216" stopOpacity={0.0} />
+            <linearGradient id="wfNetWorthWhiteGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#FFFFFF" stopOpacity={0.16} />
+              <stop offset="52%" stopColor="#FFFFFF" stopOpacity={0.04} />
+              <stop offset="100%" stopColor="#FFFFFF" stopOpacity={0.0} />
             </linearGradient>
           </defs>
 
@@ -524,9 +524,9 @@ export function NetWorthHeroChart({
             strokeDasharray="4 4"
           />
 
-          {/* Preenchimento em gradiente suave Kitsune Orange */}
+          {/* Preenchimento em gradiente suave Branco / Monocromático */}
           {chartGeometry.areaPath && (
-            <path d={chartGeometry.areaPath} fill="url(#wfNetWorthOrangeGrad)" />
+            <path d={chartGeometry.areaPath} fill="url(#wfNetWorthWhiteGrad)" />
           )}
 
           {/* Traço principal da curva patrimonial */}
@@ -534,7 +534,7 @@ export function NetWorthHeroChart({
             <path
               d={chartGeometry.linePath}
               fill="none"
-              stroke="#FF8216"
+              stroke="#FFFFFF"
               strokeWidth={2.15}
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -549,8 +549,8 @@ export function NetWorthHeroChart({
               x2={hoveredCoord.x}
               y1={PAD_TOP / 2}
               y2={H}
-              stroke="#FF8216"
-              strokeOpacity={0.45}
+              stroke="#FFFFFF"
+              strokeOpacity={0.4}
               strokeWidth={1}
               strokeDasharray="3 3"
               vectorEffect="non-scaling-stroke"
@@ -562,7 +562,7 @@ export function NetWorthHeroChart({
         {hoveredCoord && (
           <>
             <div
-              className="pointer-events-none absolute w-3 h-3 -ml-1.5 -mt-1.5 rounded-full bg-[#FF8216] ring-4 ring-[#0A0A0A] shadow-[0_0_12px_rgba(255,130,22,0.8)]"
+              className="pointer-events-none absolute w-3 h-3 -ml-1.5 -mt-1.5 rounded-full bg-white ring-4 ring-[#0A0A0A] shadow-[0_0_12px_rgba(255,255,255,0.7)]"
               style={{
                 left: `${(hoveredCoord.x / W) * 100}%`,
                 top: `${(hoveredCoord.y / H) * 100}%`,
@@ -629,7 +629,7 @@ export function NetWorthHeroChart({
                   <motion.span
                     layoutId="wf-interval-active-pill"
                     transition={{ type: "spring", stiffness: 450, damping: 34 }}
-                    className="absolute inset-0 rounded-full bg-[#FF8216]"
+                    className="absolute inset-0 rounded-full bg-white text-black"
                   />
                 )}
                 <span className="relative z-10">{label}</span>
