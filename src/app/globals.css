@@ -59,6 +59,36 @@ html.lenis, html.lenis body {
   pointer-events: none;
 }
 
+/* Escudo Instantâneo de Multitarefa PWA (Snapshot Masking 0ms) */
+#pwa-privacy-shield-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: #0A0A0A;
+  z-index: 2147483647; /* Máximo z-index de 32 bits */
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  pointer-events: auto;
+}
+
+body.pwa-privacy-curtain-active #pwa-privacy-shield-overlay,
+html.pwa-privacy-curtain-active #pwa-privacy-shield-overlay {
+  display: flex !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+body.pwa-privacy-curtain-active #kitsune-app-root,
+html.pwa-privacy-curtain-active #kitsune-app-root {
+  filter: blur(30px) !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  user-select: none !important;
+}
+
 /* Suporte de alto contraste para Tema Claro e Tema Escuro com Transições Fluidas */
 body {
   background-color: #FAFAFA;

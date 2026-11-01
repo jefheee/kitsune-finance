@@ -4,6 +4,13 @@ Todas as alterações notáveis no projeto Kitsune Finance são registradas de f
 
 ---
 
+## [2026-11-01] - Escudo Instantâneo de Multitarefa PWA (Snapshot Masking 0ms no DOM)
+- **Arquivos Afetados:** `src/app/globals.css`, `src/components/security/BiometricLockGuard.tsx`, `docs/PROJECT_STATE.md`, `docs/CHANGELOG.md`.
+- **Objetivo:**
+  - Blindagem da tela de troca de apps (Task Switcher / Recents) no Android e iOS: escuta imediata de `window.onblur` e injeção síncrona da classe `.pwa-privacy-curtain-active` no DOM (`0ms`), forçando o overlay fixo `#0A0A0A` (`z-index: 2147483647`) e aplicando `filter: blur(30px)` e `opacity: 0` no `#kitsune-app-root` antes do snapshot do sistema operacional.
+
+---
+
 ## [2026-11-01] - Correção do Guardião Biométrico PWA: Cold-Start Lock, Onboarding Proativo & PIN Universal
 - **Arquivos Afetados:** `src/utils/security/biometrics.ts`, `src/components/security/BiometricLockGuard.tsx`, `src/app/settings/page.tsx`, `docs/PROJECT_STATE.md`, `docs/CHANGELOG.md`.
 - **Objetivo:**
