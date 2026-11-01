@@ -4,6 +4,15 @@ Todas as alterações notáveis no projeto Kitsune Finance são registradas de f
 
 ---
 
+## [2026-11-01] - Guardião Biométrico PWA (WebAuthn W3C) & Cortina de Privacidade
+- **Arquivos Afetados:** `src/utils/security/biometrics.ts`, `src/components/security/BiometricLockGuard.tsx`, `src/app/layout.tsx`, `src/app/settings/page.tsx`, `docs/PROJECT_STATE.md`, `docs/CHANGELOG.md`.
+- **Objetivo:**
+  - Implementação de autenticação biométrica via WebAuthn W3C (Passkey / Face ID / Touch ID / Digital Android) com credenciais de plataforma e exigência de `userVerification: 'required'`.
+  - Adição do componente global `BiometricLockGuard` com Page Lifecycle API (`visibilitychange`, `pagehide`), cortina instantânea Warm Obsidian (`#0A0A0A`) para blindagem de saldos no multitarefa móvel e desbloqueio por gesto explícito do usuário com fallback de senha.
+  - Painel de gestão biométrica em `/settings` com teste em tempo real e temporizador de bloqueio configurável.
+
+---
+
 ## [2026-11-01] - Fusão Total de UI/UX: Portabilidade Completa do Wealthfolio em Warm Obsidian (v2.1)
 - **Arquivos Afetados:** `src/components/layout/AppShell.tsx`, `src/components/wealthfolio/*`, `src/app/dashboard/page.tsx`, `src/app/investments/page.tsx`, `src/app/holdings/page.tsx`, `src/app/insights/page.tsx`, `src/app/transactions/page.tsx`, `src/app/goals/page.tsx`, `src/app/cards/page.tsx`, `src/app/connections/page.tsx`, `src/app/globals.css`, `src/app/layout.tsx`, `docs/PROJECT_STATE.md`, `docs/ARCHITECTURE_EXPANSION.md`.
 - **Objetivo:**

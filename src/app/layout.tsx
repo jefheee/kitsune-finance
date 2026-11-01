@@ -7,6 +7,7 @@ import { FinanceDataProvider } from '@/context/FinanceDataContext';
 import ServiceWorkerRegistrar from '@/components/ServiceWorkerRegistrar';
 import OnboardingModal from '@/components/OnboardingModal';
 import { SmoothScrollProvider } from '@/components/providers/SmoothScrollProvider';
+import { BiometricLockGuard } from '@/components/security/BiometricLockGuard';
 
 const fontSans = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -68,7 +69,9 @@ export default function RootLayout({
             <SmoothScrollProvider>
               <ServiceWorkerRegistrar />
               <OnboardingModal />
-              <AppShell>{children}</AppShell>
+              <BiometricLockGuard>
+                <AppShell>{children}</AppShell>
+              </BiometricLockGuard>
             </SmoothScrollProvider>
           </FinanceDataProvider>
         </ThemeProvider>
