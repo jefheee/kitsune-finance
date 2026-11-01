@@ -4,6 +4,15 @@ Todas as alterações notáveis no projeto Kitsune Finance são registradas de f
 
 ---
 
+## [2026-11-01] - Release v2.0: Consolidação em Produção, Webhook Real-Time Pluggy, Monitor FGC & Build Validado
+- **Arquivos Afetados:** `src/app/api/webhooks/pluggy/route.ts`, `src/utils/pluggy/sync.ts`, `src/app/investments/page.tsx`, `src/app/dashboard/page.tsx`, `src/app/layout.tsx`, `public/manifest.json`, `.gitignore`, `README.md`, `docs/ARCHITECTURE_EXPANSION.md`, `docs/PROJECT_STATE.md`.
+- **Objetivo:**
+  - Higienização profunda de artefatos órfãos: remoção de scripts temporários na raiz (`temp_page.txt`, `extract-dom.js`, `extract-svg.js`), suíte de testes de desenvolvimento (`test-suite.ts`), pasta de capturas legadas (`public/pierre design system/`) e logo duplicada (`logo.png`), com blindagem total de regras no `.gitignore`.
+  - Upgrade do Webhook Real-Time Pluggy (`/api/webhooks/pluggy`): suporte a eventos de ciclo de vida (`transactions/created`, `transactions/updated`, `transactions/deleted`) e invalidação automática e resiliente de caches de dossiê da Kitsune AI (`system_prompt_cached = null`) após sincronizações.
+  - Integração do Monitor de Garantia FGC por Conglomerado Emissor Real (teto de R$ 250k) e Simulador Interativo de Equivalência Tributária (CDB vs. LCI/LCA) & Juro Real de Fisher em `/investments` e `/dashboard`, atualização executiva do `README.md` v2.0 e validação de build de produção (`npm run build`, 33/33 rotas com sucesso).
+
+---
+
 ## [2026-11-01] - Implementação da Etapa 5: Pix de Acerto Único (/shared), Simulador de Dívidas/Antecipação (/cards), Taxas BCB ao Vivo & Auditoria Upstream
 - **Arquivos Afetados:** `src/utils/finance/shared-settlement.ts`, `src/app/shared/page.tsx`, `src/app/api/shared-space/route.ts`, `src/components/finance/DebtAndAdvanceSimulator.tsx`, `src/app/cards/page.tsx`, `src/utils/finance/macro-rates.ts`, `src/app/api/finance/macro-rates/route.ts`, `src/utils/pluggy/client.ts`, `src/utils/pluggy/transaction-enricher.ts`, `src/utils/pluggy/sync.ts`, `src/utils/finance/enrichment-pipeline.ts`, `src/utils/finance/engine/xray-rules.ts`, `src/utils/ai/deterministic-tools.ts`, `src/utils/ai/dossier.ts`, `src/app/investments/page.tsx`, `AGENTS.md`, `docs/ARCHITECTURE_EXPANSION.md`, `docs/PROJECT_STATE.md`.
 - **Objetivo:**

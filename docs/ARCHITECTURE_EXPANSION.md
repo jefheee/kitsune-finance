@@ -12,6 +12,7 @@
 - [x] **Etapa 3:** Orquestração Multi-Agente com Tool Calling Determinístico (7 Agentes Kitsune + Macro-Tools do Maybe + Endpoint `/api/mcp`).
 - [x] **Etapa 4:** Performance Client-Side (Read-Through Cache IndexedDB `0ms`, Lista Virtualizada 60 FPS e Diagrama de Sankey em SVG).
 - [x] **Etapa 5:** Reconciliador Dinâmico no Espaço Compartilhado ("Pix de Acerto Único"), UI Interativa do Simulador de Dívidas/Antecipação e Auditoria Upstream (`pluggy-node`, `BrasilAPI` e `minha-receita`).
+- [x] **Release v2.0 (Consolidação em Produção):** Higienização profunda (zero artefatos órfãos), Webhook Real-Time Pluggy com invalidação de cache IA, Monitor de Garantia FGC por Emissor Real e Simulador de Equivalência Tributária em `/investments`, README.md executivo v2.0 e build de produção validado (33/33 rotas).
 
 ---
 

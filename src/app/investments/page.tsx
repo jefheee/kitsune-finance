@@ -6,6 +6,11 @@ import { useFinanceData } from "@/context/FinanceDataContext";
 import { BankLogo } from "@/components/BankLogo";
 import { parseLocalDate } from "@/utils/finance/reconciler";
 import {
+  runFinancialXRay,
+  compareTaxExemptVsTaxable,
+  calculateRealInterestRate,
+} from "@/utils/finance/engine";
+import {
   fetchLiveMacroRates,
   formatPercentPtBr,
   getCachedOrFallbackMacroRates,
@@ -27,6 +32,9 @@ export default function InvestmentsPage() {
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [showRedeemed, setShowRedeemed] = useState<boolean>(false);
+  const [taxCompDays, setTaxCompDays] = useState<number>(360);
+  const [cdbRateInput, setCdbRateInput] = useState<number>(100);
+  const [lciRateInput, setLciRateInput] = useState<number>(85);
   const PAGE_SIZE = 6;
 
   useEffect(() => {
@@ -74,6 +82,70 @@ export default function InvestmentsPage() {
       (inv) => Number(inv.balance) <= 0 || inv.status === "TOTAL_WITHDRAWAL"
     );
   }, [filteredInvestments]);
+
+  // Análise de Garantia e Concentração do FGC por Emissor Real
+  const fgcAnalysis = useMemo(() => {
+    const map = new Map<
+      string,
+      { issuerName: string; totalBalance: number; count: number; items: typeof activeInvestments }
+    >();
+
+    activeInvestments.forEach((inv) => {
+      const type = (inv.type || "").toUpperCase();
+      const isFgcEligible =
+        ["CDB", "LCI", "LCA", "RDB", "POUPANCA"].includes(type) ||
+        (inv.name || "").toLowerCase().includes("cdb") ||
+        (inv.name || "").toLowerCase().includes("lci") ||
+        (inv.name || "").toLowerCase().includes("lca") ||
+        (inv.name || "").toLowerCase().includes("rdb");
+
+      if (!isFgcEligible) return;
+
+      const issuer =
+        inv.issuer && String(inv.issuer).trim().length > 1
+          ? String(inv.issuer).trim()
+          : String(inv.institution_name || inv.bank_name || "Instituição Emissora").trim();
+
+      const bal = Number(inv.balance) || 0;
+      const existing = map.get(issuer) || {
+        issuerName: issuer,
+        totalBalance: 0,
+        count: 0,
+        items: [],
+      };
+      existing.totalBalance += bal;
+      existing.count += 1;
+      existing.items.push(inv);
+      map.set(issuer, existing);
+    });
+
+    const FGC_CEILING = 250000;
+    const issuers = Array.from(map.values()).sort((a, b) => b.totalBalance - a.totalBalance);
+    const totalEligible = issuers.reduce((s, i) => s + i.totalBalance, 0);
+    const totalExposed = issuers.reduce(
+      (s, i) => s + Math.max(0, i.totalBalance - FGC_CEILING),
+      0
+    );
+    const totalProtected = totalEligible - totalExposed;
+
+    return {
+      issuers,
+      totalEligible,
+      totalProtected,
+      totalExposed,
+      isFullyProtected: totalExposed === 0,
+      FGC_CEILING,
+    };
+  }, [activeInvestments]);
+
+  // Simulador de Equivalência Tributária (CDB vs. LCI/LCA)
+  const taxCompResult = useMemo(() => {
+    return compareTaxExemptVsTaxable({
+      cdbPercentCDI: cdbRateInput,
+      lciPercentCDI: lciRateInput,
+      calendarDays: taxCompDays,
+    });
+  }, [cdbRateInput, lciRateInput, taxCompDays]);
 
   // Auditoria transparente de composição: grandes posições vs menores aportes
   const portfolioAudit = useMemo(() => {
@@ -446,6 +518,216 @@ export default function InvestmentsPage() {
               <span className="text-[10px] text-slate-400 font-bold block uppercase">Juro Real (Fisher)</span>
               <span className="text-base font-extrabold text-emerald-500 tabular-nums">+{realInterestFormatted}</span>
               <span className="text-[10px] text-slate-400 block mt-0.5">Ganho Acima da Inflação</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Monitor de Garantia FGC por Conglomerado Emissor (R$ 250k por Emissor) */}
+        <div className="p-5 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] shadow-xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-[#27272A]">
+            <div className="flex items-center gap-2.5">
+              <span className="p-1.5 rounded-xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                <span className="material-symbols-outlined text-lg">verified_user</span>
+              </span>
+              <div>
+                <h2 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                  <span>Monitor de Garantia FGC por Conglomerado Emissor</span>
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                      fgcAnalysis.isFullyProtected
+                        ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                        : "bg-rose-500/10 text-rose-500 border-rose-500/20"
+                    }`}
+                  >
+                    {fgcAnalysis.isFullyProtected ? "100% Protegido pelo FGC" : "Atenção: Limite Excedido"}
+                  </span>
+                </h2>
+                <p className="text-[11px] text-slate-500 dark:text-[#94A3B8]">
+                  Auditoria de teto máximo de R$ 250.000,00 por instituição financeira emissora (Resolução CMN nº 4.222)
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-slate-500 dark:text-slate-400">Total Elegível:</span>
+              <span className="font-extrabold text-emerald-500 tabular-nums">
+                {formatSensitiveCurrency(fgcAnalysis.totalProtected)}
+              </span>
+              {fgcAnalysis.totalExposed > 0 && (
+                <span className="font-extrabold text-rose-500 tabular-nums">
+                  ({formatSensitiveCurrency(fgcAnalysis.totalExposed)} expostos)
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Grid de Conglomerados Emissores */}
+          {fgcAnalysis.issuers.length === 0 ? (
+            <div className="p-4 text-center text-xs text-slate-400">
+              Nenhum título elegível ao FGC (CDB, LCI, LCA, RDB) encontrado na carteira ativa.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+              {fgcAnalysis.issuers.map((item) => {
+                const pct = Math.min(100, Math.round((item.totalBalance / fgcAnalysis.FGC_CEILING) * 100));
+                const isExceeded = item.totalBalance > fgcAnalysis.FGC_CEILING;
+                const isCaution = item.totalBalance >= 220000 && !isExceeded;
+
+                return (
+                  <div
+                    key={item.issuerName}
+                    className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] space-y-2"
+                  >
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-slate-900 dark:text-white truncate max-w-[200px]" title={item.issuerName}>
+                        {item.issuerName}
+                      </span>
+                      <div className="text-right tabular-nums">
+                        <span
+                          className={`font-extrabold ${
+                            isExceeded ? "text-rose-500" : isCaution ? "text-[#FF8216]" : "text-emerald-500"
+                          }`}
+                        >
+                          {formatSensitiveCurrency(item.totalBalance)}
+                        </span>
+                        <span className="text-[10px] text-slate-400 ml-1">/ R$ 250k</span>
+                      </div>
+                    </div>
+
+                    {/* Barra de Utilização do Teto */}
+                    <div className="w-full h-2 rounded-full bg-slate-200 dark:bg-zinc-800 overflow-hidden">
+                      <div
+                        style={{ width: `${pct}%` }}
+                        className={`h-full transition-all ${
+                          isExceeded ? "bg-rose-500" : isCaution ? "bg-[#FF8216]" : "bg-emerald-500"
+                        }`}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between text-[10px] text-slate-400">
+                      <span>{item.count} título(s) vinculados</span>
+                      <span
+                        className={`font-semibold ${
+                          isExceeded ? "text-rose-400" : isCaution ? "text-amber-400" : "text-emerald-400"
+                        }`}
+                      >
+                        {isExceeded
+                          ? `Excede em ${formatSensitiveCurrency(item.totalBalance - fgcAnalysis.FGC_CEILING)}`
+                          : `${pct}% do teto utilizado`}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Simulador de Equivalência Tributária & Juro Real Fisher */}
+        <div className="p-5 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] shadow-xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-[#27272A]">
+            <div className="flex items-center gap-2.5">
+              <span className="p-1.5 rounded-xl bg-[#FF8216]/10 text-[#FF8216] border border-[#FF8216]/20">
+                <span className="material-symbols-outlined text-lg">calculate</span>
+              </span>
+              <div>
+                <h2 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                  Simulador de Equivalência Tributária (CDB vs. LCI/LCA)
+                </h2>
+                <p className="text-[11px] text-slate-500 dark:text-[#94A3B8]">
+                  Compare títulos tributados vs. isentos de IR considerando a tabela regressiva da Receita Federal
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {[
+                { days: 180, label: "Até 180d (IR 22,5%)" },
+                { days: 360, label: "360d (IR 20,0%)" },
+                { days: 720, label: "720d (IR 17,5%)" },
+                { days: 1080, label: "> 720d (IR 15,0%)" },
+              ].map((btn) => (
+                <button
+                  key={btn.days}
+                  type="button"
+                  onClick={() => setTaxCompDays(btn.days)}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer border ${
+                    taxCompDays === btn.days
+                      ? "bg-[#FF8216] text-white border-[#FF8216]"
+                      : "bg-slate-50 dark:bg-[#18181B] text-slate-600 dark:text-zinc-400 border-slate-200 dark:border-[#27272A] hover:text-white"
+                  }`}
+                >
+                  {btn.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+            {/* Input CDB */}
+            <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] space-y-1">
+              <span className="text-[10px] text-slate-400 uppercase font-bold block">Taxa CDB (% do CDI)</span>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min={50}
+                  max={200}
+                  value={cdbRateInput}
+                  onChange={(e) => setCdbRateInput(Number(e.target.value) || 100)}
+                  className="w-20 px-2 py-1 rounded-lg bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] text-slate-900 dark:text-white font-extrabold text-sm focus:outline-none focus:border-[#FF8216]"
+                />
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-bold">% CDI</span>
+              </div>
+              <span className="text-[10px] text-slate-400 block mt-1">
+                Equivale a LCI/LCA de <strong>{taxCompResult.equivalentLCIRateForCDB}% CDI</strong>
+              </span>
+            </div>
+
+            {/* Input LCI */}
+            <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] space-y-1">
+              <span className="text-[10px] text-slate-400 uppercase font-bold block">Taxa LCI / LCA (% do CDI)</span>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min={50}
+                  max={200}
+                  value={lciRateInput}
+                  onChange={(e) => setLciRateInput(Number(e.target.value) || 85)}
+                  className="w-20 px-2 py-1 rounded-lg bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] text-slate-900 dark:text-white font-extrabold text-sm focus:outline-none focus:border-[#FF8216]"
+                />
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-bold">% CDI (Isento)</span>
+              </div>
+              <span className="text-[10px] text-slate-400 block mt-1">
+                Equivale a CDB de <strong>{taxCompResult.equivalentCDBRateForLCI}% CDI</strong>
+              </span>
+            </div>
+
+            {/* Veredito */}
+            <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] space-y-1">
+              <span className="text-[10px] text-slate-400 uppercase font-bold block">Veredito Matemático</span>
+              <div className="flex items-center gap-2">
+                <span
+                  className={`px-2 py-0.5 rounded-full text-xs font-black border ${
+                    taxCompResult.winner === "CDB"
+                      ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                      : taxCompResult.winner === "LCI_LCA"
+                      ? "bg-[#FF8216]/10 text-[#FF8216] border-[#FF8216]/20"
+                      : "bg-slate-500/10 text-slate-400 border-slate-500/20"
+                  }`}
+                >
+                  {taxCompResult.winner === "CDB"
+                    ? "🏆 CDB Vence"
+                    : taxCompResult.winner === "LCI_LCA"
+                    ? "🏆 LCI/LCA Vence"
+                    : "⚖️ Empate Técnico"}
+                </span>
+                <span className="text-xs font-bold text-slate-900 dark:text-white tabular-nums">
+                  +{taxCompResult.spreadAdvantagePctCDI}% spread
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug line-clamp-2 mt-1">
+                {taxCompResult.explanationPtBr}
+              </p>
             </div>
           </div>
         </div>

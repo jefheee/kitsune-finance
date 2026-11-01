@@ -40,5 +40,12 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# temporary reference benchmarks
+# temporary reference benchmarks & test scripts
 .benchmarks/
+temp_*.txt
+temp_page.txt
+test-suite.ts
+
+# ide & temporary rules
+.cursor/
+!.cursor/rules/

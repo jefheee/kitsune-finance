@@ -32,7 +32,7 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: '/assets/logo/logo_sem_fundo.png',
-    apple: '/assets/logo/logo.png',
+    apple: '/assets/logo/logo_sem_fundo.png',
   },
 };
 

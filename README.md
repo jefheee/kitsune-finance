@@ -5,7 +5,7 @@
 <h1 align="center">Kitsune Finance</h1>
 
 <p align="center">
-  <strong>Autonomous Wealth Management, Open Finance Consolidation, and Private Family Office Engine</strong>
+  <strong>Autonomous Wealth Management, Open Finance Consolidation, and Private Family Office Engine (v2.0)</strong>
 </p>
 
 <p align="center">
@@ -22,12 +22,13 @@
   <a href="#overview">Overview</a> &bull;
   <a href="#the-zero-cost-sovereignty-model">Zero-Cost Model</a> &bull;
   <a href="#system-architecture">Architecture</a> &bull;
+  <a href="#deterministic-mathematical-engine">Mathematical Engine</a> &bull;
+  <a href="#3-tier-enrichment--reconciliation">Reconciliation & Open Finance</a> &bull;
+  <a href="#specialist-agents--mcp-server">Agents & MCP Server</a> &bull;
+  <a href="#client-performance--visual-suite">Performance & Visual Suite</a> &bull;
   <a href="#core-capabilities">Core Capabilities</a> &bull;
-  <a href="#interface-showcase--visual-tour">Interface Showcase</a> &bull;
   <a href="#security-and-data-protection">Security</a> &bull;
-  <a href="#tech-stack">Tech Stack</a> &bull;
-  <a href="#getting-started">Getting Started</a> &bull;
-  <a href="#environment-variables">Configuration</a> &bull;
+  <a href="#project-structure">Project Structure</a> &bull;
   <a href="#license">License</a>
 </p>
 
@@ -35,9 +36,9 @@
 
 ## Overview
 
-Kitsune Finance is a production-grade, self-hostable wealth management platform and digital family office. It eliminates reliance on expensive proprietary financial SaaS products, third-party data brokers, and closed banking aggregators.
+Kitsune Finance is a production-grade, self-hostable wealth management platform, digital family office, and sovereign financial intelligence hub. It eliminates reliance on expensive proprietary SaaS products, third-party data brokers, and closed banking aggregators.
 
-By marrying Brazil's Open Finance ecosystem with local mathematical reconciliation and an orchestrated multi-model AI pipeline, Kitsune delivers sovereign financial intelligence: real-time multi-bank aggregation, credit card installment forecasting, macroeconomic investment benchmarks, and multi-member family balance sheets at zero recurring infrastructure cost.
+By combining Brazil's Open Finance ecosystem with local mathematical reconciliation, a deterministic financial engine, and an orchestrated multi-model AI pipeline, Kitsune delivers sovereign financial intelligence: real-time multi-bank aggregation, credit card installment forecasting, macroeconomic investment benchmarks, and multi-member family balance sheets at zero recurring infrastructure cost ($0.00/month).
 
 ### The Mission: Sovereign Finance Without Recurring Subscriptions
 
@@ -46,7 +47,7 @@ Traditional personal finance applications suffer from three critical structural 
 2. **Data Monetization:** Free aggregators often subsidize operations by selling anonymized transactional telemetry, credit profiles, and purchasing habits to financial institutions and ad networks.
 3. **AI Hallucinations:** Generic AI wrappers ask Large Language Models to calculate net worth, arithmetic sums, and debt interest directly, resulting in fabricated numbers and dangerous financial advice.
 
-Kitsune Finance solves all three challenges. It runs entirely on generous, permanently free developer tiers (Supabase PostgreSQL, Pluggy Open Finance Sandbox/Personal, Google Gemini Free Tier, Groq Cloud, Vercel/Self-hosted Node.js). You own the database, the keys, and the code.
+Kitsune Finance resolves all three challenges. It runs entirely on generous, permanently free developer tiers (Supabase PostgreSQL, Pluggy Open Finance Sandbox/Personal, Google Gemini Free Tier, Groq Cloud, Vercel/Self-hosted Node.js). You own the database, the keys, and the code.
 
 ---
 
@@ -59,6 +60,8 @@ Kitsune Finance is engineered to deliver enterprise-grade wealth infrastructure 
 | Database & Security | Supabase (PostgreSQL 15+) | Free Tier (500MB DB, 50k MAU, Row Level Security) | $0.00 |
 | Identity & Authentication | Supabase Auth (Google OAuth2 + SSR) | Free Tier (Unlimited Social Providers) | $0.00 |
 | Open Finance Pipeline | Pluggy SDK (`pluggy-sdk`) | Developer Tier (Personal Connections Sandbox/Live) | $0.00 |
+| Public Government APIs | BrasilAPI & MinhaReceita | High-Availability Public APIs (Dual Failover) | $0.00 |
+| Central Bank Live Rates | Banco Central do Brasil (via BrasilAPI) | Official Daily Rates (Selic, CDI, IPCA) with 12h Hybrid Cache | $0.00 |
 | Primary AI Reasoning | Google Gemini API (`gemini-3.8-flash`, `gemini-3.5-flash-lite`) | Google AI Studio Free Tier (15 RPM / 1M TPM) | $0.00 |
 | Fast AI Inference & Audio | Groq Cloud (`llama-3.3-70b-versatile`, `whisper-large-v3`) | Free Cloud Tier (High TPS, Ultra-Low Latency) | $0.00 |
 | Application Hosting | Vercel Hobby or Self-Hosted Docker | Free Tier / Self-Hosted VPS / Home Server | $0.00 |
@@ -76,52 +79,179 @@ Kitsune Finance decouples mathematical execution from natural language understan
 flowchart TD
     User["User Client (Web / PWA / Mobile)"]
 
-    subgraph Presentation["Presentation & State"]
-        AppShell["AppShell & Warm Obsidian Engine"]
-        FinanceContext["FinanceDataContext (Client-side Cache)"]
-        PrivacyEngine["Global Privacy Shield (Masked Currencies)"]
+    subgraph Client["Client-Side Performance Layer"]
+        AppShell["AppShell & Warm Obsidian Tokens"]
+        IndexedDB["Read-Through Cache (kitsune_userId_db 0ms)"]
+        VirtualizedList["60 FPS Virtualized Transactions List"]
+        SankeyChart["Pure SVG Cash Flow Sankey"]
     end
 
-    subgraph AppRouter["Next.js 16 App Router (Server-Side)"]
+    subgraph AppRouter["Next.js App Router (Server-Side)"]
         APIRoutes["Secure API Routes (/api/**)"]
-        AuthGuard["Server Auth Validator (supabase.auth.getUser)"]
-        IncomeDetector["Autonomous Income Detector"]
-        Reconciliation["Cash Flow Reconciliation Engine"]
+        MCPEndpoint["Native MCP Server (/api/mcp)"]
+        MacroRatesRoute["Central Bank Live Rates (/api/finance/macro-rates)"]
+        PluggyWebhook["Real-Time Pluggy Webhook (/api/webhooks/pluggy)"]
+    end
+
+    subgraph DeterministicEngine["Deterministic Math & X-Ray Engine"]
+        CDIEngine["B3/CETIP DU/252 CDI (ANBIMA Calendar)"]
+        TaxEngine["Regressive IR & IOF + LCI/LCA Equivalence"]
+        FisherEngine["Exact Fisher Real Interest Rate"]
+        CETEngine["Newton-Raphson CET & Advance Evaluator"]
+        DebtEngine["Snowball vs Avalanche (Rollover Engine)"]
+        XRayRules["Ghostfolio X-Ray & FGC Radar (R$ 250k)"]
+    end
+
+    subgraph MultiAgentLayer["7 Kitsune Specialist Agents (MSLR Orchestration)"]
+        Sentinela["Sentinela (Orchestrator / Router)"]
+        Kuro["Kuro (Forensic Auditor & Anomalies)"]
+        Kenji["Kenji (Debt & Cards Strategist)"]
+        Daiko["Daiko (Portfolio & FGC Manager)"]
+        Kage["Kage (Impulse & Leak Hunter)"]
+        Ren["Ren (Goals & Fisher Projector)"]
+        Takeshi["Takeshi (Family & Shared Settlement)"]
     end
 
     subgraph DataStore["Data Layer (Supabase PostgreSQL)"]
-        RLS["Row Level Security (FORCE RLS, anon revoked)"]
-        Tables["bank_accounts | transactions | investments | shared_connections"]
-    end
-
-    subgraph ExternalServices["External Banking & AI Gateways"]
-        Pluggy["Pluggy Open Finance SDK (140+ Banks)"]
-        GeminiPool["Google Gemini API (3.8 Flash / 3.5 Flash-lite)"]
-        Groq["Groq Cloud (Llama 3.3 / Whisper Voice)"]
+        RLS["FORCE ROW LEVEL SECURITY (anon revoked)"]
+        Tables["bank_accounts | transactions | investments | loans | known_merchants"]
     end
 
     User --> AppShell
-    AppShell --> FinanceContext
-    FinanceContext --> PrivacyEngine
-    FinanceContext --> APIRoutes
+    AppShell --> IndexedDB
+    IndexedDB --> VirtualizedList
+    IndexedDB --> SankeyChart
 
-    APIRoutes --> AuthGuard
-    AuthGuard --> RLS
-    RLS --> Tables
+    AppShell --> APIRoutes
+    APIRoutes --> MCPEndpoint
+    APIRoutes --> MacroRatesRoute
+    APIRoutes --> PluggyWebhook
 
-    APIRoutes --> IncomeDetector
-    APIRoutes --> Reconciliation
-    APIRoutes --> Pluggy
-    APIRoutes --> GeminiPool
-    APIRoutes --> Groq
+    APIRoutes --> DeterministicEngine
+    DeterministicEngine --> MultiAgentLayer
+    MultiAgentLayer --> DataStore
 ```
 
-### The Deterministic MSLR Pattern
+---
 
-Large Language Models are non-deterministic and prone to arithmetic failure. Kitsune Finance resolves this by enforcing a strict division of labor:
-1. **Parameter & Intent Extraction:** Groq (`llama-3.3-70b-versatile`) parses natural language inputs and extracts operational bounds (dates, merchant names, categories, intent targets) in sub-100ms latency.
-2. **Deterministic Computation:** Strict TypeScript algorithms query PostgreSQL through Supabase RLS. All math (balances, net worth, cash flow, debt burn rate, interest projections, compound interest) is calculated purely in code.
-3. **Synthesis & Persona Delivery:** The immutable computed JSON is passed to the Google Gemini model pool (`gemini-3.8-flash` or `gemini-3.5-flash-lite`). The LLM acts solely as a financial communicator and synthesizer, rendering the pre-calculated numbers into clear, actionable advice without ever modifying the underlying figures.
+## Deterministic Mathematical Engine (`src/utils/finance/engine/`)
+
+All financial computations in Kitsune Finance are isolated in pure, zero-dependency, unit-tested TypeScript algorithms. LLMs are strictly forbidden from performing arithmetic.
+
+1. **B3/CETIP DU/252 CDI Calculation (`cdi.ts`):**
+   - Implements the official 252 business days convention and dynamic ANBIMA holiday calendar (Meeus/Jones/Butcher algorithm for movable Easter, Carnival, and Corpus Christi, plus all fixed national holidays).
+   - Daily rate factor:
+     $$F_{diário} = \left(1 + \frac{Taxa_{DI}}{100}\right)^{\frac{1}{252}} - 1$$
+     truncated exactly at 8 decimal places via string/BigInt manipulation, preventing 53-bit IEEE 754 precision overflow.
+   - Accumulated product truncated at 16 decimal places; final gross yield truncated at 2 decimal places.
+
+2. **Regressive IR & IOF Tax Engine (`taxes.ts`):**
+   - Strict 30-day regressive IOF schedule (from 96% on Day 1 to 3% on Day 29, 0% on Day 30) applied first.
+   - 4-tier regressive income tax (IR) schedule (22.5% for $\le 180$ days, 20.0% for 181–360 days, 17.5% for 361–720 days, 15.0% for $> 720$ days) applied strictly to `grossYield - iofAmount`.
+   - Analytical tax equivalence calculator (`compareTaxExemptVsTaxable`): determines the exact breakeven rate between tax-exempt assets (LCI, LCA, CRI, CRA) and taxed assets (CDB, Tesouro Direto) for any calendar period.
+
+3. **Exact Irving Fisher Real Interest Rate (`fisher.ts`):**
+   - Implements the exact non-linear Fisher formulation:
+     $$i_{real} = \frac{1 + i_{nominal}}{1 + \pi_{inflation}} - 1$$
+   - Prevents naive linear subtraction errors ($10.65\% - 4.42\% \ne 6.23\%$; exact Fisher real rate is $5.966\%$).
+
+4. **Newton-Raphson CET & Installment Advance Evaluator (`cet.ts`):**
+   - High-precision numerical root-finding with convergence tolerance of $10^{-7}$ calculating exact monthly and annual Total Effective Cost (CET).
+   - Compares credit card installment advance discounts (e.g., Nubank antecipação) against holding the cash in 100% CDI net of regressive IR, delivering a mathematically audited verdict in R$.
+
+5. **Snowball vs. Avalanche Debt Payoff Engine (`debt-payoff.ts`):**
+   - Deterministic month-by-month simulation comparing highest-APR priority (Avalanche) vs. lowest-balance priority (Snowball).
+   - Features **Minimum Payment Rollover**: when a debt is fully liquidated, its minimum payment is automatically added to the extra budget for subsequent months, calculating exact interest and time saved.
+
+6. **Ghostfolio-inspired X-Ray Health Score & FGC Radar (`xray-rules.ts`):**
+   - Evaluates portfolio diversification, credit utilization, emergency fund coverage, and real yield efficiency to compute the **Kitsune Health Score (0 to 100)**.
+   - **FGC Concentration Radar:** Audits the R$ 250,000.00 Credit Guarantee Fund ceiling by the **real issuing financial conglomerate** (`issuer`), cleanly separating issuing banks from custodial brokerages (e.g., aggregating Banco Master CDBs across XP and BTG against the same single R$ 250k cap).
+
+---
+
+## 3-Tier Commercial Enrichment & Multi-Fidelity Reconciliation
+
+Kitsune Finance incorporates accounting principles from Maybe Finance and Actual Budget adapted for the Brazilian Open Finance ecosystem:
+
+1. **Multi-Fidelity Reconciliation (`reconcilePendingToPostedTransactions`):**
+   - Evaluates incoming Pluggy transactions against existing `PENDING` records using a 3-tier matching engine:
+     - **High Confidence:** Exact idempotency hash or provider ID match.
+     - **Medium Confidence:** Exact integer cents amount + account ID + date window within $\pm 4$ days.
+     - **Heuristic:** Normalized merchant brand name + absolute value within 72h.
+   - Migrates existing database records in-place without generating orphan transactions or duplicate UUIDs.
+
+2. **Asymmetric Internal Transfer & Payment Matcher (`classifyAndMatchInternalTransfers`):**
+   - Distinguishes operational expenses from asset transfers using the Maybe Finance `kind` taxonomy:
+     `'standard' | 'funds_movement' | 'cc_payment' | 'loan_payment' | 'one_time'`.
+   - Pairs credit card bill payments and transfers between self-owned accounts within a 72-hour window (`matched_transfer_id`), eliminating artificial inflation of household revenue and expenses.
+
+3. **Structured Open Finance Metadata:**
+   - Extracts structured CNPJ directly from `merchant.cnpj` and `paymentData` (payer/receiver document numbers).
+   - Automatically tags self-transfers when payer and receiver share the identical CPF/CNPJ.
+   - Maps ISO 18245 merchant category codes (`creditCardMetadata.payeeMCC`) deterministically to native Kitsune categories.
+
+4. **Zero-Cost 3-Tier Commercial Enrichment (`enrichment-pipeline.ts`):**
+   - **Layer 1:** Local regex and Simple Icons brand resolution (0ms, zero network latency).
+   - **Layer 2:** High-speed dual failover lookup between **BrasilAPI** (`brasilapi.com.br/api/cnpj/v1/{cnpj}`) and **MinhaReceita** (`minhareceita.org/{cnpj}`). Inspects both primary `cnae_fiscal` and `cnaes_secundarios` for diversified retail and holding entities, persisting results to `public.known_merchants` with FORCE RLS.
+   - **Layer 3:** Batch LLM categorization fallback reserved exclusively for novel merchants lacking public CNPJ data.
+
+5. **Live Central Bank (BCB) Macro Rates (`macro-rates.ts`):**
+   - Fetches live official daily interest rates (Selic, CDI, IPCA) via `/api/finance/macro-rates` with a 12-hour hybrid cache (in-memory + client `localStorage`), feeding live benchmark rates into all simulators and investment views.
+
+---
+
+## 7 Official Kitsune Specialist Agents & Native MCP Server
+
+### The 7 Specialist Agents
+Kitsune Finance organizes autonomous financial operations through 7 persona agents with deterministic tool-calling bindings:
+
+| Agent | Specialty | Core Responsibility & Bound Engine |
+| :--- | :--- | :--- |
+| **Sentinela Kitsune** | General Orchestrator | Primary intake, multi-agent cascade routing, and macro wealth triage |
+| **Kuro** | Forensic Auditor | Subscription auditing, fee detection, and behavioral spending anomaly alerts |
+| **Kenji** | Debt & Credit Strategist | Revolving debt payoff (Snowball vs. Avalanche) and installment advance decisions |
+| **Daiko** | Portfolio & Macro Manager | Fixed income benchmarking, FGC concentration radar, and asset allocation |
+| **Kage** | Impulse & Leak Hunter | Micro-expense detection, impulsive purchase evaluations, and daily cash leaks |
+| **Ren** | Wealth & Goal Planner | Compound interest projections, retirement simulations, and Fisher purchasing power |
+| **Takeshi** | Family & Shared Arbiter | Proportional household expense splits, minimum cash flow settlement, and shared balances |
+
+### Production-Ready Model Context Protocol (MCP) Server (`/api/mcp`)
+Kitsune Finance natively implements an enterprise-grade MCP server operating over JSON-RPC 2.0:
+- **Authentication:** Validates Bearer JWT tokens via `supabase.auth.getUser()`.
+- **5 Audited Macro-Tools:**
+  - `get_balance_sheet_and_xray`: Net worth, Kitsune Health Score, and FGC exposure.
+  - `get_income_statement`: Net operational income, expenses, refunds, and savings rate.
+  - `simulate_debt_and_cards`: Snowball vs. Avalanche comparison and installment discount analysis.
+  - `analyze_fixed_income_and_goals`: Regressive IR/IOF netting and Fisher real yields.
+  - `audit_anomalies_and_leaks`: Subscription leakage, duplicate charges, and unusual spikes.
+- **Privacy Shield:** Supports `withValues: false` for Zen/Privacy Mode, returning structural patterns without exposing raw balances to external LLMs.
+
+---
+
+## Client Performance & Visual Suite
+
+1. **0ms Read-Through IndexedDB Cache (`indexeddb-cache.ts`):**
+   - L1 in-memory + L2 IndexedDB (`kitsune_${userId}_db`) dual-layer caching.
+   - Instant client hydration on cold application launch (`0ms`) with silent background revalidation against Supabase.
+   - Strict tenant isolation: cache databases are partitioned by user ID and flushed on logout.
+
+2. **60 FPS Virtualized Transactions List (`VirtualizedTransactionsList.tsx`):**
+   - High-performance DOM recycling rendering 3,000+ enriched transactions at a steady 60 frames per second on desktop and mobile devices.
+   - Built-in audit drawer, date groupings, category icons, and privacy masking.
+
+3. **Pure SVG Cash Flow Sankey Diagram (`CashFlowSankey.tsx`):**
+   - Responsive 3-column continuous flow visualization:
+     $$\text{[Income Sources]} \longrightarrow \text{[Net Income]} \longrightarrow \text{[Expense Categories + Investments + Retained Cash]}$$
+   - Features cubic Bezier flow curves, asymmetric corner rounding, and Warm Obsidian palette compliance.
+
+4. **"Single-Pix" Family Settlement Engine (`shared-settlement.ts` in `/shared`):**
+   - Integer-cent settlement algorithm combining **Hamilton's Method of Largest Remainders** with **Greedy Minimum Cash Flow**.
+   - Supports both Income-Proportional ($w_i = \text{Income}_i / \sum \text{Income}$) and Equal ($1/N$) modes, guaranteeing $\le 1$ exact Pix transfer to settle balances between couples.
+   - Instant 1-click WhatsApp summary export and deep-link to agent **Takeshi**.
+
+5. **Interactive Debt & Advance Simulator (`DebtAndAdvanceSimulator.tsx` in `/cards`):**
+   - Live interactive simulator for Snowball vs. Avalanche payoff strategies with dynamic monthly budget adjustments.
+   - Real-time comparison evaluating whether to pay cash upfront with discount vs. investing in 100% CDI.
 
 ---
 
@@ -145,84 +275,20 @@ Large Language Models are non-deterministic and prone to arithmetic failure. Kit
 ### 3. Investment Portfolio & Macroeconomic Radar (`/investments`)
 * **Comprehensive Asset Tracking:** Consolidates Fixed Income (CDB, LCI, LCA, CRI, CRA), Equities (B3 stocks, FIIs), Treasury Direct (Tesouro Direto), and Mutual Funds.
 * **Macroeconomic Gauges:** Real-time Brazilian economic barometer tracking Selic, CDI, IPCA inflation, Real Interest Rate spread, Ibovespa index, and USD exchange rate.
+* **FGC Conglomerate Monitor:** Live utilization meter tracking the R$ 250k ceiling per issuing bank conglomerate.
+* **Tax Equivalency Calculator:** Interactive comparator showing whether a CDB or LCI/LCA yields higher net returns.
 * **Yield Projections:** Cumulative return tracking and projected monthly yield relative to 100% CDI benchmarks.
-* **Audit & Pagination:** Clear segregation between high-volume core assets and micro-allocations, with paginated position tables and historical zero-balance archive toggles.
 
 ### 4. 360-Degree Shared Space / Digital Family Office (`/shared`)
 * **Multi-Member Governance:** Centralized hub for couples, families, and business partners with customizable roles (Spouse, Family Member, Dependent, Partner, Financial Associate).
 * **Consolidated vs. Individual Views:** Joint net worth and combined cash flow overview, coupled with isolated tabs per member to inspect individual accounts and credit statements.
-* **Fair-Share Split Calculator:** Automatically calculates financial division using both 50/50 equal distribution and income-proportional ratios, outputting exact reimbursement figures.
-* **Paid & Pending Obligations:** Shared bill tracker detailing dueDate, payment status, and responsible member.
+* **Fair-Share Single-Pix Settlement:** Hamilton Largest Remainder + Minimum Cash Flow engine computing the exact Pix to settle the month.
 * **Compound Interest Goal Simulator:** Interactive family objective planner simulating joint savings trajectories over 1 to 30 years.
 * **One-Click Invitations:** Instant invitation delivery via WhatsApp, Gmail, direct links (`?accept_invite=...`), and human-readable codes (`KT-XXXX`).
-* **Instant Disconnect:** Single-click departure button with immediate Supabase RLS revocation, leaving zero shared footprint.
-
-### 5. Cash Flow & Mathematical Precision
-* **Internal Transfer Reconciliation:** Transfers between accounts owned by the same user or within the household are tagged with `is_internal_transfer = true`, preventing artificial revenue or expense inflation.
-* **Credit Card Refund Netting:** Refunded transactions (`is_refund = true`) automatically offset expenses rather than registering as anomalous income.
-* **Autonomous Income Detector:** Algorithm (`income-detector.ts`) analyzing deposit frequencies, standard deviations, and calendar dates to classify cash flow into CLT/Regular Salary, Freelance/Variable Income, or Sporadic Transfers, cross-referencing against declared income to alert for discrepancies.
-* **Timezone Offset Correction:** Local date parsing (`parseLocalDate`) preventing UTC displacement on the first day of each month, ensuring proper allocation of salary and bills.
-
-### 6. Kitsune AI Financial Advisor (`/kitsune`)
-* **Multi-LLM Failover Pool:** Cascade routing through Google Gemini API (`gemini-3.8-flash`, `gemini-3.5-flash-lite`, `gemini-3.1-pro-preview`) and Groq (`llama-3.3-70b-versatile`).
-* **Four-Stage Reasoning Pacing:** Visual feedback pipeline showing live operational states: Connecting -> Reconciling -> Auditing -> Formulating.
-* **Voice Input with Live Audio Waveforms:** Real-time Web Audio API frequency analysis coupled with Groq Whisper (`whisper-large-v3`) transcription.
-* **Vision & Multimodal Receipt OCR:** WebRTC camera capture and gallery uploads with client-side canvas compression for rapid parsing of receipts, restaurant bills, and impulsive purchase evaluations.
-* **Session Context Caching:** Persistent chat sessions in `ai_chat_sessions` and `ai_chat_messages`. User financial dossiers are built once per session and invalidated only upon new Open Finance synchronizations.
-
-### 7. Global Search, Analytics & Privacy
-* **Global Finance Search (`Ctrl+K`):** Instant search modal querying across all accounts, merchants, categories, and historical notes with merchant profile dossiers and Simple Icons brand resolution.
-* **Visual Analytics Suite:** Spending curve trajectory comparisons, category donut charts, daily activity heatmaps, and recurring subscription forecasts.
-* **Global Privacy Mode:** One-click toggle masking all monetary figures to `R$ ••••••` across dashboards, charts, tables, and AI cards. Enabled by default (`isPrivacyMode = true`).
-* **Automated Data Export:** Instant generation and download of structured financial reports and spreadsheets (`/api/export/spreadsheet`).
-
----
-
-## Interface Showcase & Visual Tour
-
-Kitsune Finance pairs raw mathematical precision with an elite Warm Obsidian design aesthetic. Below is a structured tour of the core interfaces.
-
-### 1. Unified Wealth Dashboard
-The nerve center of personal finance. Consolidates multi-bank liquidity, historical spending curves, daily cash burn rates, recent transactions, and macro KPIs.
-<p align="center">
-  <img src="public/assets/screenshots/01_dashboard.png" width="100%" alt="Unified Wealth Dashboard" />
-</p>
-
-### 2. Apple Wallet Cards Stack (`/cards`)
-A master-detail card wallet featuring dynamic card skins, interactive mouse-drag and touch carousels, limit utilization meters, upcoming invoices, and installment breakdowns.
-<p align="center">
-  <img src="public/assets/screenshots/02_cards.png" width="100%" alt="Apple Wallet Cards Stack" />
-</p>
-
-### 3. Investment Portfolio & Macroeconomic Radar (`/investments`)
-Tracks Fixed Income (CDBs, LCIs), Treasury Direct, and Equities against real-time Brazilian benchmarks (Selic, CDI, IPCA inflation, Real Interest Rate spread, Ibovespa, USD).
-<p align="center">
-  <img src="public/assets/screenshots/03_investments.png" width="100%" alt="Investment Radar and Portfolio" />
-</p>
-
-### 4. 360-Degree Shared Space / Family Office (`/shared`)
-The household financial command center. Features joint net worth consolidation, individual member tabs, an automated fair-share split calculator (50/50 and income-proportional), and compound interest goal simulation.
-<p align="center">
-  <img src="public/assets/screenshots/04_shared_space.png" width="100%" alt="360 Shared Space Family Office" />
-</p>
-
-### 5. Kitsune AI Autonomous Advisor (`/kitsune`)
-Multi-model reasoning advisor with live 4-stage thought pacing (Connecting, Reconciling, Auditing, Formulating), live Web Audio frequency waveforms, Whisper voice input, and receipt OCR analysis.
-<p align="center">
-  <img src="public/assets/screenshots/05_kitsune_ai.png" width="100%" alt="Kitsune AI Autonomous Advisor" />
-</p>
-
-### 6. Global Finance Search (`Ctrl+K`)
-Instant search across all accounts, merchants, and notes, featuring automated brand resolution with Simple Icons and deep merchant spending dossiers.
-<p align="center">
-  <img src="public/assets/screenshots/06_global_search.png" width="100%" alt="Global Finance Search" />
-</p>
 
 ---
 
 ## Security and Data Protection
-
-Security is enforced at the database and server layers, ensuring protection against client tampering and prompt injection vulnerabilities.
 
 ```
 +-------------------------------------------------------------------+
@@ -248,117 +314,10 @@ Security is enforced at the database and server layers, ensuring protection agai
 +-------------------------------------------------------------------+
 ```
 
-* **Row Level Security (RLS):** All data tables (`bank_accounts`, `transactions`, `investments`, `loans`, `shared_connections`, `ai_chat_sessions`) have RLS strictly enabled. An authenticated user can never query or manipulate rows belonging to another `user_id`.
+* **Row Level Security (RLS):** All data tables (`bank_accounts`, `transactions`, `investments`, `loans`, `known_merchants`, `shared_connections`, `ai_chat_sessions`) have RLS strictly enabled. An authenticated user can never query or manipulate rows belonging to another `user_id`.
 * **Zero Client Mocks:** All static mock data structures have been removed. If a user is not authenticated or has no synced accounts, empty states reflect real system status.
 * **Server-Side Validation:** All API routes validate incoming session tokens directly against Supabase Auth before processing parameters.
 * **Read-Only Banking Connections:** Open Finance connections via Pluggy use read-only consent scopes. The application does not possess authorization to initiate transactions, transfers, or account modifications.
-
----
-
-## Tech Stack
-
-```
-Runtime & Framework:
-- Next.js 16.4.3 (App Router, Server Components, Route Handlers)
-- React 19.2.4 (Actions, useOptimistic, Hooks)
-- TypeScript 5.x (Strict Type Checking)
-
-Styling & Motion:
-- Tailwind CSS v4 (CSS-First Configuration, Native @theme syntax)
-- Warm Obsidian Theme Tokens (#0A0A0A / #121214 / #18181B / #27272A / #FF8216)
-- Framer Motion 12.38.0
-- Lenis Smooth Scrolling 1.3.27
-- Untitled UI React Icons & Components
-
-Database & Security:
-- Supabase PostgreSQL with pgvector (1536-dimensional vectors)
-- Supabase SSR Auth (@supabase/ssr 0.10.3)
-- Strict PostgreSQL Row Level Security (RLS)
-
-Integrations & AI:
-- Pluggy SDK (pluggy-sdk 0.85.2, react-pluggy-connect 2.12.0)
-- Google Gemini API (gemini-3.8-flash, gemini-3.5-flash-lite)
-- Groq Cloud SDK (Llama 3.3 70B Versatile, Whisper Large v3)
-- Simple Icons (16.36.0) & Official Bank SVG Resolver
-```
-
----
-
-## Getting Started
-
-### Prerequisites
-
-Ensure you have the following installed on your machine:
-* **Node.js:** version 20.x or higher
-* **npm:** version 10.x or higher (or pnpm / yarn)
-* **Git**
-* Free accounts on **Supabase**, **Pluggy**, **Google AI Studio**, and **Groq**
-
-### Installation
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/jefheee/kitsune-finance.git
-   cd kitsune-finance
-   ```
-
-2. **Install dependencies:**
-   ```bash
-   npm install
-   ```
-
-3. **Configure environment variables:**
-   Create a `.env.local` file in the root directory by copying the configuration below.
-
-4. **Initialize Database Schema:**
-   Run the database migration scripts in your Supabase SQL Editor. The schema creates tables for `bank_accounts`, `transactions`, `investments`, `loans`, `shared_connections`, and `ai_chat_sessions` with RLS policies enabled.
-
-5. **Start the development server:**
-   ```bash
-   npm run dev
-   ```
-
-6. **Open the application:**
-   Navigate to [http://localhost:3000](http://localhost:3000) in your browser.
-
----
-
-## Environment Variables
-
-Configure your `.env.local` file with the following keys:
-
-```env
-# Application Host URL
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-
-# Supabase Infrastructure (Database & Authentication)
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
-
-# Google Gemini API (Primary Intelligence Pool)
-# Can provide a single key or comma-separated keys for automatic rotation
-GEMINI_API_KEY=your-gemini-api-key
-GEMINI_API_KEYS=key1,key2,key3
-
-# Groq Cloud (Fast Routing & Voice Transcription)
-GROQ_API_KEY=your-groq-api-key
-
-# Pluggy Open Finance (Brazilian Banking Aggregation)
-PLUGGY_CLIENT_ID=your-pluggy-client-id
-PLUGGY_CLIENT_SECRET=your-pluggy-client-secret
-PLUGGY_WEBHOOK_SECRET=your-optional-webhook-secret
-```
-
----
-
-## Available Scripts
-
-| Command | Action |
-| :--- | :--- |
-| `npm run dev` | Starts local Next.js development server with Webpack |
-| `npm run build` | Compiles optimized production bundle |
-| `npm run start` | Boots production server |
-| `npm run lint` | Runs ESLint analysis across codebase |
 
 ---
 
@@ -367,34 +326,45 @@ PLUGGY_WEBHOOK_SECRET=your-optional-webhook-secret
 ```
 kitsune-finance/
 |-- docs/
+|   |-- ARCHITECTURE_EXPANSION.md  # Master expansion roadmap v2.0 & upstream benchmarks table
 |   |-- CHANGELOG.md               # Incremental project modification log
-|   |-- PROJECT_STATE.md           # Authoritative state and feature status
+|   `-- PROJECT_STATE.md           # Authoritative state and feature status
 |-- public/
-|   |-- assets/logo/               # Official brand identity (logo_sem_fundo.png)
+|   |-- assets/logo/               # Brand identity (logo_sem_fundo.png)
 |   |-- banks/                     # High-fidelity Brazilian bank SVGs
 |   |-- manifest.json              # Progressive Web App manifest
 |   `-- sw.js                      # Service Worker for offline PWA caching
 |-- src/
 |   |-- app/
-|   |   |-- api/                   # Server routes (auth, shared-space, AI, export)
-|   |   |-- cards/                 # Dedicated Apple Wallet cards view
+|   |   |-- agents/                # Specialist Agents Hub & Live Diagnostic Cards
+|   |   |-- api/                   # Server routes (mcp, webhooks, macro-rates, openfinance)
+|   |   |-- cards/                 # Apple Wallet view & DebtAndAdvanceSimulator
 |   |   |-- connections/           # Open Finance bank management
-|   |   |-- dashboard/             # Core personal wealth dashboard
-|   |   |-- investments/           # Fixed income, equities & macro radar
+|   |   |-- dashboard/             # Core wealth dashboard & Sankey visualization
+|   |   |-- investments/           # Fixed income, equities, FGC monitor & tax simulator
 |   |   |-- kitsune/               # Multi-model AI advisor & live voice chat
-|   |   |-- shared/                # 360-degree shared family office hub
-|   |   `-- globals.css            # Tailwind CSS v4 and theme tokens
+|   |   |-- shared/                # 360-degree shared family office & Single-Pix settlement
+|   |   `-- globals.css            # Tailwind CSS v4 and Warm Obsidian tokens
 |   |-- components/
 |   |   |-- BankLogo.tsx           # Multi-tier bank brand resolver
 |   |   |-- MerchantLogo.tsx       # Merchant icon resolver via Simple Icons
-|   |   |-- charts/                # Spending curves, donut charts, invoice bars
-|   |   |-- finance/               # WalletCards, search modal, trackers
+|   |   |-- charts/                # CashFlowSankey, SpendingCurveChart, CategoryDonutChart
+|   |   |-- finance/               # DebtAndAdvanceSimulator, VirtualizedTransactionsList
 |   |   `-- layout/                # AppShell, navigation docks, headers
 |   |-- context/
-|   |   `-- FinanceDataContext.tsx # Centralized client state and cache manager
+|   |   `-- FinanceDataContext.tsx # Centralized client state and IndexedDB cache manager
 |   `-- utils/
-|       |-- finance/               # Income detector, loan analysis, math utilities
-|       `-- pluggy/                # Bank connection adapters & identity parser
+|       |-- ai/                    # Deterministic macro-tools, dossier builder, agent router
+|       |-- cache/                 # Native IndexedDB read-through cache wrapper
+|       |-- finance/
+|       |   |-- engine/            # Pure Math: cdi, taxes, fisher, cet, debt-payoff, xray-rules
+|       |   |-- reconciler.ts      # Multi-fidelity reconciliation & reverse historical balances
+|       |   |-- enrichment-pipeline.ts # 3-Tier enrichment with BrasilAPI/MinhaReceita failover
+|       |   |-- macro-rates.ts     # Live BCB macro rates sync with 12h hybrid cache
+|       |   `-- shared-settlement.ts # Hamilton largest remainder + minimum cash flow engine
+|       `-- pluggy/                # Banking adapters, sync engine, identity consolidator
+|-- supabase/
+|   `-- migrations/                # Schema migrations with FORCE RLS and RPC functions
 |-- AGENTS.md                      # Agent rules and Docs-as-Code protocols
 |-- LICENSE                        # PolyForm Noncommercial License 1.0.0
 `-- package.json                   # Dependencies and npm scripts
@@ -407,7 +377,7 @@ kitsune-finance/
 This repository adheres to the **Docs as Code** methodology:
 1. Every new feature, endpoint, or architectural modification must be reflected in `docs/PROJECT_STATE.md`.
 2. A corresponding 4 to 6 line entry must be prepended to `docs/CHANGELOG.md` documenting date, objective, and affected files.
-3. Code changes must pass linting and strict TypeScript compilation before deployment.
+3. Code changes must pass linting and strict TypeScript compilation (`tsc --noEmit`) before deployment.
 
 ---
 

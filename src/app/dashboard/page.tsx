@@ -22,6 +22,7 @@ import { CategoriesView } from "@/components/finance/CategoriesView";
 import { PaginatedTransactionsView } from "@/components/finance/PaginatedTransactionsView";
 import { SpotlightCard } from "@/components/react-bits/SpotlightCard";
 import { ShinyText } from "@/components/react-bits/ShinyText";
+import { runFinancialXRay } from "@/utils/finance/engine";
 
 
 const FINANCIAL_GOALS_MAP: Record<string, string> = {
@@ -818,36 +819,84 @@ export default function DashboardPage() {
     const kitsuneScore = useMemo(() => {
         if (accounts.length === 0)
             return { score: 500, label: "Aguardando Conexões", color: "text-slate-400" };
-        let score = 550;
 
-        const totalAssets = liquidBalance + investmentsBalance;
-        if (totalAssets > creditCardBalance * 1.5) score += 180;
-        else if (totalAssets >= creditCardBalance) score += 90;
-        else score -= 120;
+        const mappedAccounts = accounts.map((a) => ({
+            id: a.id,
+            institutionName: a.institution_name || a.bank_name || 'Banco',
+            type: (a.type === 'CREDIT' || a.subtype === 'CREDIT_CARD' ? 'CREDIT_CARD' : a.type === 'SAVINGS' ? 'SAVINGS' : 'CHECKING') as any,
+            balance: Number(a.balance) || 0,
+            creditLimit: Number(a.credit_limit) || undefined,
+            usedCreditLimit: Number(a.used_credit_limit) || undefined,
+        }));
 
-        const netMonthly = monthlyIncome - monthlyExpense;
-        if (netMonthly > 0) score += 160;
-        else if (monthlyExpense > 0) score -= 80;
+        const mappedInvestments = investments.map((inv) => ({
+            id: inv.id,
+            name: inv.name || inv.code || 'Título',
+            institutionName: inv.institution_name || inv.bank_name || 'Instituição',
+            issuerName: inv.issuer || null,
+            type: (inv.type || 'CDB').toUpperCase(),
+            balance: Number(inv.balance) || 0,
+            ratePercentOfCDI: Number(inv.rate) || undefined,
+            isDailyLiquidity: (inv.subtype || '').toLowerCase().includes('daily') || (inv.name || '').toLowerCase().includes('diária'),
+            isFGCGuaranteed: true,
+        }));
 
-        if (investmentsBalance > 0) score += 50;
-        if (accounts.length >= 2) score += 40;
+        const xray = runFinancialXRay({
+            accounts: mappedAccounts,
+            investments: mappedInvestments,
+            monthlyIncome,
+            monthlyExpenses: monthlyExpense,
+            macroRates: {
+                annualCDIPct: 10.65,
+                annualIPCAPct: 4.42,
+                annualSelicPct: 10.75,
+            },
+        });
 
-        const finalScore = Math.max(300, Math.min(990, score));
-        if (finalScore >= 800)
-            return { score: finalScore, label: "Excelente", color: "text-emerald-500" };
-        if (finalScore >= 650)
-            return { score: finalScore, label: "Saudável", color: "text-emerald-500" };
-        if (finalScore >= 500)
-            return { score: finalScore, label: "Equilibrado", color: "text-[#FF8216]" };
-        return { score: finalScore, label: "Atenção Necessária", color: "text-red-500" };
+        const scaledScore = Math.max(300, Math.min(990, Math.round(xray.kitsuneScore * 10)));
+        const color =
+            xray.statusLabel === 'EXCELENTE' || xray.statusLabel === 'SAUDÁVEL'
+                ? 'text-emerald-500'
+                : xray.statusLabel === 'ATENÇÃO'
+                ? 'text-[#FF8216]'
+                : 'text-rose-500';
+
+        const label =
+            xray.statusLabel === 'EXCELENTE'
+                ? 'Excelente'
+                : xray.statusLabel === 'SAUDÁVEL'
+                ? 'Saudável'
+                : xray.statusLabel === 'ATENÇÃO'
+                ? 'Equilibrado'
+                : 'Atenção Necessária';
+
+        return { score: scaledScore, label, color };
     }, [
-        accounts.length,
-        liquidBalance,
-        investmentsBalance,
-        creditCardBalance,
+        accounts,
+        investments,
         monthlyIncome,
         monthlyExpense,
     ]);
+
+    const fgcWarning = useMemo(() => {
+        const map = new Map<string, number>();
+        investments.forEach((inv) => {
+            const bal = Number(inv.balance) || 0;
+            if (bal <= 0 || inv.status === 'TOTAL_WITHDRAWAL') return;
+            const issuer = inv.issuer && inv.issuer.trim().length > 1 ? inv.issuer.trim() : (inv.institution_name || 'Instituição').trim();
+            map.set(issuer, (map.get(issuer) || 0) + bal);
+        });
+        for (const [name, total] of map.entries()) {
+            if (total > 250000) {
+                return {
+                    issuerName: name,
+                    total,
+                    excess: total - 250000,
+                };
+            }
+        }
+        return null;
+    }, [investments]);
 
     // Diagnóstico Matemático Acionável do Objetivo Patrimonial Selecionado
     const goalDiagnostics = useMemo(() => {
@@ -1229,6 +1278,31 @@ export default function DashboardPage() {
                 <>
                     {/* Alerta Preventivo de Anomalias */}
                     <AnomalyAlertCard />
+
+                    {/* Alerta de Concentração FGC */}
+                    {fgcWarning && (
+                        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+                            <div className="flex items-center gap-3 min-w-0">
+                                <span className="p-2 rounded-xl bg-amber-500/20 text-amber-500 shrink-0">
+                                    <span className="material-symbols-outlined text-lg">shield_with_heart</span>
+                                </span>
+                                <div className="min-w-0">
+                                    <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                                        Alerta de Concentração FGC: {fgcWarning.issuerName}
+                                    </h4>
+                                    <p className="text-[11px] text-slate-600 dark:text-slate-400">
+                                        Você possui {formatCurrency(fgcWarning.total)} neste conglomerado emissor, excedendo o teto de R$ 250.000 em {formatCurrency(fgcWarning.excess)}.
+                                    </p>
+                                </div>
+                            </div>
+                            <Link
+                                href="/investments"
+                                className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-500 text-xs font-bold transition-colors shrink-0 self-end sm:self-auto cursor-pointer"
+                            >
+                                Ver Detalhes FGC &gt;
+                            </Link>
+                        </div>
+                    )}
 
                     {/* Meta Patrimonial Ativa com Progresso Real */}
                     <section className="p-4 md:p-5 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">

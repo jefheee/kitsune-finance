@@ -79,6 +79,35 @@ function isMissingRpcOverloadError(err: { code?: string; message?: string } | nu
     );
 }
 
+export async function invalidateUserAiCaches(
+    supabase: SupabaseClient,
+    userId: string
+): Promise<void> {
+    try {
+        const { error: rpcErr } = await supabase.rpc('invalidate_user_ai_caches', {
+            p_user_id: userId,
+        });
+        if (rpcErr) {
+            await Promise.allSettled([
+                supabase
+                    .from('ai_chat_sessions')
+                    .update({
+                        system_prompt_cached: null,
+                        context_snapshot: null,
+                        updated_at: new Date().toISOString(),
+                    })
+                    .eq('user_id', userId),
+                supabase
+                    .from('ai_insights')
+                    .delete()
+                    .eq('user_id', userId),
+            ]);
+        }
+    } catch (e) {
+        console.warn(`[Sync] Falha ao invalidar cache da IA para usuário ${userId}:`, e);
+    }
+}
+
 export async function syncItemAccountsAndTransactions(
     supabase: SupabaseClient,
     params: {
@@ -600,9 +629,7 @@ export async function syncItemAccountsAndTransactions(
         }
 
         // 8. Invalidar caches de insights e dossiês de sessão da Kitsune AI
-        await supabase.rpc('invalidate_user_ai_caches', {
-            p_user_id: userId,
-        });
+        await invalidateUserAiCaches(supabase, userId);
 
         return {
             success: true,

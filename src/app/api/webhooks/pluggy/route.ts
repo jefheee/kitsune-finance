@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { syncItemAccountsAndTransactions } from '@/utils/pluggy/sync';
+import { syncItemAccountsAndTransactions, invalidateUserAiCaches } from '@/utils/pluggy/sync';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -40,7 +40,9 @@ export async function POST(request: Request) {
 
     switch (event) {
       case 'item/created':
-      case 'item/updated': {
+      case 'item/updated':
+      case 'transactions/created':
+      case 'transactions/updated': {
         // Localiza estritamente o user_id proprietário do itemId registrado previamente (ou clientUserId autenticado)
         const { data: connInfo, error: connError } = await supabase.rpc(
           'get_or_create_connection_for_webhook',
@@ -52,7 +54,7 @@ export async function POST(request: Request) {
 
         if (connError || !connInfo || connInfo.length === 0 || !connInfo[0]?.user_id) {
           console.warn(
-            `[Pluggy Webhook] Item ${itemId} ignorado: nenhum user_id proprietário verificado.`
+            `[Pluggy Webhook] Evento ${event} no item ${itemId} ignorado: nenhum user_id proprietário verificado.`
           );
           return NextResponse.json(
             { received: true, ignored: true, reason: 'Unverified item owner' },
@@ -62,15 +64,76 @@ export async function POST(request: Request) {
 
         const { user_id, family_member_id, provider_name } = connInfo[0];
 
+        // Dispara o pipeline determinístico completo (reconciliação, pareamento de transferências, enriquecimento 3 camadas)
         syncItemAccountsAndTransactions(supabase, {
           itemId,
           userId: user_id,
           familyMemberId: family_member_id || null,
           providerName: provider_name,
         }).catch((err) => {
-          console.error(`[Pluggy Webhook] Falha na sincronização do item ${itemId}:`, err);
+          console.error(`[Pluggy Webhook] Falha na sincronização do item ${itemId} (${event}):`, err);
         });
 
+        break;
+      }
+
+      case 'transactions/deleted': {
+        const { data: connInfo, error: connError } = await supabase.rpc(
+          'get_or_create_connection_for_webhook',
+          {
+            p_item_id: itemId,
+            p_client_user_id: clientUserId,
+          }
+        );
+
+        if (connError || !connInfo || connInfo.length === 0 || !connInfo[0]?.user_id) {
+          console.warn(
+            `[Pluggy Webhook] Evento transactions/deleted no item ${itemId} ignorado: usuário não verificado.`
+          );
+          return NextResponse.json(
+            { received: true, ignored: true, reason: 'Unverified item owner' },
+            { status: 200 }
+          );
+        }
+
+        const { user_id, family_member_id, provider_name } = connInfo[0];
+
+        // Extrai IDs específicos de transações deletadas se enviados no payload
+        const rawIds =
+          payload?.data?.transactionIds ||
+          payload?.data?.id ||
+          payload?.transactionIds ||
+          payload?.transactionId;
+
+        const deletedIds: string[] = Array.isArray(rawIds)
+          ? rawIds.map(String).filter(Boolean)
+          : typeof rawIds === 'string' && rawIds.trim()
+          ? [rawIds.trim()]
+          : [];
+
+        if (deletedIds.length > 0) {
+          const { error: delErr } = await supabase
+            .from('transactions')
+            .delete()
+            .in('pluggy_transaction_id', deletedIds)
+            .eq('user_id', user_id);
+
+          if (delErr) {
+            console.error(`[Pluggy Webhook] Erro ao remover transações deletadas do item ${itemId}:`, delErr);
+          }
+        }
+
+        // Resincroniza contas e saldos em background para eliminar saldo fantasma e invalida cache da IA
+        syncItemAccountsAndTransactions(supabase, {
+          itemId,
+          userId: user_id,
+          familyMemberId: family_member_id || null,
+          providerName: provider_name,
+        }).catch((err) => {
+          console.error(`[Pluggy Webhook] Falha na resincronização pós-deleção do item ${itemId}:`, err);
+        });
+
+        await invalidateUserAiCaches(supabase, user_id);
         break;
       }
 
@@ -83,10 +146,22 @@ export async function POST(request: Request) {
       }
 
       case 'item/deleted': {
+        const { data: connInfo } = await supabase.rpc(
+          'get_or_create_connection_for_webhook',
+          {
+            p_item_id: itemId,
+            p_client_user_id: clientUserId,
+          }
+        );
+
         await supabase.rpc('webhook_update_connection_status', {
           p_item_id: itemId,
           p_status: 'DISCONNECTED',
         });
+
+        if (connInfo && connInfo.length > 0 && connInfo[0]?.user_id) {
+          await invalidateUserAiCaches(supabase, connInfo[0].user_id);
+        }
         break;
       }
 
