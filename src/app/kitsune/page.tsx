@@ -873,6 +873,8 @@ export default function KitsuneAIPage() {
           content: "",
           timestamp: new Date().toISOString(),
           modelUsed: data.modelUsed,
+          usage: data.usage,
+          quota: data.quota,
         },
       ]);
 
@@ -1201,19 +1203,31 @@ export default function KitsuneAIPage() {
                 )}
 
                 {msg.role === "assistant" && msg.modelUsed && (
-                  <div className="flex items-center justify-between pt-1.5 border-t border-slate-100 dark:border-white/5 text-[11px] text-slate-400 dark:text-[#94A3B8]">
-                    <span className="flex items-center gap-1">
-                      <span className="material-symbols-outlined text-[13px] text-[#FF8216]">
-                        bolt
+                  <div className="flex flex-wrap items-center justify-between gap-1 pt-1.5 border-t border-slate-100 dark:border-white/5 text-[10px] text-slate-400 dark:text-[#94A3B8]">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="flex items-center gap-1 font-semibold text-zinc-300">
+                        <span className="material-symbols-outlined text-[13px] text-[#FF8216]">
+                          bolt
+                        </span>
+                        {msg.modelUsed === "gemini-3.5-flash-lite"
+                          ? "Gemini 3.5 Flash-Lite"
+                          : msg.modelUsed === "gemini-3.8-flash"
+                          ? "Gemini 3.8 Flash"
+                          : msg.modelUsed === "gemini-3.1-pro-preview"
+                          ? "Gemini 3.1 Pro"
+                          : msg.modelUsed}
                       </span>
-                      {msg.modelUsed === "gemini-3.5-flash-lite"
-                        ? "3.5 Flash Lite"
-                        : msg.modelUsed === "gemini-3.8-flash"
-                        ? "3.8 Flash"
-                        : msg.modelUsed === "gemini-4-argon"
-                        ? "4 Argon"
-                        : msg.modelUsed}
-                    </span>
+                      {(msg as any).usage?.totalTokens ? (
+                        <span className="px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-400 font-mono">
+                          {(msg as any).usage.totalTokens} tokens
+                        </span>
+                      ) : null}
+                      {(msg as any).quota?.plan ? (
+                        <span className="text-zinc-500 hidden sm:inline">
+                          • {(msg as any).quota.plan} ({(msg as any).quota.requestsPerMinuteLimit} RPM / {(msg as any).quota.requestsPerDayLimit} RPD)
+                        </span>
+                      ) : null}
+                    </div>
                     <span className="text-[10px]">
                       {new Date(msg.timestamp).toLocaleTimeString("pt-BR", {
                         hour: "2-digit",

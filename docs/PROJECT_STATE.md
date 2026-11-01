@@ -147,17 +147,19 @@
 - [x] Painel de Configurações do Sistema e Preferências (`/settings`)
 - [x] Responsividade mobile refinada com touch targets de 44px e sem overflow horizontal
 
+- [x] Refinamento Executivo do Dashboard, Roteamento Automático Kitsune AI & Suíte Apple Wallet (Release v2.6):
+  - **Dashboard Inicial:** Integração de `BankBalanceCards.tsx` com gradientes de bancos e faturas abertas, `CompactKitsuneChat.tsx` com chips dinâmicos de resposta instantânea, botão `+ Lançamento` com `ManualTransactionModal.tsx` para gastos em dinheiro e `TransactionDetailModal.tsx` estilo Apple Wallet/Mobbin (com histórico completo do estabelecimento e total acumulado) ao clicar em transações.
+  - **Roteamento de IA & Observabilidade Google AI Studio:** Reintrodução da opção "✨ Automático (Roteamento Inteligente)" como padrão em `KITSUNE_AI_MODELS`, cascata de complexidade (Lite 3.5 -> Flash 3.8 -> Pro 3.1) e rastreamento em tempo real de `usageMetadata` (tokens consumidos) e cotas de requisições (RPM/RPD) no rodapé das mensagens do chat.
+  - **Governança Multi-Membros no Espaço Compartilhado (`/shared`):** Pills interativos de seleção de membros (`Consolidado`, `Você`, `Membros 1..10+`), remoção de termos restritos a casais em prol de cooperação universal, cards individuais de custódia e botões diretos de `+ Convidar Membro` e `Desconectar / Sair do Espaço`.
+  - **Eliminação de Fricções:** Remoção de tags de marketing ("60 FPS"), desbloqueio de rolagem nativa em caixas internas (restrição do Lenis à Landing Page) e prevenção de recargas acidentais (`overscroll-behavior-y: none`).
+
 ---
 
 ## 4. Context Handoff (Memória de Continuidade entre Chats)
-- **Última Etapa Concluída:** Release v2.5 — **Estabilização Mobile PWA, Conciliação Itaú/Pluggy, Drawer 60 FPS e Purificação da UI**:
-  1. **Navegação Mobile & Posicionamento Fixo:** Eliminado o bug da bottom bar rolando com a página através da remoção de `will-change: filter, opacity` do container `#kitsune-app-root` no CSS global.
-  2. **Ciclo de Vida Biométrico & Proteção PWA:** Trava em cold-start executada estritamente uma vez por sessão (`hasColdStartRunRef`), sem disparo em navegações internas (`usePathname`).
-  3. **Snapshot Masking Clean:** Tela de multitarefa purificada com imagem de blur abstrato escuro/laranja em tela cheia, sem nenhum texto, logo ou botão exposto no snapshot do sistema operacional.
-  4. **Gaveta "Mais" & Ações Rápidas Fluida (60 FPS):** Transição acelerada por GPU (`transform-gpu`) e barra de puxar interativa com suporte a gesto tátil de arrastar para baixo (`deltaY > 35px`) e clique direto para fechar.
-  5. **Detecção Desktop vs. Mobile:** Modais e prompts de biometria desativados em computadores desktop (`isMobileClient`), preservando a experiência limpa no PC.
-  6. **Parcelamentos & Faturas de Cartão:** Normalização das descrições de compras parceladas sem espaçamento, exclusão de parcelas passadas quitadas da lista ativa e distribuição real das parcelas nos meses de vencimento futuro.
-  7. **Conciliação Fiel do Saldo Itaú (R$ 87.205,93):** Identificação e saneamento na raiz de 3 posições defasadas (vintage 2025) de R$ 19.331,60 via sanitização temporal de dados no sync e contexto, garantindo correspondência 100% exata ao app do Itaú sem valores fictícios.
-  8. **Purificação da UI & Regra Global:** Remoção total de tags artificiais de marketing e fórmulas internas da interface ("X-Ray 90/100", "BCB Ao Vivo", "MOTOR DETERMINÍSTICO MSLR", "ZERO ALUCINAÇÃO"), com institucionalização da regra global permanente `clean-saas-vocabulary.md` em `~/.gemini/config/rules/`.
+- **Última Etapa Concluída:** Release v2.6 — **Dashboard Executivo, Roteamento Automático IA, Modal Apple Wallet & Multi-Membros**:
+  1. **Dashboard Home Integrado:** `BankBalanceCards` exibindo saldos ao vivo agrupados por banco com gradientes temáticos, modal de transação manual em espécie (`POST /api/transactions/manual`), chat compacto da Kitsune AI e gaveta de detalhes da transação (Apple Wallet Mobbin) com histórico de compras daquele estabelecimento.
+  2. **Roteamento Automático da IA:** Opção `✨ Automático` restaurada como padrão no dropdown e contexto, cascata inteligente para Pro 3.1 em consultas complexas, Flash 3.8 para multimodal/análises e Lite 3.5 para perguntas rápidas, com observabilidade de tokens e cotas gratuitas do Google AI Studio.
+  3. **Espaço Compartilhado Universal:** Suporte nativo a grupos de 2 a 10+ membros com pills de navegação isolada por integrante, visualização consolidada e isolamento estrito da Visão Geral (botão "Conjunto" expurgado do `/dashboard`).
+  4. **Higienização de Rolagem e Tags:** Fim do sequestro de touch/wheel pelo Lenis em caixas internas, remoção do botão "60 FPS" do extrato e bloqueio de pull-to-refresh acidental no celular.
 - **Próxima Etapa Imediata:** Sincronização dos novos dados patrimoniais e ativos físicos com as ferramentas dos agentes de IA (`src/utils/ai/deterministic-tools.ts`).
 - **Pendências ou Bloqueios:** Nenhum. `tsc --noEmit` validado com 0 erros.

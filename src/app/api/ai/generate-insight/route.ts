@@ -74,7 +74,25 @@ export async function POST(req: Request) {
 
         const targetAccountIds = new Set(bankAccounts.map((a) => a.id));
 
-        let investments = investmentsRes.data || [];
+        let rawInvestments = investmentsRes.data || [];
+        let maxRefDateMs = 0;
+        rawInvestments.forEach((inv) => {
+            const rawD = inv.date || inv.executed_at || inv.created_at;
+            if (rawD) {
+                const t = new Date(rawD).getTime();
+                if (t > maxRefDateMs) maxRefDateMs = t;
+            }
+        });
+
+        let investments = rawInvestments.filter((inv) => {
+            if (inv.status === 'TOTAL_WITHDRAWAL' || (Number(inv.balance) || 0) <= 0.05) return false;
+            if (maxRefDateMs > 0 && inv.date) {
+                const invMs = new Date(inv.date).getTime();
+                if (maxRefDateMs - invMs > 60 * 24 * 60 * 60 * 1000) return false;
+            }
+            return true;
+        });
+
         if (bankSlug) {
             investments = investments.filter((inv) => {
                 const slug = getBankCatalogBySlugOrName(inv.institution_name).slug;
@@ -132,38 +150,41 @@ export async function POST(req: Request) {
         const monthlyExpense = stmt.netOperationalExpenses;
         const netMargin = stmt.netSavings;
 
-        // Kitsune Score oficial (0..100) + escala compatível (300..990) para widgets legados
+        const formatBRL = (val: number) =>
+            new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(val) || 0);
+
+        // Kitsune Score oficial (0..100)
         const kitsuneScore100 = xray.kitsuneScore;
-        const calculatedScore = Math.min(990, Math.max(300, Math.round(300 + kitsuneScore100 * 6.9)));
+        const calculatedScore = kitsuneScore100;
         const scoreLabel =
             xray.statusLabel === 'EXCELENTE'
                 ? 'Excelente'
                 : xray.statusLabel === 'SAUDÁVEL'
-                  ? 'Muito Bom'
+                  ? 'Saudável'
                   : 'Atenção';
 
         const topCategory = stmt.topCategories[0];
         const deterministicCards = [
             {
                 title: 'Cobertura de Liquidez',
-                value: `R$ ${liquidBalance.toFixed(2)}`,
+                value: formatBRL(liquidBalance),
                 badge: liquidBalance >= creditDebt ? 'Faturas Cobertas' : 'Atenção à Liquidez',
                 status: liquidBalance >= creditDebt ? 'positive' : 'warning',
                 desc: `Reserva cobre ${xray.emergencyFundMonths} meses de custo operacional.`,
             },
             {
                 title: 'Principal Saída',
-                value: `R$ ${(topCategory?.totalAmount ?? 0).toFixed(2)}`,
+                value: formatBRL(topCategory?.totalAmount ?? 0),
                 badge: topCategory?.name || 'Despesas Gerais',
                 status: 'neutral',
                 desc: 'Maior linha de desembolso operacional no mês.',
             },
             {
                 title: 'Margem Operacional',
-                value: `R$ ${netMargin.toFixed(2)}`,
+                value: formatBRL(netMargin),
                 badge: netMargin >= 0 ? 'Superávit' : 'Déficit',
                 status: netMargin >= 0 ? 'positive' : 'danger',
-                desc: 'Diferença líquida real entre entradas e saídas (estornos abatidos).',
+                desc: 'Diferença líquida real entre entradas e saídas.',
             },
         ];
 

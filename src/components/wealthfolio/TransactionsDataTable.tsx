@@ -4,6 +4,7 @@ import React, { useState, useMemo } from "react";
 import { MerchantLogo } from "@/components/MerchantLogo";
 import { BankLogo } from "@/components/BankLogo";
 import { VirtualizedTransactionsList } from "@/components/finance/VirtualizedTransactionsList";
+import { TransactionDetailModal } from "@/components/finance/TransactionDetailModal";
 import { parseLocalDate } from "@/utils/finance/reconciler";
 import { useFinanceData } from "@/context/FinanceDataContext";
 import { WfIcons } from "./WealthfolioIcons";
@@ -67,6 +68,7 @@ export function TransactionsDataTable({
   const [renderEngine, setRenderEngine] = useState<"table" | "virtualized">("table");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(15);
+  const [selectedTxForDetail, setSelectedTxForDetail] = useState<any | null>(null);
 
   // Modal de Nova Transação Manual
   const [isNewTxModalOpen, setIsNewTxModalOpen] = useState(false);
@@ -502,31 +504,6 @@ export function TransactionsDataTable({
               >
                 {showHidden ? "Ocultar Internas" : "Ver Transferências"}
               </button>
-
-              <div className="hidden sm:inline-flex items-center rounded-lg bg-zinc-100 dark:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] p-0.5 text-[11px]">
-                <button
-                  type="button"
-                  onClick={() => setRenderEngine("table")}
-                  className={`px-2 py-1 rounded-md font-semibold cursor-pointer ${
-                    renderEngine === "table"
-                      ? "bg-white dark:bg-[#27272A] text-[#FF8216]"
-                      : "text-zinc-500 dark:text-zinc-400"
-                  }`}
-                >
-                  Tabela
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRenderEngine("virtualized")}
-                  className={`px-2 py-1 rounded-md font-semibold cursor-pointer ${
-                    renderEngine === "virtualized"
-                      ? "bg-white dark:bg-[#27272A] text-[#FF8216]"
-                      : "text-zinc-500 dark:text-zinc-400"
-                  }`}
-                >
-                  60 FPS
-                </button>
-              </div>
             </div>
           </div>
         </div>
@@ -585,7 +562,8 @@ export function TransactionsDataTable({
                     return (
                       <tr
                         key={tx.id}
-                        className="hover:bg-zinc-50/80 dark:hover:bg-[#18181B]/60 transition-colors"
+                        onClick={() => setSelectedTxForDetail(tx)}
+                        className="hover:bg-zinc-50/80 dark:hover:bg-[#18181B]/80 transition-colors cursor-pointer"
                       >
                         <td className="py-3 pl-5 pr-3 whitespace-nowrap font-mono text-[11px] text-zinc-500 dark:text-zinc-400 tabular-nums">
                           {formatDate(tx.date || tx.executed_at)}
@@ -694,7 +672,8 @@ export function TransactionsDataTable({
                       return (
                         <div
                           key={tx.id}
-                          className="px-4 py-3 flex items-center justify-between gap-3"
+                          onClick={() => setSelectedTxForDetail(tx)}
+                          className="px-4 py-3 flex items-center justify-between gap-3 hover:bg-zinc-50 dark:hover:bg-[#18181B]/60 transition-colors cursor-pointer"
                         >
                           <div className="flex items-center gap-3 min-w-0 flex-1">
                             <MerchantLogo cleanName={cleanDesc} category={cat} size="sm" />
@@ -922,6 +901,16 @@ export function TransactionsDataTable({
           </div>
         </div>
       )}
+
+      {/* Modal de Detalhes da Transação Inspirado na Carteira da Apple */}
+      <TransactionDetailModal
+        isOpen={Boolean(selectedTxForDetail)}
+        onClose={() => setSelectedTxForDetail(null)}
+        transaction={selectedTxForDetail}
+        allTransactions={allTxns}
+        formatCurrency={formatCurrency}
+        isPrivacyMode={isPrivacyMode}
+      />
     </div>
   );
 }

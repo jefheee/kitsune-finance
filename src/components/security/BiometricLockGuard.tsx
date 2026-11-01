@@ -92,10 +92,21 @@ export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
 
     const hasProtection = Boolean(currentSettings.enabled || currentSettings.hasPin);
 
-    // COLD-START LOCK: Roda APENAS UMA VEZ na inicialização do app, NUNCA em trocas de rota interna
+    let hasActiveSessionUnlock = false;
+    try {
+      const lastUnlockStr = sessionStorage.getItem(`kitsune_${userId}_session_unlocked`);
+      if (lastUnlockStr) {
+        const lastUnlockTime = parseInt(lastUnlockStr, 10);
+        if (Date.now() - lastUnlockTime < 1000 * 60 * 60) {
+          hasActiveSessionUnlock = true;
+        }
+      }
+    } catch (_) {}
+
+    // COLD-START LOCK: Roda APENAS UMA VEZ na inicialização do app, NUNCA em trocas de rota ou recarregamento acidental
     if (!hasColdStartRunRef.current) {
       hasColdStartRunRef.current = true;
-      if (hasProtection && currentSettings.lockOnColdStart !== false) {
+      if (hasProtection && !hasActiveSessionUnlock && currentSettings.lockOnColdStart !== false) {
         setIsLocked(true);
         setIsCurtainActive(true);
         applyCurtainClass(true);
@@ -147,6 +158,11 @@ export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
     if (!settings?.enabled && !settings?.hasPin) {
       recentlyUnlockedRef.current = true;
       lastBackgroundTimestamp.current = null;
+      if (userId) {
+        try {
+          sessionStorage.setItem(`kitsune_${userId}_session_unlocked`, Date.now().toString());
+        } catch (_) {}
+      }
       setIsLocked(false);
       setIsCurtainActive(false);
       applyCurtainClass(false);
@@ -173,6 +189,11 @@ export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
         // Desbloqueio definitivo: reseta timestamp e ativa imunidade contra eventos blur/focus do SO
         recentlyUnlockedRef.current = true;
         lastBackgroundTimestamp.current = null;
+        if (userId) {
+          try {
+            sessionStorage.setItem(`kitsune_${userId}_session_unlocked`, Date.now().toString());
+          } catch (_) {}
+        }
         setIsLocked(false);
         setIsCurtainActive(false);
         applyCurtainClass(false);
@@ -221,6 +242,11 @@ export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
       }
       recentlyUnlockedRef.current = true;
       lastBackgroundTimestamp.current = null;
+      if (userId) {
+        try {
+          sessionStorage.setItem(`kitsune_${userId}_session_unlocked`, Date.now().toString());
+        } catch (_) {}
+      }
       setIsLocked(false);
       setIsCurtainActive(false);
       applyCurtainClass(false);
@@ -313,6 +339,11 @@ export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
     } catch (err) {
       console.warn("Erro ao desautenticar:", err);
     } finally {
+      if (userId) {
+        try {
+          sessionStorage.removeItem(`kitsune_${userId}_session_unlocked`);
+        } catch (_) {}
+      }
       lastBackgroundTimestamp.current = null;
       setIsLocked(false);
       setIsCurtainActive(false);
@@ -543,18 +574,7 @@ export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
         aria-label="Bloqueio de Segurança Biométrico"
         className="fixed inset-0 w-screen h-screen z-[2147483647] flex flex-col items-center justify-between p-6 select-none overflow-hidden"
       >
-        {!isLocked ? (
-          /* SNAPSHOT MASKING PURO — Blur Abstrato Warm Obsidian / Kitsune Orange (Sem texto, sem logos) */
-          <div className="absolute inset-0 w-full h-full pointer-events-none select-none">
-            <Image
-              src="/assets/security/privacy-mask.webp"
-              alt=""
-              fill
-              priority
-              className="object-cover w-full h-full scale-105"
-            />
-          </div>
-        ) : (
+        {!isLocked ? null : (
           /* TELA DE AUTENTICAÇÃO ATIVA (Exibida quando o usuário retorna e o app está bloqueado) */
           <>
             {/* Topo: Marca e Segurança */}

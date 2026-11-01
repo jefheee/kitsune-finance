@@ -4,6 +4,16 @@ Todas as alterações notáveis no projeto Kitsune Finance são registradas de f
 
 ---
 
+## [2026-11-01] - Refinamento Completo do Dashboard, Roteamento Automático IA, Apple Wallet Modal & Multi-Membros
+- **Arquivos Afetados:** `src/app/dashboard/page.tsx`, `src/components/wealthfolio/{TransactionsDataTable.tsx, GroupedAccountsList.tsx, NetWorthHeroChart.tsx}`, `src/components/finance/{BankBalanceCards.tsx, ManualTransactionModal.tsx, TransactionDetailModal.tsx, WalletCards.tsx}`, `src/components/chat/CompactKitsuneChat.tsx`, `src/utils/ai/gemini.ts`, `src/app/api/chat/route.ts`, `src/app/kitsune/page.tsx`, `src/app/shared/page.tsx`, `src/app/globals.css`, `src/components/providers/SmoothScrollProvider.tsx`.
+- **Objetivo:**
+  - Integração no Dashboard dos cards de saldo por banco com cores institucionais, chat compacto da IA, botão e modal de lançamento manual em dinheiro e modal de detalhes no padrão Apple Wallet Mobbin ao clicar nas transações.
+  - Correção do roteamento inteligente ("✨ Automático") na Kitsune AI com cascade routing (Lite -> Flash -> Pro 3.1) e observabilidade de cotas/tokens do Google AI Studio diretamente na interface do chat.
+  - Expansão do Espaço Compartilhado (`/shared`) com pills de filtro para múltiplos integrantes (2 a 10+ membros), neutralização de vocabulário e desvinculação completa de toggles de casal da Visão Geral.
+  - Resolução definitiva de rolagem nativa em caixas internas (restrição do Lenis à Landing Page), bloqueio de pull-to-refresh acidental e eliminação da tag "60 FPS" do extrato.
+
+---
+
 ## [2026-11-01] - Correções Mobile, Conciliação Itaú/Pluggy, Drawer Fluido e Limpeza de Tags na UI
 - **Arquivos Afetados:** `src/app/globals.css`, `src/components/security/BiometricLockGuard.tsx`, `src/components/layout/AppShell.tsx`, `src/components/finance/WalletCards.tsx`, `src/context/FinanceDataContext.tsx`, `src/utils/pluggy/sync.ts`, `src/app/agents/page.tsx`, `src/app/investments/page.tsx`, `src/app/page.tsx`, `C:\Users\jefhi\.gemini\config\rules\clean-saas-vocabulary.md`.
 - **Objetivo:**

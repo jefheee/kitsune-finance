@@ -36,6 +36,20 @@
 
 html {
   scrollbar-gutter: stable;
+  overscroll-behavior-y: none;
+}
+
+body {
+  overscroll-behavior-y: none;
+}
+
+/* Garante scroll nativo fluido e sem bloqueios em todas as caixas com rolagem */
+.overflow-y-auto,
+.overflow-y-scroll,
+.overflow-x-auto,
+[data-lenis-prevent] {
+  overscroll-behavior: contain !important;
+  -webkit-overflow-scrolling: touch !important;
 }
 
 /* Lenis Smooth Scroll Configuration */
@@ -66,9 +80,9 @@ html.lenis, html.lenis body {
   inset: 0;
   width: 100vw;
   height: 100vh;
-  background-color: rgba(10, 10, 10, 0.96);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  background-color: rgba(10, 10, 10, 0.45);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
   z-index: 2147483647; /* Máximo z-index de 32 bits */
   flex-direction: column;
   align-items: center;
@@ -76,7 +90,7 @@ html.lenis, html.lenis body {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.22s ease, backdrop-filter 0.22s ease;
+  transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.22s ease;
   will-change: opacity, backdrop-filter;
 }
 
@@ -92,10 +106,11 @@ html.pwa-privacy-curtain-active #pwa-privacy-shield-overlay {
   /* will-change removido para não quebrar position: fixed de descendentes (Bottom Navigation) no mobile */
 }
 
+/* Ao alternar de app, borra a própria tela atual do usuário sem expor valores */
 body.pwa-privacy-curtain-active #kitsune-app-root,
 html.pwa-privacy-curtain-active #kitsune-app-root {
-  filter: blur(24px) !important;
-  opacity: 0.05 !important;
+  filter: blur(28px) brightness(0.65) !important;
+  opacity: 1 !important;
   pointer-events: none !important;
   user-select: none !important;
 }

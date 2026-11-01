@@ -33,15 +33,29 @@ export function GroupedAccountsList({
 }: GroupedAccountsListProps) {
   const [viewMode, setViewMode] = useState<"grouped" | "flat">("grouped");
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
-    banking: true,
-    investments: true,
-    vehicles: true,
-    real_estate: true,
-    fgts: true,
-    other: true,
-    liabilities: true,
+    banking: false,
+    investments: false,
+    vehicles: false,
+    real_estate: false,
+    fgts: false,
+    other: false,
+    liabilities: false,
   });
 
+  const isAnyExpanded = Object.values(expandedGroups).some(Boolean);
+
+  const toggleAllGroups = () => {
+    const nextState = !isAnyExpanded;
+    setExpandedGroups({
+      banking: nextState,
+      investments: nextState,
+      vehicles: nextState,
+      real_estate: nextState,
+      fgts: nextState,
+      other: nextState,
+      liabilities: nextState,
+    });
+  };
 
   const toggleGroup = (key: string) => {
     setExpandedGroups((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -213,6 +227,15 @@ export function GroupedAccountsList({
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
+          <button
+            type="button"
+            onClick={toggleAllGroups}
+            title={isAnyExpanded ? "Recolher todas as listas" : "Expandir todas as listas"}
+            className="h-7 px-2 rounded-lg bg-zinc-100 dark:bg-[#18181B] hover:bg-zinc-200 dark:hover:bg-[#27272A] border border-zinc-200 dark:border-[#27272A] text-zinc-600 dark:text-zinc-300 text-[10px] font-semibold transition-colors cursor-pointer"
+          >
+            {isAnyExpanded ? "Recolher" : "Expandir"}
+          </button>
+
           <div className="inline-flex items-center rounded-lg bg-zinc-100 dark:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] p-0.5">
             <button
               type="button"

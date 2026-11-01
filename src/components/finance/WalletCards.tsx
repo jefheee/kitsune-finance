@@ -80,8 +80,11 @@ export function WalletCards({ accounts, transactions, formatCurrency: propFormat
             balance_due_date: "10/11",
           }));
 
-    // Ordena de modo que os cartões mais relevantes fiquem posicionados corretamente
+    // Ordena agrupando rigorosamente por banco e priorizando faturas maiores
     return [...baseList].sort((a, b) => {
+      const bankA = (a.institution_name || a.bank_name || a.institution_slug || "").toLowerCase();
+      const bankB = (b.institution_name || b.bank_name || b.institution_slug || "").toLowerCase();
+      if (bankA !== bankB) return bankA.localeCompare(bankB);
       const invA = getCardInvoiceAmount(a, transactions);
       const invB = getCardInvoiceAmount(b, transactions);
       if (invB !== invA) return invB - invA;
@@ -93,6 +96,14 @@ export function WalletCards({ accounts, transactions, formatCurrency: propFormat
 
   const [selectedCardIndex, setSelectedCardIndex] = useState<number>(0);
   const [isStackExpanded, setIsStackExpanded] = useState<boolean>(true);
+
+  const handlePrevCard = () => {
+    setSelectedCardIndex((prev) => (prev - 1 + creditCards.length) % creditCards.length);
+  };
+
+  const handleNextCard = () => {
+    setSelectedCardIndex((prev) => (prev + 1) % creditCards.length);
+  };
 
   // Saldo Líquido Consolidado em Contas (para o widget Pierre Finance)
   const totalLiquidBalance = useMemo(() => {
@@ -167,22 +178,11 @@ export function WalletCards({ accounts, transactions, formatCurrency: propFormat
       return isThisCard && Number(t.total_installments) > 1;
     });
 
-    const grouped = new Map<
-      string,
-      {
-        description: string;
-        totalAmount: number;
-        monthlyAmount: number;
-        currentInstallment: number;
-        totalInstallments: number;
-        remainingInstallments: number;
-        remainingAmount: number;
-      }
-    >();
+    const currentMonthKey = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}`;
+    const groupedByBase = new Map<string, any[]>();
 
     installmentTxns.forEach((t) => {
       const rawLabel = t.clean_description || t.description || "Compra Parcelada";
-      // Normalização robusta: remove "01/03", "Fernan01/03", "parcela 1 de 3", etc.
       const cleanTitle = rawLabel
         .replace(/\s*\d{1,2}\s*\/\s*\d{1,2}\b/gi, "")
         .replace(/\d{1,2}\s*\/\s*\d{1,2}\b/gi, "")
@@ -191,30 +191,61 @@ export function WalletCards({ accounts, transactions, formatCurrency: propFormat
         .trim();
       const baseKey = (cleanTitle || rawLabel).toLowerCase();
 
-      const inst = Number(t.installment_number) || 1;
-      const totalInst = Number(t.total_installments) || 2;
-      const amt = Math.abs(Number(t.amount) || 0);
-      const totalPurchase =
-        Number(t.total_purchase_amount) > 0 ? Number(t.total_purchase_amount) : amt * totalInst;
+      if (!groupedByBase.has(baseKey)) {
+        groupedByBase.set(baseKey, []);
+      }
+      groupedByBase.get(baseKey)!.push(t);
+    });
 
-      const existing = grouped.get(baseKey);
-      if (!existing || inst > existing.currentInstallment) {
-        const remaining = Math.max(0, totalInst - inst);
-        grouped.set(baseKey, {
-          description: cleanTitle || rawLabel,
+    const activeItems: any[] = [];
+
+    groupedByBase.forEach((txns, baseKey) => {
+      // Ordena por parcela
+      txns.sort((a, b) => (Number(a.installment_number) || 1) - (Number(b.installment_number) || 1));
+      const first = txns[0];
+      const totalInst = Math.max(...txns.map((t) => Number(t.total_installments) || 1));
+      const amt = Math.abs(Number(first.amount) || 0);
+      const totalPurchase =
+        Number(first.total_purchase_amount) > 0 ? Number(first.total_purchase_amount) : amt * totalInst;
+
+      // Verifica se existem transações futuras agendadas pelo Open Finance
+      const futureTxns = txns.filter((t) => {
+        const dStr = (t.date || t.executed_at || "").split("T")[0];
+        return dStr > currentMonthKey;
+      });
+
+      let remainingCount = 0;
+      let currentInstNum = 1;
+
+      if (futureTxns.length > 0) {
+        remainingCount = futureTxns.length;
+        currentInstNum = Math.max(1, totalInst - remainingCount);
+      } else {
+        const latestInst = Math.max(...txns.map((t) => Number(t.installment_number) || 1));
+        remainingCount = Math.max(0, totalInst - latestInst);
+        currentInstNum = latestInst;
+      }
+
+      if (remainingCount > 0) {
+        const cleanTitle = (first.clean_description || first.description || "Compra Parcelada")
+          .replace(/\s*\d{1,2}\s*\/\s*\d{1,2}\b/gi, "")
+          .replace(/\d{1,2}\s*\/\s*\d{1,2}\b/gi, "")
+          .replace(/\s*parcela\s*\d{1,2}\s*(de|\/)\s*\d{1,2}\b/gi, "")
+          .replace(/\s*-\s*parcela\s*\d{1,2}.*$/gi, "")
+          .trim();
+
+        activeItems.push({
+          description: cleanTitle,
           totalAmount: totalPurchase,
           monthlyAmount: amt,
-          currentInstallment: inst,
+          currentInstallment: currentInstNum,
           totalInstallments: totalInst,
-          remainingInstallments: remaining,
-          remainingAmount: remaining * amt,
+          remainingInstallments: remainingCount,
+          remainingAmount: remainingCount * amt,
         });
       }
     });
 
-    // Filtra para exibir em "Parcelamentos Ativos" apenas os que possuem parcelas a vencer no futuro
-    const allItems = Array.from(grouped.values());
-    const activeItems = allItems.filter((i) => i.remainingInstallments > 0);
     const totalCommitted = activeItems.reduce((s, i) => s + i.remainingAmount, 0);
     const monthlySum = activeItems.reduce((s, i) => s + i.monthlyAmount, 0);
 
@@ -232,10 +263,19 @@ export function WalletCards({ accounts, transactions, formatCurrency: propFormat
       if (isCurrent) {
         amt = activeCardInvoice;
       } else {
-        // Soma real das parcelas que vencerão no mês futuro `offset`
-        amt = activeItems.reduce((sum, item) => {
-          return item.remainingInstallments >= offset ? sum + item.monthlyAmount : sum;
-        }, 0);
+        const targetYearMonth = `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, "0")}`;
+        const txnsInFutureMonth = installmentTxns.filter((t) => {
+          const dStr = (t.date || t.executed_at || "").split("T")[0];
+          return dStr.startsWith(targetYearMonth);
+        });
+
+        if (txnsInFutureMonth.length > 0) {
+          amt = txnsInFutureMonth.reduce((s, t) => s + Math.abs(Number(t.amount) || 0), 0);
+        } else {
+          amt = activeItems.reduce((sum, item) => {
+            return item.remainingInstallments >= offset ? sum + item.monthlyAmount : sum;
+          }, 0);
+        }
       }
 
       return {
@@ -398,8 +438,9 @@ export function WalletCards({ accounts, transactions, formatCurrency: propFormat
 
       {/* Visualização Desktop: Master-Detail Fluido (Cartões na Esquerda e Detalhes na Direita) */}
       <div className="hidden md:flex flex-col lg:flex-row gap-6 items-start w-full">
-        {/* Coluna Esquerda: Carteira de Cartões Empilhados na Vertical */}
-        <div className="w-full lg:w-[380px] shrink-0 flex flex-col gap-3">
+        {/* Coluna Esquerda: Carteira de Cartões com Navegação por Setas e Lista Organizada */}
+        <div className="w-full lg:w-[380px] shrink-0 flex flex-col gap-3.5">
+          {/* Header com Navegação Bidirecional por Setas */}
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-lg text-[#FF8216]">wallet</span>
@@ -408,116 +449,151 @@ export function WalletCards({ accounts, transactions, formatCurrency: propFormat
               </h2>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setIsStackExpanded(!isStackExpanded)}
-              className="text-xs text-slate-500 hover:text-[#FF8216] font-medium flex items-center gap-1 cursor-pointer transition-colors"
-            >
-              <span>{isStackExpanded ? "Modo Compacto" : "Expandir Prévia"}</span>
-              <span className="material-symbols-outlined text-[14px]">
-                {isStackExpanded ? "unfold_less" : "unfold_more"}
-              </span>
-            </button>
+            {creditCards.length > 1 && (
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={handlePrevCard}
+                  title="Cartão anterior"
+                  className="w-7 h-7 rounded-lg bg-zinc-100 dark:bg-[#18181B] hover:bg-zinc-200 dark:hover:bg-[#27272A] border border-zinc-200 dark:border-[#27272A] text-zinc-600 dark:text-zinc-300 flex items-center justify-center transition-colors cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[16px]">chevron_left</span>
+                </button>
+                <span className="text-[11px] font-mono text-zinc-400 tabular-nums px-1">
+                  {selectedCardIndex + 1}/{creditCards.length}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleNextCard}
+                  title="Próximo cartão"
+                  className="w-7 h-7 rounded-lg bg-zinc-100 dark:bg-[#18181B] hover:bg-zinc-200 dark:hover:bg-[#27272A] border border-zinc-200 dark:border-[#27272A] text-zinc-600 dark:text-zinc-300 flex items-center justify-center transition-colors cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[16px]">chevron_right</span>
+                </button>
+              </div>
+            )}
           </div>
 
-          {/* Pilha de Cartões (O cartão ativo/selecionado fica por cima, na frente com z-index alto) */}
-          <div
-            className="w-full relative py-2 select-none"
-            style={{
-              minHeight: `${220 + (creditCards.length - 1) * stackOffset}px`,
-            }}
-          >
-            {creditCards.map((card, idx) => {
-              const isSelected = selectedCardIndex === idx;
-              const theme = resolveCardTheme(
-                card.product_name || card.name || card.bank_name,
-                card.institution_slug || card.institution_name
-              );
-              const cardInv = getCardInvoiceAmount(card, transactions);
-              const digits = card.account_number?.slice(-4) || "8903";
+          {/* Cartão Ativo em Destaque com Transição Fluida */}
+          {activeCard && (
+            <div
+              key={activeCard.id || selectedCardIndex}
+              className={`w-full aspect-[1.586/1] rounded-3xl p-5 bg-gradient-to-br ${
+                activeTheme.bgGradient
+              } ${
+                activeTheme.border
+              } border relative overflow-hidden transition-all duration-300 ease-out shadow-xl flex flex-col justify-between`}
+            >
+              {/* Efeito de Reflexo Minimalista */}
+              <div className="absolute inset-0 bg-gradient-to-tr from-white/[0.08] via-white/[0.02] to-transparent pointer-events-none rounded-3xl" />
 
-              // Ordem invertida: o selecionado fica com o z-index máximo (35), e a ordem natural empilha elegantemente
-              const zIndex = isSelected ? 35 : creditCards.length - idx;
-
-              return (
-                <div
-                  key={card.id || idx}
-                  onClick={() => handleCardClick(idx)}
-                  className={`w-full aspect-[1.586/1] rounded-3xl p-5 bg-gradient-to-br ${
-                    theme.bgGradient
-                  } ${
-                    theme.border
-                  } border absolute top-0 left-0 right-0 overflow-hidden transition-all duration-500 ease-out cursor-pointer shadow-xl ${
-                    isSelected
-                      ? "ring-2 ring-[#FF8216] shadow-2xl -translate-y-1 scale-[1.01]"
-                      : "hover:-translate-y-2 hover:shadow-2xl opacity-95 hover:opacity-100"
-                  }`}
-                  style={{
-                    transform: `translateY(${idx * stackOffset}px)`,
-                    zIndex,
-                  }}
-                >
-                  {/* Efeito de Reflexo Minimalista e Sofisticado */}
-                  <div className="absolute inset-0 bg-gradient-to-tr from-white/[0.08] via-white/[0.02] to-transparent pointer-events-none rounded-3xl" />
-
-                  {/* Topo do Cartão: Logo da Instituição e Contactless */}
-                  <div className="flex items-center justify-between relative z-10">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-white/10 backdrop-blur-md p-1 flex items-center justify-center">
-                        <BankLogo
-                          bank={card.institution_slug || card.institution_name || card.bank_name}
-                          size="xs"
-                        />
-                      </div>
-                      <div>
-                        <span className="text-xs font-bold text-white block truncate max-w-[160px]">
-                          {card.product_name || card.bank_name || "Cartão"}
-                        </span>
-                        <span className={`text-[10px] ${theme.subtextColor} font-mono tracking-wider`}>
-                          •••• {digits}
-                        </span>
-                      </div>
-                    </div>
-
-                    <span className="material-symbols-outlined text-[18px] text-white/60">
-                      contactless
-                    </span>
+              {/* Topo do Cartão: Logo da Instituição e Contactless */}
+              <div className="flex items-center justify-between relative z-10">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-white/10 backdrop-blur-md p-1 flex items-center justify-center">
+                    <BankLogo
+                      bank={activeCard.institution_slug || activeCard.institution_name || activeCard.bank_name}
+                      size="xs"
+                    />
                   </div>
-
-                  {/* Centro do Cartão: Chip Dourado/Prata Minimalista */}
-                  <div className="relative z-10 flex items-center justify-between mt-3">
-                    <div
-                      className="w-10 h-7 rounded-md border border-white/20 flex items-center justify-center opacity-85"
-                      style={{ backgroundColor: theme.chipColor + "30" }}
-                    >
-                      <div className="w-5 h-4 rounded-xs border border-white/30" />
-                    </div>
-                    <span
-                      className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${theme.badgeStyle}`}
-                    >
-                      {theme.brandFallback}
+                  <div>
+                    <span className="text-xs font-bold text-white block truncate max-w-[180px]">
+                      {activeCard.product_name || activeCard.bank_name || "Cartão"}
                     </span>
-                  </div>
-
-                  {/* Rodapé do Cartão: Fatura Atual */}
-                  <div className="flex items-end justify-between relative z-10 mt-auto pt-2">
-                    <div>
-                      <span className="text-[9px] text-white/60 uppercase font-bold tracking-wider block">
-                        Fatura Atual
-                      </span>
-                      <span className="text-base font-black text-white tabular-nums tracking-tight">
-                        {formatCurrency(cardInv)}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full bg-[#EB001B] inline-block opacity-90" />
-                      <span className="w-2.5 h-2.5 rounded-full bg-[#F79E1B] inline-block -ml-2 opacity-90" />
-                    </div>
+                    <span className={`text-[10px] ${activeTheme.subtextColor} font-mono tracking-wider`}>
+                      •••• {activeCard.account_number?.slice(-4) || "8903"}
+                    </span>
                   </div>
                 </div>
-              );
-            })}
+
+                <span className="material-symbols-outlined text-[18px] text-white/60">
+                  contactless
+                </span>
+              </div>
+
+              {/* Centro do Cartão: Chip e Bandeira */}
+              <div className="relative z-10 flex items-center justify-between mt-2">
+                <div
+                  className="w-10 h-7 rounded-md border border-white/20 flex items-center justify-center opacity-85"
+                  style={{ backgroundColor: activeTheme.chipColor + "30" }}
+                >
+                  <div className="w-5 h-4 rounded-xs border border-white/30" />
+                </div>
+                <span
+                  className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${activeTheme.badgeStyle}`}
+                >
+                  {activeTheme.brandFallback}
+                </span>
+              </div>
+
+              {/* Rodapé do Cartão: Fatura Atual */}
+              <div className="flex items-end justify-between relative z-10 mt-auto pt-2">
+                <div>
+                  <span className="text-[9px] text-white/60 uppercase font-bold tracking-wider block">
+                    Fatura Atual
+                  </span>
+                  <span className="text-base font-black text-white tabular-nums tracking-tight">
+                    {formatCurrency(activeCardInvoice)}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#EB001B] inline-block opacity-90" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#F79E1B] inline-block -ml-2 opacity-90" />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Lista Linear de Cartões da Carteira (Ordenados por Banco e com Seleção Direta) */}
+          <div className="space-y-1.5 pt-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block px-1">
+              Todos os Cartões Conectados
+            </span>
+            <div className="space-y-1.5 max-h-[340px] overflow-y-auto overscroll-contain pr-1">
+              {creditCards.map((card, idx) => {
+                const isSelected = selectedCardIndex === idx;
+                const cardInv = getCardInvoiceAmount(card, transactions);
+                const digits = card.account_number?.slice(-4) || "8903";
+
+                return (
+                  <button
+                    key={card.id || idx}
+                    type="button"
+                    onClick={() => setSelectedCardIndex(idx)}
+                    className={`w-full p-2.5 rounded-xl border transition-all text-left flex items-center justify-between gap-2.5 cursor-pointer ${
+                      isSelected
+                        ? "bg-[#18181B] border-[#FF8216] shadow-sm ring-1 ring-[#FF8216]/30"
+                        : "bg-white dark:bg-[#121214] border-zinc-200 dark:border-[#27272A] hover:border-zinc-400 dark:hover:border-zinc-600"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <BankLogo
+                        bank={card.institution_slug || card.institution_name || card.bank_name}
+                        size="xs"
+                      />
+                      <div className="min-w-0">
+                        <span className="text-xs font-semibold text-zinc-900 dark:text-white block truncate">
+                          {card.product_name || card.bank_name}
+                        </span>
+                        <span className="text-[10px] text-zinc-400 font-mono">
+                          •••• {digits} • {card.card_brand || "Cartão"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="text-right shrink-0">
+                      <span className="text-xs font-bold font-mono text-zinc-900 dark:text-white tabular-nums block">
+                        {formatCurrency(cardInv)}
+                      </span>
+                      <span className="text-[9px] text-zinc-500 uppercase">
+                        {cardInv > 0 ? "Fatura" : "Zerada"}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 

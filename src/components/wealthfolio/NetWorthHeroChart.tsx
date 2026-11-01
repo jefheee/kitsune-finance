@@ -374,20 +374,6 @@ export function NetWorthHeroChart({
               );
             })}
           </div>
-
-          <button
-            type="button"
-            onClick={onTogglePrivacy}
-            title={hideValues ? "Exibir saldos" : "Ocultar saldos"}
-            className={`h-7 px-2 rounded-lg border flex items-center gap-1.5 text-[11px] font-medium transition-colors cursor-pointer ${
-              hideValues
-                ? "bg-[#FF8216]/12 border-[#FF8216]/30 text-[#FF8216]"
-                : "bg-zinc-100 dark:bg-[#18181B] border-zinc-200 dark:border-[#27272A] text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-[#F4F4F5]"
-            }`}
-          >
-            {hideValues ? <WfIcons.EyeOff size={14} /> : <WfIcons.Eye size={14} />}
-            <span className="hidden sm:inline">{hideValues ? "Oculto" : "Visível"}</span>
-          </button>
         </div>
       </div>
 

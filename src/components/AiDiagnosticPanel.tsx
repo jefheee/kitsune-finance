@@ -192,8 +192,8 @@ export function AiDiagnosticPanel({
               <h2 className="text-sm md:text-base font-bold text-slate-900 dark:text-[#F8FAFC]">
                 Diagnóstico & Parecer da Kitsune AI
               </h2>
-              <span className={`text-[11px] font-extrabold ${kitsuneScore.color}`}>
-                Score: {parsedData.score} • {parsedData.scoreLabel}
+              <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#18181B] border border-[#27272A] ${kitsuneScore.color}`}>
+                Score {parsedData.score}/100 • {parsedData.scoreLabel}
               </span>
             </div>
             <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-[#94A3B8]">
@@ -264,25 +264,25 @@ export function AiDiagnosticPanel({
       </div>
 
       {/* 3 Metric Cards Determinísticos */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
         {parsedData.cards.map((card, idx) => (
           <div
             key={idx}
-            className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] flex flex-col gap-1.5 transition-all duration-300"
+            className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] flex flex-col justify-between gap-1.5 transition-all duration-300 min-w-0"
           >
-            <div className="flex items-center justify-between text-[11px]">
+            <div className="flex items-center justify-between gap-1.5 text-[11px]">
               <span className="text-slate-500 dark:text-[#94A3B8] font-medium truncate">
                 {card.title}
               </span>
               <span
-                className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${getStatusBadge(
+                className={`px-1.5 py-0.5 rounded text-[10px] font-bold border shrink-0 ${getStatusBadge(
                   card.status
                 )}`}
               >
                 {card.badge}
               </span>
             </div>
-            <div className="text-base md:text-lg font-black text-slate-900 dark:text-[#F8FAFC] tabular-nums">
+            <div className="text-base font-bold text-slate-900 dark:text-[#F8FAFC] tabular-nums truncate">
               {card.value}
             </div>
             <p className="text-[10px] text-slate-500 dark:text-[#94A3B8] leading-tight line-clamp-2">

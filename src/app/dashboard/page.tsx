@@ -27,6 +27,10 @@ import {
 } from "@/utils/finance/macro-rates";
 import { NetWorthHeroChart } from "@/components/wealthfolio/NetWorthHeroChart";
 import { GroupedAccountsList } from "@/components/wealthfolio/GroupedAccountsList";
+import { BankBalanceCards } from "@/components/finance/BankBalanceCards";
+import { ManualTransactionModal } from "@/components/finance/ManualTransactionModal";
+import { TransactionDetailModal } from "@/components/finance/TransactionDetailModal";
+import { CompactKitsuneChat } from "@/components/chat/CompactKitsuneChat";
 import { WfIcons } from "@/components/wealthfolio/WealthfolioIcons";
 import { AssetModal } from "@/components/assets/AssetModal";
 import type { CustomAsset } from "@/types/finance";
@@ -92,6 +96,8 @@ export default function DashboardPage() {
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
   const [selectedAssetToEdit, setSelectedAssetToEdit] = useState<CustomAsset | null>(null);
+  const [isManualModalOpen, setIsManualModalOpen] = useState(false);
+  const [selectedTxForDetail, setSelectedTxForDetail] = useState<any | null>(null);
   const [timeGranularity, setTimeGranularity] = useState<"day" | "week" | "month" | "year">("month");
 
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
@@ -204,15 +210,10 @@ export default function DashboardPage() {
     }
   }, [selectedBankSlug, connectedBanks, setSelectedBankSlug]);
 
-  // Filtragem Global Combinada (Membro da Família + Banco Selecionado)
+  // Filtragem Global por Banco Selecionado (Exclusiva do Usuário Autenticado)
   const filteredAccounts = useMemo(() => {
     return accounts
       .filter((a) => {
-        if (isFamilyModeEnabled && selectedMemberId !== "all") {
-          if (selectedMemberId === "personal" && a.family_member_id) return false;
-          if (selectedMemberId !== "personal" && a.family_member_id !== selectedMemberId)
-            return false;
-        }
         if (selectedBankSlug !== "all") {
           const slug = getBankCatalogBySlugOrName(
             a.institution_slug || a.institution_name || a.bank_name
@@ -222,7 +223,7 @@ export default function DashboardPage() {
         return true;
       })
       .sort((a, b) => Math.abs(Number(b.balance) || 0) - Math.abs(Number(a.balance) || 0));
-  }, [accounts, isFamilyModeEnabled, selectedMemberId, selectedBankSlug]);
+  }, [accounts, selectedBankSlug]);
 
   const filteredAccountIds = useMemo(
     () => new Set(filteredAccounts.map((a) => a.id)),
@@ -257,11 +258,6 @@ export default function DashboardPage() {
 
   const filteredTransactions = useMemo(() => {
     return transactions.filter((t) => {
-      if (isFamilyModeEnabled && selectedMemberId !== "all") {
-        if (selectedMemberId === "personal" && t.family_member_id) return false;
-        if (selectedMemberId !== "personal" && t.family_member_id !== selectedMemberId)
-          return false;
-      }
       if (selectedBankSlug !== "all") {
         if (filteredAccountIds.has(t.account_id)) return true;
         const txBankSlug = getBankCatalogBySlugOrName(
@@ -273,13 +269,7 @@ export default function DashboardPage() {
       }
       return true;
     });
-  }, [
-    transactions,
-    isFamilyModeEnabled,
-    selectedMemberId,
-    selectedBankSlug,
-    filteredAccountIds,
-  ]);
+  }, [transactions, selectedBankSlug, filteredAccountIds]);
 
   const selfAndFamilyNames = useMemo(() => {
     return [
@@ -611,7 +601,7 @@ export default function DashboardPage() {
       },
     });
 
-    const scaledScore = Math.max(300, Math.min(990, Math.round(xray.kitsuneScore * 10)));
+    const score = xray.kitsuneScore;
     const color =
       xray.statusLabel === "EXCELENTE" || xray.statusLabel === "SAUDÁVEL"
         ? "text-emerald-500"
@@ -628,7 +618,7 @@ export default function DashboardPage() {
         ? "Equilibrado"
         : "Atenção Necessária";
 
-    return { score: scaledScore, label, color };
+    return { score, label, color };
   }, [accounts, investments, monthlyIncome, monthlyExpense, macroRates]);
 
   // Alerta de concentração FGC > R$ 250k por conglomerado emissor
@@ -748,7 +738,6 @@ export default function DashboardPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           bankSlug: selectedBankSlug !== "all" ? selectedBankSlug : null,
-          familyMemberId: isFamilyModeEnabled ? selectedMemberId : "all",
         }),
       });
       const data = await response.json();
@@ -774,12 +763,8 @@ export default function DashboardPage() {
 
   const activeScopeLabel = useMemo(() => {
     const bankObj = connectedBanks.find((b) => b.slug === selectedBankSlug);
-    const bankLabel = bankObj ? bankObj.name : "Patrimônio Líquido Consolidado";
-    if (isFamilyModeEnabled) {
-      return `${bankLabel} • Visão Compartilhada`;
-    }
-    return bankLabel;
-  }, [connectedBanks, selectedBankSlug, isFamilyModeEnabled]);
+    return bankObj ? bankObj.name : "Patrimônio Líquido Consolidado";
+  }, [connectedBanks, selectedBankSlug]);
 
   if (isInitialLoading && accounts.length === 0 && transactions.length === 0) {
     return (
@@ -805,7 +790,7 @@ export default function DashboardPage() {
                 Olá, {userFirstName}
               </h1>
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#FF8216]/12 text-[#FF8216] border border-[#FF8216]/25 tabular-nums">
-                Score {isPrivacyMode ? "•••" : kitsuneScore.score}
+                Score {isPrivacyMode ? "••/100" : `${kitsuneScore.score}/100`}
               </span>
             </div>
             <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
@@ -837,22 +822,6 @@ export default function DashboardPage() {
 
         {/* Botões de Ação Superiores */}
         <div className="flex items-center gap-2 flex-wrap">
-          {activePartner && (
-            <button
-              type="button"
-              onClick={() => setIsFamilyModeEnabled(!isFamilyModeEnabled)}
-              className={`h-9 px-3 rounded-xl border text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer ${
-                isFamilyModeEnabled
-                  ? "bg-[#FF8216]/12 border-[#FF8216]/35 text-[#FF8216]"
-                  : "bg-white dark:bg-[#121214] border-zinc-200 dark:border-[#27272A] text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-[#18181B]"
-              }`}
-              title="Alternar Visão Pessoal vs Espaço Compartilhado"
-            >
-              <WfIcons.Shared className="w-3.5 h-3.5" />
-              <span>{isFamilyModeEnabled ? "Conjunto" : "Pessoal"}</span>
-            </button>
-          )}
-
           <button
             type="button"
             onClick={() => setIsSearchModalOpen(true)}
@@ -886,6 +855,16 @@ export default function DashboardPage() {
               className={`w-3.5 h-3.5 text-emerald-500 ${isRevalidating ? "animate-spin" : ""}`}
             />
             <span className="hidden sm:inline">Sincronizar</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsManualModalOpen(true)}
+            className="h-9 px-3 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-[#18181B] dark:hover:bg-[#27272A] border border-zinc-200 dark:border-[#27272A] text-zinc-800 dark:text-zinc-200 font-semibold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+            title="Adicionar lançamento manual ou dinheiro em espécie"
+          >
+            <WfIcons.Plus className="w-3.5 h-3.5 text-[#FF8216]" />
+            <span>Lançamento</span>
           </button>
 
           <button
@@ -935,47 +914,6 @@ export default function DashboardPage() {
               </button>
             );
           })}
-
-          {isFamilyModeEnabled && familyMembers.length > 0 && (
-            <div className="flex items-center gap-1 pl-2 ml-1 border-l border-zinc-200 dark:border-[#27272A] shrink-0">
-              <button
-                type="button"
-                onClick={() => setSelectedMemberId("all")}
-                className={`h-7 px-2.5 rounded-full text-[11px] font-medium cursor-pointer ${
-                  selectedMemberId === "all"
-                    ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-                    : "text-zinc-500 hover:text-zinc-300"
-                }`}
-              >
-                Todos Membros
-              </button>
-              <button
-                type="button"
-                onClick={() => setSelectedMemberId("personal")}
-                className={`h-7 px-2.5 rounded-full text-[11px] font-medium cursor-pointer ${
-                  selectedMemberId === "personal"
-                    ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-                    : "text-zinc-500 hover:text-zinc-300"
-                }`}
-              >
-                {userFirstName}
-              </button>
-              {familyMembers.map((m) => (
-                <button
-                  key={m.id}
-                  type="button"
-                  onClick={() => setSelectedMemberId(m.id)}
-                  className={`h-7 px-2.5 rounded-full text-[11px] font-medium cursor-pointer ${
-                    selectedMemberId === m.id
-                      ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-                      : "text-zinc-500 hover:text-zinc-300"
-                  }`}
-                >
-                  {m.name}
-                </button>
-              ))}
-            </div>
-          )}
         </div>
       )}
 
@@ -1009,6 +947,16 @@ export default function DashboardPage() {
               </Link>
             </div>
           )}
+
+          {/* Cards de Saldo por Banco com Gradiente de Marca e Faturas */}
+          <BankBalanceCards
+            accounts={accounts}
+            transactions={transactions}
+            formatCurrency={formatCurrency}
+            isPrivacyMode={isPrivacyMode}
+            selectedBankSlug={selectedBankSlug}
+            onSelectBank={setSelectedBankSlug}
+          />
 
           {/* Hero Net Worth + Gráfico de Área Gradiente #FF8216 + Seletor 1M / 3M / 6M / 1Y / ALL */}
           <NetWorthHeroChart
@@ -1104,7 +1052,8 @@ export default function DashboardPage() {
                       return (
                         <div
                           key={tx.id}
-                          className="px-4 md:px-5 py-2.5 flex items-center justify-between gap-3 hover:bg-zinc-50 dark:hover:bg-[#18181B]/60 transition-colors"
+                          onClick={() => setSelectedTxForDetail(tx)}
+                          className="px-4 md:px-5 py-2.5 flex items-center justify-between gap-3 hover:bg-zinc-50 dark:hover:bg-[#18181B]/60 transition-colors cursor-pointer"
                         >
                           <div className="flex items-center gap-3 min-w-0">
                             <MerchantLogo
@@ -1282,6 +1231,17 @@ export default function DashboardPage() {
                 )}
               </section>
 
+              {/* Chat Compacto Kitsune AI */}
+              <CompactKitsuneChat
+                onOpenFullChat={(initPrompt) => {
+                  if (initPrompt) {
+                    router.push(`/kitsune?prompt=${encodeURIComponent(initPrompt)}`);
+                  } else {
+                    router.push("/kitsune");
+                  }
+                }}
+              />
+
               {/* Diagnóstico Executivo Kitsune AI + Camada Determinística MSLR */}
               <AiDiagnosticPanel
                 aiInsight={aiInsight}
@@ -1429,6 +1389,24 @@ export default function DashboardPage() {
           setSelectedAssetToEdit(null);
         }}
         assetToEdit={selectedAssetToEdit}
+      />
+
+      {/* Modal de Lançamento Manual / Dinheiro em Espécie */}
+      <ManualTransactionModal
+        isOpen={isManualModalOpen}
+        onClose={() => setIsManualModalOpen(false)}
+        accounts={accounts}
+        onSuccess={() => revalidate(true)}
+      />
+
+      {/* Modal de Detalhes da Transação Inspirado no Apple Wallet */}
+      <TransactionDetailModal
+        isOpen={Boolean(selectedTxForDetail)}
+        onClose={() => setSelectedTxForDetail(null)}
+        transaction={selectedTxForDetail}
+        allTransactions={transactions}
+        formatCurrency={formatCurrency}
+        isPrivacyMode={isPrivacyMode}
       />
     </div>
   );

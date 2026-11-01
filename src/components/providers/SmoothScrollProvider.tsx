@@ -1,10 +1,16 @@
 'use client';
 
 import { useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import Lenis from 'lenis';
 
 export function SmoothScrollProvider({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+
   useEffect(() => {
+    // Lenis opera EXCLUSIVAMENTE na Landing Page (/); em rotas de aplicação e dashboard, o scroll é 100% nativo para evitar interceptação de caixas
+    if (pathname !== '/') return;
+
     // Respeitar preferências do usuário contra movimentos bruscos
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (prefersReducedMotion) return;
@@ -51,7 +57,7 @@ export function SmoothScrollProvider({ children }: { children: React.ReactNode }
       lenis.destroy();
       delete (window as any).__lenis;
     };
-  }, []);
+  }, [pathname]);
 
   return <>{children}</>;
 }

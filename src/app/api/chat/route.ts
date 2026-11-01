@@ -181,14 +181,14 @@ export async function POST(req: Request) {
                 /fatura|cart[aã]o|cortar|gastos|extrato|compara|saldo/i.test(effectivePrompt);
 
             if (isComplexQuery) {
-                preferredModel = 'gemini-4-argon';
-                routerReason = 'Pergunta estratégica complexa: roteado para Gemini 4 Argon';
+                preferredModel = 'gemini-3.1-pro-preview';
+                routerReason = 'Pergunta analítica/estratégica: roteado para Kitsune Pro Ultra (Gemini 3.1 Pro)';
             } else if (isMediumQuery) {
                 preferredModel = 'gemini-3.8-flash';
-                routerReason = 'Consulta financeira estruturada: roteado para Gemini 3.8 Flash';
+                routerReason = 'Consulta financeira estruturada: roteado para Kitsune Smart (Gemini 3.8 Flash)';
             } else {
                 preferredModel = 'gemini-3.5-flash-lite';
-                routerReason = 'Pergunta direta: roteado para Gemini 3.5 Flash-Lite para resposta ultra-rápida';
+                routerReason = 'Pergunta direta: roteado para Kitsune Flash (Gemini 3.5 Flash-Lite)';
             }
         }
 
@@ -430,6 +430,14 @@ O usuário enviou uma ou mais imagens anexadas diretamente no chat (cardápio, p
             });
         }
 
+        const isPro = aiResponse.modelUsed.includes('pro');
+        const quotaInfo = {
+            plan: 'Google AI Studio (Nível Gratuito)',
+            requestsPerMinuteLimit: isPro ? 2 : 15,
+            requestsPerDayLimit: isPro ? 50 : 1500,
+            tokensPerMinuteLimit: isPro ? '32k TPM' : '1M TPM',
+        };
+
         return NextResponse.json({
             message: aiResponse.text,
             modelUsed: aiResponse.modelUsed,
@@ -439,6 +447,8 @@ O usuário enviou uma ou mais imagens anexadas diretamente no chat (cardápio, p
             provider: aiResponse.modelUsed.startsWith('llama-') ? 'groq' : 'gemini',
             sessionId: activeSessionId,
             summarySnapshot: contextSnapshot?.summary || null,
+            usage: aiResponse.usage,
+            quota: quotaInfo,
         });
     } catch (error: any) {
         console.error('[Chat API Error]:', error);

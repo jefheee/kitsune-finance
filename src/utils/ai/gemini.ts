@@ -11,8 +11,16 @@ export interface GeminiModelInfo {
 
 export const KITSUNE_AI_MODELS: GeminiModelInfo[] = [
   {
+    id: 'auto',
+    shortTitle: '✨ Automático',
+    name: '✨ Automático (Roteamento Inteligente)',
+    subtitle: 'Roteia dinamicamente entre Lite, Flash e Pro conforme a complexidade e contexto',
+    provider: 'gemini',
+    tier: 'fast',
+  },
+  {
     id: 'gemini-3.8-flash',
-    shortTitle: '✨ Smart (Principal)',
+    shortTitle: 'Smart Flash (Equilibrado)',
     name: 'Kitsune Smart (Gemini 3.8 Flash)',
     subtitle: 'Equilíbrio ideal: rápido, multimodal e ágil para auditorias e planejamento',
     provider: 'gemini',
@@ -94,6 +102,11 @@ export interface GenerateKitsuneResponseResult {
   text: string;
   modelUsed: string;
   keyIndexUsed: number;
+  usage?: {
+    promptTokens: number;
+    candidatesTokens: number;
+    totalTokens: number;
+  };
 }
 
 export async function generateWithGeminiPool(
@@ -247,10 +260,19 @@ export async function generateWithGeminiPool(
           .trim();
 
         if (candidateText) {
+          const usage = data?.usageMetadata
+            ? {
+                promptTokens: data.usageMetadata.promptTokenCount || 0,
+                candidatesTokens: data.usageMetadata.candidatesTokenCount || 0,
+                totalTokens: data.usageMetadata.totalTokenCount || 0,
+              }
+            : undefined;
+
           return {
             text: candidateText,
             modelUsed: model,
             keyIndexUsed: kIdx + 1,
+            usage,
           };
         }
       } catch (err: any) {
@@ -274,5 +296,10 @@ export async function generateWithGeminiPool(
     text: groqFallback.text,
     modelUsed: groqFallback.modelUsed,
     keyIndexUsed: 0,
+    usage: {
+      promptTokens: 0,
+      candidatesTokens: 0,
+      totalTokens: 0,
+    },
   };
 }

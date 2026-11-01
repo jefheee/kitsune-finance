@@ -1115,7 +1115,7 @@ export default function SharedSpacePage() {
             )}
           </div>
           <p className="text-xs md:text-sm text-slate-500 dark:text-[#94A3B8] max-w-2xl">
-            Gestão 360° do casal e família: salários, entradas e saídas, contas pagas e a pagar, rendimentos de investimentos e simulações com privacidade RLS.
+            Gestão colaborativa do patrimônio compartilhado: salários, entradas e saídas, contas pagas e a pagar, investimentos e rateios com privacidade RLS.
           </p>
         </div>
 
@@ -1131,7 +1131,67 @@ export default function SharedSpacePage() {
             </span>
             <span>Atualizar</span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveFeatureTab("members")}
+            className="h-9 px-3.5 rounded-xl bg-[#FF8216] hover:bg-[#FFA047] text-black text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+          >
+            <span className="material-symbols-outlined text-[16px]">person_add</span>
+            <span>+ Convidar Membro</span>
+          </button>
         </div>
+      </div>
+
+      {/* Seletor de Integrante (Pills Interativos) */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+        <button
+          type="button"
+          onClick={() => setActiveMemberTab("consolidated")}
+          className={`h-8 px-3.5 rounded-full text-xs font-bold flex items-center gap-1.5 shrink-0 border transition-colors cursor-pointer ${
+            activeMemberTab === "consolidated"
+              ? "bg-[#FF8216] text-black border-[#FF8216]"
+              : "bg-white dark:bg-[#121214] border-slate-200 dark:border-[#27272A] text-slate-600 dark:text-zinc-400 hover:text-white"
+          }`}
+        >
+          <span className="material-symbols-outlined text-[14px]">groups</span>
+          <span>Consolidado ({activePartners.length + 1} membros)</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveMemberTab(user?.id || "me")}
+          className={`h-8 px-3.5 rounded-full text-xs font-bold flex items-center gap-1.5 shrink-0 border transition-colors cursor-pointer ${
+            activeMemberTab === (user?.id || "me")
+              ? "bg-[#FF8216] text-black border-[#FF8216]"
+              : "bg-white dark:bg-[#121214] border-slate-200 dark:border-[#27272A] text-slate-600 dark:text-zinc-400 hover:text-white"
+          }`}
+        >
+          <span className="w-2 h-2 rounded-full bg-[#FF8216]" />
+          <span>{myDisplayName} (Você)</span>
+        </button>
+
+        {activePartners.map((partner) => {
+          const isSelected = activeMemberTab === partner.id;
+          return (
+            <button
+              key={partner.id}
+              type="button"
+              onClick={() => setActiveMemberTab(partner.id)}
+              className={`h-8 px-3.5 rounded-full text-xs font-bold flex items-center gap-1.5 shrink-0 border transition-colors cursor-pointer ${
+                isSelected
+                  ? "bg-[#FF8216] text-black border-[#FF8216]"
+                  : "bg-white dark:bg-[#121214] border-slate-200 dark:border-[#27272A] text-slate-600 dark:text-zinc-400 hover:text-white"
+              }`}
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span>{partner.display_name || partner.full_name || "Membro"}</span>
+              {partner.role && (
+                <span className="text-[10px] opacity-75 font-normal">({partner.role})</span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {/* Feedback Alert */}
@@ -1314,6 +1374,36 @@ export default function SharedSpacePage() {
       {/* ABA 1: VISÃO GERAL & BALANÇO */}
       {activeFeatureTab === "overview" && (
         <div className="flex flex-col gap-6 animate-in fade-in">
+          {/* Card de Foco do Integrante Selecionado */}
+          {selectedMemberData && (
+            <div className="p-4 md:p-5 rounded-2xl bg-[#121214] border border-[#FF8216]/35 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-[#FF8216]/15 border border-[#FF8216]/30 text-[#FF8216] font-bold text-sm flex items-center justify-center shrink-0">
+                  {selectedMemberData.name.slice(0, 2).toUpperCase()}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-white">{selectedMemberData.name}</h3>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#FF8216]/10 text-[#FF8216]">
+                      {selectedMemberData.role}
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-400 mt-0.5">
+                    {selectedMemberData.accounts.length} conta(s) • {selectedMemberData.investments.length} ativo(s) em custódia • {selectedMemberData.transactions.length} transações
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setActiveMemberTab("consolidated")}
+                className="px-3.5 py-1.5 rounded-xl bg-[#18181B] hover:bg-[#27272A] border border-[#27272A] text-xs font-semibold text-zinc-300 hover:text-white transition-colors cursor-pointer self-start sm:self-auto"
+              >
+                ← Ver Todos (Consolidado)
+              </button>
+            </div>
+          )}
+
           {/* Barra de Distribuição de Patrimônio */}
           {totals.net > 0 && activePartners.length > 0 && (
             <SpotlightCard className="p-5 flex flex-col gap-3.5">

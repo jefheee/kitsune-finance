@@ -85,7 +85,7 @@ export default function TransactionsPage() {
             </h1>
           </div>
           <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-            Extrato multi-banco auditado sem inflação de transferências próprias, com ordenação tabular e modo virtualizado 60 FPS.
+            Extrato multi-banco auditado sem inflação de transferências próprias, com ordenação tabular e busca instantânea.
           </p>
         </div>
 
