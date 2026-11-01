@@ -15,7 +15,7 @@
   <a href="https://tailwindcss.com"><img src="https://img.shields.io/badge/Tailwind_CSS-v4-38B2AC?style=flat-square&logo=tailwind-css" alt="Tailwind CSS" /></a>
   <a href="https://supabase.com"><img src="https://img.shields.io/badge/Supabase-PostgreSQL_%7C_RLS-3ECF8E?style=flat-square&logo=supabase" alt="Supabase" /></a>
   <a href="https://pluggy.ai"><img src="https://img.shields.io/badge/Open_Finance-Pluggy_SDK-FF6B00?style=flat-square" alt="Pluggy Open Finance" /></a>
-  <a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=flat-square" alt="License MIT" /></a>
+  <a href="./LICENSE"><img src="https://img.shields.io/badge/License-Non--Commercial_%7C_Personal_Use-red?style=flat-square" alt="License Non-Commercial" /></a>
 </p>
 
 <p align="center">
@@ -23,6 +23,7 @@
   <a href="#the-zero-cost-sovereignty-model">Zero-Cost Model</a> &bull;
   <a href="#system-architecture">Architecture</a> &bull;
   <a href="#core-capabilities">Core Capabilities</a> &bull;
+  <a href="#interface-showcase--visual-tour">Interface Showcase</a> &bull;
   <a href="#security-and-data-protection">Security</a> &bull;
   <a href="#tech-stack">Tech Stack</a> &bull;
   <a href="#getting-started">Getting Started</a> &bull;
@@ -174,6 +175,48 @@ Large Language Models are non-deterministic and prone to arithmetic failure. Kit
 * **Visual Analytics Suite:** Spending curve trajectory comparisons, category donut charts, daily activity heatmaps, and recurring subscription forecasts.
 * **Global Privacy Mode:** One-click toggle masking all monetary figures to `R$ ••••••` across dashboards, charts, tables, and AI cards. Enabled by default (`isPrivacyMode = true`).
 * **Automated Data Export:** Instant generation and download of structured financial reports and spreadsheets (`/api/export/spreadsheet`).
+
+---
+
+## Interface Showcase & Visual Tour
+
+Kitsune Finance pairs raw mathematical precision with an elite Warm Obsidian design aesthetic. Below is a structured tour of the core interfaces.
+
+### 1. Unified Wealth Dashboard
+The nerve center of personal finance. Consolidates multi-bank liquidity, historical spending curves, daily cash burn rates, recent transactions, and macro KPIs.
+<p align="center">
+  <img src="public/assets/screenshots/01_dashboard.png" width="100%" alt="Unified Wealth Dashboard" />
+</p>
+
+### 2. Apple Wallet Cards Stack (`/cards`)
+A master-detail card wallet featuring dynamic card skins, interactive mouse-drag and touch carousels, limit utilization meters, upcoming invoices, and installment breakdowns.
+<p align="center">
+  <img src="public/assets/screenshots/02_cards.png" width="100%" alt="Apple Wallet Cards Stack" />
+</p>
+
+### 3. Investment Portfolio & Macroeconomic Radar (`/investments`)
+Tracks Fixed Income (CDBs, LCIs), Treasury Direct, and Equities against real-time Brazilian benchmarks (Selic, CDI, IPCA inflation, Real Interest Rate spread, Ibovespa, USD).
+<p align="center">
+  <img src="public/assets/screenshots/03_investments.png" width="100%" alt="Investment Radar and Portfolio" />
+</p>
+
+### 4. 360-Degree Shared Space / Family Office (`/shared`)
+The household financial command center. Features joint net worth consolidation, individual member tabs, an automated fair-share split calculator (50/50 and income-proportional), and compound interest goal simulation.
+<p align="center">
+  <img src="public/assets/screenshots/04_shared_space.png" width="100%" alt="360 Shared Space Family Office" />
+</p>
+
+### 5. Kitsune AI Autonomous Advisor (`/kitsune`)
+Multi-model reasoning advisor with live 4-stage thought pacing (Connecting, Reconciling, Auditing, Formulating), live Web Audio frequency waveforms, Whisper voice input, and receipt OCR analysis.
+<p align="center">
+  <img src="public/assets/screenshots/05_kitsune_ai.png" width="100%" alt="Kitsune AI Autonomous Advisor" />
+</p>
+
+### 6. Global Finance Search (`Ctrl+K`)
+Instant search across all accounts, merchants, and notes, featuring automated brand resolution with Simple Icons and deep merchant spending dossiers.
+<p align="center">
+  <img src="public/assets/screenshots/06_global_search.png" width="100%" alt="Global Finance Search" />
+</p>
 
 ---
 
@@ -370,4 +413,12 @@ This repository adheres to the **Docs as Code** methodology:
 
 ## License
 
-This project is licensed under the [MIT License](./LICENSE). You are free to self-host, fork, modify, and distribute this software for personal or commercial purposes with attribution.
+This project is licensed under the **PolyForm Noncommercial License 1.0.0** ([LICENSE](./LICENSE)).
+
+### Permitted Uses
+* **Personal & Family Use:** You are free to self-host, run, inspect, and use this software for your own personal, household, or family wealth management at no cost.
+* **Community Contributions:** You are welcome to submit pull requests, report issues, and contribute to the growth and improvement of the codebase.
+
+### Prohibited Uses
+* **No Commercial Exploitation:** You may NOT sell, resell, lease, charge for access to, or package this software into a paid commercial product or hosted service.
+* **No Closed-Source Bundling:** You may NOT repackage the author's work into commercial SaaS offerings or monetized derivatives.

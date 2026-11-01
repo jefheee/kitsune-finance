@@ -4,11 +4,12 @@ Todas as alterações notáveis no projeto Kitsune Finance são registradas de f
 
 ---
 
-## [2026-10-31] - Atualização Integral do README Oficial (Padrão GitHub & Zero Emojis)
-- **Arquivos Afetados:** `README.md`, `docs/CHANGELOG.md`.
+## [2026-10-31] - Atualização Integral do README & Licenciamento Não-Comercial (PolyForm 1.0.0)
+- **Arquivos Afetados:** `README.md`, `LICENSE`, `public/assets/screenshots/README.md`, `docs/CHANGELOG.md`.
 - **Objetivo:**
-  - Reformulação completa do README em inglês, com formatação avançada do GitHub e zero emojis.
-  - Documentação da arquitetura de soberania financeira e custo zero ($0/mês), Open Finance Brasil (140+ bancos via Pluggy), segurança RLS sem mocks, motor MSLR determinístico e todos os módulos recentes (/shared 360°, /cards, /investments, /kitsune e privacidade global).
+  - Reformulação completa do README em inglês, com padrão visual de elite do GitHub, sem emojis e com estrutura de vitrine para capturas de tela.
+  - Transição da licença para PolyForm Noncommercial 1.0.0: livre para uso pessoal/familiar e contribuições de código aberto, vedando explicitamente venda comercial ou empacotamento em SaaS pago.
+  - Documentação da arquitetura de soberania financeira e custo zero ($0/mês), Open Finance Brasil (140+ bancos via Pluggy), segurança RLS sem mocks, motor MSLR determinístico e todos os módulos recentes.
 
 ---
 

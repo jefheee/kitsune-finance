@@ -1,17 +1,49 @@
-MIT License
+PolyForm Noncommercial License 1.0.0
+
+https://polyformproject.org/licenses/noncommercial/1.0.0/
 
 Copyright (c) 2026 Kitsune Finance
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Acceptance
+In order to get any license under these terms, you must agree to them as both
+strict conditions and terms to both personal and organizational use.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+Copyright License
+The licensor grants you a copyright license for the software to do everything
+you might do with the software that would otherwise infringe the licensor's
+copyright in it, for any noncommercial purpose.
 
+Notices
+You must ensure that everyone who gets a copy of any part of this software from
+you also gets a copy of these terms and the copyright notice above.
+
+Noncommercial Purposes
+Any noncommercial purpose is any purpose that is not a commercial purpose.
+A commercial purpose is any purpose that involves:
+
+1. Selling, licensing, renting, or leasing the software or any derivative work.
+2. Charging fees for access to, hosting, or deployment of the software (e.g.,
+   paid SaaS or managed cloud services).
+3. Using the software as part of a product or service offered for a fee.
+4. Distributing the software in exchange for monetary compensation.
+
+Permitted Uses
+Under this license, you are explicitly permitted to:
+- Self-host and run the software for your own personal, household, or family
+  financial management at no cost.
+- Inspect, study, fork, and modify the source code for personal and noncommercial
+  enhancements.
+- Submit bug reports, pull requests, and contribute to the open-source community
+  development of this project.
+
+No Sublicensing
+These terms do not permit you to sublicense this software, or to permit others to
+use the software except under these terms.
+
+No Other Rights
+These terms do not imply any other licenses or rights.
+
+Disclaimer
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
