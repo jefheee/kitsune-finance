@@ -1,6 +1,6 @@
 # Estado do Projeto - Kitsune Finance
 
-**Última atualização:** 30/10/2026
+**Última atualização:** 31/10/2026
 **Status Geral:** Operacional / Open Finance Brasil Completo & Blindagem Multi-tenant Ativos
 
 ---
@@ -47,6 +47,7 @@
 ---
 
 ## 3. Módulos Implementados
+- [x] Motor Matemático Determinístico BR & X-Ray Engine (v2.0) em `src/utils/finance/engine/`: `cdi.ts` com cálculo oficial DU/252 B3/CETIP e feriados ANBIMA, `taxes.ts` com IR/IOF regressivo RFB e equivalência LCI/LCA vs CDB, `fisher.ts` com Equação de Fisher exata e poder de compra real, `cet.ts` via Newton-Raphson ($10^{-7}$) e antecipação de parcelas, `debt-payoff.ts` com simulador Snowball vs Avalanche e rollover real de parcelas mínimas, e `xray-rules.ts` com Kitsune Health Score (0-100) e auditoria FGC (R$ 250k).
 - [x] Espaço Compartilhado 360° (`/shared`): Eliminação do AppShell duplicado (resolução do bug de barra lateral dupla), criação de hub com 7 módulos temáticos (Visão Geral & Balanço, Salários & Fluxo Mensal por integrante, Contas Pagas e a Pagar com indicação de pagador e vencimento, Investimentos & Rendimento com comparativo Poupança vs CDI vs IPCA+, Simulador Interativo de Metas Familiares com juros compostos, Calculadora de Divisão Justa 50/50 e Proporcional à renda com valor de ressarcimento, e Administração de Membros com convites WhatsApp/Gmail).
 - [x] Otimização do Pop-up "+" de Anexos no Kitsune AI (`/kitsune`): Eliminação completa da barra de rolagem vertical via grid 2x2 ultra-compacto para modos de Visão e Contexto Financeiro.
 - [x] Auditoria Transparente de Investimentos e Paginação (`/investments` e Dashboard): Detalhamento do núcleo de R$ 89,5k em 4 grandes CDBs vs R$ 16,9k em menores aportes e 4 posições zeradas/resgatadas; implementação de paginação numerada (1, 2, 3...) com 6 posições por página e alternador de posições resgatadas em ambas as telas.
@@ -94,7 +95,6 @@
 - [x] Biblioteca de Micro-Interações React Bits (`SpotlightCard.tsx`, `ShinyText.tsx`, `CountUp.tsx`, `DecryptedText.tsx`) integrados na Landing Page e Dashboard
 - [x] Motor de Resolução de Marcas Simple Icons & Decodificação Brasileira (`src/utils/finance/merchant-resolver.ts` e `src/components/MerchantLogo.tsx`)
 - [x] Mecanismo de Pesquisa Financeira Global 360° com Dossiê de Estabelecimento (`GlobalFinanceSearchModal.tsx` via `Ctrl+K`)
-- [x] Central de Agentes Especialistas da Kitsune Dinâmicos (`src/app/agents/page.tsx` com Julius, Sherlock, Tio Patinhas, Inspetor Bugiganga, Megamen e Silvio)
 - [x] Rota Dedicada de Conexões Bancárias & Open Finance sem FAQ redundante (`src/app/connections/page.tsx`)
 - [x] Granularidade Temporal no Dashboard (Dia a Dia, Semana a Semana, Mês a Mês, Ano a Ano)
 - [x] Carrossel de Sugestões com Navegação por Setas `<` e `>` no Desktop e touch no mobile em `kitsune/page.tsx`
@@ -112,18 +112,13 @@
 - [x] Diagnóstico Executivo da Kitsune IA com 3 cards dinâmicos e resumo sem markdown solto
 - [x] Microfone com Live Audio Waveform (Web Audio API) e transcrição via Whisper
 - [x] Geração Automática de Planilhas e Documentos (`/api/export/spreadsheet`) com dados enriquecidos Open Finance
-- [x] Scanner de Anomalias em Segundo Plano (`/api/ai/anomalies`) com filtro de transferências internas
-- [x] Licenciamento Open Source MIT (`LICENSE`)
+- [x] Scanner de Anomalias em Segundo Plano com filtro de transferências internas
+- [x] Licenciamento PolyForm Noncommercial 1.0.0 (`LICENSE`)
 - [x] Multi-Tenant RLS ativo em 100% das tabelas públicas com anon revogado
-- [x] Diagnóstico Executivo da Kitsune IA com 3 cards dinâmicos e resumo sem markdown solto
-- [x] Microfone com Live Audio Waveform (Web Audio API) e transcrição via Whisper
 - [x] Mapa de Calor de Gastos Diários (`SpendingHeatmap.tsx`)
 - [x] Rastreamento Matemático de Parcelamentos (`InstallmentsTracker.tsx`)
 - [x] Auditoria Contínua de Assinaturas e Projeção Anual (`SubscriptionsTracker.tsx`)
-- [x] Geração Automática de Planilhas e Documentos (`/api/export/spreadsheet`)
-- [x] Scanner de Anomalias em Segundo Plano com Alerta do Agente Albert (`AnomalyAlertCard.tsx`)
 - [x] Modal de Apps & Conexões de Produtividade (`AppsModal.tsx`)
-- [x] Licenciamento Open Source MIT (`LICENSE`)
 - [x] Autenticação e Perfis (`/login`, `/signup`, `/profile`, `users_profile`)
 - [x] Sincronização e listagem de Contas e Lançamentos
 - [x] Divisão familiar / Multi-membro (`family_members`)
@@ -133,3 +128,10 @@
 - [x] Suporte universal a temas Claro e Escuro de alto contraste
 - [x] Painel de Configurações do Sistema e Preferências (`/settings`)
 - [x] Responsividade mobile refinada com touch targets de 44px e sem overflow horizontal
+
+---
+
+## 4. Context Handoff (Memória de Continuidade entre Chats)
+- **Última Etapa Concluída:** Etapa 1 — Criação da suíte matemática 100% determinística e motor X-Ray (`src/utils/finance/engine/`: `cdi.ts`, `taxes.ts`, `fisher.ts`, `cet.ts`, `debt-payoff.ts`, `xray-rules.ts`, `index.ts`, `test-suite.ts`).
+- **Próxima Etapa Imediata:** Etapa 2 — Ingestão Open Finance v2, Reconciliação Anti-Duplicidade (`kind` + `auto_transfer_match`) e Enriquecimento Comercial 3 Camadas (`BrasilAPI` + Cache Supabase).
+- **Pendências ou Bloqueios:** Nenhum. Suíte de testes matemáticos validada com sucesso e tipagem estrita limpa (`tsc --noEmit`).

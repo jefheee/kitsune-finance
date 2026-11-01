@@ -396,7 +396,7 @@ kitsune-finance/
 |       |-- finance/               # Income detector, loan analysis, math utilities
 |       `-- pluggy/                # Bank connection adapters & identity parser
 |-- AGENTS.md                      # Agent rules and Docs-as-Code protocols
-|-- LICENSE                        # MIT Open Source License
+|-- LICENSE                        # PolyForm Noncommercial License 1.0.0
 `-- package.json                   # Dependencies and npm scripts
 ```
 

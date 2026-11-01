@@ -4,6 +4,22 @@ Todas as alterações notáveis no projeto Kitsune Finance são registradas de f
 
 ---
 
+## [2026-10-31] - Implementação da Etapa 1: Motor Matemático Determinístico & X-Ray Engine
+- **Arquivos Afetados:** `src/utils/finance/engine/cdi.ts`, `taxes.ts`, `fisher.ts`, `cet.ts`, `debt-payoff.ts`, `xray-rules.ts`, `index.ts`, `test-suite.ts`, `docs/ARCHITECTURE_EXPANSION.md`, `docs/PROJECT_STATE.md`, `docs/CHANGELOG.md`.
+- **Objetivo:**
+  - Implementação da suíte matemática pura e determinística em TypeScript estrito: motor DU/252 CETIP com feriados ANBIMA (Meeus/Jones/Butcher), tributação IR/IOF regressiva, equivalência LCI vs CDB, Equação de Fisher exata, CET por Newton-Raphson e simulador de dívidas com rollover real.
+  - Implementação do motor de auditoria patrimonial X-Ray com Kitsune Health Score (0-100), alerta de teto FGC (R$ 250k), cálculo de reserva de emergência e custo de oportunidade anual. Validação 100% aprovada via `test-suite.ts` e `tsc --noEmit`.
+
+---
+
+## [2026-10-31] - Higienização de Estado, Licenciamento e Context Handoff
+- **Arquivos Afetados:** `README.md`, `docs/PROJECT_STATE.md`, `docs/CHANGELOG.md`.
+- **Objetivo:**
+  - Atualização do README e PROJECT_STATE para refletir a licença PolyForm Noncommercial 1.0.0 e eliminação de duplicidades e menções obsoletas de agentes.
+  - Inclusão formal da seção `## 4. Context Handoff` em `docs/PROJECT_STATE.md` para transição autônoma de contexto entre sessões.
+
+---
+
 ## [2026-10-31] - Criação do Plano Mestre de Expansão (docs/ARCHITECTURE_EXPANSION.md)
 - **Arquivos Afetados:** `docs/ARCHITECTURE_EXPANSION.md`, `docs/CHANGELOG.md`.
 - **Objetivo:**
