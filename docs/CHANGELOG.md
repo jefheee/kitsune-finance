@@ -4,6 +4,14 @@ Todas as alterações notáveis no projeto Kitsune Finance são registradas de f
 
 ---
 
+## [2026-11-01] - Correção de Performance no Dashboard: Eliminação de Drop de Frames
+- **Arquivos Afetados:** `src/components/react-bits/SpotlightCard.tsx`, `src/components/charts/SpendingCurveChart.tsx`, `docs/CHANGELOG.md`.
+- **Objetivo:**
+  - Otimização do `SpotlightCard`: aplicação de throttling no evento `mousemove` via `requestAnimationFrame` coalescente e eliminação de `backdrop-blur-md` inline em área de alta interação com o mouse.
+  - Otimização do `SpendingCurveChart`: remoção da classe `animate-ping` contínua no SVG vetorial e aceleração de composição via GPU (`willChange: transform`), zerando repaints desnecessários no topo do Dashboard.
+
+---
+
 ## [2026-11-01] - Release v2.0: Consolidação em Produção, Webhook Real-Time Pluggy, Monitor FGC & Build Validado
 - **Arquivos Afetados:** `src/app/api/webhooks/pluggy/route.ts`, `src/utils/pluggy/sync.ts`, `src/app/investments/page.tsx`, `src/app/dashboard/page.tsx`, `src/app/layout.tsx`, `public/manifest.json`, `.gitignore`, `README.md`, `docs/ARCHITECTURE_EXPANSION.md`, `docs/PROJECT_STATE.md`.
 - **Objetivo:**

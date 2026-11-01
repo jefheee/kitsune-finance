@@ -49,3 +49,6 @@ test-suite.ts
 # ide & temporary rules
 .cursor/
 !.cursor/rules/
+
+# local design reference captures
+public/assets/screenshots/pierre design system/

@@ -203,8 +203,7 @@ export function SpendingCurveChart({
                 cy={lastCurPoint.y}
                 r="6"
                 fill="#10B981"
-                fillOpacity="0.3"
-                className="animate-ping"
+                fillOpacity="0.25"
               />
               <circle
                 cx={lastCurPoint.x}

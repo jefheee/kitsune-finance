@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useCallback } from "react";
 
 interface SpotlightCardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
@@ -17,18 +17,32 @@ export function SpotlightCard({
   const divRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [opacity, setOpacity] = useState(0);
+  const rafId = useRef<number | null>(null);
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!divRef.current) return;
-    const rect = divRef.current.getBoundingClientRect();
-    setPosition({ x: e.clientX - rect.left, y: e.clientY - rect.top });
-  };
+    const clientX = e.clientX;
+    const clientY = e.clientY;
+
+    if (rafId.current) return;
+
+    rafId.current = requestAnimationFrame(() => {
+      rafId.current = null;
+      if (!divRef.current) return;
+      const rect = divRef.current.getBoundingClientRect();
+      setPosition({ x: clientX - rect.left, y: clientY - rect.top });
+    });
+  }, []);
 
   const handleMouseEnter = () => {
     setOpacity(1);
   };
 
   const handleMouseLeave = () => {
+    if (rafId.current) {
+      cancelAnimationFrame(rafId.current);
+      rafId.current = null;
+    }
     setOpacity(0);
   };
 
@@ -38,7 +52,8 @@ export function SpotlightCard({
       onMouseMove={handleMouseMove}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      className={`relative overflow-hidden rounded-2xl border border-slate-200/80 dark:border-[#27272A] bg-white/70 dark:bg-[#121214] backdrop-blur-md transition-all duration-300 ${className}`}
+      className={`relative overflow-hidden rounded-2xl border border-slate-200/80 dark:border-[#27272A] bg-white/70 dark:bg-[#121214] transition-colors duration-200 ${className}`}
+      style={{ willChange: "transform", transform: "translateZ(0)" }}
       {...props}
     >
       <div
