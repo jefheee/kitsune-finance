@@ -188,6 +188,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       Icon: WfIcons.Holdings,
     },
     {
+      path: "/assets",
+      matchPaths: ["/assets"],
+      label: "Patrimônio & Ativos",
+      Icon: WfIcons.Assets,
+    },
+    {
       path: "/insights",
       matchPaths: ["/insights"],
       label: "Insights & Alocação",
@@ -1032,6 +1038,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               {/* Grid of All Modules */}
               <div className="grid grid-cols-2 gap-2">
                 {[
+                  {
+                    href: "/assets",
+                    label: "Patrimônio & Ativos",
+                    sub: "Veículos, Imóveis & FGTS",
+                    Icon: WfIcons.Assets,
+                  },
                   {
                     href: "/transactions",
                     label: "Transações",
