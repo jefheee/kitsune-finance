@@ -4,6 +4,16 @@ Todas as alterações notáveis no projeto Kitsune Finance são registradas de f
 
 ---
 
+## [2026-11-01] - Correção do Loop de Desbloqueio Biométrico, Snapshot Masking Clean & Google Login Prioritário
+- **Arquivos Afetados:** `src/components/security/BiometricLockGuard.tsx`, `src/app/globals.css`, `src/app/login/page.tsx`, `src/app/signup/page.tsx`, `docs/PROJECT_STATE.md`, `docs/CHANGELOG.md`.
+- **Objetivo:**
+  - Eliminação do loop de bloqueio pós-biometria com cooldown `recentlyUnlockedRef` de 2s e reset de `lastBackgroundTimestamp`, impedindo rebloqueio disparado pelos eventos de foco do diálogo do SO.
+  - Correção do modal pós-logout ignorando rotas não-autenticadas e persistindo recusa do prompt biométrico no dispositivo.
+  - Snapshot masking fluido com transição cubic-bezier (220ms) e tela ultra clean minimalista (fundo `#0A0A0A`, blur profundo e micro-halo laranja) sem botões na miniatura do multitarefa.
+  - Remoção definitiva da opção de login com Apple e priorização total do Google OAuth no login com opção secundária para e-mail/senha.
+
+---
+
 ## [2026-11-01] - Escudo Instantâneo de Multitarefa PWA (Snapshot Masking 0ms no DOM)
 - **Arquivos Afetados:** `src/app/globals.css`, `src/components/security/BiometricLockGuard.tsx`, `docs/PROJECT_STATE.md`, `docs/CHANGELOG.md`.
 - **Objetivo:**

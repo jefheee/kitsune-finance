@@ -59,32 +59,43 @@ html.lenis, html.lenis body {
   pointer-events: none;
 }
 
-/* Escudo Instantâneo de Multitarefa PWA (Snapshot Masking 0ms) */
+/* Escudo Instantâneo de Multitarefa PWA (Snapshot Masking & Fluid Privacy Curtain) */
 #pwa-privacy-shield-overlay {
-  display: none;
+  display: flex;
   position: fixed;
   inset: 0;
   width: 100vw;
   height: 100vh;
-  background-color: #0A0A0A;
+  background-color: rgba(10, 10, 10, 0.96);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   z-index: 2147483647; /* Máximo z-index de 32 bits */
   flex-direction: column;
   align-items: center;
   justify-content: space-between;
-  pointer-events: auto;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.22s ease, backdrop-filter 0.22s ease;
+  will-change: opacity, backdrop-filter;
 }
 
 body.pwa-privacy-curtain-active #pwa-privacy-shield-overlay,
 html.pwa-privacy-curtain-active #pwa-privacy-shield-overlay {
-  display: flex !important;
   opacity: 1 !important;
   visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+#kitsune-app-root {
+  transition: filter 0.22s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: filter, opacity;
 }
 
 body.pwa-privacy-curtain-active #kitsune-app-root,
 html.pwa-privacy-curtain-active #kitsune-app-root {
-  filter: blur(30px) !important;
-  opacity: 0 !important;
+  filter: blur(24px) !important;
+  opacity: 0.05 !important;
   pointer-events: none !important;
   user-select: none !important;
 }

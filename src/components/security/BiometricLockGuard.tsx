@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useFinanceData } from "@/context/FinanceDataContext";
 import { createClient } from "@/utils/supabase/client";
 import {
@@ -24,6 +24,7 @@ interface BiometricLockGuardProps {
 
 export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const { user } = useFinanceData();
 
   const [settings, setSettings] = useState<BiometricSettings | null>(null);
@@ -44,6 +45,7 @@ export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
 
   const lastBackgroundTimestamp = useRef<number | null>(null);
   const isAuthenticatingRef = useRef<boolean>(false);
+  const recentlyUnlockedRef = useRef<boolean>(false);
   const userId = user?.id;
 
   // Ativação e Desativação Síncrona do Escudo no DOM (0ms Snapshot Masking)
@@ -64,7 +66,8 @@ export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
   }, []);
 
   useEffect(() => {
-    if (!userId) {
+    const isAuthPage = pathname === "/login" || pathname === "/signup" || pathname === "/";
+    if (!userId || isAuthPage) {
       setSettings(null);
       setIsLocked(false);
       setIsCurtainActive(false);
@@ -83,14 +86,21 @@ export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
       setIsLocked(true);
       setIsCurtainActive(true);
       applyCurtainClass(true);
-    } else if (!hasProtection && !currentSettings.dismissedPrompt) {
-      // Se não configurou ainda, oferece prompt de boas-vindas
-      const timer = setTimeout(() => {
-        setShowSetupPrompt(true);
-      }, 1200);
-      return () => clearTimeout(timer);
+    } else {
+      let deviceDismissed = false;
+      try {
+        deviceDismissed = localStorage.getItem("kitsune_prompt_dismissed_device") === "true";
+      } catch (_) {}
+
+      if (!hasProtection && !currentSettings.dismissedPrompt && !deviceDismissed) {
+        // Se não configurou ainda, oferece prompt de boas-vindas
+        const timer = setTimeout(() => {
+          setShowSetupPrompt(true);
+        }, 1200);
+        return () => clearTimeout(timer);
+      }
     }
-  }, [userId, applyCurtainClass]);
+  }, [userId, pathname, applyCurtainClass]);
 
   // Listener para atualização de preferências entre abas
   useEffect(() => {
@@ -114,9 +124,14 @@ export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
   // Desbloqueio com Biometria Nativa (Face ID / Digital sob a tela do A54)
   const handleUnlockWithBiometrics = useCallback(async () => {
     if (!settings?.enabled && !settings?.hasPin) {
+      recentlyUnlockedRef.current = true;
+      lastBackgroundTimestamp.current = null;
       setIsLocked(false);
       setIsCurtainActive(false);
       applyCurtainClass(false);
+      setTimeout(() => {
+        recentlyUnlockedRef.current = false;
+      }, 2000);
       return;
     }
 
@@ -134,12 +149,18 @@ export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
         if (typeof navigator !== "undefined" && navigator.vibrate) {
           navigator.vibrate([25, 40, 25]);
         }
+        // Desbloqueio definitivo: reseta timestamp e ativa imunidade contra eventos blur/focus do SO
+        recentlyUnlockedRef.current = true;
+        lastBackgroundTimestamp.current = null;
         setIsLocked(false);
         setIsCurtainActive(false);
         applyCurtainClass(false);
         setFailedAttempts(0);
         setErrorMessage(null);
         setInputPin("");
+        setTimeout(() => {
+          recentlyUnlockedRef.current = false;
+        }, 2000);
       } else {
         const attempts = failedAttempts + 1;
         setFailedAttempts(attempts);
@@ -156,10 +177,10 @@ export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
       setErrorMessage(err.message || "Falha na validação biométrica.");
     } finally {
       setIsAuthenticating(false);
-      // Aguarda 300ms para evitar que o evento blur do diálogo do SO reative a cortina
+      // Aguarda janela segura antes de liberar o flag de autenticação
       setTimeout(() => {
         isAuthenticatingRef.current = false;
-      }, 300);
+      }, 500);
     }
   }, [settings, failedAttempts, applyCurtainClass]);
 
@@ -177,12 +198,17 @@ export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
       if (typeof navigator !== "undefined" && navigator.vibrate) {
         navigator.vibrate([25, 40, 25]);
       }
+      recentlyUnlockedRef.current = true;
+      lastBackgroundTimestamp.current = null;
       setIsLocked(false);
       setIsCurtainActive(false);
       applyCurtainClass(false);
       setFailedAttempts(0);
       setInputPin("");
       setIsPinModeActive(false);
+      setTimeout(() => {
+        recentlyUnlockedRef.current = false;
+      }, 2000);
     } else {
       const attempts = failedAttempts + 1;
       setFailedAttempts(attempts);
@@ -226,7 +252,7 @@ export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
       setIsAuthenticating(false);
       setTimeout(() => {
         isAuthenticatingRef.current = false;
-      }, 300);
+      }, 500);
     }
   };
 
@@ -253,6 +279,9 @@ export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
       saveBiometricSettings(userId, { dismissedPrompt: true });
       setSettings(getBiometricSettings(userId));
     }
+    try {
+      localStorage.setItem("kitsune_prompt_dismissed_device", "true");
+    } catch (_) {}
     setShowSetupPrompt(false);
   };
 
@@ -263,9 +292,11 @@ export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
     } catch (err) {
       console.warn("Erro ao desautenticar:", err);
     } finally {
+      lastBackgroundTimestamp.current = null;
       setIsLocked(false);
       setIsCurtainActive(false);
       applyCurtainClass(false);
+      setShowSetupPrompt(false);
       router.push("/login");
       router.refresh();
     }
@@ -277,8 +308,8 @@ export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
 
     // Disparado no instante em que o usuário toca no botão de multitarefa ou inicia o gesto de arrastar
     const handleImmediateBlur = () => {
-      // Ignora o blur se for o próprio diálogo biométrico nativo da plataforma
-      if (isAuthenticatingRef.current) return;
+      // Ignora o blur se for o próprio diálogo biométrico nativo da plataforma ou se acabou de desbloquear
+      if (isAuthenticatingRef.current || recentlyUnlockedRef.current) return;
 
       // Executa de forma síncrona na mesma thread do browser: esconde saldos antes do snapshot do Android
       applyCurtainClass(true);
@@ -287,6 +318,8 @@ export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
     };
 
     const handleVisibilityChange = () => {
+      if (recentlyUnlockedRef.current) return;
+
       if (document.visibilityState === "hidden") {
         if (!isAuthenticatingRef.current) {
           applyCurtainClass(true);
@@ -306,12 +339,15 @@ export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
             // Se voltou antes do timeout e não estava previamente bloqueado
             setIsCurtainActive(false);
             applyCurtainClass(false);
+            lastBackgroundTimestamp.current = null;
           }
         }
       }
     };
 
     const handleFocus = () => {
+      if (recentlyUnlockedRef.current) return;
+
       const bgTime = lastBackgroundTimestamp.current;
       if (bgTime !== null && !isLocked) {
         const elapsedSeconds = (Date.now() - bgTime) / 1000;
@@ -319,6 +355,7 @@ export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
         if (elapsedSeconds < timeout) {
           setIsCurtainActive(false);
           applyCurtainClass(false);
+          lastBackgroundTimestamp.current = null;
         } else {
           setIsLocked(true);
           applyCurtainClass(true);
@@ -327,7 +364,7 @@ export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
     };
 
     const handlePageHide = () => {
-      if (!isAuthenticatingRef.current) {
+      if (!isAuthenticatingRef.current && !recentlyUnlockedRef.current) {
         applyCurtainClass(true);
         setIsCurtainActive(true);
         lastBackgroundTimestamp.current = Date.now();
@@ -477,186 +514,217 @@ export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
         </div>
       )}
 
-      {/* ESCUDO FIXO DE MULTITAREFA PWA (Snapshot Masking 0ms no DOM) */}
+      {/* ESCUDO FIXO DE MULTITAREFA PWA (Snapshot Masking 0ms no DOM com Transição Fluida) */}
       <div
         id="pwa-privacy-shield-overlay"
         role="dialog"
         aria-modal="true"
         aria-label="Bloqueio de Segurança Biométrico"
+        className="fixed inset-0 w-screen h-screen z-[2147483647] flex flex-col items-center justify-between p-6 select-none"
       >
-        {/* Topo: Marca e Segurança */}
-        <div className="flex items-center gap-2 pt-8">
-          <span className="w-2 h-2 rounded-full bg-[#FF8216] animate-pulse" />
-          <span className="text-[11px] font-mono tracking-[0.2em] uppercase text-zinc-400 font-bold">
-            KITSUNE BIOMETRIC GUARDIAN
-          </span>
-        </div>
+        {!isLocked ? (
+          /* SNAPSHOT MASKING CLEAN (Visão Minimalista para a miniatura do Multitarefa / Recents) */
+          <div className="flex-1 flex flex-col items-center justify-center space-y-4 my-auto animate-in fade-in duration-200">
+            <div className="relative flex items-center justify-center">
+              {/* Halo sutil com micro-brilho laranja */}
+              <div className="absolute w-24 h-24 rounded-full bg-[#FF8216]/10 blur-xl" />
+              <div className="w-20 h-20 rounded-2xl bg-[#121214]/90 border border-[#27272A] flex items-center justify-center shadow-[0_0_30px_rgba(255,130,22,0.12)] relative z-10">
+                <Image
+                  src="/assets/logo/logo_sem_fundo.png"
+                  alt="Kitsune Finance"
+                  width={48}
+                  height={48}
+                  className="w-12 h-12 object-contain drop-shadow-[0_2px_8px_rgba(255,130,22,0.25)]"
+                  priority
+                />
+              </div>
+            </div>
 
-        {/* Centro: Ícone da Raposa e Ação de Desbloqueio */}
-        <div className="flex flex-col items-center max-w-sm w-full text-center space-y-5 my-auto px-4">
-          <div className="relative flex items-center justify-center">
-            <div className="absolute w-28 h-28 rounded-full bg-[#FF8216]/10 animate-ping" />
-            <div className="w-24 h-24 rounded-3xl bg-[#121214] border-2 border-[#FF8216]/40 flex items-center justify-center shadow-[0_0_40px_rgba(255,130,22,0.18)] relative z-10">
-              <Image
-                src="/assets/logo/logo_sem_fundo.png"
-                alt="Kitsune Finance"
-                width={56}
-                height={56}
-                className="w-14 h-14 object-contain drop-shadow-[0_4px_12px_rgba(255,130,22,0.35)]"
-                priority
-              />
+            <div className="flex items-center gap-2 pt-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#FF8216] animate-pulse" />
+              <span className="text-xs font-semibold tracking-wider text-zinc-400">
+                Kitsune Protegido
+              </span>
             </div>
           </div>
-
-          <div className="space-y-1.5">
-            <h1 className="text-xl sm:text-2xl font-extrabold text-[#F4F4F5] tracking-tight">
-              Kitsune Protegido
-            </h1>
-            <p className="text-xs text-zinc-400 leading-relaxed max-w-xs mx-auto">
-              {isPinModeActive
-                ? "Digite seu PIN de 4 a 6 dígitos para acessar sua conta."
-                : "Autenticação biométrica necessária para acessar seus dados patrimoniais."}
-            </p>
-          </div>
-
-          {errorMessage && (
-            <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/25 text-rose-400 text-xs font-medium w-full animate-in shake duration-300">
-              {errorMessage}
+        ) : (
+          /* TELA DE AUTENTICAÇÃO ATIVA (Exibida quando o usuário retorna e o app está bloqueado) */
+          <>
+            {/* Topo: Marca e Segurança */}
+            <div className="flex items-center gap-2 pt-6">
+              <span className="w-2 h-2 rounded-full bg-[#FF8216] animate-pulse" />
+              <span className="text-[11px] font-mono tracking-[0.2em] uppercase text-zinc-400 font-bold">
+                KITSUNE BIOMETRIC GUARDIAN
+              </span>
             </div>
-          )}
 
-          {!isPinModeActive ? (
-            /* MODO BIOMETRIA: Botão ergonômico W3C User Gesture */
-            <div className="w-full space-y-3 pt-1">
-              {settings?.enabled ? (
-                <button
-                  type="button"
-                  onClick={handleUnlockWithBiometrics}
-                  disabled={isAuthenticating}
-                  className="w-full h-13 px-6 rounded-2xl bg-[#FF8216] hover:bg-[#FFA047] active:bg-[#E66E08] text-black font-extrabold text-sm flex items-center justify-center gap-2.5 shadow-[0_4px_20px_rgba(255,130,22,0.3)] transition-all cursor-pointer disabled:opacity-50"
-                >
-                  {isAuthenticating ? (
-                    <>
-                      <Spinner size={18} className="text-black" />
-                      <span>Validando Biometria...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="material-symbols-outlined text-[22px]">fingerprint</span>
-                      <span>Desbloquear com Biometria</span>
-                    </>
-                  )}
-                </button>
-              ) : null}
+            {/* Centro: Ícone da Raposa e Ação de Desbloqueio */}
+            <div className="flex flex-col items-center max-w-sm w-full text-center space-y-5 my-auto px-4">
+              <div className="relative flex items-center justify-center">
+                <div className="absolute w-28 h-28 rounded-full bg-[#FF8216]/10 animate-ping" />
+                <div className="w-24 h-24 rounded-3xl bg-[#121214] border-2 border-[#FF8216]/40 flex items-center justify-center shadow-[0_0_40px_rgba(255,130,22,0.18)] relative z-10">
+                  <Image
+                    src="/assets/logo/logo_sem_fundo.png"
+                    alt="Kitsune Finance"
+                    width={56}
+                    height={56}
+                    className="w-14 h-14 object-contain drop-shadow-[0_4px_12px_rgba(255,130,22,0.35)]"
+                    priority
+                  />
+                </div>
+              </div>
 
-              {settings?.hasPin && (
-                <button
-                  type="button"
-                  onClick={() => setIsPinModeActive(true)}
-                  className="w-full h-11 rounded-2xl bg-[#18181B] hover:bg-[#27272A] border border-[#27272A] text-white font-semibold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
-                >
-                  <span className="material-symbols-outlined text-[18px] text-[#FF8216]">pin</span>
-                  <span>Desbloquear com PIN</span>
-                </button>
+              <div className="space-y-1.5">
+                <h1 className="text-xl sm:text-2xl font-extrabold text-[#F4F4F5] tracking-tight">
+                  Kitsune Protegido
+                </h1>
+                <p className="text-xs text-zinc-400 leading-relaxed max-w-xs mx-auto">
+                  {isPinModeActive
+                    ? "Digite seu PIN de 4 a 6 dígitos para acessar sua conta."
+                    : "Autenticação biométrica necessária para acessar seus dados patrimoniais."}
+                </p>
+              </div>
+
+              {errorMessage && (
+                <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/25 text-rose-400 text-xs font-medium w-full animate-in shake duration-300">
+                  {errorMessage}
+                </div>
               )}
 
-              <button
-                type="button"
-                onClick={handleFallbackLogout}
-                className="w-full py-2 text-xs text-zinc-400 hover:text-white transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-              >
-                <span className="material-symbols-outlined text-sm">lock_reset</span>
-                <span>Entrar com senha / Trocar de conta</span>
-              </button>
+              {!isPinModeActive ? (
+                /* MODO BIOMETRIA: Botão ergonômico W3C User Gesture */
+                <div className="w-full space-y-3 pt-1">
+                  {settings?.enabled ? (
+                    <button
+                      type="button"
+                      onClick={handleUnlockWithBiometrics}
+                      disabled={isAuthenticating}
+                      className="w-full h-13 px-6 rounded-2xl bg-[#FF8216] hover:bg-[#FFA047] active:bg-[#E66E08] text-black font-extrabold text-sm flex items-center justify-center gap-2.5 shadow-[0_4px_20px_rgba(255,130,22,0.3)] transition-all cursor-pointer disabled:opacity-50"
+                    >
+                      {isAuthenticating ? (
+                        <>
+                          <Spinner size={18} className="text-black" />
+                          <span>Validando Biometria...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="material-symbols-outlined text-[22px]">fingerprint</span>
+                          <span>Desbloquear com Biometria</span>
+                        </>
+                      )}
+                    </button>
+                  ) : null}
+
+                  {settings?.hasPin && (
+                    <button
+                      type="button"
+                      onClick={() => setIsPinModeActive(true)}
+                      className="w-full h-11 rounded-2xl bg-[#18181B] hover:bg-[#27272A] border border-[#27272A] text-white font-semibold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-[18px] text-[#FF8216]">pin</span>
+                      <span>Desbloquear com PIN</span>
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleFallbackLogout}
+                    className="w-full py-2 text-xs text-zinc-400 hover:text-white transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    <span className="material-symbols-outlined text-sm">lock_reset</span>
+                    <span>Entrar com senha / Trocar de conta</span>
+                  </button>
+                </div>
+              ) : (
+                /* MODO PIN: Teclado Numérico Estilo App Bancário */
+                <div className="w-full space-y-4 pt-1">
+                  {/* Mostrador de Dígitos Mascarados */}
+                  <div className="flex items-center justify-center gap-3 py-2">
+                    {[0, 1, 2, 3].map((idx) => {
+                      const filled = inputPin.length > idx;
+                      return (
+                        <div
+                          key={idx}
+                          className={`w-4 h-4 rounded-full border-2 transition-all ${
+                            filled
+                              ? "bg-[#FF8216] border-[#FF8216] scale-110"
+                              : "border-zinc-600 bg-zinc-900"
+                          }`}
+                        />
+                      );
+                    })}
+                  </div>
+
+                  {/* Keypad Numérico 3x4 */}
+                  <div className="grid grid-cols-3 gap-2.5 max-w-[260px] mx-auto">
+                    {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((num) => (
+                      <button
+                        key={num}
+                        type="button"
+                        onClick={() => handleKeypadPress(num)}
+                        className="h-13 rounded-2xl bg-[#18181B] hover:bg-[#27272A] active:bg-[#FF8216]/20 border border-[#27272A] text-xl font-bold font-mono text-white transition-all cursor-pointer"
+                      >
+                        {num}
+                      </button>
+                    ))}
+                    {settings?.enabled ? (
+                      <button
+                        type="button"
+                        onClick={() => setIsPinModeActive(false)}
+                        className="h-13 rounded-2xl bg-[#18181B] hover:bg-[#27272A] border border-[#27272A] flex items-center justify-center text-[#FF8216] transition-all cursor-pointer"
+                        title="Voltar para Biometria"
+                      >
+                        <span className="material-symbols-outlined text-2xl">fingerprint</span>
+                      </button>
+                    ) : (
+                      <div />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleKeypadPress("0")}
+                      className="h-13 rounded-2xl bg-[#18181B] hover:bg-[#27272A] active:bg-[#FF8216]/20 border border-[#27272A] text-xl font-bold font-mono text-white transition-all cursor-pointer"
+                    >
+                      0
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleKeypadBackspace}
+                      className="h-13 rounded-2xl bg-[#18181B] hover:bg-[#27272A] border border-[#27272A] flex items-center justify-center text-zinc-400 hover:text-white transition-all cursor-pointer"
+                      title="Apagar"
+                    >
+                      <span className="material-symbols-outlined text-xl">backspace</span>
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-center gap-4 pt-1">
+                    {settings?.enabled && (
+                      <button
+                        type="button"
+                        onClick={() => setIsPinModeActive(false)}
+                        className="text-xs text-[#FF8216] hover:underline cursor-pointer"
+                      >
+                        Usar Biometria
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleFallbackLogout}
+                      className="text-xs text-zinc-500 hover:text-zinc-300 cursor-pointer"
+                    >
+                      Sair da conta
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
-          ) : (
-            /* MODO PIN: Teclado Numérico Estilo App Bancário */
-            <div className="w-full space-y-4 pt-1">
-              {/* Mostrador de Dígitos Mascarados */}
-              <div className="flex items-center justify-center gap-3 py-2">
-                {[0, 1, 2, 3].map((idx) => {
-                  const filled = inputPin.length > idx;
-                  return (
-                    <div
-                      key={idx}
-                      className={`w-4 h-4 rounded-full border-2 transition-all ${
-                        filled
-                          ? "bg-[#FF8216] border-[#FF8216] scale-110"
-                          : "border-zinc-600 bg-zinc-900"
-                      }`}
-                    />
-                  );
-                })}
-              </div>
 
-              {/* Keypad Numérico 3x4 */}
-              <div className="grid grid-cols-3 gap-2.5 max-w-[260px] mx-auto">
-                {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((num) => (
-                  <button
-                    key={num}
-                    type="button"
-                    onClick={() => handleKeypadPress(num)}
-                    className="h-13 rounded-2xl bg-[#18181B] hover:bg-[#27272A] active:bg-[#FF8216]/20 border border-[#27272A] text-xl font-bold font-mono text-white transition-all cursor-pointer"
-                  >
-                    {num}
-                  </button>
-                ))}
-                {settings?.enabled ? (
-                  <button
-                    type="button"
-                    onClick={() => setIsPinModeActive(false)}
-                    className="h-13 rounded-2xl bg-[#18181B] hover:bg-[#27272A] border border-[#27272A] flex items-center justify-center text-[#FF8216] transition-all cursor-pointer"
-                    title="Voltar para Biometria"
-                  >
-                    <span className="material-symbols-outlined text-2xl">fingerprint</span>
-                  </button>
-                ) : (
-                  <div />
-                )}
-                <button
-                  type="button"
-                  onClick={() => handleKeypadPress("0")}
-                  className="h-13 rounded-2xl bg-[#18181B] hover:bg-[#27272A] active:bg-[#FF8216]/20 border border-[#27272A] text-xl font-bold font-mono text-white transition-all cursor-pointer"
-                >
-                  0
-                </button>
-                <button
-                  type="button"
-                  onClick={handleKeypadBackspace}
-                  className="h-13 rounded-2xl bg-[#18181B] hover:bg-[#27272A] border border-[#27272A] flex items-center justify-center text-zinc-400 hover:text-white transition-all cursor-pointer"
-                  title="Apagar"
-                >
-                  <span className="material-symbols-outlined text-xl">backspace</span>
-                </button>
-              </div>
-
-              <div className="flex items-center justify-center gap-4 pt-1">
-                {settings?.enabled && (
-                  <button
-                    type="button"
-                    onClick={() => setIsPinModeActive(false)}
-                    className="text-xs text-[#FF8216] hover:underline cursor-pointer"
-                  >
-                    Usar Biometria
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={handleFallbackLogout}
-                  className="text-xs text-zinc-500 hover:text-zinc-300 cursor-pointer"
-                >
-                  Sair da conta
-                </button>
-              </div>
+            {/* Rodapé Seguro */}
+            <div className="text-[11px] text-zinc-500 flex items-center gap-1.5 pb-4">
+              <span className="material-symbols-outlined text-xs text-emerald-500">verified_user</span>
+              <span>Cofre Local Criptografado (Hardware & SHA-256)</span>
             </div>
-          )}
-        </div>
-
-        {/* Rodapé Seguro */}
-        <div className="text-[11px] text-zinc-500 flex items-center gap-1.5 pb-6">
-          <span className="material-symbols-outlined text-xs text-emerald-500">verified_user</span>
-          <span>Cofre Local Criptografado (Hardware & SHA-256)</span>
-        </div>
+          </>
+        )}
       </div>
     </>
   );

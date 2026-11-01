@@ -13,8 +13,8 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   
   const [isLoadingGoogle, setIsLoadingGoogle] = useState(false);
-  const [isLoadingApple, setIsLoadingApple] = useState(false);
   const [isLoadingEmail, setIsLoadingEmail] = useState(false);
+  const [showEmailForm, setShowEmailForm] = useState(true);
   
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -58,41 +58,6 @@ export default function SignupPage() {
     }
   };
 
-  const handleAppleLogin = async () => {
-    setIsLoadingApple(true);
-    setError(null);
-    try {
-      // Verificar se o provedor Apple está ativo antes de tentar redirecionar
-      const check = await fetch(
-        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/authorize?provider=apple`,
-        { method: "GET" }
-      ).catch(() => null);
-
-      if (check && check.status >= 400) {
-        const data = await check.json().catch(() => ({}));
-        if (data?.msg?.includes("provider is not enabled") || data?.error_code === "validation_failed") {
-          setError("O cadastro com Apple ainda não está configurado no painel do Supabase. Utilize o Google ou e-mail/senha.");
-          setIsLoadingApple(false);
-          return;
-        }
-      }
-
-      const { error } = await supabase.auth.signInWithOAuth({ 
-        provider: 'apple', 
-        options: { 
-          redirectTo: `${window.location.origin}/auth/callback` 
-        } 
-      });
-      if (error) {
-        setError(error.message || 'Erro ao conectar com Apple');
-        setIsLoadingApple(false);
-      }
-    } catch (err: any) {
-      setError(err.message || 'Erro ao conectar com Apple');
-      setIsLoadingApple(false);
-    }
-  };
-
   const handleEmailSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullName || !email || !password) {
@@ -121,10 +86,10 @@ export default function SignupPage() {
         return;
       }
       
-      setSuccess("Conta criada! Redirecionando...");
+      setSuccess("Conta criada com sucesso! Redirecionando...");
       setTimeout(() => {
         window.location.href = "/dashboard";
-      }, 1500);
+      }, 1200);
     } catch (err: any) {
       setError(err.message || "Ocorreu um erro inesperado.");
       setIsLoadingEmail(false);
@@ -132,13 +97,13 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen relative w-full overflow-x-hidden p-4">
-      <div className="w-full h-full min-h-screen md:min-h-fit md:max-w-[440px] bg-white dark:bg-[#121212] border border-gray-200 dark:border-white/5 md:rounded-3xl p-6 md:p-10 shadow-xl flex flex-col items-center justify-center relative z-10 md:my-8">
+    <div className="flex flex-col items-center justify-center min-h-screen relative w-full overflow-x-hidden p-4 bg-[#FAFAFA] dark:bg-[#0A0A0A]">
+      <div className="w-full h-full min-h-screen md:min-h-fit md:max-w-[440px] bg-white dark:bg-[#121214] border border-gray-200 dark:border-[#27272A] md:rounded-3xl p-6 md:p-10 shadow-xl flex flex-col items-center justify-center relative z-10 md:my-8">
         {/* Link de Retorno à Landing Page */}
         <div className="w-full flex items-center justify-between mb-8">
           <Link
             href="/"
-            className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-[#FF8216] dark:text-slate-400 dark:hover:text-[#FF8216] transition-colors"
+            className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500 hover:text-[#FF8216] dark:text-zinc-400 dark:hover:text-[#FF8216] transition-colors"
           >
             <span className="material-symbols-outlined text-[16px]">arrow_back</span>
             <span>Voltar ao início</span>
@@ -148,133 +113,137 @@ export default function SignupPage() {
             <Image
               src="/assets/logo/logo_sem_fundo.png"
               alt="Logo Kitsune"
-              width={28}
-              height={28}
+              width={32}
+              height={32}
               priority
-              className="object-contain"
+              className="object-contain drop-shadow-[0_2px_8px_rgba(255,130,22,0.25)]"
             />
           </Link>
         </div>
         
-        <h1 className="text-3xl font-bold font-sans text-gray-900 dark:text-white mb-3 text-center tracking-tight">
+        <h1 className="text-2xl sm:text-3xl font-extrabold font-sans text-gray-900 dark:text-white mb-2 text-center tracking-tight">
           Crie sua Conta
         </h1>
-        <p className="text-base font-sans text-gray-500 dark:text-white/50 text-center mb-10">
-          Junte-se a nós e gerencie seu patrimônio com a Kitsune AI.
+        <p className="text-sm font-sans text-zinc-500 dark:text-zinc-400 text-center mb-8">
+          Junte-se à Kitsune Finance e gerencie seu patrimônio com IA e Open Finance.
         </p>
         
         {error && (
-          <div className="w-full bg-red-50 text-red-600 border border-red-200 rounded-xl p-4 mb-6 text-sm font-medium text-center">
+          <div className="w-full bg-rose-500/10 text-rose-500 dark:text-rose-400 border border-rose-500/20 rounded-xl p-3.5 mb-6 text-xs font-medium text-center leading-relaxed">
             {error}
           </div>
         )}
 
         {success && (
-          <div className="w-full bg-green-50 text-green-600 border border-green-200 rounded-xl p-4 mb-6 text-sm font-medium text-center">
+          <div className="w-full bg-emerald-500/10 text-emerald-500 dark:text-emerald-400 border border-emerald-500/20 rounded-xl p-3.5 mb-6 text-xs font-medium text-center">
             {success}
           </div>
         )}
 
-        {/* Formulário Email / Senha */}
-        <form onSubmit={handleEmailSignup} className="flex flex-col gap-5 w-full mb-8">
-          <div className="flex flex-col gap-2">
-            <input 
-              type="text" 
-              placeholder="Nome Completo" 
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              disabled={isLoadingEmail}
-              className="w-full h-14 bg-gray-50 dark:bg-[#1A1A1A] border border-gray-200 dark:border-white/10 rounded-2xl px-5 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/30 focus:outline-none focus:border-kitsune/50 transition-colors"
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <input 
-              type="email" 
-              placeholder="Seu e-mail" 
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={isLoadingEmail}
-              className="w-full h-14 bg-gray-50 dark:bg-[#1A1A1A] border border-gray-200 dark:border-white/10 rounded-2xl px-5 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/30 focus:outline-none focus:border-kitsune/50 transition-colors"
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <input 
-              type="password" 
-              placeholder="Crie uma senha" 
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={isLoadingEmail}
-              className="w-full h-14 bg-gray-50 dark:bg-[#1A1A1A] border border-gray-200 dark:border-white/10 rounded-2xl px-5 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/30 focus:outline-none focus:border-kitsune/50 transition-colors"
-            />
-          </div>
-          
+        {/* OPÇÃO PRIORITÁRIA PRINCIPAL: CADASTRAR COM GOOGLE */}
+        <div className="w-full space-y-4">
           <button 
-            type="submit" 
-            disabled={isLoadingEmail || isLoadingGoogle || isLoadingApple}
-            className="w-full h-14 flex items-center justify-center gap-3 bg-[#FF8216] hover:bg-[#FFA047] active:bg-[#E66E08] text-white rounded-2xl font-sans font-bold transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed mt-2"
-          >
-            {isLoadingEmail ? (
-              <div className="flex items-center gap-2">
-                <Spinner size={20} className="text-white" />
-                <span>Criando conta...</span>
-              </div>
-            ) : (
-              "Criar Conta"
-            )}
-          </button>
-        </form>
-
-        <div className="w-full flex items-center gap-4 mb-8 opacity-60">
-          <div className="flex-1 h-px bg-gray-300 dark:bg-white/20"></div>
-          <span className="text-xs font-medium text-gray-500 uppercase tracking-widest">ou</span>
-          <div className="flex-1 h-px bg-gray-300 dark:bg-white/20"></div>
-        </div>
-        
-        <div className="flex flex-col gap-4 w-full">
-          {/* Google Button */}
-          <button 
+            type="button"
             onClick={handleGoogleLogin} 
-            disabled={isLoadingEmail || isLoadingGoogle || isLoadingApple}
-            className="w-full h-14 flex items-center justify-center gap-3 bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-white/10 rounded-2xl text-gray-900 dark:text-white text-sm font-sans font-medium hover:bg-gray-50 dark:hover:bg-white/5 transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
+            disabled={isLoadingEmail || isLoadingGoogle}
+            className="w-full h-13 px-4 flex items-center justify-center gap-3 bg-white dark:bg-[#18181B] hover:bg-gray-50 dark:hover:bg-[#27272A] active:scale-[0.99] border border-gray-300 dark:border-[#27272A] rounded-2xl text-gray-900 dark:text-white text-sm font-semibold transition-all shadow-sm cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed group"
           >
             {isLoadingGoogle ? (
               <>
-                <Spinner size={20} className="text-gray-900 dark:text-white" />
+                <Spinner size={18} className="text-gray-900 dark:text-white" />
                 <span>Conectando com Google...</span>
               </>
             ) : (
               <>
-                <GoogleIcon />
+                <GoogleIcon className="w-5 h-5 transition-transform group-hover:scale-105" />
                 <span>Cadastrar com Google</span>
               </>
             )}
           </button>
-          
-          {/* Apple Button */}
-          <button 
-            onClick={handleAppleLogin}
-            disabled={isLoadingEmail || isLoadingGoogle || isLoadingApple}
-            className="w-full h-14 flex items-center justify-center gap-3 bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-white/10 rounded-2xl text-gray-900 dark:text-white text-sm font-sans font-medium hover:bg-gray-50 dark:hover:bg-white/5 transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
-          >
-            {isLoadingApple ? (
-              <>
-                <Spinner size={20} className="text-gray-900 dark:text-white" />
-                <span>Conectando com Apple...</span>
-              </>
-            ) : (
-              <>
-                <svg viewBox="0 0 384 512" className="w-5 h-5 shrink-0 fill-current text-black dark:text-white" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/>
-                </svg>
-                <span>Cadastrar com Apple</span>
-              </>
-            )}
-          </button>
         </div>
+
+        {/* DIVISOR DE OPÇÃO SECUNDÁRIA MANUAL */}
+        <div className="w-full flex items-center gap-3 my-6">
+          <div className="flex-1 h-px bg-gray-200 dark:bg-[#27272A]"></div>
+          <button
+            type="button"
+            onClick={() => setShowEmailForm((prev) => !prev)}
+            className="text-[11px] font-semibold text-zinc-400 hover:text-[#FF8216] dark:hover:text-[#FF8216] transition-colors cursor-pointer flex items-center gap-1 uppercase tracking-wider"
+          >
+            <span>{showEmailForm ? "Ocultar cadastro por e-mail" : "ou criar com e-mail manualmente"}</span>
+            <span className="material-symbols-outlined text-xs">
+              {showEmailForm ? "expand_less" : "expand_more"}
+            </span>
+          </button>
+          <div className="flex-1 h-px bg-gray-200 dark:bg-[#27272A]"></div>
+        </div>
+
+        {/* Formulário Manual Email / Senha */}
+        {showEmailForm && (
+          <form onSubmit={handleEmailSignup} className="flex flex-col gap-3.5 w-full mb-6 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400">
+                Nome Completo
+              </label>
+              <input 
+                type="text" 
+                placeholder="Seu nome" 
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                disabled={isLoadingEmail}
+                className="w-full h-11 bg-gray-50 dark:bg-[#18181B] border border-gray-200 dark:border-[#27272A] rounded-xl px-4 text-sm text-gray-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-[#FF8216] transition-colors"
+                autoComplete="name"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400">
+                E-mail
+              </label>
+              <input 
+                type="email" 
+                placeholder="seu@email.com" 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={isLoadingEmail}
+                className="w-full h-11 bg-gray-50 dark:bg-[#18181B] border border-gray-200 dark:border-[#27272A] rounded-xl px-4 text-sm text-gray-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-[#FF8216] transition-colors"
+                autoComplete="email"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400">
+                Senha
+              </label>
+              <input 
+                type="password" 
+                placeholder="Crie uma senha forte" 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={isLoadingEmail}
+                className="w-full h-11 bg-gray-50 dark:bg-[#18181B] border border-gray-200 dark:border-[#27272A] rounded-xl px-4 text-sm text-gray-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-[#FF8216] transition-colors"
+                autoComplete="new-password"
+              />
+            </div>
+            
+            <button 
+              type="submit" 
+              disabled={isLoadingEmail || isLoadingGoogle}
+              className="w-full h-11 flex items-center justify-center gap-2 bg-[#FF8216] hover:bg-[#FFA047] active:bg-[#E66E08] text-black rounded-xl font-bold text-xs transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed mt-1 cursor-pointer"
+            >
+              {isLoadingEmail ? (
+                <div className="flex items-center gap-2">
+                  <Spinner size={16} className="text-black" />
+                  <span>Criando conta...</span>
+                </div>
+              ) : (
+                "Criar Conta Manualmente"
+              )}
+            </button>
+          </form>
+        )}
         
-        <div className="mt-10 text-center">
-          <Link href="/login" className="text-sm font-sans font-medium text-gray-400 dark:text-white/50 hover:text-gray-900 dark:hover:text-white transition-colors">
-            Já tem uma conta? <strong className="font-bold">Entrar</strong>
+        <div className="mt-4 text-center">
+          <Link href="/login" className="text-xs font-sans text-zinc-500 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+            Já possui uma conta? <strong className="font-bold text-[#FF8216] hover:underline">Entre aqui</strong>
           </Link>
         </div>
       </div>
