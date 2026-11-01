@@ -4,11 +4,11 @@ Todas as alterações notáveis no projeto Kitsune Finance são registradas de f
 
 ---
 
-## [2026-10-31] - Mapeamento de Repositórios de Referência no Blueprint Técnico
+## [2026-10-31] - Mapeamento Integral dos Repositórios de Benchmarking da Pesquisa
 - **Arquivos Afetados:** `docs/ARCHITECTURE_EXPANSION.md`, `docs/CHANGELOG.md`.
 - **Objetivo:**
-  - Adição de seção dedicada mapeando todos os repositórios open-source de referência com links oficiais (Maybe Finance, Ghostfolio, Actual Budget, Firefly III, Pierre Finance e BrasilAPI).
-  - Especificação explícita dos padrões arquiteturais absorvidos de cada projeto.
+  - Atualização completa da tabela de referências arquiteturais em `docs/ARCHITECTURE_EXPANSION.md` cobrindo todos os 9 projetos e utilitários da pesquisa original.
+  - Inclusão dos repositórios: Actual Budget, Ghostfolio, Maybe Finance, Firefly III, Pluggy Node SDK (`pluggyai/pluggy-node`), `icesnow10/personal-finance`, BrasilAPI SDK (`guhcostan/brasilapi-sdk`), MinhaReceita API (`lenivene/minha-receita-api`) e Pierre Finance.
 
 ---
 

@@ -70,13 +70,16 @@ Todos os algoritmos devem ser puros, zero-dependency, 100% determinísticos em T
 
 ## Repositórios & Projetos de Referência Arquitetural
 
-| Projeto | Repositório Oficial / Documentação | Conceitos & Padrões Absorvidos no Kitsune |
+| Projeto / SDK | Repositório Oficial / Link | Categoria & Padrões Absorvidos no Kitsune Finance |
 | :--- | :--- | :--- |
-| **Maybe Finance** | [github.com/maybe-finance/maybe](https://github.com/maybe-finance/maybe) | Pipeline Open Finance, classificação determinística de transações (`kind`), macro-tools de estado contábil (`get_balance_sheet`, `get_income_statement`) e reconciliação temporal de transferências. |
-| **Ghostfolio** | [github.com/ghostfolio/ghostfolio](https://github.com/ghostfolio/ghostfolio) | Motor de auditoria patrimonial X-Ray, pontuação de saúde financeira modular (0-100), análise de liquidez e exposição ao protocolo MCP. |
-| **Actual Budget** | [github.com/actualbudget/actual](https://github.com/actualbudget/actual) | Arquitetura local-first com cache read-through de alta performance (`0ms`), regras de orçamento base zero e pareamento de pendentes/postadas. |
-| **Firefly III** | [github.com/firefly-iii/firefly-iii](https://github.com/firefly-iii/firefly-iii) | Motor de auditoria contábil dupla, detecção de fluxos internos entre contas da mesma titularidade e categorização financeira. |
-| **Pierre Finance** | [pierre.finance](https://pierre.finance) | UI/UX minimalista mobile-first, dock flutuante em pill, micro-interações de cartões e experiência visual limpa. |
-| **BrasilAPI** | [github.com/BrasilAPI/BrasilAPI](https://github.com/BrasilAPI/BrasilAPI) / [brasilapi.com.br](https://brasilapi.com.br) | Enriquecimento público gratuito e em tempo real de estabelecimentos comerciais via CNPJ e CNAE fiscal. |
+| **Actual Budget** | [github.com/actualbudget/actual](https://github.com/actualbudget/actual) | Metodologia Zero-Based Budgeting, arquitetura Local-First sincronizada, regras condicionais determinísticas no cliente e pareamento de transações pendentes $\to$ postadas sem duplicação de UUID. |
+| **Ghostfolio** | [github.com/ghostfolio/ghostfolio](https://github.com/ghostfolio/ghostfolio) | Motor de auditoria patrimonial X-Ray, pontuação de saúde modular (0-100), separação estrita entre capital gains e proventos periódicos, Zen Mode (privacidade) e arquitetura MCP. |
+| **Maybe Finance** | [github.com/maybe-finance/maybe](https://github.com/maybe-finance/maybe) | Diagramas de Sankey em fluxo contínuo, classificação determinística de movimentações (`kind`), macro-tools contábeis (`get_balance_sheet`, `get_income_statement`) e agregação analítica no PostgreSQL. |
+| **Firefly III** | [github.com/firefly-iii/firefly-iii](https://github.com/firefly-iii/firefly-iii) | Contabilidade estrita por partidas dobradas (double-entry bookkeeping), isolamento atômico de transferências internas e pagamentos de fatura para prevenir inflação artificial de receitas/despesas. |
+| **Pluggy Node SDK** | [github.com/pluggyai/pluggy-node](https://github.com/pluggyai/pluggy-node) | SDK oficial do agregador Open Finance Brasil com consumo estrito de paginação por cursor (`/v2/transactions?after=...`) e processamento assíncrono de webhooks bancários. |
+| **icesnow10 / personal-finance** | [github.com/icesnow10/personal-finance](https://github.com/icesnow10/personal-finance) | Solução de referência para ciclo de vida de faturas de cartão de crédito no Open Finance, tratamento de transição de cobranças pendentes para definitivas e eliminação de duplicidades em fechamento de fatura. |
+| **BrasilAPI SDK** | [github.com/guhcostan/brasilapi-sdk](https://github.com/guhcostan/brasilapi-sdk) | SDK em TypeScript para consulta gratuita de dados públicos governamentais (CNPJ, feriados bancários e tabelas FIPE). |
+| **MinhaReceita API** | [github.com/lenivene/minha-receita-api](https://github.com/lenivene/minha-receita-api) | Microsserviço aberto de enriquecimento de CNPJ e CNAE primário para decodificação de credenciadoras (Cielo, Stone, PagSeguro) em categorias comerciais amigáveis. |
+| **Pierre Finance** | [pierre.finance](https://pierre.finance) | Referência visual para interface mobile-first de alto padrão, dock bar flutuante inferior em pill arredondado, carrossel de cartões com mouse-drag e micro-interações fluidas. |
 
 
