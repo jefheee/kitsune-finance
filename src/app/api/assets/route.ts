@@ -21,13 +21,14 @@ export async function GET() {
       .order('updated_at', { ascending: false });
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error('[API Assets GET error]', error);
+      return NextResponse.json({ error: 'Erro ao buscar ativos.' }, { status: 500 });
     }
 
     return NextResponse.json({ assets: assets || [] });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Internal Server Error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error('[API Assets GET uncaught]', error);
+    return NextResponse.json({ error: 'Erro interno ao processar requisição.' }, { status: 500 });
   }
 }
 
@@ -82,13 +83,14 @@ export async function POST(request: Request) {
       .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error('[API Assets POST error]', error);
+      return NextResponse.json({ error: 'Erro ao cadastrar ativo.' }, { status: 500 });
     }
 
     return NextResponse.json({ asset: createdAsset }, { status: 201 });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Internal Server Error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error('[API Assets POST uncaught]', error);
+    return NextResponse.json({ error: 'Erro interno ao processar requisição.' }, { status: 500 });
   }
 }
 
@@ -134,13 +136,14 @@ export async function PUT(request: Request) {
       .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error('[API Assets PUT error]', error);
+      return NextResponse.json({ error: 'Erro ao atualizar ativo.' }, { status: 500 });
     }
 
     return NextResponse.json({ asset: updatedAsset });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Internal Server Error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error('[API Assets PUT uncaught]', error);
+    return NextResponse.json({ error: 'Erro interno ao processar requisição.' }, { status: 500 });
   }
 }
 
@@ -170,12 +173,13 @@ export async function DELETE(request: Request) {
       .eq('user_id', user.id);
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error('[API Assets DELETE error]', error);
+      return NextResponse.json({ error: 'Erro ao remover ativo.' }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Internal Server Error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error('[API Assets DELETE uncaught]', error);
+    return NextResponse.json({ error: 'Erro interno ao processar requisição.' }, { status: 500 });
   }
 }

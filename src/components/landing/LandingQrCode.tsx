@@ -19,7 +19,7 @@ export function LandingQrCode() {
   return (
     <div className="w-56 h-56 sm:w-64 sm:h-64 rounded-3xl bg-[#121214] border border-white/10 p-4 relative flex items-center justify-center shadow-2xl group">
       <QRCodeComponent
-        value="https://kitsune-finance.vercel.app"
+        value="https://mykitsune.vercel.app"
         size="lg"
         className="w-full h-full text-white"
         options={{

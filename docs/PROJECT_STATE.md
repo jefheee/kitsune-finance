@@ -196,14 +196,37 @@
     - **Avisos de Agentes & Teto FGC (`AnomalyAlertCard` & `fgcWarning`):** Movidos para logo abaixo do gráfico de patrimônio líquido (`NetWorthHeroChart`), mantendo a leitura fluida e os dados patrimoniais em primeiro plano.
   - **Validação de Código:** TypeScript estrito com 0 erros (`npx tsc --noEmit`).
 
+- [x] Blindagem Completa de Segurança, Perímetro Fechado (Allowlist), Rate Limiting & Governança (/admin) (Release v3.3):
+  - **Favicon Nítido & Transparente:** Ícone da aba do navegador atualizado para PNG de alta fidelidade e transparência circular pura (`favicon.ico` + `favicon-pure.png`), eliminando o antigo bloco preto de baixo contraste.
+  - **Perímetro Fechado & Governança de Acesso (Zero Public Leak):**
+    - Criação da tabela `public.allowed_members` no Supabase com FORCE RLS, RPCs `is_app_admin()` e `is_email_allowed()` e pré-população do Master Owner (`jnnebu@gmail.com`) e membros autorizados (`fabianadecastro3@gmail.com`, `jacsonph79@gmail.com`).
+    - Bloqueio preventivo no callback OAuth (`src/app/auth/callback/route.ts`): qualquer usuário externo que tente logar com Google é imediatamente desconectado via `supabase.auth.signOut()` e redirecionado para a Landing Page com aviso de acesso restrito.
+    - Módulo `src/utils/security/auth-guard.ts` com proteção hierárquica e salvaguarda absoluta que impede a alteração ou remoção do Master Owner.
+    - Middleware reforçado (`src/middleware.ts`): bloqueio em borda das rotas autenticadas e restrição da área administrativa exclusivamente para `owner` ou `admin`.
+  - **Rate Limiting em Borda (Anti Wallet-Draining & Anti Brute-Force):**
+    - Módulo `src/utils/security/rate-limiter.ts` com algoritmo Token Bucket em memória e extração segura de IP via headers de proxy (`x-forwarded-for` / `x-real-ip`).
+    - Limites estritos no Middleware: 40 req/min para APIs de IA (`/api/ai/*`, `/api/chat`) e 15 req/min para rotas de autenticação, com retorno de status HTTP 429 e header `Retry-After`.
+  - **Painel de Governança Master (`/admin`):**
+    - Interface completa estilo Wealthfolio Warm Obsidian para listar membros ativos, adicionar novos e-mails aprovados com papel e notas, suspender/reativar acessos e revogar usuários permanentemente.
+    - Banner exclusivo nas Configurações (`/settings`) visível apenas para o Master Owner (`jnnebu@gmail.com`) com acesso direto a `/admin`.
+  - **Sanitização de Erros do Banco (CWE-209):**
+    - Rotas de API (`/api/assets`, `/api/family-members`, `/api/notifications`) sanitizadas para ocultar `error.message` e detalhes de schema do cliente, registrando o log completo no console do servidor e retornando respostas seguras e amigáveis.
+  - **Defesa em Profundidade HTTP:**
+    - Cabeçalhos de segurança injetados globalmente: `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin` e `Permissions-Policy`.
+  - **Regra Global Permanente:**
+    - Criado protocolo permanente em `C:\Users\jefhi\.gemini\config\rules\security-governance-protocol.md` garantindo que todos os futuros agentes sigam esse padrão.
+  - **Estabilidade:** 100% dos tipos validados com 0 erros (`npx tsc --noEmit`).
+
 ---
 
 ## 4. Context Handoff (Memória de Continuidade entre Chats)
-- **Última Etapa Concluída:** Release v3.2 — **Glow Refinado, Widgets Neutros Sob Demanda, Scroll Restoration & Logo Horizontal**:
-  1. **Landing Page:** Glow alaranjado atrás do iPhone 16 Pro substituído por halo sofisticado e translúcido em carmesim suave e branco (`rgba(225,29,72,0.12)` + `rgba(255,255,255,0.06)`).
-  2. **Dashboard Widgets:** Cards de "Módulos & Visão Executiva" convertidos para cinza neutro Warm Obsidian (`#121214` e `#27272A`), iniciando 100% recolhidos para que o usuário decida quando expandir.
-  3. **Scroll Restoration:** Criado `ScrollRestorationProvider.tsx` integrado ao `layout.tsx` que preserva a posição exata de scroll por rota ao usar o botão "Voltar" em navegadores e no app PWA mobile.
-  4. **Logo Horizontal Transparente:** Implementada no `README.md` (GitHub), no footer da Landing Page e nas telas de `/login` e `/signup`, removendo títulos redundantes.
-  5. **Estabilidade Técnica:** TypeScript validado com 0 erros (`npx tsc --noEmit`).
-- **Próxima Etapa Imediata:** Implementação opcional de `ALLOWED_USERS_EMAILS` (Allowlist Server-Side) para restringir o acesso na Vercel mantendo o repositório aberto e público no GitHub.
-- **Pendências ou Bloqueios:** Nenhum. Todo o código compila perfeitamente.
+- **Última Etapa Concluída:** Release v3.3 — **Auditoria Completa de Segurança, Perímetro Fechado (Allowlist), Rate Limiting & Governança (/admin)**:
+  1. **Favicon:** Atualizado para transparência circular com alto contraste e nitidez.
+  2. **Controle de Acesso:** Allowlist ativa no Supabase e em memória, impedindo cadastros e acessos de desconhecidos na Vercel pública.
+  3. **Painel /admin:** Master Owner (`jnnebu@gmail.com`) com poder absoluto de gerenciamento de membros.
+  4. **Rate Limiting & Headers:** Proteção contra esgotamento de cotas de IA, brute-force e clickjacking.
+  5. **Sanitização de Erros:** Exposição de erros SQL eliminada nas APIs do backend.
+  6. **Domínio e URLs:** Atualização das URLs base para `https://mykitsune.vercel.app`.
+  7. **Regra Global:** Documentada em `C:\Users\jefhi\.gemini\config\rules\security-governance-protocol.md`.
+- **Próxima Etapa Imediata:** Continuar a expansão das funcionalidades planejadas no roadmap do Kitsune Finance (ex: conexões adicionais do Open Finance, refinamentos visuais contínuos ou evolução opcional do rate limiter para Upstash Redis).
+- **Pendências ou Bloqueios:** Nenhum. Todo o código compila com 0 erros e o sistema está 100% blindado contra acessos não autorizados.

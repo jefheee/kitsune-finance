@@ -21,7 +21,8 @@ export async function GET() {
       .limit(30);
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error('[API Notifications GET error]', error);
+      return NextResponse.json({ error: 'Erro ao buscar notificações.' }, { status: 500 });
     }
 
     const unreadCount = notifications?.filter((n) => !n.is_read).length || 0;
@@ -30,8 +31,9 @@ export async function GET() {
       notifications: notifications || [],
       unreadCount,
     });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('[API Notifications GET uncaught]', error);
+    return NextResponse.json({ error: 'Erro interno ao processar requisição.' }, { status: 500 });
   }
 }
 
@@ -57,7 +59,8 @@ export async function PATCH(request: Request) {
         .eq('user_id', user.id);
 
       if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        console.error('[API Notifications PATCH error]', error);
+        return NextResponse.json({ error: 'Erro ao marcar notificações como lidas.' }, { status: 500 });
       }
       return NextResponse.json({ success: true });
     }
@@ -70,14 +73,16 @@ export async function PATCH(request: Request) {
         .eq('user_id', user.id);
 
       if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        console.error('[API Notifications PATCH single error]', error);
+        return NextResponse.json({ error: 'Erro ao marcar notificação.' }, { status: 500 });
       }
       return NextResponse.json({ success: true });
     }
 
     return NextResponse.json({ error: 'ID ou flag "all" é obrigatório.' }, { status: 400 });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('[API Notifications PATCH uncaught]', error);
+    return NextResponse.json({ error: 'Erro interno ao processar requisição.' }, { status: 500 });
   }
 }
 
@@ -107,11 +112,13 @@ export async function DELETE(request: Request) {
       .eq('user_id', user.id);
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error('[API Notifications DELETE error]', error);
+      return NextResponse.json({ error: 'Erro ao remover notificação.' }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('[API Notifications DELETE uncaught]', error);
+    return NextResponse.json({ error: 'Erro interno ao processar requisição.' }, { status: 500 });
   }
 }

@@ -270,6 +270,35 @@ export default function SettingsPage() {
         </div>
       )}
 
+      {/* BANNER DE GOVERNANÇA EXCLUSIVO PARA O OWNER / ADMIN */}
+      {user?.email === "jnnebu@gmail.com" && (
+        <section className="bg-gradient-to-r from-[#E11D48]/15 via-[#121214] to-[#121214] border border-[#E11D48]/30 rounded-2xl p-5 md:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-md">
+          <div className="flex items-center gap-3">
+            <span className="w-10 h-10 rounded-xl bg-[#E11D48]/20 text-[#E11D48] flex items-center justify-center shrink-0">
+              <span className="material-symbols-outlined text-xl">admin_panel_settings</span>
+            </span>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-bold text-white">Painel de Governança & Acessos</h2>
+                <span className="px-2 py-0.5 rounded-full bg-[#E11D48] text-white font-extrabold text-[9px] uppercase tracking-wider">
+                  Master Owner
+                </span>
+              </div>
+              <p className="text-xs text-zinc-400 mt-0.5">
+                Gerencie quem pode logar no sistema, suspenda acessos ou autorize novos membros.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/admin"
+            className="h-9 px-4 rounded-xl bg-white hover:bg-zinc-200 text-black text-xs font-bold inline-flex items-center gap-1.5 transition-colors shrink-0 shadow-sm"
+          >
+            <span>Gerenciar Usuários</span>
+            <span className="material-symbols-outlined text-sm">arrow_forward</span>
+          </Link>
+        </section>
+      )}
+
       {/* SEÇÃO 1: GUARDIÃO BIOMÉTRICO (WEBAUTHN / FACE ID / TOUCH ID) */}
       <section className="bg-white dark:bg-[#121214] border border-zinc-200 dark:border-[#27272A] rounded-2xl p-5 md:p-6 flex flex-col gap-4 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">

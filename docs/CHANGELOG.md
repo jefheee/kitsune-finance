@@ -4,6 +4,16 @@ Todas as alterações notáveis no projeto Kitsune Finance são registradas de f
 
 ---
 
+## [2026-11-01] - Blindagem de Segurança, Perímetro Fechado (Allowlist), Rate Limiting & Governança (/admin)
+- **Arquivos Afetados:** `src/app/admin/page.tsx`, `src/app/api/admin/members/route.ts`, `src/utils/security/{auth-guard.ts, rate-limiter.ts}`, `src/middleware.ts`, `src/app/auth/callback/route.ts`, `src/app/settings/page.tsx`, `src/app/api/{assets, family-members, notifications}/route.ts`, `supabase/migrations/20261101_access_control_and_governance.sql`, `C:\Users\jefhi\.gemini\config\rules\security-governance-protocol.md`.
+- **Objetivo:**
+  - Implementação de perímetro fechado com Allowlist de membros no Supabase e em memória, revogando imediatamente tentativas de login de usuários desconhecidos e mantendo o Master Owner (`jnnebu@gmail.com`) inviolável.
+  - Criação do painel de governança `/admin` para listagem, inclusão, suspensão e exclusão de acessos com interface Warm Obsidian.
+  - Ativação de Rate Limiting em borda (Token Bucket) no Middleware com cotas estritas para APIs de IA e rotas de autenticação, injeção de headers de segurança HTTP e sanitização de mensagens brutas de erro de SQL.
+  - Fixação da regra global permanente de segurança e governança no ambiente de configuração dos agentes.
+
+---
+
 ## [2026-11-01] - Glow Refinado, Widgets Neutros Sob Demanda, Scroll Restoration & Logo Horizontal
 - **Arquivos Afetados:** `src/app/page.tsx`, `src/components/finance/DashboardExecutiveWidgets.tsx`, `src/components/providers/ScrollRestorationProvider.tsx`, `src/app/layout.tsx`, `src/app/{login, signup}/page.tsx`, `README.md`.
 - **Objetivo:**

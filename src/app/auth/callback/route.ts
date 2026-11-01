@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
+import { isUserAuthorized } from '@/utils/security/auth-guard'
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
@@ -29,16 +30,30 @@ export async function GET(request: Request) {
               })
             } catch (error) {
               // The `setAll` method was called from a Server Component.
-              // This can be ignored if you have middleware refreshing user sessions.
             }
           },
         },
       }
     )
     
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    const { data: sessionData, error } = await supabase.auth.exchangeCodeForSession(code)
     
-    if (!error) {
+    if (!error && sessionData?.user) {
+      const userEmail = sessionData.user.email
+
+      // 🚨 BLINDAGEM DE ACESSO: Valida se o usuário tem permissão para entrar
+      const authCheck = await isUserAuthorized(userEmail)
+
+      if (!authCheck.authorized) {
+        // Encerra imediatamente a sessão recém-criada
+        await supabase.auth.signOut()
+
+        const reason = encodeURIComponent(
+          `Acesso Restrito: A conta ${userEmail || ''} não possui autorização neste ambiente privado.`
+        )
+        return NextResponse.redirect(`${origin}/login?access_denied=true&error_description=${reason}`)
+      }
+
       const forwardedHost = request.headers.get('x-forwarded-host')
       const isLocalEnv = process.env.NODE_ENV === 'development'
       if (isLocalEnv) {
@@ -49,7 +64,8 @@ export async function GET(request: Request) {
         return NextResponse.redirect(`${origin}${next}`)
       }
     } else {
-      return NextResponse.redirect(`${origin}/login?error_description=${encodeURIComponent(error.message)}`)
+      const errMsg = error ? error.message : 'Falha na troca de sessão'
+      return NextResponse.redirect(`${origin}/login?error_description=${encodeURIComponent(errMsg)}`)
     }
   }
 

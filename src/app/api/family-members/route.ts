@@ -20,12 +20,14 @@ export async function GET() {
       .order('created_at', { ascending: true });
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error('[API Family Members GET error]', error);
+      return NextResponse.json({ error: 'Erro ao buscar membros familiares.' }, { status: 500 });
     }
 
     return NextResponse.json({ members: members || [] });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('[API Family Members GET uncaught]', error);
+    return NextResponse.json({ error: 'Erro interno ao processar requisição.' }, { status: 500 });
   }
 }
 
@@ -59,12 +61,14 @@ export async function POST(request: Request) {
       .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error('[API Family Members POST error]', error);
+      return NextResponse.json({ error: 'Erro ao cadastrar membro.' }, { status: 500 });
     }
 
     return NextResponse.json({ member: newMember }, { status: 201 });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('[API Family Members POST uncaught]', error);
+    return NextResponse.json({ error: 'Erro interno ao processar requisição.' }, { status: 500 });
   }
 }
 
@@ -94,11 +98,13 @@ export async function DELETE(request: Request) {
       .eq('user_id', user.id);
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error('[API Family Members DELETE error]', error);
+      return NextResponse.json({ error: 'Erro ao remover membro.' }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('[API Family Members DELETE uncaught]', error);
+    return NextResponse.json({ error: 'Erro interno ao processar requisição.' }, { status: 500 });
   }
 }

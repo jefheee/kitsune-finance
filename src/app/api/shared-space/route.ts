@@ -291,7 +291,7 @@ export async function POST(request: Request) {
       connection: newConn,
       inviteCode,
       invite_code: inviteCode,
-      inviteUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://kitsune-finance.vercel.app'}/dashboard?accept_invite=${inviteCode}`,
+      inviteUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://mykitsune.vercel.app'}/dashboard?accept_invite=${inviteCode}`,
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
