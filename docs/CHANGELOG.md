@@ -4,6 +4,14 @@ Todas as alterações notáveis no projeto Kitsune Finance são registradas de f
 
 ---
 
+## [2026-10-31] - Atualização Integral do README Oficial (Padrão GitHub & Zero Emojis)
+- **Arquivos Afetados:** `README.md`, `docs/CHANGELOG.md`.
+- **Objetivo:**
+  - Reformulação completa do README em inglês, com formatação avançada do GitHub e zero emojis.
+  - Documentação da arquitetura de soberania financeira e custo zero ($0/mês), Open Finance Brasil (140+ bancos via Pluggy), segurança RLS sem mocks, motor MSLR determinístico e todos os módulos recentes (/shared 360°, /cards, /investments, /kitsune e privacidade global).
+
+---
+
 ## [2026-10-30] - Remoção do Banner de Segurança em Conexões Bancárias
 - **Arquivos Afetados:** `src/app/connections/page.tsx`, `docs/CHANGELOG.md`.
 - **Objetivo:**
