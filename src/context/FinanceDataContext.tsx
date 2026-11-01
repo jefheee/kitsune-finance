@@ -11,6 +11,11 @@ import React, {
 import { createClient } from '@/utils/supabase/client';
 import type { User } from '@supabase/supabase-js';
 import type { BankIdentitySource } from '@/utils/pluggy/identity-consolidator';
+import {
+    readUserPortfolioCache,
+    writeUserPortfolioCache,
+    clearUserPortfolioCache,
+} from '@/utils/cache/indexeddb-cache';
 
 export interface FamilyMemberItem {
     id: string;
@@ -221,8 +226,10 @@ export function FinanceDataProvider({ children }: { children: React.ReactNode })
     }, []);
 
     const resetState = useCallback((wipeStorage = false) => {
+        const previousUserId = currentUserIdRef.current;
         if (wipeStorage) {
-            clearBrowserCacheForUser(currentUserIdRef.current, true);
+            clearBrowserCacheForUser(previousUserId, true);
+            void clearUserPortfolioCache(previousUserId, true);
         } else {
             clearBrowserCacheForUser(null, false);
         }
@@ -244,6 +251,29 @@ export function FinanceDataProvider({ children }: { children: React.ReactNode })
         currentUserIdRef.current = null;
     }, []);
 
+    const hydrateFromLocalCache = useCallback(async (targetUserId: string) => {
+        if (!targetUserId) return false;
+        const cached = await readUserPortfolioCache(targetUserId);
+        if (!cached || (currentUserIdRef.current && currentUserIdRef.current !== targetUserId)) {
+            return false;
+        }
+
+        currentUserIdRef.current = targetUserId;
+        if (cached.userProfile) setUserProfile(cached.userProfile);
+        setAccounts(cached.accounts || []);
+        setInvestments(cached.investments || []);
+        setLoans(cached.loans || []);
+        setTransactions(cached.transactions || []);
+        setConnections(cached.connections || []);
+        setFamilyMembers(cached.familyMembers || []);
+        setAiInsightState(cached.aiInsight || null);
+        setActivePartner(cached.activePartner || null);
+        setSharedConnection(cached.sharedConnection || null);
+        setLastFetchedAt(cached.cachedAt);
+        setIsInitialLoading(false);
+        return true;
+    }, []);
+
     const revalidate = useCallback(
         async (force = false) => {
             if (isFetchingRef.current) return;
@@ -259,7 +289,7 @@ export function FinanceDataProvider({ children }: { children: React.ReactNode })
             }
 
             isFetchingRef.current = true;
-            if (lastFetchedRef.current) {
+            if (lastFetchedRef.current || currentUserIdRef.current) {
                 setIsRevalidating(true);
             }
 
@@ -280,9 +310,15 @@ export function FinanceDataProvider({ children }: { children: React.ReactNode })
                 // Se trocou de usuário na mesma aba, limpa todo o estado e cache do usuário anterior
                 if (currentUserIdRef.current && currentUserIdRef.current !== authUser.id) {
                     clearBrowserCacheForUser(currentUserIdRef.current, false);
+                    void clearUserPortfolioCache(currentUserIdRef.current, false);
                     resetState(false);
                 } else {
                     clearBrowserCacheForUser(null, false);
+                }
+
+                // Se ainda não havia hidratado o estado desta sessão, tenta hidratar do IndexedDB em ~0ms antes das queries de rede
+                if (!lastFetchedRef.current) {
+                    await hydrateFromLocalCache(authUser.id);
                 }
 
                 currentUserIdRef.current = authUser.id;
@@ -402,9 +438,11 @@ export function FinanceDataProvider({ children }: { children: React.ReactNode })
                         .maybeSingle(),
                 ]);
 
+                let resolvedUserProfile: UserProfileData | null = null;
+
                 if (profileRes.data) {
                     const p = profileRes.data;
-                    setUserProfile({
+                    resolvedUserProfile = {
                         id: p.id,
                         full_name: p.full_name,
                         display_name: p.display_name,
@@ -420,7 +458,8 @@ export function FinanceDataProvider({ children }: { children: React.ReactNode })
                         addresses: Array.isArray(p.addresses) ? p.addresses : [],
                         bank_sources: Array.isArray(p.bank_sources) ? p.bank_sources : [],
                         consolidated_identity: p.consolidated_identity || null,
-                    });
+                    };
+                    setUserProfile(resolvedUserProfile);
                 } else {
                     const defaultDisplay =
                         authUser.user_metadata?.full_name ||
@@ -441,7 +480,7 @@ export function FinanceDataProvider({ children }: { children: React.ReactNode })
                         .maybeSingle();
 
                     if (createdProfile) {
-                        setUserProfile({
+                        resolvedUserProfile = {
                             id: createdProfile.id,
                             full_name: createdProfile.full_name,
                             display_name: createdProfile.display_name,
@@ -459,17 +498,24 @@ export function FinanceDataProvider({ children }: { children: React.ReactNode })
                             addresses: [],
                             bank_sources: [],
                             consolidated_identity: null,
-                        });
+                        };
+                        setUserProfile(resolvedUserProfile);
                     }
                 }
 
+                const resolvedFamilyMembers: FamilyMemberItem[] = membersRes.data || [];
                 if (membersRes.data) {
-                    setFamilyMembers(membersRes.data);
+                    setFamilyMembers(resolvedFamilyMembers);
                 }
 
-                setAccounts(bankAccRes.data || []);
-                setInvestments(invRes.data || []);
-                setLoans(loansRes.data || []);
+                const resolvedAccounts = bankAccRes.data || [];
+                const resolvedInvestments = invRes.data || [];
+                const resolvedLoans = loansRes.data || [];
+                const resolvedConnections = connRes.data || [];
+
+                setAccounts(resolvedAccounts);
+                setInvestments(resolvedInvestments);
+                setLoans(resolvedLoans);
 
                 // Reconciliação inteligente: Transações e Pix mútuos entre o casal são marcados como remanejamento interno
                 const rawTxns = txnRes.data || [];
@@ -490,16 +536,30 @@ export function FinanceDataProvider({ children }: { children: React.ReactNode })
                 });
 
                 setTransactions(reconciledTxns);
-                setConnections(connRes.data || []);
+                setConnections(resolvedConnections);
 
-                if (insightRes.data) {
-                    setAiInsightState({
-                        text: insightRes.data.last_analysis_text,
-                        updatedAt: insightRes.data.updated_at,
-                    });
-                } else {
-                    setAiInsightState(null);
-                }
+                const resolvedAiInsight = insightRes.data
+                    ? {
+                          text: insightRes.data.last_analysis_text,
+                          updatedAt: insightRes.data.updated_at,
+                      }
+                    : null;
+
+                setAiInsightState(resolvedAiInsight);
+
+                // Read-Through Cache Write: atualiza IndexedDB local (`kitsune_${authUser.id}_db`) em background
+                void writeUserPortfolioCache(authUser.id, {
+                    userProfile: resolvedUserProfile,
+                    accounts: resolvedAccounts,
+                    investments: resolvedInvestments,
+                    loans: resolvedLoans,
+                    transactions: reconciledTxns,
+                    connections: resolvedConnections,
+                    familyMembers: resolvedFamilyMembers,
+                    aiInsight: resolvedAiInsight,
+                    activePartner: partnerProfile,
+                    sharedConnection: activeConn,
+                });
 
                 const fetchedTimestamp = Date.now();
                 lastFetchedRef.current = fetchedTimestamp;
@@ -512,15 +572,23 @@ export function FinanceDataProvider({ children }: { children: React.ReactNode })
                 isFetchingRef.current = false;
             }
         },
-        [resetState]
+        [hydrateFromLocalCache, resetState]
     );
 
     revalidateRef.current = revalidate;
 
     useEffect(() => {
-        revalidate(false);
-
         const supabase = supabaseRef.current;
+
+        // Hidratação instantânea (0ms Stale-While-Revalidate) via sessão local + IndexedDB antes do RTT de rede
+        void supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session?.user?.id) {
+                setUser(session.user);
+                void hydrateFromLocalCache(session.user.id);
+            }
+            void revalidate(false);
+        });
+
         const {
             data: { subscription },
         } = supabase.auth.onAuthStateChange((event, session) => {
@@ -529,14 +597,17 @@ export function FinanceDataProvider({ children }: { children: React.ReactNode })
                 setIsInitialLoading(false);
             } else if (session.user.id !== currentUserIdRef.current) {
                 clearBrowserCacheForUser(currentUserIdRef.current, false);
-                revalidate(true);
+                void clearUserPortfolioCache(currentUserIdRef.current, false);
+                void hydrateFromLocalCache(session.user.id).finally(() => {
+                    void revalidate(true);
+                });
             }
         });
 
         return () => {
             subscription.unsubscribe();
         };
-    }, [revalidate, resetState]);
+    }, [hydrateFromLocalCache, revalidate, resetState]);
 
     const updateUserProfileLocal = useCallback((partial: Partial<UserProfileData>) => {
         setUserProfile((prev) => (prev ? { ...prev, ...partial } : null));

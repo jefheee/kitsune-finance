@@ -4,6 +4,14 @@ Todas as alterações notáveis no projeto Kitsune Finance são registradas de f
 
 ---
 
+## [2026-11-01] - Implementação da Etapa 4: Cache IndexedDB 0ms, Extrato Virtualizado 60 FPS, Sankey SVG & Auditoria Upstream
+- **Arquivos Afetados:** `src/utils/cache/indexeddb-cache.ts`, `src/context/FinanceDataContext.tsx`, `src/components/finance/VirtualizedTransactionsList.tsx`, `src/components/finance/PaginatedTransactionsView.tsx`, `src/components/charts/CashFlowSankey.tsx`, `src/app/dashboard/page.tsx`, `src/utils/finance/reconciler.ts`, `src/utils/finance/enrichment-pipeline.ts`, `src/app/api/mcp/route.ts`, `.gitignore`.
+- **Objetivo:**
+  - Auditoria fiel contra os repositórios upstream Maybe Finance, Actual Budget e Ghostfolio: adição de reconciliação `PENDING`->`POSTED` em 3 níveis de fidelidade, `kind` assimétrico (`cc_payment` vs `funds_movement`), âncora `openingAnchorDate`, deduplicação in-flight na `BrasilAPI` e `annotations` + modo Zen (`withValues`) em `/api/mcp`.
+  - Implementação do Read-Through Cache L1+IndexedDB (`kitsune_${userId}_db`) para hidratação em `0ms` com SWR, lista virtualizada a 60 FPS para 3.000+ transações com modal de auditoria e Diagrama de Sankey SVG responsivo com paleta Warm Obsidian e suporte total ao `isPrivacyMode`.
+
+---
+
 ## [2026-11-01] - Implementação da Etapa 3: Orquestração Multi-Agente Determinística (MSLR) & Servidor MCP
 - **Arquivos Afetados:** `src/utils/ai/deterministic-tools.ts`, `src/utils/ai/kitsune-agents-registry.ts`, `src/utils/ai/dossier.ts`, `src/app/api/chat/route.ts`, `src/app/api/ai/generate-insight/route.ts`, `src/app/agents/page.tsx`, `src/app/api/mcp/route.ts`, `docs/ARCHITECTURE_EXPANSION.md`, `docs/PROJECT_STATE.md`, `docs/CHANGELOG.md`.
 - **Objetivo:**

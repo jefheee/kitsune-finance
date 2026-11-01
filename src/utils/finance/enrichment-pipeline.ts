@@ -124,9 +124,12 @@ export function isValidCnpj(candidate: string | null | undefined): boolean {
 export function extractCnpjFromText(text: string | null | undefined): string | null {
     if (!text) return null;
 
+    // Remove caracteres invisíveis / zero-width emitidos por alguns gateways de pagamento
+    const sanitized = text.replace(/[\u200B-\u200D\uFEFF]/g, '');
+
     // 1º: Padrão formatado ou semi-formatado (XX.XXX.XXX/XXXX-XX)
     const formattedRegex = /\b\d{2}\.?\d{3}\.?\d{3}\/\d{4}-?\d{2}\b|\b\d{2}\.\d{3}\.\d{3}\/?\d{4}-\d{2}\b/g;
-    const formattedMatches = text.match(formattedRegex);
+    const formattedMatches = sanitized.match(formattedRegex);
     if (formattedMatches) {
         for (const match of formattedMatches) {
             const clean = match.replace(/\D/g, '');
@@ -138,7 +141,7 @@ export function extractCnpjFromText(text: string | null | undefined): string | n
 
     // 2º: Sequências contínuas exatas de 14 dígitos isoladas de dígitos adjacentes (não captura blocos de 44 dígitos de boleto)
     const continuousRegex = /(?<!\d)\d{14}(?!\d)/g;
-    const continuousMatches = text.match(continuousRegex);
+    const continuousMatches = sanitized.match(continuousRegex);
     if (continuousMatches) {
         for (const match of continuousMatches) {
             if (isValidCnpj(match)) {
@@ -312,67 +315,89 @@ async function runWithConcurrencyLimit<TItem, TResult>(
     return results;
 }
 
+const recentMerchantMemoryCache = new Map<string, KnownMerchantCacheRow>();
+const inFlightBrasilApiRequests = new Map<string, Promise<KnownMerchantCacheRow | null>>();
+
 async function fetchMerchantFromBrasilApi(
     cnpj: string,
     timeoutMs: number
 ): Promise<KnownMerchantCacheRow | null> {
-    try {
-        const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${encodeURIComponent(cnpj)}`, {
-            method: 'GET',
-            headers: {
-                Accept: 'application/json',
-            },
-            cache: 'force-cache',
-            signal: AbortSignal.timeout(timeoutMs),
-        });
+    const cachedMem = recentMerchantMemoryCache.get(cnpj);
+    if (cachedMem) return cachedMem;
 
-        if (!response.ok) {
+    const existingPromise = inFlightBrasilApiRequests.get(cnpj);
+    if (existingPromise) return existingPromise;
+
+    const requestPromise = (async (): Promise<KnownMerchantCacheRow | null> => {
+        try {
+            const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${encodeURIComponent(cnpj)}`, {
+                method: 'GET',
+                headers: {
+                    Accept: 'application/json',
+                },
+                cache: 'force-cache',
+                signal: AbortSignal.timeout(timeoutMs),
+            });
+
+            if (!response.ok) {
+                return null;
+            }
+
+            const data = (await response.json()) as BrasilApiCnpjResponse;
+            const razaoSocial = data.razao_social?.trim() || null;
+            const nomeFantasia = data.nome_fantasia?.trim() || null;
+            const rawChosenName = nomeFantasia || razaoSocial;
+
+            if (!rawChosenName) {
+                return null;
+            }
+
+            const cnaeRaw = data.cnae_fiscal != null ? Number(String(data.cnae_fiscal).replace(/\D/g, '')) : null;
+            const cnaeFiscal = cnaeRaw && Number.isFinite(cnaeRaw) ? cnaeRaw : null;
+            const cnaeDescricao = data.cnae_fiscal_descricao?.trim() || null;
+
+            const cleanCorporate = formatCleanCorporateBrandName(rawChosenName);
+            const brandResolved = resolveMerchant(cleanCorporate);
+
+            const cnaeCategory = mapCnaeToCategoryPt(cnaeFiscal);
+            const mappedCategoryPt =
+                cnaeCategory !== 'Outros'
+                    ? cnaeCategory
+                    : brandResolved.category && brandResolved.category !== 'Outros'
+                      ? brandResolved.category
+                      : 'Outros';
+
+            const cleanBrandName =
+                brandResolved.simpleIconSlug || brandResolved.brandColor
+                    ? brandResolved.cleanName
+                    : cleanCorporate;
+
+            const resolvedRow: KnownMerchantCacheRow = {
+                cnpj,
+                razao_social: razaoSocial,
+                nome_fantasia: nomeFantasia,
+                cnae_fiscal: cnaeFiscal,
+                cnae_descricao: cnaeDescricao,
+                mapped_category_pt: mappedCategoryPt,
+                clean_brand_name: cleanBrandName,
+                simple_icon_slug: brandResolved.simpleIconSlug,
+            };
+
+            if (recentMerchantMemoryCache.size > 500) {
+                recentMerchantMemoryCache.clear();
+            }
+            recentMerchantMemoryCache.set(cnpj, resolvedRow);
+            return resolvedRow;
+        } catch {
+            // Timeout (3000ms), erro de rede ou rate-limit: cai silenciosamente para a Camada 1
             return null;
+        } finally {
+            inFlightBrasilApiRequests.delete(cnpj);
         }
+    })();
 
-        const data = (await response.json()) as BrasilApiCnpjResponse;
-        const razaoSocial = data.razao_social?.trim() || null;
-        const nomeFantasia = data.nome_fantasia?.trim() || null;
-        const rawChosenName = nomeFantasia || razaoSocial;
-
-        if (!rawChosenName) {
-            return null;
-        }
-
-        const cnaeRaw = data.cnae_fiscal != null ? Number(String(data.cnae_fiscal).replace(/\D/g, '')) : null;
-        const cnaeFiscal = cnaeRaw && Number.isFinite(cnaeRaw) ? cnaeRaw : null;
-        const cnaeDescricao = data.cnae_fiscal_descricao?.trim() || null;
-
-        const cleanCorporate = formatCleanCorporateBrandName(rawChosenName);
-        const brandResolved = resolveMerchant(cleanCorporate);
-
-        const cnaeCategory = mapCnaeToCategoryPt(cnaeFiscal);
-        const mappedCategoryPt =
-            cnaeCategory !== 'Outros'
-                ? cnaeCategory
-                : brandResolved.category && brandResolved.category !== 'Outros'
-                  ? brandResolved.category
-                  : 'Outros';
-
-        const cleanBrandName =
-            brandResolved.simpleIconSlug || brandResolved.brandColor
-                ? brandResolved.cleanName
-                : cleanCorporate;
-
-        return {
-            cnpj,
-            razao_social: razaoSocial,
-            nome_fantasia: nomeFantasia,
-            cnae_fiscal: cnaeFiscal,
-            cnae_descricao: cnaeDescricao,
-            mapped_category_pt: mappedCategoryPt,
-            clean_brand_name: cleanBrandName,
-            simple_icon_slug: brandResolved.simpleIconSlug,
-        };
-    } catch {
-        // Timeout (3000ms), erro de rede ou rate-limit: cai silenciosamente para a Camada 1
-        return null;
-    }
+    inFlightBrasilApiRequests.set(cnpj, requestPromise);
+    return requestPromise;
 }
 
 const GENERIC_CATEGORIES = new Set([

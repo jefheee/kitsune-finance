@@ -4,6 +4,8 @@ import React, { useState, useMemo } from "react";
 import { MerchantLogo } from "@/components/MerchantLogo";
 import { BankLogo } from "@/components/BankLogo";
 import { SpotlightCard } from "@/components/react-bits/SpotlightCard";
+import { VirtualizedTransactionsList } from "@/components/finance/VirtualizedTransactionsList";
+import { useFinanceData } from "@/context/FinanceDataContext";
 
 interface TransactionLike {
   id: string;
@@ -52,7 +54,9 @@ export function PaginatedTransactionsView({
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [showHidden, setShowHidden] = useState(false);
 
-  // Estados de Paginação ("1, 2, 3...")
+  // Modo Virtualizado 60 FPS (padrão) vs Paginado Clássico
+  const { isPrivacyMode } = useFinanceData();
+  const [viewMode, setViewMode] = useState<"virtualized" | "paginated">("virtualized");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
@@ -366,9 +370,56 @@ export function PaginatedTransactionsView({
         </div>
       </SpotlightCard>
 
-      {/* Tabela de Transações */}
+      {/* Extrato Virtualizado a 60 FPS (Default) ou Paginado */}
       <SpotlightCard className="overflow-hidden">
-        {paginatedItems.length === 0 ? (
+        {/* Barra Superior de Modo de Renderização */}
+        <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 border-b border-zinc-100 dark:border-[#27272A] bg-zinc-50/40 dark:bg-[#18181B]/40">
+          <div className="flex items-center gap-2 text-[11px] text-zinc-500 dark:text-zinc-400">
+            <span className="material-symbols-outlined text-[15px] text-[#FF8216]">
+              bolt
+            </span>
+            <span>
+              {viewMode === "virtualized"
+                ? `Motor Virtualizado 60 FPS ativo (${filteredList.length} lançamento(s) • clique para auditar detalhes)`
+                : `Modo Paginado (${filteredList.length} lançamento(s))`}
+            </span>
+          </div>
+
+          <div className="inline-flex items-center rounded-xl bg-zinc-100 dark:bg-[#18181B] p-0.5 border border-zinc-200 dark:border-[#27272A]">
+            <button
+              type="button"
+              onClick={() => setViewMode("virtualized")}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                viewMode === "virtualized"
+                  ? "bg-[#FF8216] text-white shadow-xs"
+                  : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
+              }`}
+            >
+              Contínuo 60 FPS
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("paginated")}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                viewMode === "paginated"
+                  ? "bg-[#FF8216] text-white shadow-xs"
+                  : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
+              }`}
+            >
+              Paginado
+            </button>
+          </div>
+        </div>
+
+        {viewMode === "virtualized" ? (
+          <VirtualizedTransactionsList
+            transactions={filteredList}
+            isPrivacyMode={isPrivacyMode}
+            formatCurrency={formatCurrency}
+            formatDate={formatDate}
+            viewportHeight={560}
+          />
+        ) : paginatedItems.length === 0 ? (
           <div className="p-12 text-center text-xs text-slate-400 flex flex-col items-center justify-center">
             <span className="material-symbols-outlined text-4xl mb-2 text-slate-300 dark:text-slate-600">
               receipt_long
@@ -469,7 +520,8 @@ export function PaginatedTransactionsView({
           </div>
         )}
 
-        {/* Rodapé de Paginação ("1, 2, 3..." e "Por página: 10 / 25 / 50") */}
+        {/* Rodapé de Paginação exibido apenas no Modo Paginado */}
+        {viewMode === "paginated" && (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 border-t border-slate-100 dark:border-[#27272A] text-xs text-slate-500 dark:text-[#94A3B8]">
           {/* Seletor Por página */}
           <div className="flex items-center gap-2">
@@ -546,6 +598,7 @@ export function PaginatedTransactionsView({
             </button>
           </div>
         </div>
+        )}
       </SpotlightCard>
 
       {/* Modal de Nova Transação */}

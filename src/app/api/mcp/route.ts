@@ -25,6 +25,14 @@ const MCP_SERVER_INFO = {
 
 const MCP_PROTOCOL_VERSION = '2024-11-05';
 
+export interface McpToolAnnotations {
+    title: string;
+    readOnlyHint: boolean;
+    destructiveHint: boolean;
+    idempotentHint: boolean;
+    openWorldHint: boolean;
+}
+
 export interface McpToolDefinition {
     name:
         | 'get_balance_sheet_xray'
@@ -33,6 +41,7 @@ export interface McpToolDefinition {
         | 'compare_fixed_income_br'
         | 'audit_anomalies_and_subscriptions';
     description: string;
+    annotations: McpToolAnnotations;
     inputSchema: {
         type: 'object';
         properties: Record<string, Record<string, unknown>>;
@@ -41,11 +50,63 @@ export interface McpToolDefinition {
     };
 }
 
+class CallerFacingMcpError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = 'CallerFacingMcpError';
+    }
+}
+
+const READ_ONLY_ANNOTATIONS_BASE = {
+    readOnlyHint: true,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: false,
+} as const;
+
+const WITH_VALUES_PROPERTY_SCHEMA = {
+    type: 'boolean',
+    default: true,
+    description:
+        'Se false (Modo Zen / Privacy Mode inspirado no Ghostfolio), oculta valores monetários absolutos (R$ ••••••) preservando percentuais, scores e prazos.',
+} as const;
+
+const PRESERVED_METRIC_KEY_REGEX =
+    /(Pct|Percent|Score|Months|Days|Count|Rate|Index|Sigma|ZScore|Year|Month|Day|Priority|Severity)$/i;
+
+function redactMonetaryValuesDeep(value: unknown, parentKey = ''): unknown {
+    if (value === null || value === undefined) return value;
+    if (Array.isArray(value)) {
+        return value.map((item) => redactMonetaryValuesDeep(item, parentKey));
+    }
+    if (typeof value === 'object') {
+        const out: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+            out[k] = redactMonetaryValuesDeep(v, k);
+        }
+        return out;
+    }
+    if (typeof value === 'number') {
+        if (PRESERVED_METRIC_KEY_REGEX.test(parentKey)) {
+            return value;
+        }
+        return 'R$ ••••••';
+    }
+    if (typeof value === 'string') {
+        return value.replace(/R\$\s*-?[\d.,]+/g, 'R$ ••••••');
+    }
+    return value;
+}
+
 export const MCP_TOOLS_CATALOG: readonly McpToolDefinition[] = [
     {
         name: 'get_balance_sheet_xray',
         description:
             'Calcula deterministicamente o Balanço Patrimonial consolidado (Ativos de Liquidez + Investimentos - Faturas/Empréstimos) e executa o diagnóstico X-Ray completo (Kitsune Score 0..100, cobertura de reserva de emergência em meses, exposição ao teto de R$ 250k do FGC por instituição e custo de oportunidade anual em R$).',
+        annotations: {
+            title: 'Get Consolidated Balance Sheet & Financial X-Ray',
+            ...READ_ONLY_ANNOTATIONS_BASE,
+        },
         inputSchema: {
             type: 'object',
             properties: {
@@ -57,6 +118,7 @@ export const MCP_TOOLS_CATALOG: readonly McpToolDefinition[] = [
                     type: 'number',
                     description: 'Taxa anual do IPCA em percentual para juro real de referência (ex: 4.42).',
                 },
+                withValues: WITH_VALUES_PROPERTY_SCHEMA,
             },
             additionalProperties: false,
         },
@@ -65,6 +127,10 @@ export const MCP_TOOLS_CATALOG: readonly McpToolDefinition[] = [
         name: 'get_income_statement',
         description:
             'Gera o DRE Pessoal / Fluxo de Caixa Operacional puro em janela de N meses, auditando o padrão de renda (CLT/INSS/Variável), ignorando estritamente transferências internas (funds_movement) e pagamentos de fatura (cc_payment), abatendo estornos (is_refund) das saídas e ranqueando as 8 maiores categorias e estabelecimentos.',
+        annotations: {
+            title: 'Get Operational Cash Flow & Income Statement',
+            ...READ_ONLY_ANNOTATIONS_BASE,
+        },
         inputSchema: {
             type: 'object',
             properties: {
@@ -75,6 +141,7 @@ export const MCP_TOOLS_CATALOG: readonly McpToolDefinition[] = [
                     default: 1,
                     description: 'Quantidade de meses para consolidação do fluxo operacional (default: 1 = mês atual).',
                 },
+                withValues: WITH_VALUES_PROPERTY_SCHEMA,
             },
             additionalProperties: false,
         },
@@ -83,6 +150,10 @@ export const MCP_TOOLS_CATALOG: readonly McpToolDefinition[] = [
         name: 'simulate_debt_payoff',
         description:
             'Mapeia empréstimos ativos, faturas de cartão e parcelamentos, calcula CET via Newton-Raphson, simula o plano exato de quitação Avalanche vs. Bola de Neve com Snowball Rollover (juros economizados e cronograma) e avalia matematicamente se vale antecipar parcelas de cartão com desconto frente ao rendimento líquido do CDI.',
+        annotations: {
+            title: 'Simulate Debt Payoff (Avalanche vs Snowball) & Installment Advance',
+            ...READ_ONLY_ANNOTATIONS_BASE,
+        },
         inputSchema: {
             type: 'object',
             properties: {
@@ -98,6 +169,7 @@ export const MCP_TOOLS_CATALOG: readonly McpToolDefinition[] = [
                     default: 9.85,
                     description: 'Taxa anual de desconto oferecida pelo emissor do cartão na antecipação de parcelas (% a.a.).',
                 },
+                withValues: WITH_VALUES_PROPERTY_SCHEMA,
             },
             additionalProperties: false,
         },
@@ -106,6 +178,10 @@ export const MCP_TOOLS_CATALOG: readonly McpToolDefinition[] = [
         name: 'compare_fixed_income_br',
         description:
             'Audita cada posição de investimento pela regra DU/252 B3/CETIP com feriados ANBIMA, calcula rendimento líquido após tabela regressiva de IOF (0..29d) e IR (22,5% a 15%), compara equivalência tributária CDB vs LCI/LCA isenta e projeta o poder de compra real descontando o IPCA composto pela Equação de Fisher exata.',
+        annotations: {
+            title: 'Compare Brazilian Fixed Income (B3 DU/252, IR/IOF, LCI/CDB & Fisher)',
+            ...READ_ONLY_ANNOTATIONS_BASE,
+        },
         inputSchema: {
             type: 'object',
             properties: {
@@ -142,6 +218,7 @@ export const MCP_TOOLS_CATALOG: readonly McpToolDefinition[] = [
                     minimum: 0,
                     description: 'Aporte mensal em R$ para simulação patrimonial (se omitido, usa a poupança líquida real).',
                 },
+                withValues: WITH_VALUES_PROPERTY_SCHEMA,
             },
             additionalProperties: false,
         },
@@ -150,9 +227,15 @@ export const MCP_TOOLS_CATALOG: readonly McpToolDefinition[] = [
         name: 'audit_anomalies_and_subscriptions',
         description:
             'Executa auditoria forense determinística sobre o histórico operacional para detectar assinaturas recorrentes (com custo anualizado), cobranças duplicadas suspeitas no mesmo mês, tarifas bancárias/anuidades evitáveis e compras por impulso acima de 2 desvios-padrão (2σ) da média histórica.',
+        annotations: {
+            title: 'Audit Financial Anomalies, Bank Fees & Subscriptions',
+            ...READ_ONLY_ANNOTATIONS_BASE,
+        },
         inputSchema: {
             type: 'object',
-            properties: {},
+            properties: {
+                withValues: WITH_VALUES_PROPERTY_SCHEMA,
+            },
             additionalProperties: false,
         },
     },
@@ -390,22 +473,29 @@ async function handleSingleJsonRpc(
                 }
             }
 
+            const withValues = args.withValues !== false;
+            const finalPayload = withValues ? result : redactMonetaryValuesDeep(result);
+
             return jsonRpcSuccess(reqId, {
                 content: [
                     {
                         type: 'text',
-                        text: JSON.stringify(result),
+                        text: JSON.stringify(finalPayload),
                     },
                 ],
                 isError: false,
             });
-        } catch (toolError: any) {
+        } catch (toolError: unknown) {
+            const safeMessage =
+                toolError instanceof CallerFacingMcpError || toolError instanceof RangeError
+                    ? toolError.message
+                    : 'Erro interno ao executar Macro-Tool determinística no servidor MCP.';
             return jsonRpcSuccess(reqId, {
                 content: [
                     {
                         type: 'text',
                         text: JSON.stringify({
-                            error: toolError?.message || 'Erro interno ao executar Macro-Tool determinística.',
+                            error: safeMessage,
                         }),
                     },
                 ],

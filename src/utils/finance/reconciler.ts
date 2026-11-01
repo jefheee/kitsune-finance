@@ -36,6 +36,8 @@ export interface ReconcilableTransaction {
     amount: number;
     type?: string | null;
     status?: string | null;
+    currency_code?: string | null;
+    currencyCode?: string | null;
     description?: string | null;
     clean_description?: string | null;
     cleanDescription?: string | null;
@@ -105,6 +107,19 @@ export interface ReverseBalanceOptions {
     referenceDate?: string | Date;
     /** Se true, inclui transferências internas no cálculo (útil apenas para extrato isolado de 1 conta; default: false) */
     includeInternalTransfers?: boolean;
+    /** Data de abertura da conta (âncora inicial inspirada no `use_opening_anchor_for_date?` do Maybe Finance) */
+    openingAnchorDate?: string | Date;
+    /** Saldo inicial na data de abertura da conta (default: 0 quando `openingAnchorDate` é informado) */
+    openingAnchorBalance?: number;
+    /** Natureza contábil da conta quando calculando extrato individual (`asset` default vs `liability` p/ cartão/empréstimo) */
+    accountNature?: 'asset' | 'liability';
+}
+
+export interface TransferMatchOptions {
+    /** Janela máxima em dias corridos para pareamento entre contas próprias (default: 4, fiel ao Maybe Finance `date - 4..date + 4`) */
+    maxDaysWindow?: number;
+    /** Conjunto opcional de pares `outId:inId` rejeitados manualmente pelo usuário (`rejected_transfers` do Maybe Finance) */
+    rejectedTransferPairs?: ReadonlySet<string>;
 }
 
 const MS_PER_DAY = 86_400_000;
@@ -305,14 +320,29 @@ export function computeCommercialPrefixSimilarity(descA: string, descB: string):
     return 0;
 }
 
+const GENERIC_PENDING_PLACEHOLDER_PATTERNS: RegExp[] = [
+    /^$/,
+    /^compra(\s+no|\s+de)?\s+cartao(\s+de\s+credito|\s+de\s+debito)?$/i,
+    /^autorizacao(\s+pendente)?$/i,
+    /^transacao\s+pendente$/i,
+    /^pendente$/i,
+    /^pagamento\s+processando$/i,
+];
+
+function isGenericPendingPlaceholder(description: string): boolean {
+    const norm = normalizeCommercialPrefix(description);
+    return GENERIC_PENDING_PLACEHOLDER_PATTERNS.some((rx) => rx.test(norm));
+}
+
 /**
- * 1. Reconciliação Anti-Duplicidade (PENDING -> POSTED)
+ * 1. Reconciliação Anti-Duplicidade em Múltiplos Passes de Fidelidade (PENDING -> POSTED)
+ * Inspirado em `matchTransactions` do Actual Budget (`loot-core/src/server/accounts/sync.ts`).
  *
  * Quando o Pluggy atualiza uma compra de `PENDING` para `POSTED` gerando um novo `pluggy_transaction_id`,
- * localiza o par correspondente na mesma `account_id` com:
- *  - Diferença de data <= 4 dias corridos (`Math.abs(daysDiff) <= 4`);
- *  - Mesmo valor (`Math.abs(a.amount - b.amount) < 0.01`);
- *  - Similaridade de prefixo na descrição comercial.
+ * localiza o par correspondente na mesma `account_id` em 3 níveis de fidelidade:
+ *  - Nível 1 (Exact ID): Mesmo `pluggy_transaction_id` mudando de `PENDING` para `POSTED`.
+ *  - Nível 2 (High Fidelity): Mesma conta, mesmo valor em centavos (`toCents`), `|daysDiff| <= 4` e similaridade comercial `>= 0.6`.
+ *  - Nível 3 (Placeholder Pre-Auth): Mesma conta, mesmo valor exato em centavos, `|daysDiff| <= 4`, quando a pré-autorização `PENDING` possuía descrição genérica/vazia de cartão.
  */
 export function reconcilePendingToPostedTransactions<
     TIncoming extends ReconcilableTransaction,
@@ -342,6 +372,7 @@ export function reconcilePendingToPostedTransactions<
     interface CandidateMatch {
         incomingIdx: number;
         pendingIdx: number;
+        fidelityTier: 1 | 2 | 3;
         daysDiff: number;
         absDaysDiff: number;
         similarityScore: number;
@@ -356,6 +387,8 @@ export function reconcilePendingToPostedTransactions<
 
         const incAccId = getAccountId(inc);
         const incPluggyId = getPluggyTxId(inc);
+        const incCents = toCents(inc.amount);
+        const incAbsCents = Math.abs(incCents);
 
         for (let j = 0; j < pendingPool.length; j++) {
             const pend = pendingPool[j];
@@ -367,23 +400,25 @@ export function reconcilePendingToPostedTransactions<
                 continue;
             }
 
-            // Se o Pluggy manteve exatamente o mesmo ID e apenas trocou status PENDING -> POSTED
+            // Passe 1 (Fidelidade Máxima): O Pluggy manteve exatamente o mesmo ID e trocou status PENDING -> POSTED
             if (incPluggyId && pendPluggyId && incPluggyId === pendPluggyId) {
                 candidates.push({
                     incomingIdx: i,
                     pendingIdx: j,
-                    daysDiff: 0,
+                    fidelityTier: 1,
+                    daysDiff: calendarDaysDiff(inc.date, pend.date),
                     absDaysDiff: 0,
                     similarityScore: 1,
                 });
                 continue;
             }
 
-            // Valor idêntico dentro de 1 centavo
-            const signedMatch = Math.abs(inc.amount - pend.amount) < 0.01;
+            // Valor idêntico em centavos inteiros
+            const pendCents = toCents(pend.amount);
+            const signedMatch = incCents === pendCents;
             const sameExplicitDirection =
                 Boolean(inc.type && pend.type && inc.type.toUpperCase() === pend.type.toUpperCase()) &&
-                Math.abs(Math.abs(inc.amount) - Math.abs(pend.amount)) < 0.01;
+                incAbsCents === Math.abs(pendCents);
 
             if (!signedMatch && !sameExplicitDirection) {
                 continue;
@@ -396,27 +431,40 @@ export function reconcilePendingToPostedTransactions<
                 continue;
             }
 
-            // Similaridade de prefixo comercial
-            const similarityScore = computeCommercialPrefixSimilarity(
-                getPrimaryDescription(inc),
-                getPrimaryDescription(pend)
-            );
-            if (similarityScore < 0.6) {
+            const pendDesc = getPrimaryDescription(pend);
+            const incDesc = getPrimaryDescription(inc);
+
+            // Passe 2 (Alta Fidelidade): Similaridade de prefixo comercial >= 0.6
+            const similarityScore = computeCommercialPrefixSimilarity(incDesc, pendDesc);
+            if (similarityScore >= 0.6) {
+                candidates.push({
+                    incomingIdx: i,
+                    pendingIdx: j,
+                    fidelityTier: 2,
+                    daysDiff,
+                    absDaysDiff,
+                    similarityScore,
+                });
                 continue;
             }
 
-            candidates.push({
-                incomingIdx: i,
-                pendingIdx: j,
-                daysDiff,
-                absDaysDiff,
-                similarityScore,
-            });
+            // Passe 3 (Fallback Seguro Actual Budget): Pré-autorização genérica/vazia na mesma conta e mesmo valor exato
+            if (incAccId && pendAccId && incAccId === pendAccId && isGenericPendingPlaceholder(pendDesc)) {
+                candidates.push({
+                    incomingIdx: i,
+                    pendingIdx: j,
+                    fidelityTier: 3,
+                    daysDiff,
+                    absDaysDiff,
+                    similarityScore: 0.5,
+                });
+            }
         }
     }
 
-    // Ordena pelos pares mais próximos no tempo e com maior similaridade comercial
+    // Ordena por nível de fidelidade (1 -> 2 -> 3), menor distância temporal e maior similaridade comercial
     candidates.sort((a, b) => {
+        if (a.fidelityTier !== b.fidelityTier) return a.fidelityTier - b.fidelityTier;
         if (a.absDaysDiff !== b.absDaysDiff) return a.absDaysDiff - b.absDaysDiff;
         return b.similarityScore - a.similarityScore;
     });
@@ -577,18 +625,35 @@ function classifySingleTransactionKind(
     return { kind: 'standard', isInternalTransfer: false };
 }
 
+function isAccountCreditCard(accMeta?: ReconcilerAccount): boolean {
+    const t = String(accMeta?.type || '').toUpperCase();
+    const st = String(accMeta?.subtype || '').toUpperCase();
+    return t === 'CREDIT' || st === 'CREDIT_CARD';
+}
+
+function isAccountLoan(accMeta?: ReconcilerAccount): boolean {
+    const t = String(accMeta?.type || '').toUpperCase();
+    const st = String(accMeta?.subtype || '').toUpperCase();
+    return t === 'LOAN' || st === 'LOAN' || st === 'FINANCING';
+}
+
 /**
- * 2. Classificação `kind` + Auto-Transfer Matcher (Janela de 72h / <= 3 dias corridos)
+ * 2. Classificação `kind` + Auto-Transfer Matcher (Fiel ao `auto_transfer_matchable.rb` e `transfer.rb` do Maybe Finance)
  *
- * Isola movimentações patrimoniais (`funds_movement`, `cc_payment`) do fluxo de caixa operacional
+ * Isola movimentações patrimoniais (`funds_movement`, `cc_payment`, `loan_payment`) do fluxo de caixa operacional
  * e pareia automaticamente saídas (`amount < 0`) e entradas (`amount > 0`) de mesmo valor em contas
- * distintas do mesmo usuário dentro de 72 horas, vinculando `matched_transfer_id` cruzado.
+ * distintas do mesmo usuário dentro da janela temporal (default <= 3 dias corridos / 72h, configurável até 4d),
+ * preservando `kind` assimétrico conforme a natureza da conta destino (`Transfer.kind_for_account`).
  */
 export function classifyAndMatchInternalTransfers<T extends ReconcilableTransaction>(
     transactions: T[],
-    userAccounts: ReconcilerAccount[] = []
+    userAccounts: ReconcilerAccount[] = [],
+    options: TransferMatchOptions = {}
 ): Array<ClassifiedTransaction<T>> {
     if (!transactions.length) return [];
+
+    const maxDaysWindow = Math.max(0, Math.floor(options.maxDaysWindow ?? 3));
+    const rejectedPairs = options.rejectedTransferPairs;
 
     const accountMap = new Map<string, ReconcilerAccount>();
     for (const acc of userAccounts) {
@@ -601,9 +666,7 @@ export function classifyAndMatchInternalTransfers<T extends ReconcilableTransact
     const classified: Array<ClassifiedTransaction<T>> = transactions.map((tx) => {
         const accId = getAccountId(tx);
         const accMeta = accId ? accountMap.get(accId) : undefined;
-        const isCreditAccount =
-            String(accMeta?.type || '').toUpperCase() === 'CREDIT' ||
-            String(accMeta?.subtype || '').toUpperCase() === 'CREDIT_CARD';
+        const isCreditAccount = isAccountCreditCard(accMeta);
 
         const { kind, isInternalTransfer } = classifySingleTransactionKind(tx, isCreditAccount);
 
@@ -615,7 +678,7 @@ export function classifyAndMatchInternalTransfers<T extends ReconcilableTransact
         };
     });
 
-    // Passo 2: Auto-Transfer Matcher na janela de 72h (<= 3 dias corridos)
+    // Passo 2: Auto-Transfer Matcher com ordenação por menor distância temporal (`ORDER BY date_diff ASC`)
     interface TransferCandidate {
         outIdx: number;
         inIdx: number;
@@ -638,8 +701,11 @@ export function classifyAndMatchInternalTransfers<T extends ReconcilableTransact
         if (!outAccId) continue;
         if (restrictToUserAccounts && !accountMap.has(outAccId)) continue;
 
-        const absOutAmount = Math.abs(txOut.amount);
-        if (absOutAmount < 0.01) continue;
+        const absOutCents = Math.abs(toCents(txOut.amount));
+        if (absOutCents < 1) continue;
+
+        const outCurrency = String(txOut.currency_code || txOut.currencyCode || 'BRL').toUpperCase();
+        const outIdentifier = txOut.id || getPluggyTxId(txOut) || '';
 
         for (let j = 0; j < classified.length; j++) {
             if (i === j) continue;
@@ -655,14 +721,32 @@ export function classifyAndMatchInternalTransfers<T extends ReconcilableTransact
             if (!inAccId || inAccId === outAccId) continue;
             if (restrictToUserAccounts && !accountMap.has(inAccId)) continue;
 
-            // Mesmo módulo monetário (< R$ 0,01)
-            if (Math.abs(absOutAmount - Math.abs(txIn.amount)) >= 0.01) {
+            const inIdentifier = txIn.id || getPluggyTxId(txIn) || '';
+            if (
+                rejectedPairs &&
+                outIdentifier &&
+                inIdentifier &&
+                (rejectedPairs.has(`${outIdentifier}:${inIdentifier}`) ||
+                    rejectedPairs.has(`${inIdentifier}:${outIdentifier}`))
+            ) {
                 continue;
             }
 
-            // Diferença de data <= 3 dias corridos (janela de 72h)
+            const absInCents = Math.abs(toCents(txIn.amount));
+            const inCurrency = String(txIn.currency_code || txIn.currencyCode || 'BRL').toUpperCase();
+
+            if (outCurrency === inCurrency) {
+                // Mesma moeda: igualdade exata em centavos inteiros
+                if (absOutCents !== absInCents) continue;
+            } else {
+                // Multi-moeda (padrão Maybe Finance 0.95..1.05 sobre valores convertidos)
+                const ratio = absInCents / absOutCents;
+                if (ratio < 0.95 || ratio > 1.05) continue;
+            }
+
+            // Diferença de data <= janela configurada (default 3d / 72h)
             const absDaysDiff = Math.abs(calendarDaysDiff(txOut.date, txIn.date));
-            if (absDaysDiff > 3) {
+            if (absDaysDiff > maxDaysWindow) {
                 continue;
             }
 
@@ -670,7 +754,7 @@ export function classifyAndMatchInternalTransfers<T extends ReconcilableTransact
         }
     }
 
-    // Prioriza transferências no mesmo dia (D+0), depois D+1, D+2, D+3
+    // Prioriza transferências no mesmo dia (D+0), depois D+1, D+2, D+3 (`ORDER BY date_diff ASC`)
     candidates.sort((a, b) => a.absDaysDiff - b.absDaysDiff);
 
     const pairedIndices = new Set<number>();
@@ -689,7 +773,22 @@ export function classifyAndMatchInternalTransfers<T extends ReconcilableTransact
         pairedIndices.add(cand.outIdx);
         pairedIndices.add(cand.inIdx);
 
-        txOut.kind = 'funds_movement';
+        // Regra `Transfer.kind_for_account` do Maybe Finance (`app/models/transfer.rb`):
+        // Se a conta destino é Cartão de Crédito -> outflow recebe `cc_payment`, inflow recebe `funds_movement`.
+        // Se a conta destino é Empréstimo -> outflow recebe `loan_payment`, inflow recebe `funds_movement`.
+        // Caso contrário (Conta Corrente <-> Poupança / RDB / Corretora) -> ambos recebem `funds_movement`.
+        const inAccMeta = accountMap.get(getAccountId(txIn));
+        const isDestCreditCard =
+            isAccountCreditCard(inAccMeta) ||
+            txOut.kind === 'cc_payment' ||
+            txIn.kind === 'cc_payment';
+        const isDestLoan = isAccountLoan(inAccMeta) || txOut.kind === 'loan_payment';
+
+        txOut.kind = isDestCreditCard
+            ? 'cc_payment'
+            : isDestLoan
+              ? 'loan_payment'
+              : 'funds_movement';
         txOut.is_internal_transfer = true;
         txOut.matched_transfer_id = inIdentifier;
 
@@ -703,12 +802,13 @@ export function classifyAndMatchInternalTransfers<T extends ReconcilableTransact
 
 /**
  * 3. Calculadora Reversa de Patrimônio e Saldos Históricos (`ReverseCalculator`)
+ * Inspirada em `app/models/balance/reverse_calculator.rb` do Maybe Finance.
  *
  * Reconstrói a série diária de trás para frente a partir do saldo real de hoje:
- *   `Saldo[D-1] = Saldo[D] - FluxoLiquido[D]`
+ *   `Saldo[D-1] = Saldo[D] - FluxoLiquido[D]` (ou `+ FluxoLiquido[D]` para passivos puros)
  *
- * Opera integralmente em centavos inteiros para impedir erros cumulativos de ponto flutuante
- * e exclui transferências internas por padrão para blindar curvas de Patrimônio Líquido.
+ * Suporta `openingAnchorDate` (`use_opening_anchor_for_date?`) para impedir saldos fantasmas antes da
+ * abertura da conta, opera integralmente em centavos inteiros e exclui transferências internas por padrão.
  */
 export function calculateReverseHistoricalBalances(
     currentBalance: number,
@@ -725,6 +825,11 @@ export function calculateReverseHistoricalBalances(
     const anchorDate = parseLocalDate(options.referenceDate ?? new Date());
     const anchorKey = formatLocalDateKey(anchorDate);
     const includeInternal = Boolean(options.includeInternalTransfers);
+    const isLiability = options.accountNature === 'liability';
+    const openingAnchorKey = options.openingAnchorDate
+        ? formatLocalDateKey(parseLocalDate(options.openingAnchorDate))
+        : null;
+    const openingAnchorCents = toCents(options.openingAnchorBalance ?? 0);
 
     // Agrupa fluxo líquido diário em centavos inteiros por chave YYYY-MM-DD
     const dailyNetFlowCents = new Map<string, number>();
@@ -768,7 +873,19 @@ export function calculateReverseHistoricalBalances(
             0
         );
         const dateKey = formatLocalDateKey(targetDate);
+
+        // Âncora de abertura (`use_opening_anchor_for_date?` do Maybe Finance)
+        if (openingAnchorKey && dateKey < openingAnchorKey) {
+            reverseSeries.push({
+                date: dateKey,
+                balance: fromCents(openingAnchorCents),
+                netFlow: 0,
+            });
+            continue;
+        }
+
         const dayFlowCents = dailyNetFlowCents.get(dateKey) || 0;
+        const signedFlowCents = isLiability ? -dayFlowCents : dayFlowCents;
 
         reverseSeries.push({
             date: dateKey,
@@ -776,8 +893,8 @@ export function calculateReverseHistoricalBalances(
             netFlow: fromCents(dayFlowCents),
         });
 
-        // Saldo[D-1] = Saldo[D] - FluxoLiquido[D]
-        runningBalanceCents = runningBalanceCents - dayFlowCents;
+        // Saldo[D-1] = Saldo[D] - FluxoAssinado[D]
+        runningBalanceCents = runningBalanceCents - signedFlowCents;
     }
 
     // Retorna em ordem cronológica crescente (do passado mais antigo até hoje)

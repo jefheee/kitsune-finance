@@ -16,6 +16,7 @@ import { GlobalFinanceSearchModal } from "@/components/finance/GlobalFinanceSear
 import { getBankCatalogBySlugOrName } from "@/utils/pluggy/bank-resolver";
 import { useFinanceData } from "@/context/FinanceDataContext";
 import { SpendingCurveChart } from "@/components/charts/SpendingCurveChart";
+import { CashFlowSankey } from "@/components/charts/CashFlowSankey";
 import { WalletCards } from "@/components/finance/WalletCards";
 import { CategoriesView } from "@/components/finance/CategoriesView";
 import { PaginatedTransactionsView } from "@/components/finance/PaginatedTransactionsView";
@@ -1624,7 +1625,7 @@ export default function DashboardPage() {
 
                         <div className="p-3.5 md:p-4 rounded-xl bg-slate-50 dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] flex items-center justify-between gap-3 shadow-xs">
                             <div className="flex items-center gap-2.5 min-w-0">
-                                <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center shrink-0">
+                                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0">
                                     <span className="material-symbols-outlined text-[18px]">security</span>
                                 </div>
                                 <div className="min-w-0">
@@ -1668,6 +1669,27 @@ export default function DashboardPage() {
                             </span>
                         </div>
                     </section>
+
+                    {/* Diagrama de Sankey de Fluxo de Caixa (Fiel ao Maybe Finance) */}
+                    <CashFlowSankey
+                        transactions={periodFilteredTransactions}
+                        isPrivacyMode={isPrivacyMode}
+                        selfAndFamilyNames={[
+                            userProfile?.full_name || "",
+                            userProfile?.display_name || "",
+                            userFirstName,
+                            ...familyMembers.map((f) => f.name),
+                        ]}
+                        periodLabel={
+                            timeGranularity === "day"
+                                ? "Últimos 7 Dias"
+                                : timeGranularity === "week"
+                                  ? "Últimas 2 Semanas"
+                                  : timeGranularity === "year"
+                                    ? "Acumulado Anual"
+                                    : "Mês Atual"
+                        }
+                    />
 
                     {/* Painel Consultivo da Kitsune AI */}
                     <AiDiagnosticPanel
@@ -1936,7 +1958,7 @@ export default function DashboardPage() {
                 />
             ) : activeTab === "Transações" || activeTab === "Extrato & Transações" ? (
                 <PaginatedTransactionsView
-                    transactions={periodFilteredTransactions}
+                    transactions={filteredTransactions}
                     accounts={filteredAccounts}
                     formatCurrency={formatCurrency}
                     formatDate={(val) => formatDate(val || undefined)}
