@@ -8,7 +8,7 @@
 
 - [x] **Etapa 0:** Governança Autônoma Global (`GEMINI.md`, `AGENTS.md`, `ARCHITECTURE_EXPANSION.md` e limpeza de estado).
 - [x] **Etapa 1:** Motor Matemático Determinístico BR & X-Ray Engine (`src/utils/finance/engine/`).
-- [ ] **Etapa 2:** Pipeline Open Finance v2, Reconciliação Anti-Duplicidade (`kind` + `auto_transfer_match`) e Enriquecimento Comercial 3 Camadas (`BrasilAPI` + Cache Supabase).
+- [x] **Etapa 2:** Pipeline Open Finance v2, Reconciliação Anti-Duplicidade (`kind` + `auto_transfer_match`) e Enriquecimento Comercial 3 Camadas (`BrasilAPI` + Cache Supabase).
 - [ ] **Etapa 3:** Orquestração Multi-Agente com Tool Calling Determinístico (7 Agentes Kitsune + Macro-Tools do Maybe + Endpoint `/api/mcp`).
 - [ ] **Etapa 4:** Performance Client-Side (Read-Through Cache IndexedDB `0ms`, Lista Virtualizada 60 FPS e Diagrama de Sankey em SVG).
 - [ ] **Etapa 5:** Reconciliador Dinâmico no Espaço Compartilhado ("Pix de Acerto Único") e UI Interativa do Simulador de Dívidas/Antecipação.

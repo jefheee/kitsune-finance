@@ -1,4 +1,14 @@
 import { resolveMerchant } from '@/utils/finance/merchant-resolver';
+import {
+    extractCnpjFromText,
+    isValidCnpj,
+    mapCnaeToCategoryPt,
+} from '@/utils/finance/enrichment-pipeline';
+import {
+    formatLocalDateKey,
+    parseLocalDate,
+    type TransactionKind,
+} from '@/utils/finance/reconciler';
 
 export interface PluggyTransactionRaw {
     id: string;
@@ -7,6 +17,7 @@ export interface PluggyTransactionRaw {
     amount: number;
     date: string;
     type?: 'DEBIT' | 'CREDIT' | string | null;
+    status?: string | null;
     category?: string | null;
     operationType?: string | null;
     currencyCode?: string | null;
@@ -46,6 +57,8 @@ export interface EnrichedTransaction {
     rawDescription: string;
     amount: number;
     type: 'DEBIT' | 'CREDIT';
+    status: 'PENDING' | 'POSTED';
+    kind: TransactionKind;
     categoryPt: string;
     categoryOriginal: string | null;
     operationType:
@@ -758,11 +771,57 @@ export function enrichPluggyTransaction(params: {
         normalizedType === 'DEBIT' &&
         detectSubscription(tx, cleanDesc, categoryOriginal, totalInstallments);
 
-    const categoryPt = translatePluggyCategory(categoryOriginal, cleanDesc, isInternalTransfer, isRefund);
+    let categoryPt = translatePluggyCategory(categoryOriginal, cleanDesc, isInternalTransfer, isRefund);
+    if (
+        !isInternalTransfer &&
+        !isRefund &&
+        tx.merchant?.cnae &&
+        (categoryPt === 'Outros' || categoryPt === 'Compras' || categoryPt === 'Pix')
+    ) {
+        const mappedFromCnae = mapCnaeToCategoryPt(tx.merchant.cnae);
+        if (mappedFromCnae !== 'Outros') {
+            categoryPt = mappedFromCnae;
+        }
+    }
 
-    const executedDateObj = tx.date ? new Date(tx.date) : new Date();
-    const executedAt = executedDateObj.toISOString();
-    const dateOnly = executedAt.split('T')[0];
+    // Extração determinística de CNPJ (14 dígitos com validação oficial dos 2 dígitos verificadores)
+    let resolvedCnpj: string | null = null;
+    if (tx.merchant?.cnpj && isValidCnpj(tx.merchant.cnpj)) {
+        resolvedCnpj = tx.merchant.cnpj.replace(/\D/g, '');
+    } else if (!isInternalTransfer && normalizedType === 'DEBIT' && receiverDoc && isValidCnpj(receiverDoc)) {
+        resolvedCnpj = receiverDoc.replace(/\D/g, '');
+    } else if (!isInternalTransfer) {
+        resolvedCnpj = extractCnpjFromText(
+            `${rawDescription} ${tx.descriptionRaw || ''} ${paymentReason || ''}`
+        );
+    }
+
+    // Classificação determinística preliminar de `kind` (padrão Maybe Finance)
+    let kind: TransactionKind = 'standard';
+    if (isBillPaymentCategoryOrText || operationType === 'BILL_PAYMENT') {
+        kind = 'cc_payment';
+    } else if (isInternalTransfer || operationType === 'INTERNAL_TRANSFER') {
+        kind = 'funds_movement';
+    } else if (
+        lowerCat === 'loans and financing' ||
+        lowerCat === 'loans' ||
+        lowerCat === 'financing' ||
+        categoryPt === 'Empréstimos e Financiamentos' ||
+        categoryPt === 'Financiamentos'
+    ) {
+        kind = 'loan_payment';
+    }
+
+    const statusNormalized: 'PENDING' | 'POSTED' =
+        String(tx.status || 'POSTED').toUpperCase() === 'PENDING' ? 'PENDING' : 'POSTED';
+
+    // Uso de parseLocalDate para impedir deslocamento UTC no 1º dia do mês
+    const localCalendarDate = tx.date ? parseLocalDate(tx.date) : parseLocalDate(new Date());
+    const dateOnly = formatLocalDateKey(localCalendarDate);
+    const executedDateObj = tx.date && tx.date.includes('T') ? new Date(tx.date) : localCalendarDate;
+    const executedAt = Number.isNaN(executedDateObj.getTime())
+        ? localCalendarDate.toISOString()
+        : executedDateObj.toISOString();
 
     return {
         pluggyTransactionId: tx.id,
@@ -770,6 +829,8 @@ export function enrichPluggyTransaction(params: {
         rawDescription,
         amount: normalizedAmount,
         type: normalizedType,
+        status: statusNormalized,
+        kind,
         categoryPt,
         categoryOriginal,
         operationType,
@@ -781,7 +842,7 @@ export function enrichPluggyTransaction(params: {
         totalPurchaseAmount,
         merchantName: tx.merchant?.name || null,
         merchantBusinessName: tx.merchant?.businessName || null,
-        merchantCnpj: tx.merchant?.cnpj || null,
+        merchantCnpj: resolvedCnpj,
         payerName,
         receiverName,
         paymentReason,

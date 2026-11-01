@@ -3,16 +3,80 @@ import { pluggyClient, generateTransactionIdempotencyHash } from './client';
 import { resolveInstitutionForItem, resolveAccountProductDetails } from './bank-resolver';
 import { enrichPluggyTransaction } from './transaction-enricher';
 import { consolidateIdentityAcrossBanks, type PluggyIdentityRaw } from './identity-consolidator';
+import {
+    reconcilePendingToPostedTransactions,
+    classifyAndMatchInternalTransfers,
+    formatLocalDateKey,
+    parseLocalDate,
+    type ReconcilableTransaction,
+    type ReconcilerAccount,
+    type TransactionKind,
+} from '@/utils/finance/reconciler';
+import { enrichTransactionBatch } from '@/utils/finance/enrichment-pipeline';
 
 export interface SyncResult {
     success: boolean;
     accountsSynced: number;
     transactionsSynced: number;
+    reconciledPendingCount?: number;
+    matchedTransfersCount?: number;
     investmentsSynced?: number;
     loansSynced?: number;
     institutionName?: string;
     institutionSlug?: string;
     error?: string;
+}
+
+interface PreparedSyncTransaction extends ReconcilableTransaction {
+    pluggyTransactionId: string;
+    account_id: string;
+    date: string;
+    executedAt: string;
+    amount: number;
+    type: 'DEBIT' | 'CREDIT';
+    status: 'PENDING' | 'POSTED';
+    kind: TransactionKind;
+    cleanDescription: string;
+    clean_description: string;
+    rawDescription: string;
+    raw_description: string;
+    categoryPt: string;
+    category_pt: string;
+    categoryOriginal: string | null;
+    operationType: string;
+    isInternalTransfer: boolean;
+    is_internal_transfer: boolean;
+    isRefund: boolean;
+    isSubscription: boolean;
+    installmentNumber: number | null;
+    totalInstallments: number | null;
+    totalPurchaseAmount: number | null;
+    merchantName: string | null;
+    merchantBusinessName: string | null;
+    merchantCnpj: string | null;
+    merchant_cnpj: string | null;
+    payerName: string | null;
+    receiverName: string | null;
+    paymentReason: string | null;
+    billId: string | null;
+    providerExtId: string;
+    pluggyAccountId: string;
+    rawPayload: Record<string, unknown> | null;
+    reconciled_from_pending_id?: string | null;
+    matched_pending_db_id?: string | null;
+    matched_transfer_id?: string | null;
+}
+
+function isMissingRpcOverloadError(err: { code?: string; message?: string } | null): boolean {
+    if (!err) return false;
+    const msg = String(err.message || '');
+    return (
+        err.code === 'PGRST202' ||
+        err.code === '42883' ||
+        msg.includes('Could not find the function') ||
+        msg.includes('p_kind') ||
+        msg.includes('p_reconciled_from_pending_id')
+    );
 }
 
 export async function syncItemAccountsAndTransactions(
@@ -55,8 +119,10 @@ export async function syncItemAccountsAndTransactions(
             p_institution_name: institution.name,
             p_institution_slug: institution.slug,
             p_institution_logo_url: institution.logoPath,
-            p_raw_identity: identity ? (identity as any) : null,
-            p_raw_connector: itemDetail?.connector ? (itemDetail.connector as any) : null,
+            p_raw_identity: identity ? (identity as unknown as Record<string, unknown>) : null,
+            p_raw_connector: itemDetail?.connector
+                ? (itemDetail.connector as unknown as Record<string, unknown>)
+                : null,
             p_consent_expires_at: itemDetail?.consentExpiresAt || null,
         });
 
@@ -75,12 +141,14 @@ export async function syncItemAccountsAndTransactions(
 
             if (Array.isArray(allConns) && allConns.length > 0) {
                 const consolidated = consolidateIdentityAcrossBanks(
-                    allConns.map((c: any) => ({
-                        itemId: c.item_id,
-                        institutionName: c.institution_name || c.provider_name || 'Instituição Conectada',
-                        institutionSlug: c.institution_slug || 'generic',
+                    allConns.map((c: Record<string, unknown>) => ({
+                        itemId: String(c.item_id || ''),
+                        institutionName: String(
+                            c.institution_name || c.provider_name || 'Instituição Conectada'
+                        ),
+                        institutionSlug: String(c.institution_slug || 'generic'),
                         identity: (c.raw_identity || null) as PluggyIdentityRaw | null,
-                        updatedAt: c.updated_at,
+                        updatedAt: c.updated_at ? String(c.updated_at) : undefined,
                     }))
                 );
 
@@ -114,8 +182,12 @@ export async function syncItemAccountsAndTransactions(
             console.error(`[Sync] Aviso ao consolidar identidade do usuário ${userId}:`, identityErr);
         }
 
-        // 5. Sincronizar Contas (BANK e CREDIT) e Transações Enriquecidas
+        // 5. Sincronizar Contas (BANK e CREDIT), Reconciliar Pendentes e Enriquecer Comercialmente (3 Camadas)
         let totalTransactions = 0;
+        let reconciledPendingCount = 0;
+        let supportsV2Rpc = true;
+
+        const syncedUserAccounts: ReconcilerAccount[] = [];
 
         for (const acc of accounts) {
             const details = resolveAccountProductDetails(acc, institution);
@@ -149,65 +221,235 @@ export async function syncItemAccountsAndTransactions(
                 continue;
             }
 
+            const currentAccountMeta: ReconcilerAccount = {
+                id: String(dbAccountId),
+                pluggy_account_id: acc.id,
+                type: acc.type || 'BANK',
+                subtype: details.subtype,
+                institution_name: details.institutionName,
+                bank_name: details.institutionName,
+            };
+            syncedUserAccounts.push(currentAccountMeta);
+
             try {
-                const transactions = await pluggyClient.fetchTransactions(acc.id);
+                const rawTransactions = await pluggyClient.fetchTransactions(acc.id);
+                if (!rawTransactions.length) continue;
+
+                // 5.1 Enriquecimento Determinístico Base + Extração de CNPJ
+                const basePrepared: PreparedSyncTransaction[] = rawTransactions.map((tx) => {
+                    const enriched = enrichPluggyTransaction({
+                        tx,
+                        accountType: acc.type || 'BANK',
+                        accountSubtype: details.subtype,
+                        holderNames,
+                        holderDocuments,
+                    });
+
+                    return {
+                        pluggyTransactionId: enriched.pluggyTransactionId,
+                        pluggy_transaction_id: enriched.pluggyTransactionId,
+                        account_id: String(dbAccountId),
+                        date: enriched.dateOnly,
+                        executedAt: enriched.executedAt,
+                        amount: enriched.amount,
+                        type: enriched.type,
+                        status: enriched.status,
+                        kind: enriched.kind,
+                        description: enriched.cleanDescription,
+                        cleanDescription: enriched.cleanDescription,
+                        clean_description: enriched.cleanDescription,
+                        rawDescription: enriched.rawDescription,
+                        raw_description: enriched.rawDescription,
+                        category: enriched.categoryPt,
+                        categoryPt: enriched.categoryPt,
+                        category_pt: enriched.categoryPt,
+                        categoryOriginal: enriched.categoryOriginal,
+                        category_original: enriched.categoryOriginal,
+                        operationType: enriched.operationType,
+                        operation_type: enriched.operationType,
+                        isInternalTransfer: enriched.isInternalTransfer,
+                        is_internal_transfer: enriched.isInternalTransfer,
+                        isRefund: enriched.isRefund,
+                        is_refund: enriched.isRefund,
+                        isSubscription: enriched.isSubscription,
+                        installmentNumber: enriched.installmentNumber,
+                        totalInstallments: enriched.totalInstallments,
+                        totalPurchaseAmount: enriched.totalPurchaseAmount,
+                        merchantName: enriched.merchantName,
+                        merchantBusinessName: enriched.merchantBusinessName,
+                        merchantCnpj: enriched.merchantCnpj,
+                        merchant_cnpj: enriched.merchantCnpj,
+                        payerName: enriched.payerName,
+                        receiverName: enriched.receiverName,
+                        paymentReason: enriched.paymentReason,
+                        billId: enriched.billId,
+                        providerExtId: tx.id || tx.providerCode || '',
+                        pluggyAccountId: acc.id,
+                        rawPayload: tx.rawPayload || null,
+                    };
+                });
+
+                // 5.2 Pipeline de Enriquecimento Comercial em 3 Camadas (Simple Icons + Cache Supabase + BrasilAPI CNPJ/CNAE)
+                const commerciallyEnriched = await enrichTransactionBatch(basePrepared, supabase, {
+                    maxConcurrency: 5,
+                    timeoutMs: 3000,
+                });
+
+                // 5.3 Reconciliação Anti-Duplicidade (PENDING -> POSTED com possível troca de UUID)
+                let existingPendingTxs: ReconcilableTransaction[] = [];
+                try {
+                    const { data: recentAccTxs } = await supabase
+                        .from('transactions')
+                        .select('*')
+                        .eq('user_id', userId)
+                        .eq('account_id', dbAccountId)
+                        .order('date', { ascending: false })
+                        .limit(200);
+
+                    if (Array.isArray(recentAccTxs)) {
+                        existingPendingTxs = recentAccTxs
+                            .filter((row: Record<string, unknown>) => {
+                                const colStatus = String(row.status || '').toUpperCase();
+                                const rawPayload = row.raw_payload as Record<string, unknown> | null;
+                                const payloadStatus = String(rawPayload?.status || '').toUpperCase();
+                                return colStatus === 'PENDING' || payloadStatus === 'PENDING';
+                            })
+                            .map((row: Record<string, unknown>) => ({
+                                id: row.id ? String(row.id) : undefined,
+                                pluggy_transaction_id: row.pluggy_transaction_id
+                                    ? String(row.pluggy_transaction_id)
+                                    : null,
+                                account_id: String(row.account_id || dbAccountId),
+                                date: String(row.date || ''),
+                                amount: Number(row.amount) || 0,
+                                type: row.type ? String(row.type) : null,
+                                status: 'PENDING',
+                                description: row.description ? String(row.description) : null,
+                                clean_description: row.clean_description
+                                    ? String(row.clean_description)
+                                    : null,
+                                raw_description: row.raw_description
+                                    ? String(row.raw_description)
+                                    : null,
+                            }));
+                    }
+                } catch {
+                    // Retrocompatível caso executado via cliente sem sessão direta (webhook)
+                }
+
+                const pendingReconciled = reconcilePendingToPostedTransactions(
+                    commerciallyEnriched,
+                    existingPendingTxs
+                );
+                reconciledPendingCount += pendingReconciled.inPlaceUpdates.length;
+
+                // 5.4 Classificação Determinística de `kind` antes da gravação
+                const classifiedBatch = classifyAndMatchInternalTransfers(
+                    pendingReconciled.transactions,
+                    [currentAccountMeta]
+                );
+
+                // 5.5 Gravação em Lote com Retrocompatibilidade Total (v2 RPC -> fallback v1 RPC)
                 const BATCH_SIZE = 25;
-
-                for (let i = 0; i < transactions.length; i += BATCH_SIZE) {
-                    const batch = transactions.slice(i, i + BATCH_SIZE);
+                for (let i = 0; i < classifiedBatch.length; i += BATCH_SIZE) {
+                    const slice = classifiedBatch.slice(i, i + BATCH_SIZE);
                     const results = await Promise.all(
-                        batch.map(async (tx) => {
-                            const enriched = enrichPluggyTransaction({
-                                tx,
-                                accountType: acc.type || 'BANK',
-                                accountSubtype: details.subtype,
-                                holderNames,
-                                holderDocuments,
-                            });
-
-                            const extId = tx.id || tx.providerCode || '';
+                        slice.map(async (txItem) => {
                             const idempotencyHash = generateTransactionIdempotencyHash(
-                                acc.id,
-                                extId,
-                                enriched.amount,
-                                enriched.dateOnly
+                                txItem.pluggyAccountId,
+                                txItem.providerExtId,
+                                txItem.amount,
+                                txItem.date
                             );
 
-                            const { error: txError } = await supabase.rpc('upsert_pluggy_transaction', {
+                            const baseRpcPayload = {
                                 p_account_id: dbAccountId,
                                 p_family_member_id: familyMemberId || null,
                                 p_user_id: userId,
-                                p_pluggy_tx_id: enriched.pluggyTransactionId,
+                                p_pluggy_tx_id: txItem.pluggyTransactionId,
                                 p_idempotency_hash: idempotencyHash,
-                                p_description: enriched.cleanDescription,
-                                p_amount: enriched.amount,
-                                p_type: enriched.type,
-                                p_category: enriched.categoryPt,
-                                p_executed_at: enriched.executedAt,
-                                p_date: enriched.dateOnly,
-                                p_clean_description: enriched.cleanDescription,
-                                p_raw_description: enriched.rawDescription,
-                                p_category_pt: enriched.categoryPt,
-                                p_category_original: enriched.categoryOriginal,
-                                p_operation_type: enriched.operationType,
-                                p_is_internal_transfer: enriched.isInternalTransfer,
-                                p_is_refund: enriched.isRefund,
-                                p_is_subscription: enriched.isSubscription,
-                                p_installment_number: enriched.installmentNumber,
-                                p_total_installments: enriched.totalInstallments,
-                                p_total_purchase_amount: enriched.totalPurchaseAmount,
-                                p_merchant_name: enriched.merchantName,
-                                p_merchant_business_name: enriched.merchantBusinessName,
-                                p_merchant_cnpj: enriched.merchantCnpj,
-                                p_payer_name: enriched.payerName,
-                                p_receiver_name: enriched.receiverName,
-                                p_payment_reason: enriched.paymentReason,
-                                p_bill_id: enriched.billId,
-                                p_raw_payload: tx.rawPayload || null,
-                            });
+                                p_description: txItem.clean_description,
+                                p_amount: txItem.amount,
+                                p_type: txItem.type,
+                                p_category: txItem.category_pt,
+                                p_executed_at: txItem.executedAt,
+                                p_date: txItem.date,
+                                p_clean_description: txItem.clean_description,
+                                p_raw_description: txItem.raw_description,
+                                p_category_pt: txItem.category_pt,
+                                p_category_original: txItem.categoryOriginal,
+                                p_operation_type: txItem.operationType,
+                                p_is_internal_transfer: txItem.is_internal_transfer,
+                                p_is_refund: txItem.isRefund,
+                                p_is_subscription: txItem.isSubscription,
+                                p_installment_number: txItem.installmentNumber,
+                                p_total_installments: txItem.totalInstallments,
+                                p_total_purchase_amount: txItem.totalPurchaseAmount,
+                                p_merchant_name: txItem.merchantName,
+                                p_merchant_business_name: txItem.merchantBusinessName,
+                                p_merchant_cnpj: txItem.merchant_cnpj,
+                                p_payer_name: txItem.payerName,
+                                p_receiver_name: txItem.receiverName,
+                                p_payment_reason: txItem.paymentReason,
+                                p_bill_id: txItem.billId,
+                                p_raw_payload: txItem.rawPayload,
+                            };
 
-                            if (txError) {
-                                console.error(`[Sync] Erro ao sincronizar transação ${tx.id}:`, txError);
+                            if (supportsV2Rpc) {
+                                const { error: v2Err } = await supabase.rpc('upsert_pluggy_transaction', {
+                                    ...baseRpcPayload,
+                                    p_kind: txItem.kind,
+                                    p_matched_transfer_id: txItem.matched_transfer_id || null,
+                                    p_reconciled_from_pending_id: txItem.reconciled_from_pending_id || null,
+                                    p_status: txItem.status || 'POSTED',
+                                });
+
+                                if (!v2Err) {
+                                    return 1;
+                                }
+
+                                if (isMissingRpcOverloadError(v2Err)) {
+                                    supportsV2Rpc = false;
+                                } else {
+                                    console.error(
+                                        `[Sync] Erro ao sincronizar transação ${txItem.pluggyTransactionId}:`,
+                                        v2Err
+                                    );
+                                    return 0;
+                                }
+                            }
+
+                            // Fallback retrocompatível (banco ainda sem migration 20261101):
+                            // Se reconciliou uma PENDING de ID diferente, migra o pluggy_transaction_id in-place antes do upsert
+                            if (
+                                txItem.matched_pending_db_id &&
+                                txItem.reconciled_from_pending_id &&
+                                txItem.reconciled_from_pending_id !== txItem.pluggyTransactionId
+                            ) {
+                                try {
+                                    await supabase
+                                        .from('transactions')
+                                        .update({
+                                            pluggy_transaction_id: txItem.pluggyTransactionId,
+                                            idempotency_hash: idempotencyHash,
+                                        })
+                                        .eq('id', txItem.matched_pending_db_id)
+                                        .eq('user_id', userId);
+                                } catch {
+                                    // Ignora silenciosamente se sem permissão direta
+                                }
+                            }
+
+                            const { error: v1Err } = await supabase.rpc(
+                                'upsert_pluggy_transaction',
+                                baseRpcPayload
+                            );
+
+                            if (v1Err) {
+                                console.error(
+                                    `[Sync] Erro ao sincronizar transação (v1 fallback) ${txItem.pluggyTransactionId}:`,
+                                    v1Err
+                                );
                                 return 0;
                             }
                             return 1;
@@ -218,6 +460,88 @@ export async function syncItemAccountsAndTransactions(
             } catch (txFetchError) {
                 console.error(`[Sync] Erro ao coletar transações para a conta ${acc.id}:`, txFetchError);
             }
+        }
+
+        // 5.6 Auto-Transfer Matcher Multi-Contas na Janela de 72h (pós-sync entre bancos conectados)
+        let matchedTransfersCount = 0;
+        try {
+            const ninetyDaysAgo = parseLocalDate(new Date());
+            ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+            const cutoffDateKey = formatLocalDateKey(ninetyDaysAgo);
+
+            const [{ data: allUserAccountsData }, { data: recentUserTxsData }] = await Promise.all([
+                supabase
+                    .from('bank_accounts')
+                    .select('id, pluggy_account_id, type, subtype, institution_name, bank_name')
+                    .eq('user_id', userId),
+                supabase
+                    .from('transactions')
+                    .select('*')
+                    .eq('user_id', userId)
+                    .gte('date', cutoffDateKey)
+                    .order('date', { ascending: false })
+                    .limit(1000),
+            ]);
+
+            const effectiveAccounts: ReconcilerAccount[] =
+                Array.isArray(allUserAccountsData) && allUserAccountsData.length > 0
+                    ? (allUserAccountsData as ReconcilerAccount[])
+                    : syncedUserAccounts;
+
+            if (Array.isArray(recentUserTxsData) && recentUserTxsData.length > 1) {
+                const priorMatchedIds = new Set<string>(
+                    recentUserTxsData
+                        .filter((r: Record<string, unknown>) => Boolean(r.matched_transfer_id))
+                        .map((r: Record<string, unknown>) => String(r.id))
+                );
+
+                const crossMatched = classifyAndMatchInternalTransfers(
+                    recentUserTxsData as ReconcilableTransaction[],
+                    effectiveAccounts
+                );
+
+                const processedPairKeys = new Set<string>();
+
+                for (const tx of crossMatched) {
+                    if (!tx.id || !tx.matched_transfer_id) continue;
+                    if (priorMatchedIds.has(tx.id)) continue;
+                    if (tx.amount >= 0) continue; // Processa cada par apenas uma vez a partir da perna de saída (outflow)
+
+                    const pairKey = [tx.id, tx.matched_transfer_id].sort().join(':');
+                    if (processedPairKeys.has(pairKey)) continue;
+                    processedPairKeys.add(pairKey);
+
+                    matchedTransfersCount++;
+
+                    if (supportsV2Rpc) {
+                        const { error: linkErr } = await supabase.rpc('link_matched_internal_transfers', {
+                            p_user_id: userId,
+                            p_tx_out_id: tx.id,
+                            p_tx_in_id: tx.matched_transfer_id,
+                            p_kind: tx.kind,
+                        });
+
+                        if (!linkErr) continue;
+                        if (isMissingRpcOverloadError(linkErr)) {
+                            supportsV2Rpc = false;
+                        }
+                    }
+
+                    // Fallback retrocompatível para colunas já existentes (`is_internal_transfer`, `category_pt`)
+                    await supabase
+                        .from('transactions')
+                        .update({
+                            is_internal_transfer: true,
+                            category_pt: 'Transferência Própria',
+                            category: 'Transferência Própria',
+                            updated_at: new Date().toISOString(),
+                        })
+                        .in('id', [tx.id, tx.matched_transfer_id])
+                        .eq('user_id', userId);
+                }
+            }
+        } catch (transferMatchErr) {
+            console.warn('[Sync] Aviso não-fatal no Auto-Transfer Matcher 72h:', transferMatchErr);
         }
 
         // 6. Sincronizar Investimentos (CDBs, Tesouro, Fundos, Caixinhas, Ações)
@@ -284,18 +608,21 @@ export async function syncItemAccountsAndTransactions(
             success: true,
             accountsSynced: accounts.length,
             transactionsSynced: totalTransactions,
+            reconciledPendingCount,
+            matchedTransfersCount,
             investmentsSynced,
             loansSynced,
             institutionName: institution.name,
             institutionSlug: institution.slug,
         };
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Erro ao sincronizar dados da Pluggy';
         console.error(`[Sync] Erro geral na sincronização do item ${itemId}:`, error);
         return {
             success: false,
             accountsSynced: 0,
             transactionsSynced: 0,
-            error: error.message || 'Erro ao sincronizar dados da Pluggy',
+            error: message,
         };
     }
 }

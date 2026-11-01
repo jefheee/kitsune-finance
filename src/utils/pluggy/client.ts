@@ -324,6 +324,7 @@ class PluggyService {
                 amount: tx.amount,
                 date: tx.date,
                 type: tx.type,
+                status: tx.status || 'POSTED',
                 category: tx.category,
                 operationType: tx.operationType,
                 paymentData: tx.paymentData

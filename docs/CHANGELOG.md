@@ -4,6 +4,15 @@ Todas as alterações notáveis no projeto Kitsune Finance são registradas de f
 
 ---
 
+## [2026-10-31] - Implementação da Etapa 2: Pipeline de Reconciliação Open Finance v2 & Enriquecimento Comercial 3 Camadas
+- **Arquivos Afetados:** `supabase/migrations/20261101_reconciliation_and_merchants_cache.sql`, `src/utils/finance/reconciler.ts`, `src/utils/finance/enrichment-pipeline.ts`, `src/utils/pluggy/sync.ts`, `src/utils/pluggy/transaction-enricher.ts`, `src/utils/pluggy/client.ts`, `src/app/api/openfinance/route.ts`, `docs/ARCHITECTURE_EXPANSION.md`, `docs/PROJECT_STATE.md`, `docs/CHANGELOG.md`.
+- **Objetivo:**
+  - Evolução de `public.transactions` (`kind`, `matched_transfer_id`, `reconciled_from_pending_id`, `status` e índices) e criação de `public.known_merchants` com `FORCE RLS` e revogação de `anon`.
+  - Implementação do motor determinístico `reconciler.ts` (reconciliação in-place `PENDING` -> `POSTED`, classificação `kind`, Auto-Transfer Matcher 72h e calculadora reversa de patrimônio em centavos inteiros com `parseLocalDate`) e do `enrichment-pipeline.ts` (validação oficial CNPJ Módulo 11 + `BrasilAPI` CNAE com cache Supabase).
+  - Integração completa e 100% retrocompatível em `src/utils/pluggy/sync.ts` e `src/app/api/openfinance/route.ts` (incluindo correção proativa de leitura de `outstanding_balance` em `loans` e preservação de `dateOnly` sem shift UTC).
+
+---
+
 ## [2026-10-31] - Mapeamento Integral dos Repositórios de Benchmarking da Pesquisa
 - **Arquivos Afetados:** `docs/ARCHITECTURE_EXPANSION.md`, `docs/CHANGELOG.md`.
 - **Objetivo:**
