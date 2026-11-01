@@ -1,23 +1,39 @@
 import { SupabaseClient } from '@supabase/supabase-js';
-import { detectUserIncomePattern } from '@/utils/finance/income-detector';
+import {
+    ANTI_HALLUCINATION_SYSTEM_DIRECTIVE,
+    runAllDeterministicMacroTools,
+    formatAuditedMathEngineBlock,
+    type UserFinancialDataInput,
+    type AuditedDeterministicBundle,
+    type SharedPartnerInput,
+} from '@/utils/ai/deterministic-tools';
 
 export interface FinancialDossierResult {
     systemPrompt: string;
     contextSnapshot: Record<string, any>;
+    deterministicBundle: AuditedDeterministicBundle;
+    userData: UserFinancialDataInput;
 }
 
 const fmtCurrency = (v: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(v) || 0);
 
 /**
- * Constrói o Dossiê Financeiro Completo do usuário autenticado uma única vez por sessão
- * (ou quando invalidado após sincronização de novo banco).
+ * Carrega os dados financeiros reais do usuário autenticado (isolados via RLS)
+ * em formato pronto para consumo pelas Macro-Tools determinísticas e pelo servidor MCP.
  */
-export async function buildUserFinancialDossier(
+export async function loadUserFinancialDataFromSupabase(
     supabase: SupabaseClient,
     userId: string,
-    userEmail?: string | null
-): Promise<FinancialDossierResult> {
+    userEmail?: string | null,
+    txLimit = 600
+): Promise<{
+    userData: UserFinancialDataInput;
+    connections: any[];
+    profileRaw: any;
+}> {
+    const normalizedEmail = userEmail?.toLowerCase().trim() || '';
+
     const [
         profileRes,
         connectionsRes,
@@ -25,10 +41,14 @@ export async function buildUserFinancialDossier(
         investmentsRes,
         loansRes,
         transactionsRes,
+        familyMembersRes,
+        sharedConnectionsRes,
     ] = await Promise.all([
         supabase
             .from('users_profile')
-            .select('full_name, display_name, financial_goal, monthly_income, birth_date, document_mask, job_title, emails, phones, addresses, bank_sources, consolidated_identity')
+            .select(
+                'full_name, display_name, financial_goal, monthly_income, birth_date, document_mask, job_title, emails, phones, addresses, bank_sources, consolidated_identity'
+            )
             .eq('id', userId)
             .maybeSingle(),
         supabase
@@ -38,35 +58,127 @@ export async function buildUserFinancialDossier(
             .order('updated_at', { ascending: false }),
         supabase
             .from('bank_accounts')
-            .select(
-                'id, bank_name, institution_name, institution_slug, product_name, type, subtype, balance, credit_limit, available_credit_limit, balance_close_date, balance_due_date, minimum_payment, card_brand, currency'
-            )
+            .select('*')
             .eq('user_id', userId),
         supabase
             .from('investments')
-            .select('name, type, subtype, institution_name, issuer, balance, rate, rate_type, annual_rate, amount_profit, due_date, status')
+            .select('*')
             .eq('user_id', userId)
             .order('balance', { ascending: false }),
         supabase
             .from('loans')
-            .select('product_name, type, institution_name, contracted_amount, outstanding_balance, paid_installments, total_installments, interest_rate, due_date')
+            .select('*')
             .eq('user_id', userId),
         supabase
             .from('transactions')
-            .select(
-                'account_id, description, clean_description, amount, type, category, category_pt, operation_type, is_internal_transfer, is_refund, is_subscription, installment_number, total_installments, total_purchase_amount, receiver_name, payer_name, payment_reason, date, executed_at'
-            )
+            .select('*')
             .eq('user_id', userId)
             .order('date', { ascending: false })
-            .limit(160),
+            .limit(txLimit),
+        supabase
+            .from('family_members')
+            .select('id, name, role')
+            .eq('user_id', userId),
+        normalizedEmail
+            ? supabase
+                  .from('shared_connections')
+                  .select('id, requester_id, recipient_id, role, status')
+                  .eq('status', 'accepted')
+                  .or(
+                      `requester_id.eq.${userId},recipient_id.eq.${userId},recipient_email.ilike.${normalizedEmail}`
+                  )
+            : supabase
+                  .from('shared_connections')
+                  .select('id, requester_id, recipient_id, role, status')
+                  .eq('status', 'accepted')
+                  .or(`requester_id.eq.${userId},recipient_id.eq.${userId}`),
     ]);
 
-    const profile = profileRes.data;
+    const profileRaw = profileRes.data;
     const connections = connectionsRes.data || [];
     const accounts = accountsRes.data || [];
     const investments = investmentsRes.data || [];
     const loans = loansRes.data || [];
     const transactions = transactionsRes.data || [];
+    const familyMembers = familyMembersRes.data || [];
+    const acceptedShared = sharedConnectionsRes.data || [];
+
+    const sharedPartners: SharedPartnerInput[] = [];
+    for (const conn of acceptedShared) {
+        const partnerId = conn.requester_id === userId ? conn.recipient_id : conn.requester_id;
+        if (!partnerId) continue;
+
+        const [pProfileRes, pAccRes, pTxRes] = await Promise.all([
+            supabase
+                .from('users_profile')
+                .select('id, display_name, full_name, monthly_income')
+                .eq('id', partnerId)
+                .maybeSingle(),
+            supabase.from('bank_accounts').select('*').eq('user_id', partnerId),
+            supabase
+                .from('transactions')
+                .select('*')
+                .eq('user_id', partnerId)
+                .order('date', { ascending: false })
+                .limit(250),
+        ]);
+
+        sharedPartners.push({
+            id: partnerId,
+            name: pProfileRes.data?.display_name || pProfileRes.data?.full_name || 'Parceiro(a)',
+            role: conn.role,
+            monthlyIncome: Number(pProfileRes.data?.monthly_income) || null,
+            accounts: pAccRes.data || [],
+            transactions: pTxRes.data || [],
+        });
+    }
+
+    const userData: UserFinancialDataInput = {
+        accounts,
+        investments,
+        loans,
+        transactions,
+        profile: profileRaw,
+        familyMembers,
+        sharedPartners,
+    };
+
+    return {
+        userData,
+        connections,
+        profileRaw,
+    };
+}
+
+/**
+ * Constrói o Dossiê Financeiro Completo do usuário autenticado uma única vez por sessão
+ * (ou quando invalidado após sincronização de novo banco), injetando obrigatoriamente
+ * o bloco determinístico `[ENGINE_MATEMATICO_AUDITADO]` (Blindagem MSLR Zero Alucinação).
+ */
+export async function buildUserFinancialDossier(
+    supabase: SupabaseClient,
+    userId: string,
+    userEmail?: string | null
+): Promise<FinancialDossierResult> {
+    const { userData, connections, profileRaw: profile } = await loadUserFinancialDataFromSupabase(
+        supabase,
+        userId,
+        userEmail,
+        600
+    );
+
+    const accounts = userData.accounts || [];
+    const investments = userData.investments || [];
+    const loans = userData.loans || [];
+    const transactions = userData.transactions || [];
+
+    // Executa as 5 Macro-Tools Determinísticas + Conciliador Proporcional em TypeScript puro
+    const deterministicBundle = runAllDeterministicMacroTools(userData);
+    const auditedEngineBlock = formatAuditedMathEngineBlock(deterministicBundle);
+
+    const { balanceSheetAndXRay, incomeStatement, debtAndCards, anomaliesAndLeaks } =
+        deterministicBundle;
+    const incomeProfile = incomeStatement.incomeProfile;
 
     const accountMap = new Map<string, { institution: string; product: string; type: string }>();
     for (const acc of accounts) {
@@ -77,102 +189,28 @@ export async function buildUserFinancialDossier(
         });
     }
 
-    // Identificação do padrão de renda e compatibilidade com valor declarado
-    const incomeProfile = detectUserIncomePattern(transactions, profile?.monthly_income);
+    const checkingAndSavings = accounts.filter(
+        (a) => (a.type || '').toUpperCase() !== 'CREDIT' && (a.subtype || '').toUpperCase() !== 'CREDIT_CARD'
+    );
+    const creditCards = accounts.filter(
+        (a) => (a.type || '').toUpperCase() === 'CREDIT' || (a.subtype || '').toUpperCase() === 'CREDIT_CARD'
+    );
 
-    // Cálculo de Saldos Reais
-    const checkingAndSavings = accounts.filter((a) => (a.type || '').toUpperCase() !== 'CREDIT');
-    const creditCards = accounts.filter((a) => (a.type || '').toUpperCase() === 'CREDIT');
+    const liquidCash = balanceSheetAndXRay.balanceSheet.liquidAssets;
+    const totalCreditCardBill = balanceSheetAndXRay.balanceSheet.creditCardLiabilities;
+    const totalInvestments = balanceSheetAndXRay.balanceSheet.investedAssets;
+    const totalLoansDebt = balanceSheetAndXRay.balanceSheet.loanLiabilities;
+    const netWorth = balanceSheetAndXRay.balanceSheet.netWorth;
 
-    const liquidCash = checkingAndSavings.reduce((acc, a) => acc + (Number(a.balance) || 0), 0);
-    const totalCreditCardBill = creditCards.reduce((acc, a) => acc + Math.abs(Number(a.balance) || 0), 0);
-    const totalInvestments = investments.reduce((acc, i) => acc + (Number(i.balance) || 0), 0);
-    const totalLoansDebt = loans.reduce((acc, l) => acc + (Number(l.outstanding_balance) || 0), 0);
-    const netWorth = liquidCash + totalInvestments - totalCreditCardBill - totalLoansDebt;
-
-    // Fluxo de Caixa (Excluindo Transferências Internas, Pagamentos de Fatura e Pix Familiar!)
-    const now = new Date();
-    const curYear = now.getFullYear();
-    const curMonth = now.getMonth();
-    const currentMonthStr = `${curYear}-${String(curMonth + 1).padStart(2, '0')}`;
-
-    let realIncome = 0;
-    let realExpenses = 0;
-    let currentMonthIncome = 0;
-    let currentMonthExpenses = 0;
-    let internalMovements = 0;
-    let refundsTotal = 0;
-
-    const { data: familyMembersData } = await supabase
-        .from('family_members')
-        .select('name')
-        .eq('user_id', userId);
-    const familyNames = (familyMembersData || []).map((f: any) => f.name.toLowerCase().trim()).filter(Boolean);
-
-    const categoryTotals: Record<string, number> = {};
-    const activeInstallments: string[] = [];
-    const activeSubscriptions = new Map<string, { amount: number; bank: string; date: string }>();
-
-    for (const tx of transactions) {
-        const amt = Math.abs(Number(tx.amount) || 0);
-        const accInfo = accountMap.get(tx.account_id);
-        const bankLabel = accInfo?.institution || 'Banco';
-        const cleanDesc = tx.clean_description || tx.description || 'Transação';
-        const cat = tx.category_pt || tx.category || 'Outros';
-        const txDateStr = (tx.date || tx.executed_at || '').split('T')[0];
-        const isCurrentMonth = txDateStr.startsWith(currentMonthStr);
-
-        // Se for Pix para membro da família cadastrada, trata como remanejamento patrimonial (não despesa da família)
-        const receiverLower = (tx.receiver_name || cleanDesc).toLowerCase();
-        const isFamilyTransfer = familyNames.some((name: string) => receiverLower.includes(name));
-
-        if (tx.is_internal_transfer || isFamilyTransfer) {
-            internalMovements += amt;
-            continue;
-        }
-
-        if (tx.is_refund) {
-            refundsTotal += amt;
-            continue;
-        }
-
-        const isExpense = Number(tx.amount) < 0 || tx.type === 'DEBIT' || tx.operation_type === 'CREDIT_CARD';
-        const isRealIncome = !isExpense && (tx.type === 'CREDIT' || Number(tx.amount) > 0) && accInfo?.type !== 'CREDIT';
-
-        if (isRealIncome) {
-            realIncome += amt;
-            if (isCurrentMonth) currentMonthIncome += amt;
-        } else if (isExpense) {
-            realExpenses += amt;
-            categoryTotals[cat] = (categoryTotals[cat] || 0) + amt;
-            if (isCurrentMonth) currentMonthExpenses += amt;
-        }
-
-        if (tx.total_installments && tx.total_installments > 1) {
-            const instNum = tx.installment_number || 1;
-            const remaining = tx.total_installments - instNum;
-            const totalPurch = tx.total_purchase_amount || amt * tx.total_installments;
-            activeInstallments.push(
-                `- [${bankLabel}] ${cleanDesc}: Parcela ${instNum}/${tx.total_installments} de ${fmtCurrency(amt)} (Total da compra: ${fmtCurrency(totalPurch)} | Restam ${remaining}x = ${fmtCurrency(remaining * amt)})`
-            );
-        }
-
-        if (tx.is_subscription && !activeSubscriptions.has(cleanDesc.toLowerCase())) {
-            activeSubscriptions.set(cleanDesc.toLowerCase(), {
-                amount: amt,
-                bank: bankLabel,
-                date: tx.date || '',
-            });
-        }
-    }
-
-    const sortedCategories = Object.entries(categoryTotals)
-        .sort((a, b) => b[1] - a[1])
-        .map(([cat, val]) => `- ${cat}: ${fmtCurrency(val)}`)
+    const sortedCategories = incomeStatement.topCategories
+        .map((cat) => `- ${cat.name}: ${fmtCurrency(cat.totalAmount)} (${cat.shareOfExpensesPct}% das saídas)`)
         .join('\n');
 
     const checkingSummary = checkingAndSavings
-        .map((a) => `- [${a.institution_name || a.bank_name}] ${a.product_name || a.bank_name} (${a.subtype || 'CONTA'}): Saldo ${fmtCurrency(Number(a.balance) || 0)}`)
+        .map(
+            (a) =>
+                `- [${a.institution_name || a.bank_name}] ${a.product_name || a.bank_name} (${a.subtype || 'CONTA'}): Saldo ${fmtCurrency(Number(a.balance) || 0)}`
+        )
         .join('\n');
 
     const creditSummary = creditCards
@@ -186,9 +224,14 @@ export async function buildUserFinancialDossier(
         .join('\n');
 
     const investmentsSummary = investments
+        .filter((inv) => (Number(inv.balance) || 0) > 0)
         .slice(0, 25)
         .map((inv) => {
-            const rateStr = inv.rate ? `${inv.rate}% ${inv.rate_type || 'CDI'}` : inv.annual_rate ? `${inv.annual_rate}% a.a.` : '';
+            const rateStr = inv.rate
+                ? `${inv.rate}% ${inv.rate_type || 'CDI'}`
+                : inv.annual_rate
+                  ? `${inv.annual_rate}% a.a.`
+                  : '';
             const dueStr = inv.due_date ? ` | Venc: ${inv.due_date}` : '';
             return `- [${inv.institution_name || inv.issuer || 'Carteira'}] ${inv.name} (${inv.subtype || inv.type}): ${fmtCurrency(Number(inv.balance) || 0)}${rateStr ? ` (${rateStr})` : ''}${dueStr}`;
         })
@@ -197,25 +240,37 @@ export async function buildUserFinancialDossier(
     const loansSummary = loans
         .map(
             (l) =>
-                `- [${l.institution_name || 'Instituição'}] ${l.product_name}: Saldo Devedor ${fmtCurrency(Number(l.outstanding_balance) || 0)} (Contratado: ${fmtCurrency(Number(l.contracted_amount) || 0)} | Parcelas: ${l.paid_installments ?? '?'}/${l.total_installments ?? '?'})`
+                `- [${l.institution_name || 'Instituição'}] ${l.product_name}: Saldo Devedor ${fmtCurrency(Number(l.outstanding_balance ?? l.balance_due) || 0)} (Contratado: ${fmtCurrency(Number(l.contracted_amount) || 0)} | Parcelas: ${l.paid_installments ?? '?'}/${l.total_installments ?? '?'})`
         )
         .join('\n');
 
-    const subscriptionsSummary = Array.from(activeSubscriptions.entries())
-        .map(([name, info]) => `- ${name.toUpperCase()} (${info.bank}): ${fmtCurrency(info.amount)}/mês`)
+    const activeInstallmentsSummary = debtAndCards.installmentAdvances.plans
+        .map(
+            (p) =>
+                `- [${p.institutionName}] ${p.description}: Parcela ${p.currentInstallment}/${p.totalInstallments} de ${fmtCurrency(p.installmentAmount)} (Restam ${p.remainingInstallments}x = ${fmtCurrency(p.evaluation.totalNominalDebt)} | ${p.evaluation.isWorthAdvancing ? 'Antecipar vence CDI' : 'Manter no CDI vence antecipação'})`
+        )
+        .join('\n');
+
+    const subscriptionsSummary = anomaliesAndLeaks.subscriptions.items
+        .map(
+            (sub) =>
+                `- ${sub.merchantName} (${sub.institutionName}): ${fmtCurrency(sub.monthlyAmount)}/mês (${fmtCurrency(sub.annualizedAmount)}/ano)`
+        )
         .join('\n');
 
     const recentTxSummary = transactions
         .slice(0, 60)
         .map((tx) => {
-            const accInfo = accountMap.get(tx.account_id);
+            const accInfo = tx.account_id ? accountMap.get(tx.account_id) : undefined;
             const bank = accInfo?.institution || 'Banco';
             const desc = tx.clean_description || tx.description || 'Transação';
             const cat = tx.category_pt || tx.category || 'Outros';
             const dateStr = (tx.date || tx.executed_at || '').split('T')[0];
             const flags: string[] = [];
-            if (tx.is_internal_transfer) flags.push('TRANSFERÊNCIA INTERNA/FATURA - NÃO É RECEITA/GASTO');
-            if (tx.is_refund) flags.push('ESTORNO/REEMBOLSO');
+            if (tx.is_internal_transfer || tx.kind === 'funds_movement' || tx.kind === 'cc_payment') {
+                flags.push('MOVIMENTAÇÃO INTERNA/FATURA - IGNORADA NO DRE OPERACIONAL');
+            }
+            if (tx.is_refund) flags.push('ESTORNO ABATIDO');
             if (tx.is_subscription) flags.push('ASSINATURA');
             if (tx.total_installments && tx.total_installments > 1) {
                 flags.push(`PARCELA ${tx.installment_number || 1}/${tx.total_installments}`);
@@ -237,11 +292,16 @@ export async function buildUserFinancialDossier(
         new Set(connections.map((c) => c.institution_name || c.provider_name).filter(Boolean))
     ).join(', ');
 
-    const systemPrompt = `Você é a **Kitsune AI**, estrategista financeira pessoal e especialista em Open Finance Brasil do ecossistema **Kitsune Finance**.
-Você atua com precisão matemática, linguagem humanizada e profissional em Português do Brasil (pt-BR), formatação Markdown elegante (tabelas, listas, destaques) e foco absoluto na consecução dos objetivos patrimoniais do usuário.
+    const systemPrompt = `Você é a **Kitsune AI**, estrategista financeira pessoal e orquestradora dos **7 Agentes Especialistas da Kitsune Finance** (Sentinela Kitsune, Kuro, Kenji, Daiko, Kage, Ren e Takeshi).
+Você atua com precisão matemática determinística, linguagem humanizada e profissional em Português do Brasil (pt-BR), formatação Markdown elegante e foco absoluto na consecução dos objetivos patrimoniais do usuário.
+
+REGRA INVIOLÁVEL DE BLINDAGEM MATEMÁTICA (MSLR):
+${ANTI_HALLUCINATION_SYSTEM_DIRECTIVE}
 
 REGRA DE TRATAMENTO PESSOAL:
 - Chame sempre o usuário cordialmente pelo primeiro nome: **${userFirstName}**.
+
+${auditedEngineBlock}
 
 =====================================================================
 DOSSIÊ OPEN FINANCE CONSOLIDADO DA SESSÃO (FONTE ÚNICA DE VERDADE)
@@ -250,6 +310,7 @@ DOSSIÊ OPEN FINANCE CONSOLIDADO DA SESSÃO (FONTE ÚNICA DE VERDADE)
 - **Profissão:** ${userJob}
 - **Instituições Conectadas (${connections.length}):** ${connectedBanksList || 'Nenhuma conexão ativa'}
 - **🎯 OBJETIVO PATRIMONIAL DO USUÁRIO:** "${userGoal}"
+- **🛡️ KITSUNE HEALTH SCORE:** ${balanceSheetAndXRay.kitsuneScore}/100 (${balanceSheetAndXRay.statusLabel}) | Reserva: ${balanceSheetAndXRay.emergencyFundMonths} meses
 - **💼 PERFIL DE RENDA AUDITADO:** ${incomeProfile.typeLabel}
   * Diagnóstico: ${incomeProfile.description}
   * Renda Média Mensal Real: ${fmtCurrency(incomeProfile.monthlyAverageIncome)}
@@ -257,20 +318,20 @@ DOSSIÊ OPEN FINANCE CONSOLIDADO DA SESSÃO (FONTE ÚNICA DE VERDADE)
   ${incomeProfile.comparisonWithDeclared ? `* Auditoria com Valor Declarado: ${incomeProfile.comparisonWithDeclared.explanation}` : ''}
 
 ### 1. PATRIMÔNIO E LIQUIDEZ CONSOLIDADA
-- **Patrimônio Líquido Estimado:** ${fmtCurrency(netWorth)}
+- **Patrimônio Líquido Exato:** ${fmtCurrency(netWorth)}
 - **Saldo Líquido em Contas Correntes/Poupanças:** ${fmtCurrency(liquidCash)}
-- **Total em Investimentos (CDBs, Renda Fixa, Fundos):** ${fmtCurrency(totalInvestments)}
+- **Total em Investimentos Ativos:** ${fmtCurrency(totalInvestments)}
 - **Total em Faturas Abertas de Cartão de Crédito:** ${fmtCurrency(totalCreditCardBill)}
 - **Saldo Devedor de Empréstimos/Financiamentos:** ${fmtCurrency(totalLoansDebt)}
+- **Exposição Acima do Teto FGC (R$ 250k):** ${fmtCurrency(balanceSheetAndXRay.totalUncoveredFGC)}
+- **Custo de Oportunidade Anual Estimado:** ${fmtCurrency(balanceSheetAndXRay.annualOpportunityCostBRL)}
 
-### 2. FLUXO DE CAIXA REAL (SEM TRANSFERÊNCIAS PRÓPRIAS OU FAMILIARES)
-- **Entradas Reais do Mês Atual:** ${fmtCurrency(currentMonthIncome)}
-- **Saídas Reais do Mês Atual:** ${fmtCurrency(currentMonthExpenses)}
-- **Saldo Líquido do Mês Atual:** ${fmtCurrency(currentMonthIncome - currentMonthExpenses)}
-- **Entradas Acumuladas no Período:** ${fmtCurrency(realIncome)}
-- **Saídas Acumuladas no Período:** ${fmtCurrency(realExpenses)}
-- **Movimentações Internas e Pix Familiares:** ${fmtCurrency(internalMovements)}
-- **Estornos e Reembolsos em Cartão:** ${fmtCurrency(refundsTotal)}
+### 2. DRE PESSOAL — FLUXO DE CAIXA OPERACIONAL DO MÊS ATUAL
+- **Entradas Operacionais Reais:** ${fmtCurrency(incomeStatement.operationalIncome)}
+- **Saídas Operacionais Líquidas (Estornos já abatidos):** ${fmtCurrency(incomeStatement.netOperationalExpenses)}
+- **Estornos Abatidos:** ${fmtCurrency(incomeStatement.refundsAbated)}
+- **Movimentações Internas/Faturas Ignoradas:** ${fmtCurrency(incomeStatement.internalMovementsIgnored)}
+- **Poupança Líquida do Mês:** ${fmtCurrency(incomeStatement.netSavings)} (Margem: ${incomeStatement.netSavingsMarginPct}%)
 
 ### 3. CONTAS CORRENTES E POUPANÇAS
 ${checkingSummary || 'Nenhuma conta corrente sincronizada.'}
@@ -278,19 +339,19 @@ ${checkingSummary || 'Nenhuma conta corrente sincronizada.'}
 ### 4. CARTÕES DE CRÉDITO, FATURAS E LIMITES
 ${creditSummary || 'Nenhum cartão de crédito sincronizado.'}
 
-### 5. CARTEIRA DE INVESTIMENTOS (${investments.length} títulos/posições)
+### 5. CARTEIRA DE INVESTIMENTOS ATIVOS
 ${investmentsSummary || 'Nenhum investimento registrado.'}
 
 ### 6. EMPRÉSTIMOS E FINANCIAMENTOS ATIVOS
 ${loansSummary || 'Nenhum empréstimo ou financiamento ativo.'}
 
-### 7. PARCELAMENTOS DETECTADOS NO CARTÃO
-${activeInstallments.slice(0, 20).join('\n') || 'Nenhum parcelamento ativo detectado.'}
+### 7. PARCELAMENTOS ATIVOS E AVALIAÇÃO DE ANTECIPAÇÃO VS CDI
+${activeInstallmentsSummary || 'Nenhum parcelamento ativo detectado.'}
 
-### 8. ASSINATURAS E SERVIÇOS RECORRENTES REAIS
+### 8. ASSINATURAS RECORRENTES AUDITADAS
 ${subscriptionsSummary || 'Nenhuma assinatura recorrente detectada.'}
 
-### 9. GASTOS REAIS POR CATEGORIA (EM PORTUGUÊS)
+### 9. TOP 8 CATEGORIAS OPERACIONAIS DO PERÍODO
 ${sortedCategories || 'Sem gastos categorizados.'}
 
 ### 10. ÚLTIMAS 60 TRANSAÇÕES CONCILIADAS
@@ -298,10 +359,10 @@ ${recentTxSummary || 'Nenhuma transação recente.'}
 =====================================================================
 
 DIRETRIZES MANDATÓRIAS DE RESPOSTA:
-1. **Fidelidade ao Objetivo Patrimonial:** Todo conselho, meta de corte ou simulação DEVE ser orientado para ajudar ${userFirstName} a atingir seu objetivo: "${userGoal}".
-2. **Proibição de Dados Fictícios:** Jamais invente bancos, transações, assinaturas ou valores que não estejam neste dossiê.
-3. **Distinção de Fluxo de Caixa:** Nunca compute transferências para a mesma titularidade ou pagamento de fatura como gastos duplicados.
-4. **Respostas Práticas e Diretas:** Cite os nomes reais dos estabelecimentos, bancos correspondentes (ex: Nubank, Itaú, Santander, Banco Inter, Caixa, Mercado Pago) e valores exatos em R$.`;
+1. **Proibição Absoluta de Recalcular Matemática:** ${ANTI_HALLUCINATION_SYSTEM_DIRECTIVE}
+2. **Fidelidade ao Objetivo Patrimonial:** Oriente todo plano prático para a meta de ${userFirstName}: "${userGoal}".
+3. **Proibição de Dados Fictícios:** Jamais invente bancos, transações, assinaturas ou valores ausentes deste dossiê.
+4. **Distinção Contábil Estrita:** Nunca some transferências internas (\`funds_movement\`) ou pagamentos de fatura (\`cc_payment\`) como despesa ou receita.`;
 
     const contextSnapshot = {
         generatedAt: new Date().toISOString(),
@@ -315,20 +376,26 @@ DIRETRIZES MANDATÓRIAS DE RESPOSTA:
             connectedBanks: connectedBanksList,
         },
         summary: {
+            kitsuneScore: balanceSheetAndXRay.kitsuneScore,
+            statusLabel: balanceSheetAndXRay.statusLabel,
             netWorth,
             liquidCash,
             totalInvestments,
             totalCreditCardBill,
             totalLoansDebt,
-            realIncome,
-            realExpenses,
-            internalMovements,
-            refundsTotal,
+            realIncome: incomeStatement.operationalIncome,
+            realExpenses: incomeStatement.netOperationalExpenses,
+            internalMovements: incomeStatement.internalMovementsIgnored,
+            refundsTotal: incomeStatement.refundsAbated,
+            totalUncoveredFGC: balanceSheetAndXRay.totalUncoveredFGC,
+            annualOpportunityCostBRL: balanceSheetAndXRay.annualOpportunityCostBRL,
         },
     };
 
     return {
         systemPrompt,
         contextSnapshot,
+        deterministicBundle,
+        userData,
     };
 }

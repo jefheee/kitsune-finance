@@ -3,366 +3,214 @@
 import { useMemo } from "react";
 import Link from "next/link";
 import { useFinanceData } from "@/context/FinanceDataContext";
+import {
+    runAllDeterministicMacroTools,
+    type SharedPartnerInput,
+} from "@/utils/ai/deterministic-tools";
+import {
+    KITSUNE_AGENTS_REGISTRY,
+    type MacroToolIdentifier,
+} from "@/utils/ai/kitsune-agents-registry";
 
-interface AgentProfile {
-    id: string;
-    name: string;
-    role: string;
-    personality: string;
-    tagline: string;
-    avatarBg: string;
-    avatarEmoji: string;
-    accentColor: string;
-    calculateDiagnostic: (data: any) => {
-        headline: string;
-        metricLabel: string;
-        metricValue: string;
-        advice: string;
-        alertLevel: "success" | "warning" | "danger" | "info";
-    };
-    suggestedPrompt: string;
-}
+const MACRO_TOOL_LABELS: Record<MacroToolIdentifier, string> = {
+    get_balance_sheet_xray: "X-Ray & FGC",
+    get_income_statement: "DRE Operacional",
+    simulate_debt_payoff: "CET & Avalanche",
+    compare_fixed_income_br: "CDI DU/252 & Fisher",
+    audit_anomalies_and_subscriptions: "Forense & 2σ",
+    shared_space_reconciler: "Rateio Proporcional",
+};
 
 export default function AgentsHubPage() {
     const {
         accounts,
         investments,
+        loans,
         transactions,
         userProfile,
+        familyMembers,
+        activePartner,
+        sharedConnection,
         isInitialLoading,
         isPrivacyMode,
     } = useFinanceData();
 
-    const formatCurrency = (val: number) => {
-        if (isPrivacyMode) return "R$ ••••••";
-        return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(val);
-    };
+    const formatCurrency = useMemo(
+        () => (val: number) => {
+            if (isPrivacyMode) return "R$ ••••••";
+            return new Intl.NumberFormat("pt-BR", {
+                style: "currency",
+                currency: "BRL",
+            }).format(Number(val) || 0);
+        },
+        [isPrivacyMode]
+    );
 
     const maskIfPrivacy = (text: string) => {
         if (!isPrivacyMode) return text;
-        return text.replace(/R\$\s*[\d.,]+/g, "R$ ••••••");
+        return text.replace(/R\$\s*-?[\d.,]+/g, "R$ ••••••");
     };
 
-    // Dados consolidados do usuário para alimentar os agentes
-    const userDataMetrics = useMemo(() => {
-        let liquidBalance = 0;
-        let investmentsBalance = 0;
-        let creditCardBalance = 0;
+    // Execução 100% Determinística das 5 Macro-Tools sobre os dados reais do usuário
+    const deterministicBundle = useMemo(() => {
+        const sharedPartners: SharedPartnerInput[] = [];
+        if (activePartner && sharedConnection?.status === "accepted") {
+            sharedPartners.push({
+                id: activePartner.id,
+                name:
+                    activePartner.display_name ||
+                    activePartner.full_name ||
+                    "Parceiro(a)",
+                role: sharedConnection.role || "Familiar",
+            });
+        }
 
-        accounts.forEach((acc) => {
-            const b = Number(acc.balance) || 0;
-            if (acc.subtype === "CREDIT_CARD") {
-                creditCardBalance += Math.abs(b);
-            } else {
-                liquidBalance += b;
-            }
+        return runAllDeterministicMacroTools({
+            accounts,
+            investments,
+            loans,
+            transactions,
+            profile: userProfile,
+            familyMembers,
+            sharedPartners,
         });
+    }, [
+        accounts,
+        investments,
+        loans,
+        transactions,
+        userProfile,
+        familyMembers,
+        activePartner,
+        sharedConnection,
+    ]);
 
-        investments.forEach((inv) => {
-            investmentsBalance += Number(inv.balance) || 0;
-        });
-
-        const now = new Date();
-        const curMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-        const dayOfMonth = Math.max(1, now.getDate());
-
-        let monthlyExpense = 0;
-        let monthlyIncome = 0;
-        let superfluousExpense = 0;
-        const duplicateCandidates: Array<{ desc: string; amt: number; date: string }> = [];
-        const seenMap = new Map<string, string>();
-
-        transactions.forEach((tx) => {
-            if (tx.is_internal_transfer) return;
-            const amt = Math.abs(Number(tx.amount) || 0);
-            const txDate = tx.date || "";
-
-            if (txDate.startsWith(curMonthStr)) {
-                if (tx.amount > 0) {
-                    monthlyExpense += amt;
-                    const cat = (tx.category_pt || tx.category || "").toLowerCase();
-                    const desc = (tx.clean_description || tx.description || "").toLowerCase();
-
-                    // Supérfluos para o Julius
-                    if (
-                        cat.includes("delivery") ||
-                        cat.includes("jogos") ||
-                        cat.includes("lazer") ||
-                        desc.includes("ifood") ||
-                        desc.includes("steam") ||
-                        desc.includes("uber eats") ||
-                        desc.includes("bar") ||
-                        desc.includes("cervej")
-                    ) {
-                        superfluousExpense += amt;
-                    }
-                } else {
-                    monthlyIncome += amt;
-                }
-            }
-
-            // Detector de duplicidades para o Inspetor Bugiganga
-            if (tx.amount > 0 && amt > 10) {
-                const key = `${amt.toFixed(2)}_${(tx.clean_description || tx.description || "").toLowerCase()}_${txDate.slice(0, 10)}`;
-                if (seenMap.has(key)) {
-                    duplicateCandidates.push({
-                        desc: tx.clean_description || tx.description,
-                        amt,
-                        date: txDate,
-                    });
-                } else {
-                    seenMap.set(key, tx.id);
-                }
-            }
-        });
-
-        const burnRate = monthlyExpense / dayOfMonth;
-        const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-        const projectedExpense = burnRate * daysInMonth;
-
-        return {
-            liquidBalance,
-            investmentsBalance,
-            creditCardBalance,
-            monthlyExpense,
-            monthlyIncome,
-            superfluousExpense,
-            duplicateCandidates,
-            burnRate,
-            projectedExpense,
-            totalTransactions: transactions.length,
-            accountsCount: accounts.length,
-        };
-    }, [accounts, investments, transactions]);
-
-    // Definição dos Agentes Especialistas da Kitsune
-    const agentsList: AgentProfile[] = [
-        {
-            id: "sentinela",
-            name: "Sentinela Kitsune",
-            role: "Guardião Antifraude & Alerta Preventivo",
-            personality: "Vigilante, protetor, focado em segurança de ponta a ponta e anomalias de transação.",
-            tagline: "Detecta cobranças indevidas, fraudes e tarifas surpresa antes de você perceber.",
-            avatarBg: "from-orange-600/30 to-amber-600/20",
-            avatarEmoji: "🦊",
-            accentColor: "#FF8216",
-            suggestedPrompt: "Sentinela Kitsune, faça uma varredura preventiva em todas as minhas contas e aponte qualquer movimentação suspeita.",
-            calculateDiagnostic: (data) => {
-                return {
-                    headline: "Escudo Ativo em 100% das Contas",
-                    metricLabel: "Status do Cofre",
-                    metricValue: "Blindado",
-                    advice: "Nenhuma fraude ou invasão detectada. Suas conexões Open Finance estão criptografadas sob RLS e monitoradas em tempo real.",
-                    alertLevel: "success",
-                };
-            },
-        },
-        {
-            id: "kuro",
-            name: "Kuro",
-            role: "Fiscal Ranzinza & Guardião do Limite",
-            personality: "Austero, direto, anti-desperdício e impiedoso com compras por impulso.",
-            tagline: "Reclama quando você gastar de um jeito absurdo e calcula o custo de não comprar.",
-            avatarBg: "from-amber-600/30 to-yellow-600/20",
-            avatarEmoji: "😾",
-            accentColor: "#D97706",
-            suggestedPrompt: "Kuro, audite meus gastos com delivery e compras por impulso deste mês. O que devo cortar imediatamente?",
-            calculateDiagnostic: (data) => {
-                const sup = data.superfluousExpense;
-                if (sup > 500) {
-                    return {
-                        headline: "Alerta Vermelho de Desperdício",
-                        metricLabel: "Gastos Supérfluos no Mês",
-                        metricValue: formatCurrency(sup),
-                        advice: `Você já gastou ${formatCurrency(sup)} em coisas que não precisava. Se você não comprar nada, o desconto é de 100%!`,
-                        alertLevel: "danger",
-                    };
-                }
-                return {
-                    headline: "Comportamento Sob Controle",
-                    metricLabel: "Gastos Supérfluos no Mês",
-                    metricValue: formatCurrency(sup),
-                    advice: "Você está segurando as pontas. Mantenha os olhos abertos e não gaste só porque sobrou saldo.",
-                    alertLevel: "success",
-                };
-            },
-        },
-        {
-            id: "kenji",
-            name: "Kenji",
-            role: "Investigador de Extratos & Categorias",
-            personality: "Analítico, minucioso, mestre em decodificar abreviações bancárias.",
-            tagline: "Corrige suas categorias, rastreia cobranças estranhas e aprende sua rotina.",
-            avatarBg: "from-zinc-700/40 to-zinc-800/30",
-            avatarEmoji: "🐱‍👓",
-            accentColor: "#FF8216",
-            suggestedPrompt: "Kenji, examine meu extrato recente e aponte quaisquer transações anormais ou estabelecimentos não identificados.",
-            calculateDiagnostic: (data) => {
-                return {
-                    headline: "Dossiê de Transações Auditado",
-                    metricLabel: "Transações Decodificadas",
-                    metricValue: `${data.totalTransactions} operações`,
-                    advice: "Seu histórico foi 100% enriquecido com Simple Icons e dicionário comercial brasileiro. Nenhuma transação fantasma detectada.",
-                    alertLevel: "info",
-                };
-            },
-        },
-        {
-            id: "daiko",
-            name: "Daiko",
-            role: "Estrategista de Patrimônio & Multiplicação",
-            personality: "Ambicioso, focado em rendimentos passivos e avesso a dinheiro parado.",
-            tagline: "Analisa seus saldos ociosos e sugere oportunidades diárias de renda fixa.",
-            avatarBg: "from-emerald-600/30 to-teal-600/20",
-            avatarEmoji: "🎩",
-            accentColor: "#059669",
-            suggestedPrompt: "Daiko, tenho dinheiro parado na conta corrente? Quanto estou perdendo de juros e como alocar melhor?",
-            calculateDiagnostic: (data) => {
-                const idleCash = Math.max(0, data.liquidBalance - 1500);
-                const annualYield = idleCash * 0.1075;
-                if (idleCash > 1000) {
-                    return {
-                        headline: "Dinheiro Ocioso Detectado",
-                        metricLabel: "Potencial de Renda Passiva / Ano",
-                        metricValue: `+${formatCurrency(annualYield)}/ano`,
-                        advice: `Você possui ${formatCurrency(idleCash)} parados na conta corrente sem render. Em um CDB 100% CDI isso renderia ${formatCurrency(annualYield / 12)} todo mês!`,
-                        alertLevel: "warning",
-                    };
-                }
-                return {
-                    headline: "Eficiência de Caixa Impecável",
-                    metricLabel: "Patrimônio Investido",
-                    metricValue: formatCurrency(data.investmentsBalance),
-                    advice: "Seu saldo de liquidez está calibrado com precisão. A maior parte do seu capital está protegida em ativos.",
-                    alertLevel: "success",
-                };
-            },
-        },
-        {
-            id: "kage",
-            name: "Kage",
-            role: "Caçador de Cobranças Duplicadas & Erros",
-            personality: "Detalhista, curioso, focado em estornos de tarifas indevidas.",
-            tagline: "Encontra cobranças duplicadas, taxas ocultas e assinaturas esquecidas no seu extrato.",
-            avatarBg: "from-purple-600/30 to-pink-600/20",
-            avatarEmoji: "🕵️‍♂️",
-            accentColor: "#9333EA",
-            suggestedPrompt: "Kage, varra minhas transações e me mostre se houve alguma cobrança repetida no cartão ou taxas bancárias abusivas.",
-            calculateDiagnostic: (data) => {
-                const dups = data.duplicateCandidates.length;
-                if (dups > 0) {
-                    const totalDup = data.duplicateCandidates.reduce((s: number, d: any) => s + d.amt, 0);
-                    return {
-                        headline: "Potenciais Duplicidades Encontradas",
-                        metricLabel: "Cobranças Sob Suspeita",
-                        metricValue: `${dups} (${formatCurrency(totalDup)})`,
-                        advice: `Detectei ${dups} lançamentos com valor idêntico na mesma data. Vale conferir se o estabelecimento não passou a maquininha duas vezes.`,
-                        alertLevel: "danger",
-                    };
-                }
-                return {
-                    headline: "Nenhum Erro ou Duplicidade",
-                    metricLabel: "Cobranças Suspeitas",
-                    metricValue: "0 encontradas",
-                    advice: "Varredura completa de lançamentos repetidos finalizada com sucesso. Seu extrato está limpo.",
-                    alertLevel: "success",
-                };
-            },
-        },
-        {
-            id: "ren",
-            name: "Ren",
-            role: "Sentinela de Limites & Projeção Futura",
-            personality: "Rápido, vigilante, focado em queima de caixa e runway pessoal.",
-            tagline: "Alerta quando você ultrapassar o limite de gastos e calcula o dia do fechamento.",
-            avatarBg: "from-rose-600/30 to-red-600/20",
-            avatarEmoji: "⚡",
-            accentColor: "#E11D48",
-            suggestedPrompt: "Ren, qual é a projeção do meu saldo no último dia do mês se eu mantiver meu ritmo de gastos diário?",
-            calculateDiagnostic: (data) => {
-                const burn = data.burnRate;
-                const proj = data.projectedExpense;
-                const income = data.monthlyIncome > 0 ? data.monthlyIncome : 4000;
-                const isOver = proj > income;
-
-                return {
-                    headline: isOver ? "Ritmo Acima do Orçamento" : "Ritmo Sustentável",
-                    metricLabel: "Velocidade Diária de Gastos",
-                    metricValue: `${formatCurrency(burn)}/dia`,
-                    advice: isOver
-                        ? `Nesse ritmo diário, suas saídas fecharão em ${formatCurrency(proj)}, ultrapassando sua receita.`
-                        : `Projeção confortável de ${formatCurrency(proj)} no fechamento do mês. Você está operando com folga segura.`,
-                    alertLevel: isOver ? "danger" : "success",
-                };
-            },
-        },
-        {
-            id: "takeshi",
-            name: "Takeshi",
-            role: "Negociador de Economia & Vantagens",
-            personality: "Persuasivo, carismático, especialista em pechinchar e encontrar cupons.",
-            tagline: "Encontra oportunidades para você pagar menos e trocar serviços caros.",
-            avatarBg: "from-amber-500/30 to-orange-600/20",
-            avatarEmoji: "🎤",
-            accentColor: "#EA580C",
-            suggestedPrompt: "Takeshi, quais assinaturas recorrentes eu poderia cancelar ou renegociar para economizar este mês?",
-            calculateDiagnostic: (data) => {
-                return {
-                    headline: "Oportunidades de Economia Mapeadas",
-                    metricLabel: "Potencial de Renegociação",
-                    metricValue: "Até R$ 180/mês",
-                    advice: "Você possui assinaturas ativas que podem ser convertidas em planos anuais com até 30% de desconto ou unificadas em pacotes família.",
-                    alertLevel: "info",
-                };
-            },
-        },
-    ];
+    const xray = deterministicBundle.balanceSheetAndXRay;
+    const fixedIncome = deterministicBundle.fixedIncomeAndGoals;
 
     return (
         <div className="flex flex-col gap-6 p-4 md:p-8 pt-6 md:pt-8 pb-28 md:pb-10 max-w-6xl mx-auto w-full font-sans animate-fade-in">
-            {/* Header da Galeria */}
+            {/* Header da Central Multi-Agente */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
+                    <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-[#18181B] border border-[#27272A] text-[11px] font-mono text-[#FF8216] mb-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#FF8216]" />
+                        <span>MOTOR DETERMINÍSTICO MSLR • ZERO ALUCINAÇÃO</span>
+                    </div>
                     <h1 className="text-xl md:text-3xl font-bold text-white flex items-center gap-2.5">
                         Agentes Especialistas da Kitsune
                     </h1>
-                    <p className="text-xs md:text-sm text-slate-400 mt-1 max-w-2xl">
-                        Cada agente possui uma personalidade própria e audita seus dados bancários reais do Open Finance para entregar diagnósticos sob medida.
+                    <p className="text-xs md:text-sm text-zinc-400 mt-1 max-w-2xl">
+                        Os 7 agentes operam acoplados ao motor matemático determinístico (DU/252 B3, IR/IOF regressivo, Fisher, CET Newton-Raphson e FGC) sobre seus dados reais do Open Finance.
                     </p>
                 </div>
 
                 <Link
                     href="/connections"
-                    className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-semibold text-xs border border-white/10 transition-colors shrink-0"
+                    className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#18181B] hover:bg-[#27272A]/80 text-zinc-200 font-semibold text-xs border border-[#27272A] transition-colors shrink-0 min-h-[44px]"
                 >
-                    <span className="material-symbols-outlined text-[16px]">account_balance</span>
+                    <span className="material-symbols-outlined text-[16px] text-[#FF8216]">
+                        account_balance
+                    </span>
                     <span>Gerenciar Conexões Bancárias</span>
                 </Link>
             </div>
 
-            {/* Grid dos Agentes Especialistas */}
+            {/* Barra Executiva do Motor Determinístico */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+                <div className="p-4 rounded-2xl bg-[#121214] border border-[#27272A] flex flex-col justify-between gap-1">
+                    <span className="text-[11px] font-medium text-zinc-400">
+                        Kitsune Health Score
+                    </span>
+                    <div className="flex items-baseline justify-between gap-2 mt-0.5">
+                        <span className="text-lg md:text-xl font-bold font-mono text-white tabular-nums">
+                            {isInitialLoading
+                                ? "..."
+                                : isPrivacyMode
+                                  ? "••/100"
+                                  : `${xray.kitsuneScore}/100`}
+                        </span>
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#FF8216]/15 text-[#FF8216] border border-[#FF8216]/30">
+                            {xray.statusLabel}
+                        </span>
+                    </div>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-[#121214] border border-[#27272A] flex flex-col justify-between gap-1">
+                    <span className="text-[11px] font-medium text-zinc-400">
+                        Patrimônio Líquido Auditado
+                    </span>
+                    <span className="text-lg md:text-xl font-bold font-mono text-white tabular-nums mt-0.5">
+                        {isInitialLoading ? "..." : formatCurrency(xray.balanceSheet.netWorth)}
+                    </span>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-[#121214] border border-[#27272A] flex flex-col justify-between gap-1">
+                    <span className="text-[11px] font-medium text-zinc-400">
+                        Exposição Acima do Teto FGC
+                    </span>
+                    <div className="flex items-baseline justify-between gap-2 mt-0.5">
+                        <span className="text-lg md:text-xl font-bold font-mono text-white tabular-nums">
+                            {isInitialLoading ? "..." : formatCurrency(xray.totalUncoveredFGC)}
+                        </span>
+                        <span
+                            className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
+                                xray.totalUncoveredFGC > 0
+                                    ? "bg-red-500/10 text-red-400 border-red-500/25"
+                                    : "bg-emerald-500/10 text-emerald-400 border-emerald-500/25"
+                            }`}
+                        >
+                            {xray.totalUncoveredFGC > 0 ? "Alerta >250k" : "100% Coberto"}
+                        </span>
+                    </div>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-[#121214] border border-[#27272A] flex flex-col justify-between gap-1">
+                    <span className="text-[11px] font-medium text-zinc-400">
+                        Juro Real da Carteira (Fisher)
+                    </span>
+                    <div className="flex items-baseline justify-between gap-2 mt-0.5">
+                        <span className="text-lg md:text-xl font-bold font-mono text-emerald-400 tabular-nums">
+                            {isInitialLoading
+                                ? "..."
+                                : isPrivacyMode
+                                  ? "••% a.a."
+                                  : `+${fixedIncome.portfolioSummary.weightedRealAnnualFisherPct.toFixed(2)}% a.a.`}
+                        </span>
+                        <span className="text-[10px] font-mono text-zinc-400">
+                            IPCA {fixedIncome.macroRates.annualIPCAPct}%
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            {/* Grid dos 7 Agentes Especialistas Oficiais */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {agentsList.map((agent) => {
-                    const diag = agent.calculateDiagnostic(userDataMetrics);
+                {KITSUNE_AGENTS_REGISTRY.map((agent) => {
+                    const diag = agent.buildLiveDiagnostic(
+                        deterministicBundle,
+                        formatCurrency,
+                        isPrivacyMode
+                    );
 
                     const alertStyles = {
                         success: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
                         warning: "bg-amber-500/10 text-amber-400 border-amber-500/20",
                         danger: "bg-red-500/10 text-red-400 border-red-500/20",
-                        info: "bg-zinc-800/60 text-zinc-200 border-zinc-700/70",
+                        info: "bg-[#18181B] text-zinc-200 border-[#27272A]",
                     }[diag.alertLevel];
 
                     return (
                         <div
                             key={agent.id}
-                            className="group relative flex flex-col justify-between p-5 rounded-2xl bg-[#121214] border border-[#27272A] shadow-lg hover:border-[#FF8216]/40 transition-all duration-300 hover:-translate-y-1"
+                            className="group relative flex flex-col justify-between p-5 rounded-2xl bg-[#121214] border border-[#27272A] hover:border-[#FF8216]/45 transition-all duration-300 hover:-translate-y-0.5"
                         >
                             <div className="space-y-4">
                                 {/* Topo: Avatar e Identidade */}
                                 <div className="flex items-start justify-between gap-3">
                                     <div className="flex items-center gap-3.5">
                                         <div
-                                            className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${agent.avatarBg} border border-white/10 flex items-center justify-center text-2xl shadow-inner group-hover:scale-105 transition-transform duration-300`}
+                                            className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${agent.avatarBg} border border-[#27272A] flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform duration-300`}
                                         >
                                             <span>{agent.avatarEmoji}</span>
                                         </div>
@@ -370,40 +218,66 @@ export default function AgentsHubPage() {
                                             <h3 className="text-base font-bold text-white group-hover:text-[#FF8216] transition-colors">
                                                 {agent.name}
                                             </h3>
-                                            <p className="text-xs text-slate-400 font-medium">{agent.role}</p>
+                                            <p className="text-xs text-zinc-400 font-medium leading-snug">
+                                                {agent.role}
+                                            </p>
                                         </div>
                                     </div>
 
-                                    <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono bg-white/5 text-slate-300 border border-white/5">
+                                    <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono bg-[#18181B] text-zinc-300 border border-[#27272A] shrink-0">
                                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                        Ativo
+                                        MSLR
                                     </span>
                                 </div>
 
-                                <p className="text-xs text-slate-300 leading-relaxed italic">
+                                <p className="text-xs text-zinc-300 leading-relaxed">
                                     &ldquo;{agent.tagline}&rdquo;
                                 </p>
 
-                                {/* Diagnóstico em Tempo Real do Usuário */}
-                                <div className={`p-3.5 rounded-xl border space-y-1.5 ${alertStyles}`}>
-                                    <div className="flex items-center justify-between text-[11px] font-semibold">
-                                        <span>{diag.headline}</span>
-                                        <span className="font-mono text-white text-xs">{diag.metricValue}</span>
+                                {/* Badges das Macro-Tools Conectadas */}
+                                <div className="flex flex-wrap gap-1.5">
+                                    {agent.consumedTools.map((toolId) => (
+                                        <span
+                                            key={toolId}
+                                            className="px-2 py-0.5 rounded-md bg-[#18181B] border border-[#27272A] text-[10px] font-mono text-zinc-400"
+                                        >
+                                            {MACRO_TOOL_LABELS[toolId]}
+                                        </span>
+                                    ))}
+                                </div>
+
+                                {/* Diagnóstico Determinístico Vivo */}
+                                <div className={`p-3.5 rounded-xl border space-y-2 ${alertStyles}`}>
+                                    <div className="flex items-center justify-between gap-2 text-[11px] font-semibold">
+                                        <span className="truncate">{diag.headline}</span>
+                                        <span className="font-mono text-white text-xs tabular-nums shrink-0">
+                                            {maskIfPrivacy(diag.metricValue)}
+                                        </span>
                                     </div>
-                                    <p className="text-[11px] leading-relaxed text-slate-300 opacity-90">
+
+                                    <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-white/10 text-[11px]">
+                                        <span className="text-zinc-400">{diag.secondaryLabel}</span>
+                                        <span className="font-mono text-zinc-200 tabular-nums">
+                                            {maskIfPrivacy(diag.secondaryValue)}
+                                        </span>
+                                    </div>
+
+                                    <p className="text-[11px] leading-relaxed text-zinc-300 pt-0.5">
                                         {maskIfPrivacy(diag.advice)}
                                     </p>
                                 </div>
                             </div>
 
-                            {/* Botão de Ação / Conversa */}
-                            <div className="mt-5 pt-3 border-t border-white/5">
+                            {/* Botão de Ação Direta no Chat Kitsune AI */}
+                            <div className="mt-5 pt-3 border-t border-[#27272A]">
                                 <Link
-                                    href={`/kitsune?q=${encodeURIComponent(agent.suggestedPrompt)}`}
-                                    className="w-full py-2.5 px-4 rounded-xl bg-white/5 hover:bg-[#FF8216] text-white hover:text-black font-semibold text-xs flex items-center justify-center gap-2 transition-all duration-300 shadow-sm active:scale-95"
+                                    href={`/kitsune?prompt=${encodeURIComponent(agent.suggestedPrompt)}`}
+                                    className="w-full min-h-[44px] py-2.5 px-4 rounded-xl bg-[#18181B] hover:bg-[#FF8216] text-white hover:text-black font-semibold text-xs border border-[#27272A] hover:border-[#FF8216] flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98]"
                                 >
-                                    <span>Conversar com {agent.name}</span>
-                                    <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                                    <span>Acionar {agent.name}</span>
+                                    <span className="material-symbols-outlined text-[16px]">
+                                        arrow_forward
+                                    </span>
                                 </Link>
                             </div>
                         </div>

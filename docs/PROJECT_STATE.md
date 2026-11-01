@@ -1,7 +1,7 @@
 # Estado do Projeto - Kitsune Finance
 
-**Última atualização:** 31/10/2026
-**Status Geral:** Operacional / Open Finance Brasil Completo & Blindagem Multi-tenant Ativos
+**Última atualização:** 01/11/2026
+**Status Geral:** Operacional / Open Finance Brasil Completo, Orquestração Multi-Agente MSLR & Servidor MCP Ativos
 
 ---
 
@@ -47,6 +47,7 @@
 ---
 
 ## 3. Módulos Implementados
+- [x] Orquestração Multi-Agente Determinística (MSLR) & Servidor MCP Nativo (Etapa 3): `src/utils/ai/deterministic-tools.ts` (5 Macro-Tools puras em TypeScript + conciliador proporcional familiar), `src/utils/ai/kitsune-agents-registry.ts` (roteador oficial dos 7 Agentes Especialistas: Sentinela Kitsune, Kuro, Kenji, Daiko, Kage, Ren e Takeshi), injeção estrita do bloco `[ENGINE_MATEMATICO_AUDITADO]` em `src/utils/ai/dossier.ts`, `src/app/api/chat/route.ts` e `src/app/api/ai/generate-insight/route.ts`, cards em tempo real com `isPrivacyMode` em `src/app/agents/page.tsx` e servidor MCP JSON-RPC 2.0 autenticado em `src/app/api/mcp/route.ts`.
 - [x] Pipeline Open Finance v2, Reconciliação Anti-Duplicidade & Enriquecimento Comercial 3 Camadas: migration `supabase/migrations/20261101_reconciliation_and_merchants_cache.sql` (`kind`, `matched_transfer_id`, `reconciled_from_pending_id`, `known_merchants` com FORCE RLS), `src/utils/finance/reconciler.ts` (reconciliação in-place `PENDING` -> `POSTED`, classificação `kind`, Auto-Transfer Matcher 72h e `calculateReverseHistoricalBalances` em centavos inteiros) e `src/utils/finance/enrichment-pipeline.ts` (validação oficial CNPJ Módulo 11 + `BrasilAPI` CNAE com cache Supabase), integrados em `src/utils/pluggy/` e `/api/openfinance`.
 - [x] Motor Matemático Determinístico BR & X-Ray Engine (v2.0) em `src/utils/finance/engine/`: `cdi.ts` com cálculo oficial DU/252 B3/CETIP e feriados ANBIMA, `taxes.ts` com IR/IOF regressivo RFB e equivalência LCI/LCA vs CDB, `fisher.ts` com Equação de Fisher exata e poder de compra real, `cet.ts` via Newton-Raphson ($10^{-7}$) e antecipação de parcelas, `debt-payoff.ts` com simulador Snowball vs Avalanche e rollover real de parcelas mínimas, e `xray-rules.ts` com Kitsune Health Score (0-100) e auditoria FGC (R$ 250k).
 - [x] Espaço Compartilhado 360° (`/shared`): Eliminação do AppShell duplicado (resolução do bug de barra lateral dupla), criação de hub com 7 módulos temáticos (Visão Geral & Balanço, Salários & Fluxo Mensal por integrante, Contas Pagas e a Pagar com indicação de pagador e vencimento, Investimentos & Rendimento com comparativo Poupança vs CDI vs IPCA+, Simulador Interativo de Metas Familiares com juros compostos, Calculadora de Divisão Justa 50/50 e Proporcional à renda com valor de ressarcimento, e Administração de Membros com convites WhatsApp/Gmail).
@@ -133,6 +134,6 @@
 ---
 
 ## 4. Context Handoff (Memória de Continuidade entre Chats)
-- **Última Etapa Concluída:** Etapa 2 — Pipeline Open Finance v2, Reconciliação Anti-Duplicidade (`reconcilePendingToPostedTransactions`, `classifyAndMatchInternalTransfers`, `calculateReverseHistoricalBalances`), Enriquecimento Comercial 3 Camadas (`extractCnpjFromText`, `mapCnaeToCategoryPt`, `enrichTransactionBatch` com `BrasilAPI` + cache `known_merchants`) e integração retrocompatível em `src/utils/pluggy/` e `src/app/api/openfinance/route.ts`.
-- **Próxima Etapa Imediata:** Etapa 3 — Orquestração Multi-Agente com Tool Calling Determinístico (7 Agentes Oficiais da Kitsune + 4 Macro-Tools de Estado inspiradas no Maybe + Math Engine Tools + Endpoint `/api/mcp`).
-- **Pendências ou Bloqueios:** Nenhum. Aplicar `supabase/migrations/20261101_reconciliation_and_merchants_cache.sql` no banco quando conveniente (o código já possui fallback 100% retrocompatível). Tipagem estrita validada (`tsc --noEmit` = 0 erros).
+- **Última Etapa Concluída:** Etapa 3 — Orquestração Multi-Agente com Tool Calling Determinístico (`src/utils/ai/deterministic-tools.ts`, `src/utils/ai/kitsune-agents-registry.ts`), injeção blindada `[ENGINE_MATEMATICO_AUDITADO]` em `dossier.ts`, `/api/chat` e `/api/ai/generate-insight`, métricas vivas nos 7 cards de `/agents` com `isPrivacyMode` e servidor MCP JSON-RPC 2.0 autenticado em `/api/mcp`.
+- **Próxima Etapa Imediata:** Etapa 4 — Performance Client-Side (Read-Through Cache Local em `IndexedDB` `0ms`, Lista Virtualizada de Extrato a 60 FPS para 3.000+ transações e Diagrama de Sankey de Fluxo de Caixa `CashFlowSankey.tsx` em SVG responsivo com suporte total ao `isPrivacyMode`).
+- **Pendências ou Bloqueios:** Nenhum. Aplicar `supabase/migrations/20261101_reconciliation_and_merchants_cache.sql` no banco quando conveniente (todo o pipeline opera com fallback 100% retrocompatível em memória). Tipagem estrita validada (`tsc --noEmit` = 0 erros).

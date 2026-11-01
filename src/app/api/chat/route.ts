@@ -2,7 +2,15 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { generateWithGeminiPool, KITSUNE_AI_MODELS } from '@/utils/ai/gemini';
 import { generateWithGroq } from '@/utils/ai/groq';
-import { buildUserFinancialDossier } from '@/utils/ai/dossier';
+import {
+    buildUserFinancialDossier,
+    loadUserFinancialDataFromSupabase,
+} from '@/utils/ai/dossier';
+import { ANTI_HALLUCINATION_SYSTEM_DIRECTIVE } from '@/utils/ai/deterministic-tools';
+import {
+    routePromptToKitsuneAgent,
+    buildAgentTurnDirectiveBlock,
+} from '@/utils/ai/kitsune-agents-registry';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -205,14 +213,19 @@ export async function POST(req: Request) {
             }
         }
 
-        // 2. Injeção de Contexto Única na Abertura da Sessão (ou quando invalidado por sync.ts)
+        // 2. Injeção de Contexto Auditado na Abertura da Sessão (ou atualização se sessão legada sem [ENGINE_MATEMATICO_AUDITADO])
         let cachedSystemPrompt = sessionRecord?.system_prompt_cached || null;
         let contextSnapshot = sessionRecord?.context_snapshot || null;
+        let loadedUserDataForTurn = null;
 
-        if (!cachedSystemPrompt) {
+        const needsFreshDossier =
+            !cachedSystemPrompt || !cachedSystemPrompt.includes('[ENGINE_MATEMATICO_AUDITADO]');
+
+        if (needsFreshDossier) {
             const dossier = await buildUserFinancialDossier(supabase, user.id, user.email);
             cachedSystemPrompt = dossier.systemPrompt;
             contextSnapshot = dossier.contextSnapshot;
+            loadedUserDataForTurn = dossier.userData;
 
             const sessionTitle = effectivePrompt.slice(0, 60) + (effectivePrompt.length > 60 ? '...' : '');
 
@@ -249,6 +262,21 @@ export async function POST(req: Request) {
                 .eq('id', sessionRecord.id)
                 .eq('user_id', user.id);
         }
+
+        // Roteamento para um dos 7 Agentes Especialistas Oficiais da Kitsune + parâmetros dinâmicos
+        const agentDecision = routePromptToKitsuneAgent(effectivePrompt, attachedContexts);
+        const needsDynamicToolRun =
+            agentDecision.extractedExtraBudget > 0 || agentDecision.extractedPeriodMonths > 1;
+
+        if (needsDynamicToolRun && !loadedUserDataForTurn) {
+            const fresh = await loadUserFinancialDataFromSupabase(supabase, user.id, user.email, 600);
+            loadedUserDataForTurn = fresh.userData;
+        }
+
+        const agentDirectiveBlock = buildAgentTurnDirectiveBlock(
+            agentDecision,
+            needsDynamicToolRun ? loadedUserDataForTurn || undefined : undefined
+        );
 
         const activeSessionId = sessionRecord?.id || null;
 
@@ -327,17 +355,30 @@ export async function POST(req: Request) {
 
         let multimodalDirectives = '';
         if (images.length > 0) {
-            multimodalDirectives = `\nDIRETIVA MULTIMODAL KITSUNE VISION & CÁLCULOS EXATOS:
+            const refMonthlyIncome =
+                Number(contextSnapshot?.holder?.incomeProfile?.monthlyAverageIncome) ||
+                Number(contextSnapshot?.summary?.realIncome) ||
+                0;
+            const deterministicHourlyRate =
+                refMonthlyIncome > 0 ? (refMonthlyIncome / 176).toFixed(2) : null;
+            const safe30PctLimit =
+                refMonthlyIncome > 0 ? (refMonthlyIncome * 0.3).toFixed(2) : null;
+
+            multimodalDirectives = `\nDIRETIVA MULTIMODAL KITSUNE VISION & DADOS PRÉ-COMPUTADOS:
 O usuário enviou uma ou mais imagens anexadas diretamente no chat (cardápio, produto/etiqueta, proposta de financiamento de casa/carro, comprovante ou nota fiscal).
-1. Realize leitura visual minuciosa (OCR de alta fidelidade) identificando todos os números, valores em R$, taxas de juros (CET), prazos e nomes de estabelecimentos.
-2. Cardápio: identifique os itens e preços, calcule o custo médio da refeição e aponte se o consumo está dentro do padrão financeiro do usuário ou se extrapola a média de alimentação.
-3. Produto / Compra por Impulso: calcule com exatidão matemática quantas horas de trabalho do usuário custa aquele produto (fórmula: Preço do Item ÷ (Renda Mensal ÷ 176 horas)). Alerte se o produto cabe no saldo livre do mês e sugira a 'Regra dos 30 dias de reflexão'.
-4. Simulação de Financiamento (Casa ou Carro): audite o Custo Efetivo Total (CET), compare amortização SAC vs Tabela Price, calcule o valor total de juros pagos ao fim do contrato e verifique rigorosamente se a parcela compromete mais de 30% da renda mensal líquida do usuário.
-5. Comprovante / Recibo: confirme autenticidade, valores, data e se já há lançamento correspondente nas contas conectadas do usuário.`;
+1. Realize leitura visual minuciosa (OCR de alta fidelidade) identificando valores em R$, taxas informadas, prazos e estabelecimentos.
+2. Parâmetros determinísticos pré-calculados do usuário: Valor da Hora de Trabalho = ${deterministicHourlyRate ? `R$ ${deterministicHourlyRate}/hora` : 'N/D'}; Teto Seguro de 30% da Renda Mensal = ${safe30PctLimit ? `R$ ${safe30PctLimit}/mês` : 'N/D'}.
+3. Comprovante / Recibo: confirme valores, data e se já há lançamento correspondente no dossiê conectado.`;
         }
 
-        const systemInstruction = `${cachedSystemPrompt}\n\nDIRETIVA DE ESTILO DESTA RESPOSTA:\n- ${reasoningDirective}${contextDirectives}${multimodalDirectives}`;
+        const systemInstruction = `${cachedSystemPrompt}\n\n${agentDirectiveBlock}\n\nREGRA ESTRITA DE INTEGRIDADE NUMÉRICA:\n${ANTI_HALLUCINATION_SYSTEM_DIRECTIVE}\n\nDIRETIVA DE ESTILO DESTA RESPOSTA:\n- ${reasoningDirective}${contextDirectives}${multimodalDirectives}`;
         const temperature = reasoningLevel === 'fast' ? 0.2 : reasoningLevel === 'deep' ? 0.4 : 0.35;
+
+        const activeAgentMeta = {
+            id: agentDecision.agent.id,
+            name: agentDecision.agent.name,
+            role: agentDecision.agent.role,
+        };
 
         if (preferredModel.startsWith('llama-') && images.length === 0) {
             const groqRes = await generateWithGroq({
@@ -362,6 +403,7 @@ O usuário enviou uma ou mais imagens anexadas diretamente no chat (cardápio, p
                 message: groqRes.text,
                 modelUsed: groqRes.modelUsed,
                 routerReason: routerReason || undefined,
+                activeAgent: activeAgentMeta,
                 provider: 'groq',
                 sessionId: activeSessionId,
                 summarySnapshot: contextSnapshot?.summary || null,
@@ -392,6 +434,7 @@ O usuário enviou uma ou mais imagens anexadas diretamente no chat (cardápio, p
             message: aiResponse.text,
             modelUsed: aiResponse.modelUsed,
             routerReason: routerReason || undefined,
+            activeAgent: activeAgentMeta,
             keyPoolIndex: aiResponse.keyIndexUsed,
             provider: aiResponse.modelUsed.startsWith('llama-') ? 'groq' : 'gemini',
             sessionId: activeSessionId,

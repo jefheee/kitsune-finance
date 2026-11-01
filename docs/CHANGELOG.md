@@ -4,6 +4,14 @@ Todas as alterações notáveis no projeto Kitsune Finance são registradas de f
 
 ---
 
+## [2026-11-01] - Implementação da Etapa 3: Orquestração Multi-Agente Determinística (MSLR) & Servidor MCP
+- **Arquivos Afetados:** `src/utils/ai/deterministic-tools.ts`, `src/utils/ai/kitsune-agents-registry.ts`, `src/utils/ai/dossier.ts`, `src/app/api/chat/route.ts`, `src/app/api/ai/generate-insight/route.ts`, `src/app/agents/page.tsx`, `src/app/api/mcp/route.ts`, `docs/ARCHITECTURE_EXPANSION.md`, `docs/PROJECT_STATE.md`, `docs/CHANGELOG.md`.
+- **Objetivo:**
+  - Criação das 5 Macro-Tools determinísticas (`toolGetBalanceSheetAndXRay`, `toolGetIncomeStatement`, `toolSimulateDebtAndCards`, `toolAnalyzeFixedIncomeAndGoals`, `toolAuditAnomaliesAndLeaks`) e roteamento dos 7 Agentes Oficiais da Kitsune acoplados ao motor matemático BR (`src/utils/finance/engine/`).
+  - Injeção obrigatória do bloco `[ENGINE_MATEMATICO_AUDITADO]` no Chat e Insights, atualização dos cards vivos em `/agents` (corrigindo inversão de sinal de despesas e link `?prompt=`) com blindagem `isPrivacyMode` e criação do servidor MCP JSON-RPC 2.0 autenticado em `/api/mcp`.
+
+---
+
 ## [2026-10-31] - Implementação da Etapa 2: Pipeline de Reconciliação Open Finance v2 & Enriquecimento Comercial 3 Camadas
 - **Arquivos Afetados:** `supabase/migrations/20261101_reconciliation_and_merchants_cache.sql`, `src/utils/finance/reconciler.ts`, `src/utils/finance/enrichment-pipeline.ts`, `src/utils/pluggy/sync.ts`, `src/utils/pluggy/transaction-enricher.ts`, `src/utils/pluggy/client.ts`, `src/app/api/openfinance/route.ts`, `docs/ARCHITECTURE_EXPANSION.md`, `docs/PROJECT_STATE.md`, `docs/CHANGELOG.md`.
 - **Objetivo:**
