@@ -4,6 +4,14 @@ Todas as alterações notáveis no projeto Kitsune Finance são registradas de f
 
 ---
 
+## [2026-10-31] - Criação do Plano Mestre de Expansão (docs/ARCHITECTURE_EXPANSION.md)
+- **Arquivos Afetados:** `docs/ARCHITECTURE_EXPANSION.md`, `docs/CHANGELOG.md`.
+- **Objetivo:**
+  - Criação do Blueprint Técnico v2.0 com Roadmap em 5 Etapas (State Machine) integrando Maybe Finance, Ghostfolio, Actual Budget e Firefly III.
+  - Especificação matemática detalhada do motor determinístico BR (CDI DU/252, tributação regressiva IR/IOF, Fisher/CET exatos e Snowball/Avalanche).
+
+---
+
 ## [2026-10-31] - Atualização do Protocolo State-Machine no AGENTS.md
 - **Arquivos Afetados:** `AGENTS.md`, `docs/CHANGELOG.md`.
 - **Objetivo:**
