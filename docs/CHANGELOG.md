@@ -4,6 +4,14 @@ Todas as alterações notáveis no projeto Kitsune Finance são registradas de f
 
 ---
 
+## [2026-10-31] - Remoção do Arquivo Bruto de Pesquisa Arquitetural
+- **Arquivos Afetados:** `Expansão Arquitetural Kitsune Finance.md`, `docs/CHANGELOG.md`.
+- **Objetivo:**
+  - Remoção definitiva do arquivo de pesquisa bruta do repositório, mantendo o GitHub limpo.
+  - Todas as decisões, regras matemáticas e arquiteturais continuam sintetizadas e ativas no blueprint oficial `docs/ARCHITECTURE_EXPANSION.md`.
+
+---
+
 ## [2026-10-31] - Implementação da Etapa 1: Motor Matemático Determinístico & X-Ray Engine
 - **Arquivos Afetados:** `src/utils/finance/engine/cdi.ts`, `taxes.ts`, `fisher.ts`, `cet.ts`, `debt-payoff.ts`, `xray-rules.ts`, `index.ts`, `test-suite.ts`, `docs/ARCHITECTURE_EXPANSION.md`, `docs/PROJECT_STATE.md`, `docs/CHANGELOG.md`.
 - **Objetivo:**
