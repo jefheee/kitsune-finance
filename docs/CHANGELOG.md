@@ -4,6 +4,14 @@ Todas as alterações notáveis no projeto Kitsune Finance são registradas de f
 
 ---
 
+## [2026-11-01] - Correção do Guardião Biométrico PWA: Cold-Start Lock, Onboarding Proativo & PIN Universal
+- **Arquivos Afetados:** `src/utils/security/biometrics.ts`, `src/components/security/BiometricLockGuard.tsx`, `src/app/settings/page.tsx`, `docs/PROJECT_STATE.md`, `docs/CHANGELOG.md`.
+- **Objetivo:**
+  - Resolução da ausência de prompt biométrico no Galaxy A54 5G: adição de modal de ativação proativa ao logar e bloqueio imediato ao abrir o app (`lockOnColdStart`).
+  - Suporte híbrido e diagnóstico de ambiente: validação de `isSecureContext` e proteção universal com PIN numérico SHA-256 e keypad 3x4 bancário para ambientes de desenvolvimento/teste em rede local (HTTP), com biometria nativa WebAuthn preservada para HTTPS (Vercel).
+
+---
+
 ## [2026-11-01] - Guardião Biométrico PWA (WebAuthn W3C) & Cortina de Privacidade
 - **Arquivos Afetados:** `src/utils/security/biometrics.ts`, `src/components/security/BiometricLockGuard.tsx`, `src/app/layout.tsx`, `src/app/settings/page.tsx`, `docs/PROJECT_STATE.md`, `docs/CHANGELOG.md`.
 - **Objetivo:**

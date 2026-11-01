@@ -1,22 +1,31 @@
 "use client";
 
 /**
- * Utilitários puros para autenticação biométrica WebAuthn W3C (Passkey / Face ID / Touch ID / Digital Android).
- * Compatível com iOS Safari, Android Chrome, Windows Hello e macOS Touch ID.
+ * Utilitários puros para autenticação biométrica WebAuthn W3C (Passkey / Face ID / Touch ID / Digital Android)
+ * e proteção local com PIN criptografado (SHA-256).
+ * Compatível com iOS Safari, Android Chrome (Samsung, Pixel, Xiaomi), Windows Hello e macOS Touch ID.
  */
 
 export interface BiometricSettings {
   enabled: boolean;
-  lockTimeoutSeconds: number;
+  hasPin: boolean;
+  pinHash?: string | null;
+  lockTimeoutSeconds: number; // 0 = imediato, 15, 60, 300
   credentialId: string | null;
   registeredAt?: string | null;
+  dismissedPrompt?: boolean;
+  lockOnColdStart: boolean;
 }
 
 const DEFAULT_SETTINGS: BiometricSettings = {
   enabled: false,
+  hasPin: false,
+  pinHash: null,
   lockTimeoutSeconds: 15,
   credentialId: null,
   registeredAt: null,
+  dismissedPrompt: false,
+  lockOnColdStart: true,
 };
 
 /**
@@ -51,25 +60,110 @@ export function base64UrlToBuffer(base64url: string): ArrayBuffer {
 }
 
 /**
+ * Gera hash SHA-256 em formato hexadecimal de uma string (usado para validação determinística de PIN).
+ */
+export async function hashStringSHA256(text: string): Promise<string> {
+  if (typeof window === "undefined" || !window.crypto?.subtle) {
+    // Fallback simples caso subtle crypto não esteja disponível
+    let hash = 0;
+    for (let i = 0; i < text.length; i++) {
+      hash = (hash << 5) - hash + text.charCodeAt(i);
+      hash |= 0;
+    }
+    return Math.abs(hash).toString(16);
+  }
+  const encoder = new TextEncoder();
+  const data = encoder.encode(text);
+  const hashBuffer = await window.crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/**
+ * Diagnóstico abrangente de suporte à biometria e ambiente de execução.
+ */
+export interface BiometricSupportDiagnosis {
+  isSupported: boolean;
+  isSecureContext: boolean;
+  isIpAddress: boolean;
+  hostname: string;
+  hasPlatformAuthenticator: boolean;
+  reason?: string;
+}
+
+export async function diagnoseBiometricSupport(): Promise<BiometricSupportDiagnosis> {
+  if (typeof window === "undefined") {
+    return {
+      isSupported: false,
+      isSecureContext: false,
+      isIpAddress: false,
+      hostname: "",
+      hasPlatformAuthenticator: false,
+      reason: "Ambiente não é um navegador cliente.",
+    };
+  }
+
+  const hostname = window.location.hostname;
+  const isSecureContext = Boolean(window.isSecureContext);
+  const isIpAddress = /^(?:\d{1,3}\.){3}\d{1,3}$/.test(hostname) || hostname === "::1";
+
+  const hasCredentialsAPI = Boolean(navigator.credentials);
+  const hasPublicKey = Boolean(window.PublicKeyCredential);
+
+  let hasPlatformAuthenticator = false;
+  if (
+    hasPublicKey &&
+    typeof window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === "function"
+  ) {
+    try {
+      hasPlatformAuthenticator =
+        await window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+    } catch {
+      hasPlatformAuthenticator = false;
+    }
+  }
+
+  if (!isSecureContext && hostname !== "localhost") {
+    return {
+      isSupported: false,
+      isSecureContext,
+      isIpAddress,
+      hostname,
+      hasPlatformAuthenticator,
+      reason:
+        "O WebAuthn (Face ID / Digital) exige HTTPS oficial (ex: Vercel) ou localhost. Em conexões HTTP por IP de rede local, use o PIN numérico.",
+    };
+  }
+
+  if (!hasCredentialsAPI || !hasPublicKey) {
+    return {
+      isSupported: false,
+      isSecureContext,
+      isIpAddress,
+      hostname,
+      hasPlatformAuthenticator,
+      reason: "Navegador não possui suporte à API WebAuthn.",
+    };
+  }
+
+  return {
+    isSupported: hasPlatformAuthenticator,
+    isSecureContext,
+    isIpAddress,
+    hostname,
+    hasPlatformAuthenticator,
+    reason: hasPlatformAuthenticator
+      ? undefined
+      : "Nenhum autenticador de plataforma com biometria (Face ID / Digital) ativado neste aparelho.",
+  };
+}
+
+/**
  * Verifica se a plataforma e o navegador suportam autenticação biométrica via hardware local.
  */
 export async function isBiometricsAvailable(): Promise<boolean> {
-  if (typeof window === "undefined") return false;
-
-  const hasWebAuthn =
-    Boolean(window.PublicKeyCredential) &&
-    typeof window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === "function";
-
-  if (!hasWebAuthn) return false;
-
-  try {
-    const isAvailable =
-      await window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-    return Boolean(isAvailable);
-  } catch (err) {
-    console.warn("[Biometrics] Falha ao verificar autenticador da plataforma:", err);
-    return false;
-  }
+  const diagnosis = await diagnoseBiometricSupport();
+  return diagnosis.isSupported;
 }
 
 /**
@@ -83,9 +177,13 @@ export function getBiometricSettings(userId: string): BiometricSettings {
     const parsed = JSON.parse(raw);
     return {
       enabled: Boolean(parsed.enabled),
+      hasPin: Boolean(parsed.hasPin),
+      pinHash: parsed.pinHash || null,
       lockTimeoutSeconds: typeof parsed.lockTimeoutSeconds === "number" ? parsed.lockTimeoutSeconds : 15,
       credentialId: parsed.credentialId || null,
       registeredAt: parsed.registeredAt || null,
+      dismissedPrompt: Boolean(parsed.dismissedPrompt),
+      lockOnColdStart: parsed.lockOnColdStart !== false,
     };
   } catch {
     return DEFAULT_SETTINGS;
@@ -111,9 +209,35 @@ export function saveBiometricSettings(
       JSON.stringify(updated)
     );
   } catch (err) {
-    console.error("[Biometrics] Erro ao salvar configurações biométricas:", err);
+    console.error("[Biometrics] Erro ao salvar configurações:", err);
   }
   return updated;
+}
+
+/**
+ * Cadastra ou altera o PIN numérico do cofre local.
+ */
+export async function saveSecurityPin(userId: string, pin: string): Promise<boolean> {
+  if (!userId || !pin || pin.length < 4) return false;
+  const hash = await hashStringSHA256(`kitsune_salt_${userId}_${pin}`);
+  saveBiometricSettings(userId, {
+    hasPin: true,
+    pinHash: hash,
+    enabled: true, // Ativa proteção geral
+  });
+  return true;
+}
+
+/**
+ * Valida o PIN numérico digitado pelo usuário.
+ */
+export async function verifySecurityPin(userId: string, inputPin: string): Promise<boolean> {
+  if (!userId || !inputPin) return false;
+  const settings = getBiometricSettings(userId);
+  if (!settings.hasPin || !settings.pinHash) return false;
+
+  const inputHash = await hashStringSHA256(`kitsune_salt_${userId}_${inputPin}`);
+  return inputHash === settings.pinHash;
 }
 
 /**
@@ -127,33 +251,38 @@ export async function registerBiometricCredential(
     return { success: false, error: "WebAuthn não é suportado neste navegador." };
   }
 
-  const isAvailable = await isBiometricsAvailable();
-  if (!isAvailable) {
+  const diagnosis = await diagnoseBiometricSupport();
+  if (!diagnosis.isSupported) {
     return {
       success: false,
-      error: "Nenhum sensor biométrico (Face ID, Touch ID ou leitor de digital) disponível neste aparelho.",
+      error: diagnosis.reason || "Sensor biométrico não disponível neste aparelho ou ambiente.",
     };
   }
 
   try {
-    // Desafio de segurança aleatório de 32 bytes
     const challenge = window.crypto.getRandomValues(new Uint8Array(32));
     const userHandle = new TextEncoder().encode(userId);
+    const hostname = window.location.hostname;
+
+    // A especificação WebAuthn proíbe IPs literais no rp.id (RFC 5280).
+    // Se for IP, o navegador deve inferir ou usar rp sem id explícito.
+    const isIp = /^(?:\d{1,3}\.){3}\d{1,3}$/.test(hostname);
+    const rpConfig: PublicKeyCredentialRpEntity = {
+      name: "Kitsune Finance",
+      ...(isIp ? {} : { id: hostname }),
+    };
 
     const publicKeyOptions: PublicKeyCredentialCreationOptions = {
       challenge,
-      rp: {
-        name: "Kitsune Finance",
-        id: window.location.hostname,
-      },
+      rp: rpConfig,
       user: {
         id: userHandle,
         name: email,
         displayName: email.split("@")[0] || "Investidor Kitsune",
       },
       pubKeyCredParams: [
-        { alg: -7, type: "public-key" },   // ES256 (Padrão recomendado WebAuthn)
-        { alg: -257, type: "public-key" }, // RS256 (Fallback Windows Hello / RSA)
+        { alg: -7, type: "public-key" },   // ES256
+        { alg: -257, type: "public-key" }, // RS256
       ],
       authenticatorSelection: {
         authenticatorAttachment: "platform",
@@ -174,11 +303,11 @@ export async function registerBiometricCredential(
 
     const credentialId = bufferToBase64Url(credential.rawId);
 
-    // Salva configuração local do usuário
     saveBiometricSettings(userId, {
       enabled: true,
       credentialId,
       registeredAt: new Date().toISOString(),
+      dismissedPrompt: true,
     });
 
     return { success: true, credentialId };
@@ -188,7 +317,7 @@ export async function registerBiometricCredential(
       return { success: false, error: "Registro biométrico cancelado ou recusado pelo usuário." };
     }
     if (err.name === "InvalidStateError") {
-      return { success: false, error: "Esta chave biométrica já está registrada para este dispositivo." };
+      return { success: false, error: "Esta chave biométrica já está registrada para este aparelho." };
     }
     return { success: false, error: err.message || "Erro desconhecido ao registrar biometria." };
   }
@@ -207,6 +336,8 @@ export async function verifyBiometricCredential(
 
   try {
     const challenge = window.crypto.getRandomValues(new Uint8Array(32));
+    const hostname = window.location.hostname;
+    const isIp = /^(?:\d{1,3}\.){3}\d{1,3}$/.test(hostname);
 
     const allowCredentials: PublicKeyCredentialDescriptor[] = [];
     if (credentialId) {
@@ -217,14 +348,14 @@ export async function verifyBiometricCredential(
           transports: ["internal"],
         });
       } catch {
-        // Se a conversão falhar, prossegue sem allowCredentials para autenticador residente
+        // Ignora erro e tenta via autenticador residente
       }
     }
 
     const getOptions: PublicKeyCredentialRequestOptions = {
       challenge,
       timeout: 60000,
-      rpId: window.location.hostname,
+      ...(isIp ? {} : { rpId: hostname }),
       userVerification: "required",
       ...(allowCredentials.length > 0 ? { allowCredentials } : {}),
     };

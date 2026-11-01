@@ -7,12 +7,14 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { useFinanceData } from "@/context/FinanceDataContext";
 import {
-  isBiometricsAvailable,
+  diagnoseBiometricSupport,
   getBiometricSettings,
   saveBiometricSettings,
   registerBiometricCredential,
   verifyBiometricCredential,
+  saveSecurityPin,
   type BiometricSettings,
+  type BiometricSupportDiagnosis,
 } from "@/utils/security/biometrics";
 import Spinner from "@/components/Spinner";
 import { WfIcons } from "@/components/wealthfolio/WealthfolioIcons";
@@ -36,13 +38,18 @@ export default function SettingsPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Estados de Biometria PWA (WebAuthn W3C)
-  const [hasBiometricHardware, setHasBiometricHardware] = useState<boolean>(false);
+  // Estados de Biometria PWA & PIN (WebAuthn W3C + SHA-256)
+  const [diagnosis, setDiagnosis] = useState<BiometricSupportDiagnosis | null>(null);
   const [biometricConfig, setBiometricConfig] = useState<BiometricSettings | null>(null);
   const [isProcessingBiometrics, setIsProcessingBiometrics] = useState<boolean>(false);
 
+  // Edição de PIN na tela de configurações
+  const [showPinModal, setShowPinModal] = useState<boolean>(false);
+  const [inputNewPin, setInputNewPin] = useState<string>("");
+  const [inputConfirmPin, setInputConfirmPin] = useState<string>("");
+
   useEffect(() => {
-    isBiometricsAvailable().then((supported) => setHasBiometricHardware(supported));
+    diagnoseBiometricSupport().then((diag) => setDiagnosis(diag));
   }, []);
 
   useEffect(() => {
@@ -71,17 +78,24 @@ export default function SettingsPage() {
     }
   };
 
-  const handleDisableBiometrics = () => {
+  const handleDisableProtection = () => {
     if (!user?.id) return;
-    saveBiometricSettings(user.id, { enabled: false });
+    saveBiometricSettings(user.id, { enabled: false, hasPin: false, pinHash: null });
     setBiometricConfig(getBiometricSettings(user.id));
-    setSuccessMessage("Bloqueio biométrico desativado.");
+    setSuccessMessage("Bloqueio de segurança desativado.");
     setTimeout(() => setSuccessMessage(null), 3000);
   };
 
   const handleChangeTimeout = (seconds: number) => {
     if (!user?.id) return;
     saveBiometricSettings(user.id, { lockTimeoutSeconds: seconds });
+    setBiometricConfig(getBiometricSettings(user.id));
+  };
+
+  const handleToggleColdStart = () => {
+    if (!user?.id || !biometricConfig) return;
+    const nextVal = !biometricConfig.lockOnColdStart;
+    saveBiometricSettings(user.id, { lockOnColdStart: nextVal });
     setBiometricConfig(getBiometricSettings(user.id));
   };
 
@@ -100,6 +114,26 @@ export default function SettingsPage() {
     } finally {
       setIsProcessingBiometrics(false);
     }
+  };
+
+  const handleSavePinForm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user?.id) return;
+    if (inputNewPin.length < 4) {
+      setErrorMessage("O PIN deve ter no mínimo 4 dígitos.");
+      return;
+    }
+    if (inputNewPin !== inputConfirmPin) {
+      setErrorMessage("Os PINs informados não coincidem.");
+      return;
+    }
+    await saveSecurityPin(user.id, inputNewPin);
+    setBiometricConfig(getBiometricSettings(user.id));
+    setShowPinModal(false);
+    setInputNewPin("");
+    setInputConfirmPin("");
+    setSuccessMessage("PIN de segurança cadastrado com sucesso!");
+    setTimeout(() => setSuccessMessage(null), 4000);
   };
 
   const handleExportData = () => {
@@ -247,7 +281,7 @@ export default function SettingsPage() {
               </h2>
             </div>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-              Proteja seus saldos e faturas contra visualização indevida no multitarefa do celular e bloqueie o app via hardware seguro (Face ID / Digital).
+              Bloqueia o app ao fechar ou sair de tela e oculta imediatamente saldos na miniatura do multitarefa do celular.
             </p>
           </div>
 
@@ -255,59 +289,102 @@ export default function SettingsPage() {
             {biometricConfig?.enabled ? (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/12 text-emerald-400 border border-emerald-500/25">
                 <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                <span>Ativo no Aparelho</span>
+                <span>Biometria Ativa</span>
               </span>
-            ) : hasBiometricHardware ? (
+            ) : biometricConfig?.hasPin ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/12 text-emerald-400 border border-emerald-500/25">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                <span>PIN Ativo</span>
+              </span>
+            ) : diagnosis?.isSupported ? (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-zinc-100 dark:bg-[#18181B] text-zinc-500 border border-zinc-200 dark:border-[#27272A]">
                 <span>Disponível</span>
               </span>
             ) : (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/12 text-amber-500 border border-amber-500/25">
-                <span>Hardware Ausente</span>
+                <span>PIN Recomendado</span>
               </span>
             )}
           </div>
         </div>
 
-        {/* Detalhes de Configuração */}
+        {/* Diagnóstico do Ambiente */}
+        {diagnosis && !diagnosis.isSecureContext && (
+          <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-400 text-xs">
+            <strong>Ambiente HTTP Detectado:</strong> O WebAuthn nativo (Face ID / Digital) é restrito a conexões seguras HTTPS (ou localhost). Se estiver testando no celular via IP local, utilize o <strong>PIN numérico</strong> abaixo. Em produção na Vercel com HTTPS, a biometria nativa funciona 100%.
+          </div>
+        )}
+
+        {/* Configurações e Controles */}
         <div className="pt-2 border-t border-zinc-100 dark:border-[#27272A] space-y-4">
-          {!hasBiometricHardware ? (
-            <p className="text-xs text-zinc-500">
-              Este navegador ou dispositivo não possui suporte a autenticador de plataforma compatível com WebAuthn (Face ID, Touch ID ou leitor de impressão digital).
-            </p>
-          ) : !biometricConfig?.enabled ? (
+          {!biometricConfig?.enabled && !biometricConfig?.hasPin ? (
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl bg-zinc-50 dark:bg-[#18181B] border border-zinc-200 dark:border-[#27272A]">
               <div>
                 <p className="text-xs font-bold text-zinc-900 dark:text-[#F4F4F5]">
-                  Ativar Bloqueio por Biometria
+                  Ativar Proteção no Aparelho
                 </p>
                 <p className="text-[11px] text-zinc-500 mt-0.5">
-                  Gera uma credencial criptográfica Passkey W3C armazenada no Secure Enclave deste aparelho.
+                  Cadastre sua digital/Face ID ou defina um PIN numérico para bloquear a tela ao alternar apps.
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={handleRegisterBiometrics}
-                disabled={isProcessingBiometrics}
-                className="h-9 px-4 rounded-xl bg-[#FF8216] hover:bg-[#FF9438] text-black text-xs font-bold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0 disabled:opacity-50"
-              >
-                {isProcessingBiometrics ? (
-                  <>
-                    <Spinner size={14} className="text-black" />
-                    <span>Registrando...</span>
-                  </>
-                ) : (
-                  <>
-                    <span className="material-symbols-outlined text-[16px]">fingerprint</span>
-                    <span>Cadastrar Biometria</span>
-                  </>
-                )}
-              </button>
+              <div className="flex items-center gap-2 shrink-0">
+                {diagnosis?.isSupported ? (
+                  <button
+                    type="button"
+                    onClick={handleRegisterBiometrics}
+                    disabled={isProcessingBiometrics}
+                    className="h-9 px-4 rounded-xl bg-[#FF8216] hover:bg-[#FF9438] text-black text-xs font-bold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    {isProcessingBiometrics ? (
+                      <Spinner size={14} className="text-black" />
+                    ) : (
+                      <>
+                        <span className="material-symbols-outlined text-[16px]">fingerprint</span>
+                        <span>Usar Digital</span>
+                      </>
+                    )}
+                  </button>
+                ) : null}
+
+                <button
+                  type="button"
+                  onClick={() => setShowPinModal(true)}
+                  className="h-9 px-4 rounded-xl bg-[#18181B] hover:bg-[#27272A] border border-[#27272A] text-white text-xs font-bold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[16px] text-[#FF8216]">pin</span>
+                  <span>Criar PIN</span>
+                </button>
+              </div>
             </div>
           ) : (
             <div className="space-y-4">
-              {/* Seletor de Tempo de Bloqueio */}
+              {/* Bloqueio ao Abrir o App (Cold Start) */}
+              <div className="flex items-center justify-between p-3.5 rounded-xl bg-zinc-50 dark:bg-[#18181B] border border-zinc-200 dark:border-[#27272A]">
+                <div>
+                  <p className="text-xs font-bold text-zinc-900 dark:text-[#F4F4F5]">
+                    Bloquear Imediatamente ao Abrir o App (Cold-Start)
+                  </p>
+                  <p className="text-[11px] text-zinc-500 mt-0.5">
+                    Exige biometria/PIN logo no início, antes de exibir saldos patrimoniais.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleToggleColdStart}
+                  className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer ${
+                    biometricConfig.lockOnColdStart ? "bg-[#FF8216]" : "bg-zinc-700"
+                  }`}
+                >
+                  <div
+                    className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-transform ${
+                      biometricConfig.lockOnColdStart ? "left-6" : "left-1"
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* Seletor de Tempo de Bloqueio em Background */}
               <div className="space-y-2">
                 <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 block">
                   Tempo para Bloquear ao Sair do App (Cortina de Privacidade)
@@ -336,26 +413,44 @@ export default function SettingsPage() {
                     );
                   })}
                 </div>
-                <p className="text-[11px] text-zinc-500">
-                  A Cortina de Privacidade oculta imediatamente os saldos na miniatura do multitarefa ao minimizar a aba ou trocar de aplicativo.
-                </p>
               </div>
 
-              {/* Botões de Ação da Biometria */}
+              {/* Ações Rápidas */}
               <div className="flex flex-wrap items-center gap-2.5 pt-1">
+                {biometricConfig.enabled ? (
+                  <button
+                    type="button"
+                    onClick={handleTestBiometrics}
+                    disabled={isProcessingBiometrics}
+                    className="h-9 px-4 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-[#18181B] dark:hover:bg-[#27272A] border border-zinc-200 dark:border-[#27272A] text-xs font-medium text-zinc-700 dark:text-zinc-300 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-[16px] text-[#FF8216]">fingerprint</span>
+                    <span>Testar Biometria Agora</span>
+                  </button>
+                ) : diagnosis?.isSupported ? (
+                  <button
+                    type="button"
+                    onClick={handleRegisterBiometrics}
+                    disabled={isProcessingBiometrics}
+                    className="h-9 px-4 rounded-xl bg-[#FF8216] hover:bg-[#FF9438] text-black text-xs font-bold inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">fingerprint</span>
+                    <span>Cadastrar Digital</span>
+                  </button>
+                ) : null}
+
                 <button
                   type="button"
-                  onClick={handleTestBiometrics}
-                  disabled={isProcessingBiometrics}
+                  onClick={() => setShowPinModal(true)}
                   className="h-9 px-4 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-[#18181B] dark:hover:bg-[#27272A] border border-zinc-200 dark:border-[#27272A] text-xs font-medium text-zinc-700 dark:text-zinc-300 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
-                  <span className="material-symbols-outlined text-[16px] text-[#FF8216]">fingerprint</span>
-                  <span>Testar Biometria Agora</span>
+                  <span className="material-symbols-outlined text-[16px] text-[#FF8216]">pin</span>
+                  <span>{biometricConfig.hasPin ? "Alterar PIN" : "Criar PIN"}</span>
                 </button>
 
                 <button
                   type="button"
-                  onClick={handleDisableBiometrics}
+                  onClick={handleDisableProtection}
                   className="h-9 px-4 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/25 text-xs font-medium text-rose-400 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <span>Desativar Bloqueio</span>
@@ -365,6 +460,76 @@ export default function SettingsPage() {
           )}
         </div>
       </section>
+
+      {/* MODAL DE CRIAÇÃO/ALTERAÇÃO DE PIN */}
+      {showPinModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-sm rounded-3xl bg-[#121214] border border-[#27272A] p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-[#27272A]">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <span className="material-symbols-outlined text-[#FF8216]">pin</span>
+                <span>Configurar PIN Numérico</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowPinModal(false)}
+                className="text-zinc-400 hover:text-white cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSavePinForm} className="space-y-4">
+              <div>
+                <label className="text-xs text-zinc-400 block mb-1">
+                  Novo PIN (4 a 6 números):
+                </label>
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={inputNewPin}
+                  onChange={(e) => setInputNewPin(e.target.value.replace(/\D/g, ""))}
+                  placeholder="••••"
+                  className="w-full px-3 py-2 rounded-xl bg-[#18181B] border border-[#27272A] text-white text-center text-lg tracking-[0.4em] font-mono focus:outline-none focus:border-[#FF8216]"
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-zinc-400 block mb-1">
+                  Confirme o novo PIN:
+                </label>
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={inputConfirmPin}
+                  onChange={(e) => setInputConfirmPin(e.target.value.replace(/\D/g, ""))}
+                  placeholder="••••"
+                  className="w-full px-3 py-2 rounded-xl bg-[#18181B] border border-[#27272A] text-white text-center text-lg tracking-[0.4em] font-mono focus:outline-none focus:border-[#FF8216]"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowPinModal(false)}
+                  className="flex-1 h-10 rounded-xl bg-[#18181B] border border-[#27272A] text-zinc-400 text-xs font-semibold cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 h-10 rounded-xl bg-[#FF8216] text-black text-xs font-bold cursor-pointer"
+                >
+                  Salvar PIN
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* SEÇÃO 2: TEMA VISUAL & INTERFACE */}
       <section className="bg-white dark:bg-[#121214] border border-zinc-200 dark:border-[#27272A] rounded-2xl p-5 md:p-6 flex flex-col gap-4 shadow-xs">
@@ -537,7 +702,7 @@ export default function SettingsPage() {
             {user?.email || "Usuário Autenticado"}
           </span>
           <span className="text-[11px] text-zinc-500">
-            Kitsune Finance v2.1 • Padrão Wealthfolio Warm Obsidian
+            Kitsune Finance v2.2 • Padrão Wealthfolio Warm Obsidian
           </span>
         </div>
 
