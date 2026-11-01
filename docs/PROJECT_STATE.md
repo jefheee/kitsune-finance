@@ -199,14 +199,11 @@
 ---
 
 ## 4. Context Handoff (Memória de Continuidade entre Chats)
-- **Última Etapa Concluída:** Release v3.1 — **Expurgo do Histórico Git, Nova Identidade Minimalista e Evolução Warm Obsidian**:
-  1. **Segurança do Git:** Histórico reescrito via `git filter-branch` expurgando permanentemente a pasta `public/assets/screenshots/pierre design system/`, validada com 0 ocorrências em todo o histórico e sincronizada via `git push origin master --force`.
-  2. **Branding & PWA Modernizado:** Nova logo minimalista (`logo-transparent.png`) integrada em Sidebar/AppShell, Mobile Nav, Header, Login, Signup e Biometric Lock Guard; ícones PWA convertidos e configurados em PNG de alta compatibilidade (`icon-192x192.png`, `icon-512x512.png`, `maskable-icon-512x512.png`).
-  3. **Evolução do Design System Warm Obsidian:**
-     - Aposentadoria definitiva do antigo laranja `#FF8216`.
-     - Ações primárias, botões principais e estados ativos convertidos para alto contraste monocromático (`#FFFFFF`/`#FAFAFA` com texto preto `#0A0A0A`).
-     - Brand Accent acentuado com **Kitsune Crimson (`#E11D48`)** para elementos de identidade, Kitsune AI, badges de destaque e anéis de foco cirúrgicos.
-     - Curva patrimonial do gráfico `NetWorthHeroChart` redesenhada com traço e gradiente em Branco Puro (`#FFFFFF`), mantendo superfícies neutras (`#0A0A0A`, `#121214`, `#18181B`, `#27272A`).
-  4. **Estabilidade Técnica:** Validação de tipagem estrita com TypeScript (`npx tsc --noEmit`) aprovada com 0 erros.
-- **Próxima Etapa Imediata:** Sincronização dos novos dados patrimoniais e ativos físicos com as ferramentas dos agentes de IA (`src/utils/ai/deterministic-tools.ts`).
+- **Última Etapa Concluída:** Release v3.2 — **Glow Refinado, Widgets Neutros Sob Demanda, Scroll Restoration & Logo Horizontal**:
+  1. **Landing Page:** Glow alaranjado atrás do iPhone 16 Pro substituído por halo sofisticado e translúcido em carmesim suave e branco (`rgba(225,29,72,0.12)` + `rgba(255,255,255,0.06)`).
+  2. **Dashboard Widgets:** Cards de "Módulos & Visão Executiva" convertidos para cinza neutro Warm Obsidian (`#121214` e `#27272A`), iniciando 100% recolhidos para que o usuário decida quando expandir.
+  3. **Scroll Restoration:** Criado `ScrollRestorationProvider.tsx` integrado ao `layout.tsx` que preserva a posição exata de scroll por rota ao usar o botão "Voltar" em navegadores e no app PWA mobile.
+  4. **Logo Horizontal Transparente:** Implementada no `README.md` (GitHub), no footer da Landing Page e nas telas de `/login` e `/signup`, removendo títulos redundantes.
+  5. **Estabilidade Técnica:** TypeScript validado com 0 erros (`npx tsc --noEmit`).
+- **Próxima Etapa Imediata:** Implementação opcional de `ALLOWED_USERS_EMAILS` (Allowlist Server-Side) para restringir o acesso na Vercel mantendo o repositório aberto e público no GitHub.
 - **Pendências ou Bloqueios:** Nenhum. Todo o código compila perfeitamente.

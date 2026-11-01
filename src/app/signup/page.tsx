@@ -109,16 +109,15 @@ export default function SignupPage() {
             <span>Voltar ao início</span>
           </Link>
 
-          <Link href="/" className="flex items-center gap-2">
+          <Link href="/" className="flex items-center">
             <Image
-              src="/assets/logo/logo-transparent.png"
-              alt="Logo Kitsune"
-              width={28}
+              src="/assets/logo/logo-horizontal-transparent.png"
+              alt="Kitsune Finance"
+              width={112}
               height={28}
               priority
               className="object-contain"
             />
-            <span className="font-bold text-sm tracking-tight text-white font-sans">Kitsune</span>
           </Link>
         </div>
         

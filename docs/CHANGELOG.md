@@ -4,6 +4,16 @@ Todas as alterações notáveis no projeto Kitsune Finance são registradas de f
 
 ---
 
+## [2026-11-01] - Glow Refinado, Widgets Neutros Sob Demanda, Scroll Restoration & Logo Horizontal
+- **Arquivos Afetados:** `src/app/page.tsx`, `src/components/finance/DashboardExecutiveWidgets.tsx`, `src/components/providers/ScrollRestorationProvider.tsx`, `src/app/layout.tsx`, `src/app/{login, signup}/page.tsx`, `README.md`.
+- **Objetivo:**
+  - Substituição do antigo halo laranja da Landing Page por glow discreto em carmesim e branco translúcido.
+  - Neutralização dos 4 cards de "Módulos & Visão Executiva" para a paleta sóbria Warm Obsidian (`#121214`/`#27272A`), iniciando 100% recolhidos para que o usuário escolha o que expandir.
+  - Implementação de `ScrollRestorationProvider.tsx` garantindo retorno instantâneo e fluido à posição exata em botões "Voltar" de navegadores e PWA mobile.
+  - Aplicação de `logo-horizontal-transparent.png` no README do GitHub, footer da Landing Page e telas de Login/Cadastro sem duplicidade de títulos.
+
+---
+
 ## [2026-11-01] - Expurgado Histórico Git, Nova Identidade Minimalista e Evolução Warm Obsidian
 - **Arquivos Afetados:** `public/assets/logo/*`, `public/manifest.json`, `public/sw.js`, `src/app/globals.css`, `src/components/layout/AppShell.tsx`, `src/components/wealthfolio/NetWorthHeroChart.tsx`, `src/app/page.tsx`, `src/app/login/page.tsx`, `src/app/dashboard/page.tsx`, `src/app/kitsune/page.tsx`.
 - **Objetivo:**

@@ -1,11 +1,9 @@
 <p align="center">
-  <img src="public/assets/logo/logo-transparent.png" width="120" alt="Kitsune Finance Logo" />
+  <img src="public/assets/logo/logo-horizontal-transparent.png" width="340" alt="Kitsune Finance" />
 </p>
 
-<h1 align="center">Kitsune Finance</h1>
-
 <p align="center">
-  <strong>Autonomous Wealth Management, Open Finance Consolidation, and Private Family Office Engine (v2.0)</strong>
+  <strong>Autonomous Wealth Management, Open Finance Consolidation, and Private Family Office Engine</strong>
 </p>
 
 <p align="center">

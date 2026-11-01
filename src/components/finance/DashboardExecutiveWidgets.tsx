@@ -72,8 +72,8 @@ export function DashboardExecutiveWidgets({
   topHoldings,
   monthlyCDIFactor,
 }: DashboardExecutiveWidgetsProps) {
-  // Estado do widget atualmente expandido (por padrão "accounts", ou null se recolhido)
-  const [activeWidget, setActiveWidget] = useState<ExecutiveWidgetType | null>("accounts");
+  // Estado do widget atualmente expandido (por padrão null / recolhido para o usuário escolher o que quer ver)
+  const [activeWidget, setActiveWidget] = useState<ExecutiveWidgetType | null>(null);
 
   const toggleWidget = (type: ExecutiveWidgetType) => {
     setActiveWidget((prev) => (prev === type ? null : type));
@@ -99,15 +99,15 @@ export function DashboardExecutiveWidgets({
         <button
           type="button"
           onClick={() => toggleWidget("accounts")}
-          className={`p-3.5 rounded-2xl bg-gradient-to-br from-blue-600/15 to-[#121214] border transition-all text-left flex flex-col justify-between gap-2.5 cursor-pointer relative overflow-hidden group ${
+          className={`p-3.5 rounded-2xl bg-[#121214] border transition-all text-left flex flex-col justify-between gap-2.5 cursor-pointer relative overflow-hidden group ${
             activeWidget === "accounts"
-              ? "border-[#E11D48] ring-1 ring-[#E11D48] shadow-lg shadow-[#E11D48]/10"
-              : "border-blue-500/30 hover:border-blue-500/60 hover:-translate-y-0.5"
+              ? "border-white ring-1 ring-white/30 shadow-lg shadow-black/40"
+              : "border-[#27272A] hover:border-zinc-700 hover:-translate-y-0.5"
           }`}
         >
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
-              <div className="w-6 h-6 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
+              <div className="w-6 h-6 rounded-lg bg-[#18181B] text-zinc-300 border border-[#27272A] flex items-center justify-center shrink-0">
                 <span className="material-symbols-outlined text-[16px]">account_balance</span>
               </div>
               <span className="text-xs font-bold text-white truncate">
@@ -116,7 +116,7 @@ export function DashboardExecutiveWidgets({
             </div>
             <span
               className={`w-2 h-2 rounded-full shrink-0 transition-colors ${
-                activeWidget === "accounts" ? "bg-[#E11D48]" : "bg-blue-400"
+                activeWidget === "accounts" ? "bg-white" : "bg-zinc-600"
               }`}
             />
           </div>
@@ -130,11 +130,11 @@ export function DashboardExecutiveWidgets({
             </span>
           </div>
 
-          <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[10px]">
+          <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[10px]">
             <span className="text-zinc-400 truncate">
               {accounts.length} contas • {investments.length} ativos
             </span>
-            <span className="text-[#E11D48] font-semibold shrink-0">
+            <span className={`font-semibold shrink-0 ${activeWidget === "accounts" ? "text-white" : "text-zinc-400"}`}>
               {activeWidget === "accounts" ? "Aberto ▾" : "Expandir →"}
             </span>
           </div>
@@ -144,15 +144,15 @@ export function DashboardExecutiveWidgets({
         <button
           type="button"
           onClick={() => toggleWidget("recent_tx")}
-          className={`p-3.5 rounded-2xl bg-gradient-to-br from-emerald-600/15 to-[#121214] border transition-all text-left flex flex-col justify-between gap-2.5 cursor-pointer relative overflow-hidden group ${
+          className={`p-3.5 rounded-2xl bg-[#121214] border transition-all text-left flex flex-col justify-between gap-2.5 cursor-pointer relative overflow-hidden group ${
             activeWidget === "recent_tx"
-              ? "border-[#E11D48] ring-1 ring-[#E11D48] shadow-lg shadow-[#E11D48]/10"
-              : "border-emerald-500/30 hover:border-emerald-500/60 hover:-translate-y-0.5"
+              ? "border-white ring-1 ring-white/30 shadow-lg shadow-black/40"
+              : "border-[#27272A] hover:border-zinc-700 hover:-translate-y-0.5"
           }`}
         >
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
-              <div className="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+              <div className="w-6 h-6 rounded-lg bg-[#18181B] text-zinc-300 border border-[#27272A] flex items-center justify-center shrink-0">
                 <span className="material-symbols-outlined text-[16px]">receipt_long</span>
               </div>
               <span className="text-xs font-bold text-white truncate">
@@ -161,7 +161,7 @@ export function DashboardExecutiveWidgets({
             </div>
             <span
               className={`w-2 h-2 rounded-full shrink-0 transition-colors ${
-                activeWidget === "recent_tx" ? "bg-[#E11D48]" : "bg-emerald-400"
+                activeWidget === "recent_tx" ? "bg-white" : "bg-zinc-600"
               }`}
             />
           </div>
@@ -175,11 +175,11 @@ export function DashboardExecutiveWidgets({
             </span>
           </div>
 
-          <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[10px]">
+          <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[10px]">
             <span className="text-zinc-400 truncate">
               Entradas: {isPrivacyMode ? "R$ •••" : formatCurrency(monthlyIncome)}
             </span>
-            <span className="text-[#E11D48] font-semibold shrink-0">
+            <span className={`font-semibold shrink-0 ${activeWidget === "recent_tx" ? "text-white" : "text-zinc-400"}`}>
               {activeWidget === "recent_tx" ? "Aberto ▾" : "Expandir →"}
             </span>
           </div>
@@ -189,15 +189,15 @@ export function DashboardExecutiveWidgets({
         <button
           type="button"
           onClick={() => toggleWidget("goals")}
-          className={`p-3.5 rounded-2xl bg-gradient-to-br from-amber-600/15 to-[#121214] border transition-all text-left flex flex-col justify-between gap-2.5 cursor-pointer relative overflow-hidden group ${
+          className={`p-3.5 rounded-2xl bg-[#121214] border transition-all text-left flex flex-col justify-between gap-2.5 cursor-pointer relative overflow-hidden group ${
             activeWidget === "goals"
-              ? "border-[#E11D48] ring-1 ring-[#E11D48] shadow-lg shadow-[#E11D48]/10"
-              : "border-amber-500/30 hover:border-amber-500/60 hover:-translate-y-0.5"
+              ? "border-white ring-1 ring-white/30 shadow-lg shadow-black/40"
+              : "border-[#27272A] hover:border-zinc-700 hover:-translate-y-0.5"
           }`}
         >
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
-              <div className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
+              <div className="w-6 h-6 rounded-lg bg-[#18181B] text-zinc-300 border border-[#27272A] flex items-center justify-center shrink-0">
                 <span className="material-symbols-outlined text-[16px]">flag</span>
               </div>
               <span className="text-xs font-bold text-white truncate">
@@ -206,7 +206,7 @@ export function DashboardExecutiveWidgets({
             </div>
             <span
               className={`w-2 h-2 rounded-full shrink-0 transition-colors ${
-                activeWidget === "goals" ? "bg-[#E11D48]" : "bg-amber-400"
+                activeWidget === "goals" ? "bg-white" : "bg-zinc-600"
               }`}
             />
           </div>
@@ -220,11 +220,11 @@ export function DashboardExecutiveWidgets({
             </span>
           </div>
 
-          <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[10px]">
+          <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[10px]">
             <span className="text-zinc-400 truncate">
               {goalsSummary.emergencyMonths} meses de custo
             </span>
-            <span className="text-[#E11D48] font-semibold shrink-0">
+            <span className={`font-semibold shrink-0 ${activeWidget === "goals" ? "text-white" : "text-zinc-400"}`}>
               {activeWidget === "goals" ? "Aberto ▾" : "Expandir →"}
             </span>
           </div>
@@ -234,15 +234,15 @@ export function DashboardExecutiveWidgets({
         <button
           type="button"
           onClick={() => toggleWidget("holdings")}
-          className={`p-3.5 rounded-2xl bg-gradient-to-br from-purple-600/15 to-[#121214] border transition-all text-left flex flex-col justify-between gap-2.5 cursor-pointer relative overflow-hidden group ${
+          className={`p-3.5 rounded-2xl bg-[#121214] border transition-all text-left flex flex-col justify-between gap-2.5 cursor-pointer relative overflow-hidden group ${
             activeWidget === "holdings"
-              ? "border-[#E11D48] ring-1 ring-[#E11D48] shadow-lg shadow-[#E11D48]/10"
-              : "border-purple-500/30 hover:border-purple-500/60 hover:-translate-y-0.5"
+              ? "border-white ring-1 ring-white/30 shadow-lg shadow-black/40"
+              : "border-[#27272A] hover:border-zinc-700 hover:-translate-y-0.5"
           }`}
         >
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
-              <div className="w-6 h-6 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center shrink-0">
+              <div className="w-6 h-6 rounded-lg bg-[#18181B] text-zinc-300 border border-[#27272A] flex items-center justify-center shrink-0">
                 <span className="material-symbols-outlined text-[16px]">pie_chart</span>
               </div>
               <span className="text-xs font-bold text-white truncate">
@@ -251,7 +251,7 @@ export function DashboardExecutiveWidgets({
             </div>
             <span
               className={`w-2 h-2 rounded-full shrink-0 transition-colors ${
-                activeWidget === "holdings" ? "bg-[#E11D48]" : "bg-purple-400"
+                activeWidget === "holdings" ? "bg-white" : "bg-zinc-600"
               }`}
             />
           </div>
@@ -265,11 +265,11 @@ export function DashboardExecutiveWidgets({
             </span>
           </div>
 
-          <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[10px]">
+          <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[10px]">
             <span className="text-zinc-400 truncate">
               {topHoldings.length} posições em custódia
             </span>
-            <span className="text-[#E11D48] font-semibold shrink-0">
+            <span className={`font-semibold shrink-0 ${activeWidget === "holdings" ? "text-white" : "text-zinc-400"}`}>
               {activeWidget === "holdings" ? "Aberto ▾" : "Expandir →"}
             </span>
           </div>
@@ -290,7 +290,7 @@ export function DashboardExecutiveWidgets({
             {/* Header da Gaveta Expandida */}
             <div className="px-4 md:px-6 py-3.5 border-b border-[#27272A] flex items-center justify-between bg-[#18181B]/60">
               <div className="flex items-center gap-2.5">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#E11D48]">
+                <span className="text-xs font-bold uppercase tracking-wider text-white">
                   {activeWidget === "accounts" && "Contas, Custódia & Patrimônio Total"}
                   {activeWidget === "recent_tx" && "Atividades Recentes Conciliadas"}
                   {activeWidget === "goals" && "Metas & Reserva de Emergência"}
@@ -300,10 +300,9 @@ export function DashboardExecutiveWidgets({
               <button
                 type="button"
                 onClick={() => setActiveWidget(null)}
-                className="px-2.5 py-1 rounded-lg bg-[#27272A] hover:bg-[#323238] text-zinc-300 hover:text-white text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+                className="h-7 px-2.5 rounded-lg border border-[#27272A] bg-[#121214] text-[11px] font-semibold text-zinc-400 hover:text-white transition-colors cursor-pointer"
               >
-                <span>Recolher</span>
-                <span className="material-symbols-outlined text-[14px]">expand_less</span>
+                Recolher ✕
               </button>
             </div>
 

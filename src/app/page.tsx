@@ -154,7 +154,7 @@ export default function LandingPage() {
         <div
           className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[550px] h-[280px] pointer-events-none -z-10 rounded-full opacity-60"
           style={{
-            background: "radial-gradient(ellipse at center, rgba(255,130,22,0.14) 0%, transparent 70%)",
+            background: "radial-gradient(ellipse at center, rgba(225,29,72,0.12) 0%, rgba(255,255,255,0.06) 40%, transparent 70%)",
           }}
         />
 
@@ -276,7 +276,7 @@ export default function LandingPage() {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.7 }}
-            className="relative mx-auto w-[290px] sm:w-[320px] md:w-[340px] rounded-[48px] p-3 bg-gradient-to-b from-[#2D2D30] via-[#1A1A1C] to-[#121214] shadow-[0_0_60px_rgba(255,130,22,0.12)] border border-white/20"
+            className="relative mx-auto w-[290px] sm:w-[320px] md:w-[340px] rounded-[48px] p-3 bg-gradient-to-b from-[#2D2D30] via-[#1A1A1C] to-[#121214] shadow-[0_0_60px_rgba(255,255,255,0.08)] border border-white/20"
           >
             {/* Bezel Interior */}
             <div className="rounded-[40px] bg-[#0E1015] p-4 flex flex-col h-[580px] sm:h-[620px] overflow-hidden border border-black relative">
@@ -856,17 +856,14 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-12 gap-12 items-start pb-16 border-b border-white/10">
             {/* Left Column */}
             <div className="md:col-span-7 space-y-6 text-left">
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center">
                 <Image
-                  src="/assets/logo/logo-transparent.png"
-                  alt="Kitsune"
-                  width={32}
-                  height={32}
+                  src="/assets/logo/logo-horizontal-transparent.png"
+                  alt="Kitsune Finance"
+                  width={140}
+                  height={36}
                   className="object-contain"
                 />
-                <span className="text-xl font-bold tracking-tight text-white">
-                  Kitsune
-                </span>
               </div>
               <p className="text-xs text-zinc-400 max-w-sm leading-relaxed">
                 Seu assistente de inteligência artificial para finanças pessoais e consolidação patrimonial via Open Finance.

@@ -7,6 +7,7 @@ import { FinanceDataProvider } from '@/context/FinanceDataContext';
 import ServiceWorkerRegistrar from '@/components/ServiceWorkerRegistrar';
 import OnboardingModal from '@/components/OnboardingModal';
 import { SmoothScrollProvider } from '@/components/providers/SmoothScrollProvider';
+import { ScrollRestorationProvider } from '@/components/providers/ScrollRestorationProvider';
 import { BiometricLockGuard } from '@/components/security/BiometricLockGuard';
 
 const fontSans = Plus_Jakarta_Sans({
@@ -73,11 +74,13 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={true}>
           <FinanceDataProvider>
             <SmoothScrollProvider>
-              <ServiceWorkerRegistrar />
-              <OnboardingModal />
-              <BiometricLockGuard>
-                <AppShell>{children}</AppShell>
-              </BiometricLockGuard>
+              <ScrollRestorationProvider>
+                <ServiceWorkerRegistrar />
+                <OnboardingModal />
+                <BiometricLockGuard>
+                  <AppShell>{children}</AppShell>
+                </BiometricLockGuard>
+              </ScrollRestorationProvider>
             </SmoothScrollProvider>
           </FinanceDataProvider>
         </ThemeProvider>
