@@ -4,6 +4,14 @@ Todas as alterações notáveis no projeto Kitsune Finance são registradas de f
 
 ---
 
+## [2026-11-01] - Fusão Total de UI/UX: Portabilidade Completa do Wealthfolio em Warm Obsidian (v2.1)
+- **Arquivos Afetados:** `src/components/layout/AppShell.tsx`, `src/components/wealthfolio/*`, `src/app/dashboard/page.tsx`, `src/app/investments/page.tsx`, `src/app/holdings/page.tsx`, `src/app/insights/page.tsx`, `src/app/transactions/page.tsx`, `src/app/goals/page.tsx`, `src/app/cards/page.tsx`, `src/app/connections/page.tsx`, `src/app/globals.css`, `src/app/layout.tsx`, `docs/PROJECT_STATE.md`, `docs/ARCHITECTURE_EXPANSION.md`.
+- **Objetivo:**
+  - Portabilidade integral da interface Desktop, Tablet e Mobile/PWA do **Wealthfolio** mantendo a paleta estrita Warm Obsidian (`#0A0A0A`, `#121214`, `#18181B`, `#27272A`, acento `#FF8216` — zero tons azulados) e preservando 100% do Open Finance Pluggy, motor determinístico MSLR, 7 agentes IA e `isPrivacyMode`.
+  - Implementação da Sidebar colapsável + Bottom Navigation Bar mobile (`env(safe-area-inset-bottom)`), `NetWorthHeroChart` (`1M`/`3M`/`6M`/`1Y`/`ALL`), `GroupedAccountsList`, tabelas densas `tabular-nums` com lista empilhada mobile (`HoldingsDataTable` e `TransactionsDataTable`), Gauges `180°` (`AllocationGauges`), `AllocationTreemap` e `IncomeHistoryCard`.
+
+---
+
 ## [2026-11-01] - Correção de Performance no Dashboard: Eliminação de Drop de Frames
 - **Arquivos Afetados:** `src/components/react-bits/SpotlightCard.tsx`, `src/components/charts/SpendingCurveChart.tsx`, `docs/CHANGELOG.md`.
 - **Objetivo:**

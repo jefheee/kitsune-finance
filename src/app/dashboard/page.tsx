@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
-import Spinner from "@/components/Spinner";
+import { useRouter } from "next/navigation";
 import PluggyConnectModal from "@/components/PluggyConnectModal";
-import CustomDropdown from "@/components/ui/CustomDropdown";
 import { AiDiagnosticPanel } from "@/components/AiDiagnosticPanel";
 import { AnomalyAlertCard } from "@/components/AnomalyAlertCard";
 import { SpendingHeatmap } from "@/components/finance/SpendingHeatmap";
@@ -17,2339 +16,1364 @@ import { getBankCatalogBySlugOrName } from "@/utils/pluggy/bank-resolver";
 import { useFinanceData } from "@/context/FinanceDataContext";
 import { SpendingCurveChart } from "@/components/charts/SpendingCurveChart";
 import { CashFlowSankey } from "@/components/charts/CashFlowSankey";
-import { WalletCards } from "@/components/finance/WalletCards";
 import { CategoriesView } from "@/components/finance/CategoriesView";
 import { PaginatedTransactionsView } from "@/components/finance/PaginatedTransactionsView";
-import { SpotlightCard } from "@/components/react-bits/SpotlightCard";
-import { ShinyText } from "@/components/react-bits/ShinyText";
 import { runFinancialXRay } from "@/utils/finance/engine";
-
+import { parseLocalDate } from "@/utils/finance/reconciler";
+import {
+  fetchLiveMacroRates,
+  getCachedOrFallbackMacroRates,
+  type LiveMacroRatesSnapshot,
+} from "@/utils/finance/macro-rates";
+import { NetWorthHeroChart } from "@/components/wealthfolio/NetWorthHeroChart";
+import { GroupedAccountsList } from "@/components/wealthfolio/GroupedAccountsList";
+import { WfIcons } from "@/components/wealthfolio/WealthfolioIcons";
 
 const FINANCIAL_GOALS_MAP: Record<string, string> = {
-    asset_growth: 'Crescimento e Alocação Estratégica',
-    emergency_fund: 'Construção de Reserva de Emergência',
-    debt_payoff: 'Quitação de Dívidas e Alavancagem',
-    reduce_expenses: 'Otimização de Custos e Gastos',
-    investir: 'Multiplicação Patrimonial e Renda Passiva',
-    'investir e multiplicar': 'Crescimento e Alocação Estratégica',
+  asset_growth: "Crescimento e Alocação Estratégica",
+  emergency_fund: "Construção de Reserva de Emergência",
+  debt_freedom: "Zerar Faturas & Dívidas",
+  debt_payoff: "Quitação de Dívidas e Alavancagem",
+  fire_investing: "Independência Financeira (FIRE)",
+  real_estate: "Conquista de Imóvel / Veículo",
+  travel_lifestyle: "Projetos Pessoais & Viagens",
+  reduce_expenses: "Otimização de Custos e Gastos",
+  investir: "Multiplicação Patrimonial e Renda Passiva",
+  "investir e multiplicar": "Crescimento e Alocação Estratégica",
 };
 
-function parseLocalDate(dateStr: string | Date | undefined | null): Date {
-    if (!dateStr) return new Date();
-    if (dateStr instanceof Date) return dateStr;
-    const cleanStr = String(dateStr).split('T')[0];
-    if (/^\d{4}-\d{2}-\d{2}$/.test(cleanStr)) {
-        const [y, m, d] = cleanStr.split('-').map(Number);
-        return new Date(y, m - 1, d, 12, 0, 0);
-    }
-    const parsed = new Date(dateStr);
-    return isNaN(parsed.getTime()) ? new Date() : parsed;
-}
+type DashboardTab =
+  | "Visão Geral"
+  | "Fluxo & Gastos"
+  | "Transações"
+  | "Parcelas & Assinaturas";
+
+const DASHBOARD_TABS: DashboardTab[] = [
+  "Visão Geral",
+  "Fluxo & Gastos",
+  "Transações",
+  "Parcelas & Assinaturas",
+];
 
 export default function DashboardPage() {
-    const {
-        user,
-        userProfile,
-        accounts,
-        investments,
-        loans,
-        transactions,
-        connections,
-        familyMembers,
-        aiInsight,
-        isInitialLoading,
-        isRevalidating,
-        selectedBankSlug,
-        setSelectedBankSlug,
-        isFamilyModeEnabled,
-        setIsFamilyModeEnabled,
-        activePartner,
-        sharedConnection,
-        isPrivacyMode,
-        revalidate,
-        setAiInsightState,
-        addFamilyMemberLocal,
-        removeFamilyMemberLocal,
-    } = useFinanceData();
+  const router = useRouter();
+  const {
+    user,
+    userProfile,
+    accounts,
+    investments,
+    loans,
+    transactions,
+    connections,
+    familyMembers,
+    aiInsight,
+    isInitialLoading,
+    isRevalidating,
+    selectedBankSlug,
+    setSelectedBankSlug,
+    isFamilyModeEnabled,
+    setIsFamilyModeEnabled,
+    activePartner,
+    isPrivacyMode,
+    togglePrivacyMode,
+    revalidate,
+    setAiInsightState,
+    addFamilyMemberLocal,
+  } = useFinanceData();
 
-    const userFirstName = (() => {
-        if (userProfile?.display_name && userProfile.display_name.trim().length > 0) {
-            return userProfile.display_name.trim().split(" ")[0];
-        }
-        if (userProfile?.full_name && userProfile.full_name.trim().length > 0) {
-            return userProfile.full_name.trim().split(" ")[0];
-        }
-        const metaName = user?.user_metadata?.full_name || user?.user_metadata?.name;
-        if (metaName) return String(metaName).split(" ")[0];
-        return user?.email?.split("@")[0] || "Investidor";
-    })();
+  const [activeTab, setActiveTab] = useState<DashboardTab>("Visão Geral");
+  const [selectedMemberId, setSelectedMemberId] = useState<string>("all");
+  const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
+  const [connectForMemberId, setConnectForMemberId] = useState<string | null>(null);
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const [timeGranularity, setTimeGranularity] = useState<"day" | "week" | "month" | "year">("month");
 
-    const [activeTab, setActiveTab] = useState("Visão Geral");
-    const [selectedMemberId, setSelectedMemberId] = useState<string>("all");
-    const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
-    const [connectForMemberId, setConnectForMemberId] = useState<string | null>(null);
+  const [isGeneratingAi, setIsGeneratingAi] = useState(false);
+  const [macroRates, setMacroRates] = useState<LiveMacroRatesSnapshot>(() =>
+    getCachedOrFallbackMacroRates()
+  );
 
-    const [isGeneratingAi, setIsGeneratingAi] = useState(false);
-    const [aiError, setAiError] = useState<string | null>(null);
+  // Redirecionamento limpo caso o usuário abra link de convite no Dashboard
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const inviteParam = params.get("accept_invite");
+      if (inviteParam) {
+        router.replace(`/shared?accept_invite=${encodeURIComponent(inviteParam)}`);
+      }
+    }
+  }, [router]);
 
-    // Pesquisa Global Inteligente e Granularidade Temporal
-    const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
-    const [timeGranularity, setTimeGranularity] = useState<"day" | "week" | "month" | "year">("month");
-
-    // Espaço Compartilhado (Duo & Família) com Supabase & RLS
-    const [sharedSpaceData, setSharedSpaceData] = useState<{
-        has_bank_accounts: boolean;
-        active_connection: any | null;
-        pending_received: any[];
-        pending_sent: any[];
-    } | null>(null);
-    const [isLoadingSharedSpace, setIsLoadingSharedSpace] = useState(false);
-    const [inviteEmail, setInviteEmail] = useState("");
-    const [inviteName, setInviteName] = useState("");
-    const [inviteRole, setInviteRole] = useState("Cônjuge");
-    const [isSendingInvite, setIsSendingInvite] = useState(false);
-    const [inputInviteCode, setInputInviteCode] = useState("");
-    const [isValidatingCode, setIsValidatingCode] = useState(false);
-    const [sharedMessage, setSharedMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
-    const [copiedCodeOrLink, setCopiedCodeOrLink] = useState<string | null>(null);
-    const [lastCreatedInvite, setLastCreatedInvite] = useState<{ code: string; email: string; url: string } | null>(null);
-    const [yearNotice, setYearNotice] = useState<string | null>(null);
-
-    const fetchSharedSpace = useCallback(async () => {
-        try {
-            setIsLoadingSharedSpace(true);
-            const res = await fetch("/api/shared-space");
-            const data = await res.json();
-            if (res.ok) {
-                setSharedSpaceData(data);
-            }
-        } catch (e) {
-            console.error("Erro ao buscar dados do espaço compartilhado:", e);
-        } finally {
-            setIsLoadingSharedSpace(false);
-        }
-    }, []);
-
-    useEffect(() => {
-        fetchSharedSpace();
-        if (typeof window !== "undefined") {
-            const params = new URLSearchParams(window.location.search);
-            const inviteParam = params.get("accept_invite");
-            if (inviteParam) {
-                setActiveTab("Espaço Compartilhado");
-                setInputInviteCode(inviteParam.toUpperCase());
-            }
-        }
-    }, [fetchSharedSpace]);
-
-    const handleSendInvite = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!inviteEmail.trim() || isSendingInvite) return;
-        setIsSendingInvite(true);
-        setSharedMessage(null);
-        try {
-            const res = await fetch("/api/shared-space", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    email: inviteEmail.trim(),
-                    name: inviteName.trim() || undefined,
-                    role: inviteRole,
-                }),
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || "Erro ao enviar convite");
-            const generatedCode = data.invite_code || data.inviteCode || data.connection?.invite_code || "KT-INVITE";
-            const generatedUrl = data.inviteUrl || ("https://kitsune-finance.vercel.app/dashboard?accept_invite=" + generatedCode);
-            setLastCreatedInvite({
-                code: generatedCode,
-                email: inviteEmail.trim(),
-                url: generatedUrl,
-            });
-            setSharedMessage({
-                type: "success",
-                text: "Convite gerado com sucesso para " + inviteEmail + "! Código: " + generatedCode,
-            });
-            setInviteEmail("");
-            setInviteName("");
-            await fetchSharedSpace();
-            revalidate(true);
-        } catch (err: any) {
-            setSharedMessage({ type: "error", text: err.message });
-        } finally {
-            setIsSendingInvite(false);
-        }
+  useEffect(() => {
+    let mounted = true;
+    fetchLiveMacroRates().then((live) => {
+      if (mounted) setMacroRates(live);
+    });
+    return () => {
+      mounted = false;
     };
+  }, []);
 
-    const handleRespondInvite = async (inviteCode: string, action: "accept" | "reject") => {
-        setIsValidatingCode(true);
-        setSharedMessage(null);
-        try {
-            const res = await fetch("/api/shared-space", {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ code: inviteCode, inviteCode, action }),
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || "Erro ao processar convite");
-            setSharedMessage({
-                type: "success",
-                text:
-                    action === "accept"
-                        ? "Conexão estabelecida com sucesso! Seu Espaço Compartilhado está ativo."
-                        : "Convite recusado.",
-            });
-            setInputInviteCode("");
-            if (action === "accept") {
-                setIsFamilyModeEnabled(true);
-            }
-            await fetchSharedSpace();
-            revalidate(true);
-        } catch (err: any) {
-            setSharedMessage({ type: "error", text: err.message });
-        } finally {
-            setIsValidatingCode(false);
+  const userFirstName = useMemo(() => {
+    if (userProfile?.display_name && userProfile.display_name.trim().length > 0) {
+      return userProfile.display_name.trim().split(" ")[0];
+    }
+    if (userProfile?.full_name && userProfile.full_name.trim().length > 0) {
+      return userProfile.full_name.trim().split(" ")[0];
+    }
+    const metaName = user?.user_metadata?.full_name || user?.user_metadata?.name;
+    if (metaName) return String(metaName).split(" ")[0];
+    return user?.email?.split("@")[0] || "Investidor";
+  }, [userProfile, user]);
+
+  // Lista única de instituições conectadas ordenada por relevância patrimonial
+  const connectedBanks = useMemo(() => {
+    const map = new Map<
+      string,
+      { slug: string; name: string; accountCount: number; totalAssets: number }
+    >();
+
+    accounts.forEach((acc) => {
+      const entry = getBankCatalogBySlugOrName(
+        acc.institution_slug || acc.institution_name || acc.bank_name
+      );
+      const bal = Number(acc.balance) || 0;
+      const isCredit = acc.type === "CREDIT" || acc.subtype === "CREDIT_CARD";
+      const assetVal = isCredit ? 0 : bal;
+
+      const existing = map.get(entry.slug);
+      if (existing) {
+        existing.accountCount += 1;
+        existing.totalAssets += assetVal;
+      } else {
+        map.set(entry.slug, {
+          slug: entry.slug,
+          name: entry.shortName,
+          accountCount: 1,
+          totalAssets: assetVal,
+        });
+      }
+    });
+
+    investments.forEach((inv) => {
+      const entry = getBankCatalogBySlugOrName(inv.institution_name);
+      const bal = Number(inv.balance) || 0;
+      const existing = map.get(entry.slug);
+      if (existing) {
+        existing.totalAssets += bal;
+      } else if (entry.slug !== "generic") {
+        map.set(entry.slug, {
+          slug: entry.slug,
+          name: entry.shortName,
+          accountCount: 0,
+          totalAssets: bal,
+        });
+      }
+    });
+
+    connections.forEach((conn) => {
+      const entry = getBankCatalogBySlugOrName(
+        conn.institution_slug || conn.institution_name || conn.provider_name
+      );
+      if (entry.slug !== "generic" && !map.has(entry.slug)) {
+        map.set(entry.slug, {
+          slug: entry.slug,
+          name: entry.shortName,
+          accountCount: 0,
+          totalAssets: 0,
+        });
+      }
+    });
+
+    return Array.from(map.values()).sort((a, b) => b.totalAssets - a.totalAssets);
+  }, [accounts, investments, connections]);
+
+  useEffect(() => {
+    if (
+      selectedBankSlug !== "all" &&
+      connectedBanks.length > 0 &&
+      !connectedBanks.some((b) => b.slug === selectedBankSlug)
+    ) {
+      setSelectedBankSlug("all");
+    }
+  }, [selectedBankSlug, connectedBanks, setSelectedBankSlug]);
+
+  // Filtragem Global Combinada (Membro da Família + Banco Selecionado)
+  const filteredAccounts = useMemo(() => {
+    return accounts
+      .filter((a) => {
+        if (isFamilyModeEnabled && selectedMemberId !== "all") {
+          if (selectedMemberId === "personal" && a.family_member_id) return false;
+          if (selectedMemberId !== "personal" && a.family_member_id !== selectedMemberId)
+            return false;
         }
-    };
-
-    const handleUnlinkSharedSpace = async () => {
-        if (
-            !confirm(
-                "Tem certeza que deseja desvincular o Espaço Compartilhado? As contas do parceiro deixarão de ser consolidadas na sua visão."
-            )
-        )
-            return;
-        try {
-            const res = await fetch("/api/shared-space", { method: "DELETE" });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || "Erro ao desvincular");
-            setSharedMessage({
-                type: "success",
-                text: "Espaço compartilhado desvinculado com sucesso.",
-            });
-            setIsFamilyModeEnabled(false);
-            await fetchSharedSpace();
-            revalidate(true);
-        } catch (err: any) {
-            alert(err.message);
+        if (selectedBankSlug !== "all") {
+          const slug = getBankCatalogBySlugOrName(
+            a.institution_slug || a.institution_name || a.bank_name
+          ).slug;
+          if (slug !== selectedBankSlug) return false;
         }
-    };
+        return true;
+      })
+      .sort((a, b) => Math.abs(Number(b.balance) || 0) - Math.abs(Number(a.balance) || 0));
+  }, [accounts, isFamilyModeEnabled, selectedMemberId, selectedBankSlug]);
 
-    const handleCopy = (text: string, key: string) => {
-        if (typeof window === "undefined") return;
-        navigator.clipboard.writeText(text);
-        setCopiedCodeOrLink(key);
-        setTimeout(() => setCopiedCodeOrLink(null), 3000);
-    };
+  const filteredAccountIds = useMemo(
+    () => new Set(filteredAccounts.map((a) => a.id)),
+    [filteredAccounts]
+  );
 
-    // Atalho global Ctrl+K / Cmd+K para abrir busca
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
-                e.preventDefault();
-                setIsSearchModalOpen((prev) => !prev);
-            }
-        };
-        window.addEventListener("keydown", handleKeyDown);
-        return () => window.removeEventListener("keydown", handleKeyDown);
-    }, []);
-
-    const [newMemberName, setNewMemberName] = useState("");
-    const [newMemberEmail, setNewMemberEmail] = useState("");
-    const [newMemberRole, setNewMemberRole] = useState("Cônjuge");
-    const [isCreatingMember, setIsCreatingMember] = useState(false);
-    const [copiedMemberId, setCopiedMemberId] = useState<string | null>(null);
-
-    const [showAllAccounts, setShowAllAccounts] = useState(false);
-    const [invPage, setInvPage] = useState(1);
-    const [showWithdrawnInv, setShowWithdrawnInv] = useState(false);
-
-    const TABS = [
-        "Visão Geral",
-        "Transações",
-        "Categorias",
-        "Parcelamentos",
-        "Assinaturas",
-    ];
-
-    // Lista única de bancos conectados pelo usuário para a barra horizontal de filtro
-    // ORDENADA POR IMPORTÂNCIA FINANCEIRA: maior volume consolidado (saldo líquido + investimentos) em primeiro
-    const connectedBanks = useMemo(() => {
-        const map = new Map<string, { slug: string; name: string; accountCount: number; totalAssets: number }>();
-
-        accounts.forEach((acc) => {
-            const entry = getBankCatalogBySlugOrName(
-                acc.institution_slug || acc.institution_name || acc.bank_name
-            );
-            const bal = Number(acc.balance) || 0;
-            const isCredit = acc.type === "CREDIT" || acc.subtype === "CREDIT_CARD";
-            const assetVal = isCredit ? 0 : bal;
-
-            const existing = map.get(entry.slug);
-            if (existing) {
-                existing.accountCount += 1;
-                existing.totalAssets += assetVal;
-            } else {
-                map.set(entry.slug, {
-                    slug: entry.slug,
-                    name: entry.shortName,
-                    accountCount: 1,
-                    totalAssets: assetVal,
-                });
-            }
-        });
-
-        // Adiciona e soma volume de investimentos por instituição
-        investments.forEach((inv) => {
-            const entry = getBankCatalogBySlugOrName(inv.institution_name);
-            const bal = Number(inv.balance) || 0;
-            const existing = map.get(entry.slug);
-            if (existing) {
-                existing.totalAssets += bal;
-            } else if (entry.slug !== "generic") {
-                map.set(entry.slug, {
-                    slug: entry.slug,
-                    name: entry.shortName,
-                    accountCount: 0,
-                    totalAssets: bal,
-                });
-            }
-        });
-
-        connections.forEach((conn) => {
-            const entry = getBankCatalogBySlugOrName(
-                conn.institution_slug || conn.institution_name || conn.provider_name
-            );
-            if (entry.slug !== "generic" && !map.has(entry.slug)) {
-                map.set(entry.slug, {
-                    slug: entry.slug,
-                    name: entry.shortName,
-                    accountCount: 0,
-                    totalAssets: 0,
-                });
-            }
-        });
-
-        // Ordena estritamente por relevância financeira decrescente (maior valor total primeiro)
-        return Array.from(map.values()).sort((a, b) => b.totalAssets - a.totalAssets);
-    }, [accounts, investments, connections]);
-
-    // Garante que se o banco selecionado foi desconectado, volta para 'all'
-    useEffect(() => {
-        if (
-            selectedBankSlug !== "all" &&
-            connectedBanks.length > 0 &&
-            !connectedBanks.some((b) => b.slug === selectedBankSlug)
-        ) {
-            setSelectedBankSlug("all");
+  const filteredInvestments = useMemo(() => {
+    return investments
+      .filter((inv) => {
+        if (selectedBankSlug !== "all") {
+          const slug = getBankCatalogBySlugOrName(
+            inv.institution_slug || inv.institution_name || inv.issuer
+          ).slug;
+          if (slug !== selectedBankSlug) return false;
         }
-    }, [selectedBankSlug, connectedBanks, setSelectedBankSlug]);
+        return true;
+      })
+      .sort((a, b) => (Number(b.balance) || 0) - (Number(a.balance) || 0));
+  }, [investments, selectedBankSlug]);
 
-    // Filtragem Global Combinada (Membro da Família + Banco Selecionado) ordenada por saldo decrescente
-    const filteredAccounts = useMemo(() => {
-        return accounts
-            .filter((a) => {
-                if (isFamilyModeEnabled && selectedMemberId !== "all") {
-                    if (selectedMemberId === "personal" && a.family_member_id) return false;
-                    if (selectedMemberId !== "personal" && a.family_member_id !== selectedMemberId)
-                        return false;
-                }
-                if (selectedBankSlug !== "all") {
-                    const slug = getBankCatalogBySlugOrName(
-                        a.institution_slug || a.institution_name || a.bank_name
-                    ).slug;
-                    if (slug !== selectedBankSlug) return false;
-                }
-                return true;
-            })
-            .sort((a, b) => Math.abs(Number(b.balance) || 0) - Math.abs(Number(a.balance) || 0));
-    }, [accounts, isFamilyModeEnabled, selectedMemberId, selectedBankSlug]);
+  const filteredLoans = useMemo(() => {
+    return loans.filter((loan) => {
+      if (selectedBankSlug !== "all") {
+        const slug = getBankCatalogBySlugOrName(
+          loan.institution_slug || loan.institution_name
+        ).slug;
+        if (slug !== selectedBankSlug) return false;
+      }
+      return true;
+    });
+  }, [loans, selectedBankSlug]);
 
-    const filteredAccountIds = useMemo(
-        () => new Set(filteredAccounts.map((a) => a.id)),
-        [filteredAccounts]
-    );
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter((t) => {
+      if (isFamilyModeEnabled && selectedMemberId !== "all") {
+        if (selectedMemberId === "personal" && t.family_member_id) return false;
+        if (selectedMemberId !== "personal" && t.family_member_id !== selectedMemberId)
+          return false;
+      }
+      if (selectedBankSlug !== "all") {
+        if (filteredAccountIds.has(t.account_id)) return true;
+        const txBankSlug = getBankCatalogBySlugOrName(
+          t.bank_accounts?.institution_slug ||
+            t.bank_accounts?.institution_name ||
+            t.bank_accounts?.bank_name
+        ).slug;
+        return txBankSlug === selectedBankSlug;
+      }
+      return true;
+    });
+  }, [
+    transactions,
+    isFamilyModeEnabled,
+    selectedMemberId,
+    selectedBankSlug,
+    filteredAccountIds,
+  ]);
 
-    const filteredInvestments = useMemo(() => {
-        return investments
-            .filter((inv) => {
-                if (selectedBankSlug !== "all") {
-                    const slug = getBankCatalogBySlugOrName(
-                        inv.institution_slug || inv.institution_name || inv.issuer
-                    ).slug;
-                    if (slug !== selectedBankSlug) return false;
-                }
-                return true;
-            })
-            .sort((a, b) => (Number(b.balance) || 0) - (Number(a.balance) || 0));
-    }, [investments, selectedBankSlug]);
+  const selfAndFamilyNames = useMemo(() => {
+    return [
+      userProfile?.full_name,
+      userProfile?.display_name,
+      userFirstName,
+      ...familyMembers.map((f) => f.name),
+    ]
+      .filter(Boolean)
+      .map((n) => n!.toLowerCase().trim());
+  }, [userProfile, userFirstName, familyMembers]);
 
-    const filteredLoans = useMemo(() => {
-        return loans.filter((loan) => {
-            if (selectedBankSlug !== "all") {
-                const slug = getBankCatalogBySlugOrName(
-                    loan.institution_slug || loan.institution_name
-                ).slug;
-                if (slug !== selectedBankSlug) return false;
-            }
-            return true;
-        });
-    }, [loans, selectedBankSlug]);
+  // Transações filtradas pela janela de granularidade (para Fluxo & Gastos / Sankey)
+  const periodFilteredTransactions = useMemo(() => {
+    const now = new Date();
+    const curMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const curYearStr = `${now.getFullYear()}`;
 
-    const filteredTransactions = useMemo(() => {
-        return transactions.filter((t) => {
-            if (isFamilyModeEnabled && selectedMemberId !== "all") {
-                if (selectedMemberId === "personal" && t.family_member_id) return false;
-                if (selectedMemberId !== "personal" && t.family_member_id !== selectedMemberId)
-                    return false;
-            }
-            if (selectedBankSlug !== "all") {
-                if (filteredAccountIds.has(t.account_id)) return true;
-                const txBankSlug = getBankCatalogBySlugOrName(
-                    t.bank_accounts?.institution_slug ||
-                        t.bank_accounts?.institution_name ||
-                        t.bank_accounts?.bank_name
-                ).slug;
-                return txBankSlug === selectedBankSlug;
-            }
-            return true;
-        });
-    }, [
-        transactions,
-        isFamilyModeEnabled,
-        selectedMemberId,
-        selectedBankSlug,
-        filteredAccountIds,
-    ]);
+    return filteredTransactions.filter((tx) => {
+      const rawDate = tx.executed_at || tx.date;
+      if (!rawDate) return false;
+      const txDate = parseLocalDate(rawDate);
+      const dStr = rawDate.split("T")[0];
 
-    const activeFilteredInvestments = useMemo(() => {
-        return filteredInvestments.filter((inv) => {
-            const bal = Number(inv.balance) || 0;
-            if (!showWithdrawnInv && (bal <= 0.05 || inv.status === "TOTAL_WITHDRAWAL")) return false;
-            return true;
-        });
-    }, [filteredInvestments, showWithdrawnInv]);
+      if (timeGranularity === "day") {
+        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        return txDate >= sevenDaysAgo && txDate <= now;
+      }
+      if (timeGranularity === "week") {
+        const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+        return txDate >= fourteenDaysAgo && txDate <= now;
+      }
+      if (timeGranularity === "year") {
+        return dStr.startsWith(curYearStr);
+      }
+      return dStr.startsWith(curMonthStr);
+    });
+  }, [filteredTransactions, timeGranularity]);
 
-    const INV_PAGE_SIZE = 6;
-    const paginatedInvestments = useMemo(() => {
-        const start = (invPage - 1) * INV_PAGE_SIZE;
-        return activeFilteredInvestments.slice(start, start + INV_PAGE_SIZE);
-    }, [activeFilteredInvestments, invPage]);
-    const totalInvPages = Math.ceil(activeFilteredInvestments.length / INV_PAGE_SIZE);
+  // Curva acumulada de gastos dia a dia
+  const spendingCurveData = useMemo(() => {
+    const now = new Date();
+    const curYear = now.getFullYear();
+    const curMonth = now.getMonth();
+    const curDay = Math.min(31, Math.max(1, now.getDate()));
 
-    const installmentStats = useMemo(() => {
-        let totalInstallmentBalance = 0;
-        let monthlyInstallmentTotal = 0;
-        let activeInstallmentCount = 0;
+    const curMonthStr = `${curYear}-${String(curMonth + 1).padStart(2, "0")}`;
+    const prevDate = new Date(curYear, curMonth - 1, 1);
+    const prevMonthStr = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, "0")}`;
 
-        filteredTransactions.forEach((t) => {
-            const totalInst = t.total_installments || t.installments_count;
-            const currentInst = t.installment_number || t.current_installment;
-            const amt = Math.abs(Number(t.amount) || 0);
+    const curDays = new Array(31).fill(0);
+    const prevDays = new Array(31).fill(0);
+    let curTotal = 0;
+    let prevTotal = 0;
 
-            if (totalInst && totalInst > 1 && amt > 0) {
-                const current = currentInst || 1;
-                const remaining = Math.max(0, totalInst - current + 1);
-                if (remaining > 0) {
-                    totalInstallmentBalance += amt * remaining;
-                    monthlyInstallmentTotal += amt;
-                    activeInstallmentCount += 1;
-                }
-            }
-        });
+    filteredTransactions.forEach((tx) => {
+      if (tx.is_internal_transfer || tx.is_refund) return;
+      const amt = Number(tx.amount) || 0;
+      const isExpense = amt < 0 || tx.type === "DEBIT" || tx.operation_type === "CREDIT_CARD";
+      if (!isExpense) return;
+      const absAmt = Math.abs(amt);
+      if (absAmt === 0) return;
 
-        return {
-            totalInstallmentBalance,
-            monthlyInstallmentTotal,
-            activeInstallmentCount,
-        };
-    }, [filteredTransactions]);
-
-    // Transações filtradas pelo período selecionado (Dia a Dia, Semana a Semana, Mês a Mês, Ano a Ano)
-    const periodFilteredTransactions = useMemo(() => {
-        const now = new Date();
-        const curMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-        const curYearStr = `${now.getFullYear()}`;
-
-        return filteredTransactions.filter((tx) => {
-            const rawDate = tx.executed_at || tx.date;
-            if (!rawDate) return false;
-            const txDate = parseLocalDate(rawDate);
-            const dStr = rawDate.split("T")[0];
-
-            if (timeGranularity === "day") {
-                const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-                return txDate >= sevenDaysAgo && txDate <= now;
-            }
-            if (timeGranularity === "week") {
-                const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-                return txDate >= fourteenDaysAgo && txDate <= now;
-            }
-            if (timeGranularity === "year") {
-                return dStr.startsWith(curYearStr);
-            }
-            // Padrão: Mês atual
-            return dStr.startsWith(curMonthStr);
-        });
-    }, [filteredTransactions, timeGranularity]);
-
-    // Cálculo Determinístico do Ritmo de Gastos Acumulado Dia a Dia (Fiel ao Pierre)
-    const spendingCurveData = useMemo(() => {
-        const now = new Date();
-        const curYear = now.getFullYear();
-        const curMonth = now.getMonth();
-        const curDay = Math.min(31, Math.max(1, now.getDate()));
-
-        const curMonthStr = `${curYear}-${String(curMonth + 1).padStart(2, "0")}`;
-        const prevDate = new Date(curYear, curMonth - 1, 1);
-        const prevMonthStr = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, "0")}`;
-
-        const curDays = new Array(31).fill(0);
-        const prevDays = new Array(31).fill(0);
-
-        let curTotal = 0;
-        let prevTotal = 0;
-
-        filteredTransactions.forEach((tx) => {
-            if (tx.is_internal_transfer || tx.is_refund) return;
-            const amt = Number(tx.amount) || 0;
-            const isExpense = amt < 0 || tx.type === "DEBIT" || tx.operation_type === "CREDIT_CARD";
-            if (!isExpense) return;
-            const absAmt = Math.abs(amt);
-            if (absAmt === 0) return;
-
-            const dStr = (tx.date || tx.executed_at || "").split("T")[0];
-            if (dStr.startsWith(curMonthStr)) {
-                const parts = dStr.split("-");
-                const dayNum = parseInt(parts[2], 10);
-                if (dayNum >= 1 && dayNum <= 31) {
-                    curDays[dayNum - 1] += absAmt;
-                    curTotal += absAmt;
-                }
-            } else if (dStr.startsWith(prevMonthStr)) {
-                const parts = dStr.split("-");
-                const dayNum = parseInt(parts[2], 10);
-                if (dayNum >= 1 && dayNum <= 31) {
-                    prevDays[dayNum - 1] += absAmt;
-                    prevTotal += absAmt;
-                }
-            }
-        });
-
-        const curCumul: number[] = [];
-        let accCur = 0;
-        for (let i = 0; i < 31; i++) {
-            accCur += curDays[i];
-            curCumul.push(accCur);
+      const dStr = (tx.date || tx.executed_at || "").split("T")[0];
+      if (dStr.startsWith(curMonthStr)) {
+        const dayNum = parseInt(dStr.split("-")[2], 10);
+        if (dayNum >= 1 && dayNum <= 31) {
+          curDays[dayNum - 1] += absAmt;
+          curTotal += absAmt;
         }
-
-        const prevCumul: number[] = [];
-        let accPrev = 0;
-        for (let i = 0; i < 31; i++) {
-            accPrev += prevDays[i];
-            prevCumul.push(accPrev);
+      } else if (dStr.startsWith(prevMonthStr)) {
+        const dayNum = parseInt(dStr.split("-")[2], 10);
+        if (dayNum >= 1 && dayNum <= 31) {
+          prevDays[dayNum - 1] += absAmt;
+          prevTotal += absAmt;
         }
+      }
+    });
 
-        return {
-            currentMonthDays: curCumul,
-            previousMonthDays: prevCumul,
-            currentDay: curDay,
-            totalCurrentMonth: curTotal,
-            totalPreviousMonth: prevTotal > 0 ? prevTotal : Math.round(curTotal * 1.3),
-        };
-    }, [filteredTransactions]);
-
-    const {
-        totalBalance,
-        liquidBalance,
-        investmentsBalance,
-        loansBalance,
-        creditCardBalance,
-        monthlyIncome,
-        monthlyExpense,
-        monthlyIncomeCount,
-        monthlyExpenseCount,
-        monthlyInternalTransfers,
-        monthlyRefunds,
-        categorySummary,
-        incomeCommitment,
-        emergencyDays,
-        monthEndForecast,
-    } = useMemo(() => {
-        let liquid = 0;
-        let credit = 0;
-
-        filteredAccounts.forEach((curr) => {
-            const bal = Number(curr.balance) || 0;
-            if (
-                curr.type === "CREDIT" ||
-                curr.type === "CREDIT_CARD" ||
-                curr.subtype === "CREDIT_CARD"
-            ) {
-                credit += Math.abs(bal);
-            } else {
-                liquid += bal;
-            }
-        });
-
-        const invTotal = filteredInvestments.reduce(
-            (sum, i) => sum + (Number(i.balance) || 0),
-            0
-        );
-        const loansTotal = filteredLoans.reduce(
-            (sum, l) => sum + (Number(l.outstanding_balance) || 0),
-            0
-        );
-
-        // Determinar janela temporal estritamente pelo calendário atual (sem saltar para faturas futuras)
-        const now = new Date();
-        let windowStart = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
-        let windowEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
-
-        if (timeGranularity === "day") {
-            // Últimos 7 dias até o fim de hoje
-            windowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6, 0, 0, 0);
-            windowEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
-        } else if (timeGranularity === "week") {
-            // Últimas 2 semanas (14 dias) até o fim de hoje
-            windowStart = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-            windowEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
-        } else if (timeGranularity === "month") {
-            // Mês atual completo
-            windowStart = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
-            windowEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
-        } else if (timeGranularity === "year") {
-            // Ano atual do dia 1 de janeiro até 31 de dezembro
-            windowStart = new Date(now.getFullYear(), 0, 1, 0, 0, 0);
-            windowEnd = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
-        }
-
-        let income = 0;
-        let expense = 0;
-        let incomeCount = 0;
-        let expenseCount = 0;
-        let internalTotal = 0;
-        let refundsTotal = 0;
-        const catMap: Record<string, { total: number; count: number }> = {};
-
-        // Nomes do próprio usuário e membros cadastrados para conciliação estrita de Pix próprio e remanejamentos
-        const selfAndFamilyNames = [
-            userProfile?.full_name,
-            userProfile?.display_name,
-            userFirstName,
-            ...familyMembers.map((f) => f.name),
-        ]
-            .filter(Boolean)
-            .map((n) => n!.toLowerCase().trim());
-
-        filteredTransactions.forEach((txn) => {
-            const rawDate = txn.date || txn.executed_at;
-            if (!rawDate) return;
-            const txnDate = parseLocalDate(rawDate);
-            const absAmount = Math.abs(Number(txn.amount) || 0);
-            if (absAmount === 0) return;
-
-            const isInternal = Boolean(txn.is_internal_transfer);
-            const isRefund = Boolean(txn.is_refund);
-            const isCreditCardAcc =
-                txn.bank_accounts?.type === "CREDIT" ||
-                txn.bank_accounts?.subtype === "CREDIT_CARD" ||
-                txn.operation_type === "CREDIT_CARD";
-
-            const catLower = (txn.category_pt || txn.category || "").toLowerCase();
-            const descLower = (txn.receiver_name || txn.payer_name || txn.clean_description || txn.description || "").toLowerCase();
-
-            // Detecta Pix e transferências entre contas do mesmo CPF / titularidade própria ou familiares
-            const isSelfOrFamilyPix =
-                selfAndFamilyNames.some((name) => descLower.includes(name)) ||
-                descLower.includes("mesma titularidade") ||
-                descLower.includes("mesmo cpf") ||
-                descLower.includes("entre contas") ||
-                descLower.includes("transferência própria") ||
-                descLower.includes("transferencia propria") ||
-                descLower.includes("pagamento recebido") ||
-                descLower.includes("pagamento de fatura") ||
-                descLower.includes("fatura cartão") ||
-                catLower.includes("transferência própria") ||
-                catLower.includes("transferencia propria") ||
-                catLower.includes("same person transfer") ||
-                catLower.includes("internal transfer") ||
-                catLower.includes("credit card payment");
-
-            // Identifica movimentações de investimentos (aplicações e resgates) para não inflar receitas/despesas operacionais
-            const isInvestmentMovement =
-                catLower.includes("investimento") ||
-                catLower.includes("renda fixa") ||
-                descLower.includes("resgate cdb") ||
-                descLower.includes("resgate rdb") ||
-                descLower.includes("aplic cdb") ||
-                descLower.includes("aplicacao cdb") ||
-                descLower.includes("aplicacao aut") ||
-                descLower.includes("rend pago") ||
-                descLower.includes("rendimento pago");
-
-            // 1. Transferências próprias, pagamentos de fatura, aportes/resgates e Pix entre contas próprias NUNCA inflam saídas operacionais
-            if (isInternal || isSelfOrFamilyPix || isInvestmentMovement) {
-                if (txnDate >= windowStart && txnDate <= windowEnd) {
-                    internalTotal += absAmount;
-                }
-                return;
-            }
-
-            // 2. Estornos / reembolsos em cartão abatem da fatura e são contabilizados separadamente
-            if (isRefund) {
-                if (txnDate >= windowStart && txnDate <= windowEnd) {
-                    refundsTotal += absAmount;
-                }
-                return;
-            }
-
-            // 3. Receita real vs Despesa real com sinal normalizado
-            const isExpense = Number(txn.amount) < 0 || txn.type === "DEBIT" || isCreditCardAcc;
-            const isRealIncome = !isExpense && (txn.type === "CREDIT" || Number(txn.amount) > 0) && !isCreditCardAcc;
-
-            if (txnDate >= windowStart && txnDate <= windowEnd) {
-                if (isRealIncome) {
-                    income += absAmount;
-                    incomeCount += 1;
-                } else if (isExpense) {
-                    expense += absAmount;
-                    expenseCount += 1;
-                    const catName = txn.category_pt || txn.category || "Outros";
-                    if (!catMap[catName]) catMap[catName] = { total: 0, count: 0 };
-                    catMap[catName].total += absAmount;
-                    catMap[catName].count += 1;
-                }
-            }
-        });
-
-        const sortedCategories = Object.entries(catMap)
-            .map(([name, info]) => ({ name, ...info }))
-            .sort((a, b) => b.total - a.total);
-
-        // Estatísticas complementares inteligentes
-        const incomeCommitment = income > 0 ? Math.min(100, Math.round(((expense + credit) / income) * 100)) : 0;
-        const dailyBurn = expense > 0 ? expense / 30 : 1;
-        const emergencyDays = liquid > 0 ? Math.round(liquid / dailyBurn) : 0;
-        const monthEndForecast = income - expense - credit;
-
-        return {
-            totalBalance: liquid + invTotal - credit - loansTotal,
-            liquidBalance: liquid,
-            investmentsBalance: invTotal,
-            loansBalance: loansTotal,
-            creditCardBalance: credit,
-            monthlyIncome: income,
-            monthlyExpense: expense,
-            monthlyIncomeCount: incomeCount,
-            monthlyExpenseCount: expenseCount,
-            monthlyInternalTransfers: internalTotal,
-            monthlyRefunds: refundsTotal,
-            categorySummary: sortedCategories,
-            incomeCommitment,
-            emergencyDays,
-            monthEndForecast,
-        };
-    }, [filteredAccounts, filteredInvestments, filteredLoans, filteredTransactions, timeGranularity]);
-
-    // Módulo: Gastos de Hoje & Recentes (Ordenado estritamente em ordem decrescente, sem datas futuras)
-    const todaySummary = useMemo(() => {
-        const now = new Date();
-        const todayStr = now.toISOString().split("T")[0];
-        const todayTxns = filteredTransactions.filter((t) => {
-            if (t.is_internal_transfer || t.is_refund) return false;
-            const isExp = Number(t.amount) < 0 || t.type === "DEBIT" || t.operation_type === "CREDIT_CARD";
-            if (!isExp) return false;
-            const dStr = (t.date || t.executed_at || "").split("T")[0];
-            return dStr === todayStr;
-        });
-
-        const todayTotal = todayTxns.reduce((sum, t) => sum + Math.abs(Number(t.amount) || 0), 0);
-
-        // Despesas reais ordenadas estritamente por data de execução mais recente (sem datas futuras de parcelas)
-        const sortedExpenses = [...filteredTransactions]
-            .filter((t) => {
-                if (t.is_internal_transfer || t.is_refund) return false;
-                const rawDate = t.executed_at || t.date;
-                if (!rawDate) return false;
-                const txDate = new Date(rawDate);
-                // Bloqueia lançamentos futuros (ex: parcelas de compras projetadas para meses seguintes)
-                const todayIso = now.toISOString().split("T")[0];
-                const txIso = rawDate.includes("T") ? rawDate.split("T")[0] : rawDate.split(" ")[0];
-                if (txIso > todayIso || txDate.getTime() > now.getTime()) return false;
-                const amt = Number(t.amount) || 0;
-                const isExp = amt < 0 || t.type === "DEBIT" || t.operation_type === "CREDIT_CARD";
-                return isExp && Math.abs(amt) > 0;
-            })
-            .sort((a, b) => {
-                const dateA = new Date(a.executed_at || a.date || 0).getTime();
-                const dateB = new Date(b.executed_at || b.date || 0).getTime();
-                return dateB - dateA;
-            });
-
-        const recentTxns = sortedExpenses.slice(0, 4);
-
-        return {
-            todayTotal,
-            todayCount: todayTxns.length,
-            todayTxns,
-            hasSpentToday: todayTxns.length > 0,
-            recentTxns,
-        };
-    }, [filteredTransactions]);
-
-    const formatCurrency = (value: number) => {
-        if (isPrivacyMode) {
-            return "R$ ••••••";
-        }
-        return new Intl.NumberFormat("pt-BR", {
-            style: "currency",
-            currency: "BRL",
-        }).format(value);
-    };
-
-    const formatDate = (dateString?: string) => {
-        if (!dateString) return "-";
-        const clean = dateString.split("T")[0];
-        const parts = clean.split("-");
-        if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
-        return dateString;
-    };
-
-    const kitsuneScore = useMemo(() => {
-        if (accounts.length === 0)
-            return { score: 500, label: "Aguardando Conexões", color: "text-slate-400" };
-
-        const mappedAccounts = accounts.map((a) => ({
-            id: a.id,
-            institutionName: a.institution_name || a.bank_name || 'Banco',
-            type: (a.type === 'CREDIT' || a.subtype === 'CREDIT_CARD' ? 'CREDIT_CARD' : a.type === 'SAVINGS' ? 'SAVINGS' : 'CHECKING') as any,
-            balance: Number(a.balance) || 0,
-            creditLimit: Number(a.credit_limit) || undefined,
-            usedCreditLimit: Number(a.used_credit_limit) || undefined,
-        }));
-
-        const mappedInvestments = investments.map((inv) => ({
-            id: inv.id,
-            name: inv.name || inv.code || 'Título',
-            institutionName: inv.institution_name || inv.bank_name || 'Instituição',
-            issuerName: inv.issuer || null,
-            type: (inv.type || 'CDB').toUpperCase(),
-            balance: Number(inv.balance) || 0,
-            ratePercentOfCDI: Number(inv.rate) || undefined,
-            isDailyLiquidity: (inv.subtype || '').toLowerCase().includes('daily') || (inv.name || '').toLowerCase().includes('diária'),
-            isFGCGuaranteed: true,
-        }));
-
-        const xray = runFinancialXRay({
-            accounts: mappedAccounts,
-            investments: mappedInvestments,
-            monthlyIncome,
-            monthlyExpenses: monthlyExpense,
-            macroRates: {
-                annualCDIPct: 10.65,
-                annualIPCAPct: 4.42,
-                annualSelicPct: 10.75,
-            },
-        });
-
-        const scaledScore = Math.max(300, Math.min(990, Math.round(xray.kitsuneScore * 10)));
-        const color =
-            xray.statusLabel === 'EXCELENTE' || xray.statusLabel === 'SAUDÁVEL'
-                ? 'text-emerald-500'
-                : xray.statusLabel === 'ATENÇÃO'
-                ? 'text-[#FF8216]'
-                : 'text-rose-500';
-
-        const label =
-            xray.statusLabel === 'EXCELENTE'
-                ? 'Excelente'
-                : xray.statusLabel === 'SAUDÁVEL'
-                ? 'Saudável'
-                : xray.statusLabel === 'ATENÇÃO'
-                ? 'Equilibrado'
-                : 'Atenção Necessária';
-
-        return { score: scaledScore, label, color };
-    }, [
-        accounts,
-        investments,
-        monthlyIncome,
-        monthlyExpense,
-    ]);
-
-    const fgcWarning = useMemo(() => {
-        const map = new Map<string, number>();
-        investments.forEach((inv) => {
-            const bal = Number(inv.balance) || 0;
-            if (bal <= 0 || inv.status === 'TOTAL_WITHDRAWAL') return;
-            const issuer = inv.issuer && inv.issuer.trim().length > 1 ? inv.issuer.trim() : (inv.institution_name || 'Instituição').trim();
-            map.set(issuer, (map.get(issuer) || 0) + bal);
-        });
-        for (const [name, total] of map.entries()) {
-            if (total > 250000) {
-                return {
-                    issuerName: name,
-                    total,
-                    excess: total - 250000,
-                };
-            }
-        }
-        return null;
-    }, [investments]);
-
-    // Diagnóstico Matemático Acionável do Objetivo Patrimonial Selecionado
-    const goalDiagnostics = useMemo(() => {
-        const goal = userProfile?.financial_goal || "Construir reserva";
-        let progress = 50;
-        let text = "Acompanhamento da sua meta patrimonial.";
-
-        if (goal.toLowerCase().includes("reserva")) {
-            const monthlyCost = monthlyExpense > 0 ? monthlyExpense : 2500;
-            const target = monthlyCost * 6;
-            const months = (liquidBalance / monthlyCost).toFixed(1);
-            progress = Math.min(100, Math.max(5, Math.round((liquidBalance / target) * 100)));
-            text = `Você possui ${months} meses de custo de vida garantidos em liquidez imediata (Meta: 6 meses ou ${formatCurrency(target)}).`;
-        } else if (goal.toLowerCase().includes("gasto")) {
-            const limit = monthlyIncome > 0 ? monthlyIncome * 0.7 : 3000;
-            const usedRatio = monthlyExpense / limit;
-            progress = Math.min(100, Math.max(0, Math.round((1 - usedRatio) * 100)));
-            text = `Você utilizou ${formatCurrency(monthlyExpense)} do teto orçamentário seguro previsto de ${formatCurrency(limit)}.`;
-        } else if (goal.toLowerCase().includes("invest")) {
-            const ratio = totalBalance > 0 ? Math.round((investmentsBalance / totalBalance) * 100) : 0;
-            progress = Math.min(100, Math.max(10, ratio));
-            text = `${ratio}% do seu patrimônio está alocado em investimentos (${formatCurrency(investmentsBalance)} de ${formatCurrency(totalBalance)}).`;
-        } else if (goal.toLowerCase().includes("dívida") || goal.toLowerCase().includes("divida")) {
-            const ratio = creditCardBalance > 0 ? liquidBalance / creditCardBalance : 10;
-            progress = creditCardBalance === 0 ? 100 : Math.min(100, Math.round(ratio * 50));
-            text = creditCardBalance === 0 ? "Parabéns! Suas faturas de cartão de crédito estão 100% quitadas." : `Faturas em aberto somam ${formatCurrency(creditCardBalance)}, cobertas ${ratio.toFixed(1)}x pelo seu saldo disponível.`;
-        } else {
-            progress = 75;
-            text = `Consolidação e alocação compartilhada em andamento com ${accounts.length} contas monitoradas.`;
-        }
-
-        const cleanGoal = goal.toLowerCase().trim();
-        const goalLabel = FINANCIAL_GOALS_MAP[cleanGoal] || (cleanGoal.includes("invest") ? "Crescimento Patrimonial e Renda Passiva" : cleanGoal.includes("reserva") ? "Construção de Reserva de Emergência" : cleanGoal.includes("gasto") ? "Otimização de Custos e Gastos" : "Crescimento e Alocação Estratégica");
-        return { goal: goalLabel, goalRaw: goal, progress, text };
-    }, [userProfile?.financial_goal, liquidBalance, monthlyExpense, monthlyIncome, totalBalance, investmentsBalance, creditCardBalance, accounts.length, formatCurrency]);
-
-    useEffect(() => {
-        if (!aiInsight && !isGeneratingAi && accounts.length > 0 && transactions.length > 0) {
-            generateAiInsight();
-        }
-    }, [aiInsight, accounts.length, transactions.length]);
-
-    const generateAiInsight = async () => {
-        setIsGeneratingAi(true);
-        setAiError(null);
-        try {
-            const response = await fetch("/api/ai/generate-insight", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    bankSlug: selectedBankSlug !== "all" ? selectedBankSlug : null,
-                    familyMemberId: isFamilyModeEnabled ? selectedMemberId : "all",
-                }),
-            });
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.error || "Erro ao gerar análise");
-            if (data.success && data.data) {
-                setAiInsightState({
-                    text: data.data.last_analysis_text,
-                    updatedAt: data.data.updated_at,
-                });
-            }
-        } catch (err: any) {
-            setAiError(err.message);
-        } finally {
-            setIsGeneratingAi(false);
-        }
-    };
-
-    const handleAddFamilyMember = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!newMemberName.trim() || isCreatingMember) return;
-        setIsCreatingMember(true);
-        try {
-            const response = await fetch("/api/family-members", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    name: newMemberName.trim(),
-                    role: newMemberRole,
-                }),
-            });
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.error || "Falha ao criar membro");
-            addFamilyMemberLocal(data.member);
-            setNewMemberName("");
-            setNewMemberEmail("");
-            setIsFamilyModeEnabled(true);
-        } catch (err: any) {
-            alert(err.message);
-        } finally {
-            setIsCreatingMember(false);
-        }
-    };
-
-    const handleDeleteFamilyMember = async (id: string) => {
-        if (!confirm("Tem certeza que deseja remover este membro da visualização compartilhada?"))
-            return;
-        try {
-            const response = await fetch(`/api/family-members?id=${id}`, { method: "DELETE" });
-            if (!response.ok) throw new Error("Falha ao remover membro");
-            removeFamilyMemberLocal(id);
-            if (selectedMemberId === id) setSelectedMemberId("all");
-        } catch (err: any) {
-            alert(err.message);
-        }
-    };
-
-    const handleCopyInviteLink = (memberId: string) => {
-        if (typeof window === "undefined") return;
-        const url = `${window.location.origin}/agents?memberId=${memberId}`;
-        navigator.clipboard.writeText(url);
-        setCopiedMemberId(memberId);
-        setTimeout(() => setCopiedMemberId(null), 3000);
-    };
-
-    if (isInitialLoading && accounts.length === 0 && transactions.length === 0) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] p-8">
-                <div className="w-10 h-10 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] flex items-center justify-center animate-pulse">
-                    <span className="material-symbols-outlined text-xl text-[#FF8216]">
-                        auto_awesome
-                    </span>
-                </div>
-                <span className="text-xs text-slate-500 dark:text-[#94A3B8] font-medium mt-3">
-                    Sincronizando patrimônio com segurança...
-                </span>
-            </div>
-        );
+    const curCumul: number[] = [];
+    let accCur = 0;
+    for (let i = 0; i < 31; i++) {
+      accCur += curDays[i];
+      curCumul.push(accCur);
     }
 
-    const renderTransactionBadge = (txn: any) => {
-        if (txn.is_refund) {
-            return (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">
-                    Estorno / Reembolso
-                </span>
-            );
-        }
-        if (txn.is_internal_transfer) {
-            return (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-200/70 dark:bg-white/10 text-slate-600 dark:text-slate-300">
-                    Movimentação Interna
-                </span>
-            );
-        }
-        if (txn.total_installments && Number(txn.total_installments) > 1) {
-            return (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#FF8216]/15 text-[#FF8216] border border-[#FF8216]/25">
-                    Parcela {txn.installment_number || 1}/{txn.total_installments}
-                </span>
-            );
-        }
-        if (txn.is_subscription) {
-            return (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-500/15 text-purple-600 dark:text-purple-400">
-                    Recorrente
-                </span>
-            );
-        }
-        return null;
+    const prevCumul: number[] = [];
+    let accPrev = 0;
+    for (let i = 0; i < 31; i++) {
+      accPrev += prevDays[i];
+      prevCumul.push(accPrev);
+    }
+
+    return {
+      currentMonthDays: curCumul,
+      previousMonthDays: prevCumul,
+      currentDay: curDay,
+      totalCurrentMonth: curTotal,
+      totalPreviousMonth: prevTotal > 0 ? prevTotal : Math.round(curTotal * 1.25),
     };
+  }, [filteredTransactions]);
 
+  // Motor Determinístico Consolidado (MSLR)
+  const {
+    totalBalance,
+    liquidBalance,
+    investmentsBalance,
+    loansBalance,
+    creditCardBalance,
+    monthlyIncome,
+    monthlyExpense,
+  } = useMemo(() => {
+    let liquid = 0;
+    let credit = 0;
+
+    filteredAccounts.forEach((curr) => {
+      const bal = Number(curr.balance) || 0;
+      if (
+        curr.type === "CREDIT" ||
+        curr.type === "CREDIT_CARD" ||
+        curr.subtype === "CREDIT_CARD"
+      ) {
+        credit += Math.abs(bal);
+      } else {
+        liquid += bal;
+      }
+    });
+
+    const invTotal = filteredInvestments
+      .filter((i) => (Number(i.balance) || 0) > 0 && i.status !== "TOTAL_WITHDRAWAL")
+      .reduce((sum, i) => sum + (Number(i.balance) || 0), 0);
+
+    const loansTotal = filteredLoans.reduce(
+      (sum, l) => sum + (Number(l.outstanding_balance) || 0),
+      0
+    );
+
+    const now = new Date();
+    let windowStart = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
+    let windowEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+    if (timeGranularity === "day") {
+      windowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6, 0, 0, 0);
+      windowEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+    } else if (timeGranularity === "week") {
+      windowStart = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+      windowEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+    } else if (timeGranularity === "year") {
+      windowStart = new Date(now.getFullYear(), 0, 1, 0, 0, 0);
+      windowEnd = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
+    }
+
+    let income = 0;
+    let expense = 0;
+
+    filteredTransactions.forEach((txn) => {
+      const rawDate = txn.date || txn.executed_at;
+      if (!rawDate) return;
+      const txnDate = parseLocalDate(rawDate);
+      const absAmount = Math.abs(Number(txn.amount) || 0);
+      if (absAmount === 0) return;
+
+      const isInternal = Boolean(txn.is_internal_transfer);
+      const isRefund = Boolean(txn.is_refund);
+      const isCreditCardAcc =
+        txn.bank_accounts?.type === "CREDIT" ||
+        txn.bank_accounts?.subtype === "CREDIT_CARD" ||
+        txn.operation_type === "CREDIT_CARD";
+
+      const catLower = (txn.category_pt || txn.category || "").toLowerCase();
+      const descLower = (
+        txn.receiver_name ||
+        txn.payer_name ||
+        txn.clean_description ||
+        txn.description ||
+        ""
+      ).toLowerCase();
+
+      const isSelfOrFamilyPix =
+        selfAndFamilyNames.some((name) => descLower.includes(name)) ||
+        descLower.includes("mesma titularidade") ||
+        descLower.includes("mesmo cpf") ||
+        descLower.includes("entre contas") ||
+        descLower.includes("transferência própria") ||
+        descLower.includes("transferencia propria") ||
+        descLower.includes("pagamento recebido") ||
+        descLower.includes("pagamento de fatura") ||
+        descLower.includes("fatura cartão") ||
+        catLower.includes("transferência própria") ||
+        catLower.includes("transferencia propria") ||
+        catLower.includes("same person transfer") ||
+        catLower.includes("internal transfer") ||
+        catLower.includes("credit card payment");
+
+      const isInvestmentMovement =
+        catLower.includes("investimento") ||
+        catLower.includes("renda fixa") ||
+        descLower.includes("resgate cdb") ||
+        descLower.includes("resgate rdb") ||
+        descLower.includes("aplic cdb") ||
+        descLower.includes("aplicacao cdb") ||
+        descLower.includes("aplicacao aut") ||
+        descLower.includes("rend pago") ||
+        descLower.includes("rendimento pago");
+
+      if (isInternal || isSelfOrFamilyPix || isInvestmentMovement || isRefund) {
+        return;
+      }
+
+      const isExpense = Number(txn.amount) < 0 || txn.type === "DEBIT" || isCreditCardAcc;
+      const isRealIncome =
+        !isExpense && (txn.type === "CREDIT" || Number(txn.amount) > 0) && !isCreditCardAcc;
+
+      if (txnDate >= windowStart && txnDate <= windowEnd) {
+        if (isRealIncome) {
+          income += absAmount;
+        } else if (isExpense) {
+          expense += absAmount;
+        }
+      }
+    });
+
+    return {
+      totalBalance: liquid + invTotal - credit - loansTotal,
+      liquidBalance: liquid,
+      investmentsBalance: invTotal,
+      loansBalance: loansTotal,
+      creditCardBalance: credit,
+      monthlyIncome: income,
+      monthlyExpense: expense,
+    };
+  }, [
+    filteredAccounts,
+    filteredInvestments,
+    filteredLoans,
+    filteredTransactions,
+    timeGranularity,
+    selfAndFamilyNames,
+  ]);
+
+  const formatCurrency = (value: number) => {
+    if (isPrivacyMode) return "R$ ••••••";
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    }).format(value);
+  };
+
+  const formatDate = (dateString?: string | null) => {
+    if (!dateString) return "-";
+    const clean = dateString.split("T")[0];
+    const parts = clean.split("-");
+    if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    return dateString;
+  };
+
+  // Kitsune Health Score determinístico via X-Ray Engine
+  const kitsuneScore = useMemo(() => {
+    if (accounts.length === 0) {
+      return { score: 500, label: "Aguardando Conexões", color: "text-zinc-400" };
+    }
+
+    const mappedAccounts = accounts.map((a) => ({
+      id: a.id,
+      institutionName: a.institution_name || a.bank_name || "Banco",
+      type: (
+        a.type === "CREDIT" || a.subtype === "CREDIT_CARD"
+          ? "CREDIT_CARD"
+          : a.type === "SAVINGS"
+          ? "SAVINGS"
+          : "CHECKING"
+      ) as any,
+      balance: Number(a.balance) || 0,
+      creditLimit: Number(a.credit_limit) || undefined,
+      usedCreditLimit: Number(a.used_credit_limit) || undefined,
+    }));
+
+    const mappedInvestments = investments.map((inv) => ({
+      id: inv.id,
+      name: inv.name || inv.code || "Título",
+      institutionName: inv.institution_name || inv.bank_name || "Instituição",
+      issuerName: inv.issuer || null,
+      type: (inv.type || "CDB").toUpperCase(),
+      balance: Number(inv.balance) || 0,
+      ratePercentOfCDI: Number(inv.rate) || undefined,
+      isDailyLiquidity:
+        (inv.subtype || "").toLowerCase().includes("daily") ||
+        (inv.name || "").toLowerCase().includes("diária"),
+      isFGCGuaranteed: true,
+    }));
+
+    const xray = runFinancialXRay({
+      accounts: mappedAccounts,
+      investments: mappedInvestments,
+      monthlyIncome,
+      monthlyExpenses: monthlyExpense,
+      macroRates: {
+        annualCDIPct: macroRates.annualCDIPct,
+        annualIPCAPct: macroRates.annualIPCAPct,
+        annualSelicPct: macroRates.annualSelicPct,
+      },
+    });
+
+    const scaledScore = Math.max(300, Math.min(990, Math.round(xray.kitsuneScore * 10)));
+    const color =
+      xray.statusLabel === "EXCELENTE" || xray.statusLabel === "SAUDÁVEL"
+        ? "text-emerald-500"
+        : xray.statusLabel === "ATENÇÃO"
+        ? "text-[#FF8216]"
+        : "text-rose-500";
+
+    const label =
+      xray.statusLabel === "EXCELENTE"
+        ? "Excelente"
+        : xray.statusLabel === "SAUDÁVEL"
+        ? "Saudável"
+        : xray.statusLabel === "ATENÇÃO"
+        ? "Equilibrado"
+        : "Atenção Necessária";
+
+    return { score: scaledScore, label, color };
+  }, [accounts, investments, monthlyIncome, monthlyExpense, macroRates]);
+
+  // Alerta de concentração FGC > R$ 250k por conglomerado emissor
+  const fgcWarning = useMemo(() => {
+    const map = new Map<string, number>();
+    filteredInvestments.forEach((inv) => {
+      const bal = Number(inv.balance) || 0;
+      if (bal <= 0 || inv.status === "TOTAL_WITHDRAWAL") return;
+      const issuer =
+        inv.issuer && inv.issuer.trim().length > 1
+          ? inv.issuer.trim()
+          : (inv.institution_name || "Instituição").trim();
+      map.set(issuer, (map.get(issuer) || 0) + bal);
+    });
+    for (const [name, total] of map.entries()) {
+      if (total > 250000) {
+        return { issuerName: name, total, excess: total - 250000 };
+      }
+    }
+    return null;
+  }, [filteredInvestments]);
+
+  // Diagnóstico determinístico de Metas Patrimoniais (estilo SavingGoals do Wealthfolio)
+  const goalsSummary = useMemo(() => {
+    const monthlyCost = monthlyExpense > 0 ? monthlyExpense : 2500;
+    const emergencyTarget = monthlyCost * 6;
+    const emergencyPct = Math.min(100, Math.max(0, Math.round((liquidBalance / emergencyTarget) * 100)));
+    const emergencyMonths = (liquidBalance / monthlyCost).toFixed(1);
+
+    const projectedMonthlyYield = Math.round(
+      investmentsBalance * macroRates.monthlyCDICompoundFactor * 100
+    ) / 100;
+    const fireCoveragePct = Math.min(
+      100,
+      Math.max(0, Math.round((projectedMonthlyYield / monthlyCost) * 100))
+    );
+
+    const goalKey = (userProfile?.financial_goal || "asset_growth").toLowerCase().trim();
+    const goalLabel =
+      FINANCIAL_GOALS_MAP[goalKey] || "Crescimento e Alocação Estratégica";
+
+    let primaryProgress = 50;
+    if (goalKey.includes("reserva") || goalKey === "emergency_fund") {
+      primaryProgress = emergencyPct;
+    } else if (goalKey.includes("debt") || goalKey.includes("dívida") || goalKey.includes("divida")) {
+      const ratio = creditCardBalance > 0 ? liquidBalance / creditCardBalance : 10;
+      primaryProgress = creditCardBalance === 0 ? 100 : Math.min(100, Math.round(ratio * 50));
+    } else {
+      const allocRatio = totalBalance > 0 ? Math.round((investmentsBalance / totalBalance) * 100) : 0;
+      primaryProgress = Math.min(100, Math.max(8, allocRatio));
+    }
+
+    return {
+      goalLabel,
+      primaryProgress,
+      emergencyTarget,
+      emergencyPct,
+      emergencyMonths,
+      projectedMonthlyYield,
+      fireCoveragePct,
+      monthlyCost,
+    };
+  }, [
+    userProfile?.financial_goal,
+    liquidBalance,
+    investmentsBalance,
+    totalBalance,
+    creditCardBalance,
+    monthlyExpense,
+    macroRates.monthlyCDICompoundFactor,
+  ]);
+
+  // Top posições ativas e atividades recentes conciliadas (sem datas futuras)
+  const topHoldings = useMemo(() => {
+    const active = filteredInvestments.filter(
+      (i) => (Number(i.balance) || 0) > 0.05 && i.status !== "TOTAL_WITHDRAWAL"
+    );
+    const total = active.reduce((s, i) => s + (Number(i.balance) || 0), 0);
+    return active.slice(0, 5).map((inv) => {
+      const bal = Number(inv.balance) || 0;
+      return {
+        id: inv.id,
+        name: inv.name || inv.code || "Título",
+        institution: inv.institution_name || inv.bank_name || "Custódia",
+        slug: inv.institution_slug || inv.institution_name || "generic",
+        balance: bal,
+        weightPct: total > 0 ? (bal / total) * 100 : 0,
+      };
+    });
+  }, [filteredInvestments]);
+
+  const recentConciliatedTxns = useMemo(() => {
+    const now = new Date();
+    const todayIso = now.toISOString().split("T")[0];
+    return [...filteredTransactions]
+      .filter((t) => {
+        if (t.is_internal_transfer) return false;
+        const rawDate = t.executed_at || t.date;
+        if (!rawDate) return false;
+        const txIso = rawDate.split("T")[0].split(" ")[0];
+        if (txIso > todayIso) return false;
+        return Math.abs(Number(t.amount) || 0) > 0;
+      })
+      .sort((a, b) => {
+        const da = parseLocalDate(a.executed_at || a.date).getTime();
+        const db = parseLocalDate(b.executed_at || b.date).getTime();
+        return db - da;
+      })
+      .slice(0, 7);
+  }, [filteredTransactions]);
+
+  const generateAiInsight = async () => {
+    setIsGeneratingAi(true);
+    try {
+      const response = await fetch("/api/ai/generate-insight", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bankSlug: selectedBankSlug !== "all" ? selectedBankSlug : null,
+          familyMemberId: isFamilyModeEnabled ? selectedMemberId : "all",
+        }),
+      });
+      const data = await response.json();
+      if (response.ok && data.success && data.data) {
+        setAiInsightState({
+          text: data.data.last_analysis_text,
+          updatedAt: data.data.updated_at,
+        });
+      }
+    } catch (err) {
+      console.warn("Falha ao atualizar insight IA:", err);
+    } finally {
+      setIsGeneratingAi(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!aiInsight && !isGeneratingAi && accounts.length > 0 && transactions.length > 0) {
+      generateAiInsight();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aiInsight, accounts.length, transactions.length]);
+
+  const activeScopeLabel = useMemo(() => {
+    const bankObj = connectedBanks.find((b) => b.slug === selectedBankSlug);
+    const bankLabel = bankObj ? bankObj.name : "Patrimônio Líquido Consolidado";
+    if (isFamilyModeEnabled) {
+      return `${bankLabel} • Visão Compartilhada`;
+    }
+    return bankLabel;
+  }, [connectedBanks, selectedBankSlug, isFamilyModeEnabled]);
+
+  if (isInitialLoading && accounts.length === 0 && transactions.length === 0) {
     return (
-        <div className="flex flex-col gap-6 md:gap-7 p-4 md:p-8 pb-28 md:pb-10 max-w-6xl mx-auto w-full font-sans">
-            {/* Header Principal */}
-            <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
-                <div className="flex flex-col gap-1.5">
-                    <h1 className="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-[#F8FAFC] tracking-tight">
-                        Olá, {userFirstName}!
-                    </h1>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] p-8">
+        <div className="w-10 h-10 rounded-2xl bg-white dark:bg-[#121214] border border-zinc-200 dark:border-[#27272A] flex items-center justify-center animate-pulse text-[#FF8216]">
+          <WfIcons.Overview className="w-5 h-5" />
+        </div>
+        <span className="text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-3">
+          Sincronizando patrimônio com segurança...
+        </span>
+      </div>
+    );
+  }
 
-                    <p className="text-xs md:text-sm text-slate-500 dark:text-[#94A3B8] max-w-xl leading-relaxed">
-                        Acompanhe suas contas, cartões, investimentos e fluxo de caixa real (livre de inflação por transferências próprias).
+  return (
+    <div className="flex flex-col gap-5 md:gap-6 p-4 md:p-7 pb-28 md:pb-10 max-w-[1380px] mx-auto w-full font-sans">
+      {/* Top Bar Estilo Wealthfolio: Saudação enxuta + Tabs Lineares + Ações Rápidas */}
+      <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 pb-3 border-b border-zinc-200 dark:border-[#27272A]">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-lg md:text-xl font-bold tracking-tight text-zinc-900 dark:text-[#F4F4F5]">
+                Olá, {userFirstName}
+              </h1>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#FF8216]/12 text-[#FF8216] border border-[#FF8216]/25 tabular-nums">
+                Score {isPrivacyMode ? "•••" : kitsuneScore.score}
+              </span>
+            </div>
+            <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+              {connectedBanks.length} instituições Open Finance • CDI {macroRates.annualCDIPct.toFixed(2)}% a.a.
+            </p>
+          </div>
+
+          {/* Segmented View Switcher Estilo Wealthfolio */}
+          <div className="inline-flex items-center gap-0.5 p-1 rounded-xl bg-zinc-100 dark:bg-[#121214] border border-zinc-200 dark:border-[#27272A] overflow-x-auto scrollbar-none">
+            {DASHBOARD_TABS.map((tab) => {
+              const active = activeTab === tab;
+              return (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors cursor-pointer ${
+                    active
+                      ? "bg-white dark:bg-[#18181B] text-zinc-900 dark:text-[#F4F4F5] shadow-xs border border-zinc-200/80 dark:border-[#27272A]"
+                      : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
+                  }`}
+                >
+                  {tab}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Botões de Ação Superiores */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {activePartner && (
+            <button
+              type="button"
+              onClick={() => setIsFamilyModeEnabled(!isFamilyModeEnabled)}
+              className={`h-9 px-3 rounded-xl border text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer ${
+                isFamilyModeEnabled
+                  ? "bg-[#FF8216]/12 border-[#FF8216]/35 text-[#FF8216]"
+                  : "bg-white dark:bg-[#121214] border-zinc-200 dark:border-[#27272A] text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-[#18181B]"
+              }`}
+              title="Alternar Visão Pessoal vs Espaço Compartilhado"
+            >
+              <WfIcons.Shared className="w-3.5 h-3.5" />
+              <span>{isFamilyModeEnabled ? "Conjunto" : "Pessoal"}</span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setIsSearchModalOpen(true)}
+            className="h-9 px-3 rounded-xl bg-white dark:bg-[#121214] hover:bg-zinc-100 dark:hover:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] text-xs font-medium text-zinc-600 dark:text-zinc-300 flex items-center gap-1.5 transition-colors cursor-pointer"
+            title="Busca Financeira Global (Ctrl+K)"
+          >
+            <WfIcons.Search className="w-3.5 h-3.5 text-[#FF8216]" />
+            <span className="hidden sm:inline">Buscar</span>
+            <kbd className="hidden md:inline-block px-1.5 py-0.5 text-[10px] font-mono rounded bg-zinc-100 dark:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] text-zinc-400">
+              ⌘K
+            </kbd>
+          </button>
+
+          <a
+            href="/api/export/spreadsheet"
+            download
+            className="h-9 px-3 rounded-xl bg-white dark:bg-[#121214] hover:bg-zinc-100 dark:hover:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] text-xs font-medium text-zinc-600 dark:text-zinc-300 flex items-center gap-1.5 transition-colors"
+            title="Exportar planilha consolidada CSV"
+          >
+            <WfIcons.Download className="w-3.5 h-3.5 text-zinc-400" />
+            <span className="hidden sm:inline">CSV</span>
+          </a>
+
+          <button
+            type="button"
+            onClick={() => revalidate(true)}
+            className="h-9 px-3 rounded-xl bg-white dark:bg-[#121214] hover:bg-zinc-100 dark:hover:bg-[#18181B] border border-zinc-200 dark:border-[#27272A] text-xs font-medium text-zinc-600 dark:text-zinc-300 flex items-center gap-1.5 transition-colors cursor-pointer"
+            title="Sincronizar Open Finance agora"
+          >
+            <WfIcons.RefreshCw
+              className={`w-3.5 h-3.5 text-emerald-500 ${isRevalidating ? "animate-spin" : ""}`}
+            />
+            <span className="hidden sm:inline">Sincronizar</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setConnectForMemberId(null);
+              setIsConnectModalOpen(true);
+            }}
+            className="h-9 px-3.5 rounded-xl bg-[#FF8216] hover:bg-[#FF9438] text-black font-semibold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+          >
+            <WfIcons.Plus className="w-3.5 h-3.5" />
+            <span>Conectar Conta</span>
+          </button>
+        </div>
+      </header>
+
+      {/* Barra Linear de Filtro por Instituição Bancária (e Membro quando modo familiar está ativo) */}
+      {connectedBanks.length > 0 && (
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+          <button
+            type="button"
+            onClick={() => setSelectedBankSlug("all")}
+            className={`h-8 px-3 rounded-full text-xs font-medium flex items-center gap-1.5 shrink-0 border transition-colors cursor-pointer ${
+              selectedBankSlug === "all"
+                ? "bg-[#FF8216]/15 border-[#FF8216]/40 text-[#FF8216]"
+                : "bg-white dark:bg-[#121214] border-zinc-200 dark:border-[#27272A] text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
+            }`}
+          >
+            <span>Todas ({connectedBanks.length})</span>
+          </button>
+
+          {connectedBanks.map((bank) => {
+            const isSelected = selectedBankSlug === bank.slug;
+            return (
+              <button
+                key={bank.slug}
+                type="button"
+                onClick={() => setSelectedBankSlug(isSelected ? "all" : bank.slug)}
+                className={`h-8 pl-2 pr-3 rounded-full text-xs font-medium flex items-center gap-1.5 shrink-0 border transition-colors cursor-pointer ${
+                  isSelected
+                    ? "bg-[#FF8216]/15 border-[#FF8216]/40 text-[#FF8216]"
+                    : "bg-white dark:bg-[#121214] border-zinc-200 dark:border-[#27272A] text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
+                }`}
+              >
+                <BankLogo bank={bank.slug} size="xs" />
+                <span>{bank.name}</span>
+              </button>
+            );
+          })}
+
+          {isFamilyModeEnabled && familyMembers.length > 0 && (
+            <div className="flex items-center gap-1 pl-2 ml-1 border-l border-zinc-200 dark:border-[#27272A] shrink-0">
+              <button
+                type="button"
+                onClick={() => setSelectedMemberId("all")}
+                className={`h-7 px-2.5 rounded-full text-[11px] font-medium cursor-pointer ${
+                  selectedMemberId === "all"
+                    ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                    : "text-zinc-500 hover:text-zinc-300"
+                }`}
+              >
+                Todos Membros
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedMemberId("personal")}
+                className={`h-7 px-2.5 rounded-full text-[11px] font-medium cursor-pointer ${
+                  selectedMemberId === "personal"
+                    ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                    : "text-zinc-500 hover:text-zinc-300"
+                }`}
+              >
+                {userFirstName}
+              </button>
+              {familyMembers.map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => setSelectedMemberId(m.id)}
+                  className={`h-7 px-2.5 rounded-full text-[11px] font-medium cursor-pointer ${
+                    selectedMemberId === m.id
+                      ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                      : "text-zinc-500 hover:text-zinc-300"
+                  }`}
+                >
+                  {m.name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ========================================================================
+          ABA 1: VISÃO GERAL (PADRÃO WEALTHFOLIO OVERVIEW)
+      ======================================================================== */}
+      {activeTab === "Visão Geral" && (
+        <div className="space-y-6">
+          {/* Alertas de Anomalia e Teto FGC */}
+          <AnomalyAlertCard />
+
+          {fgcWarning && (
+            <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/25 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <WfIcons.ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
+                <p className="text-xs text-zinc-800 dark:text-zinc-200">
+                  <strong>Atenção ao Teto do FGC:</strong> Emissor{" "}
+                  <span className="font-semibold text-[#FF8216]">{fgcWarning.issuerName}</span>{" "}
+                  acumula{" "}
+                  <span className="font-mono tabular-nums font-semibold">
+                    {formatCurrency(fgcWarning.total)}
+                  </span>{" "}
+                  ({formatCurrency(fgcWarning.excess)} acima da garantia ordinária de R$ 250 mil).
+                </p>
+              </div>
+              <Link
+                href="/investments"
+                className="text-xs font-semibold text-[#FF8216] hover:underline shrink-0"
+              >
+                Ver Auditoria FGC →
+              </Link>
+            </div>
+          )}
+
+          {/* Hero Net Worth + Gráfico de Área Gradiente #FF8216 + Seletor 1M / 3M / 6M / 1Y / ALL */}
+          <NetWorthHeroChart
+            netWorth={totalBalance}
+            liquidBalance={liquidBalance}
+            investmentsBalance={investmentsBalance}
+            liabilitiesBalance={creditCardBalance + loansBalance}
+            transactions={filteredTransactions}
+            hideValues={isPrivacyMode}
+            onTogglePrivacy={togglePrivacyMode}
+            scopeLabel={activeScopeLabel}
+            annualCDIPct={macroRates.annualCDIPct}
+          />
+
+          {/* Grid Assimétrico 2 Colunas Fiel ao Wealthfolio (1.7fr Contas & Extrato | 1fr Metas, Carteira & IA) */}
+          <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.7fr)_minmax(21rem,1fr)] gap-6 items-start">
+            {/* COLUNA ESQUERDA: Contas Agrupadas em Linhas Densas + Atividades Recentes */}
+            <div className="space-y-6 min-w-0">
+              <GroupedAccountsList
+                accounts={filteredAccounts}
+                investments={filteredInvestments}
+                loans={filteredLoans}
+                formatCurrency={formatCurrency}
+                hideValues={isPrivacyMode}
+                onConnectBank={() => {
+                  setConnectForMemberId(null);
+                  setIsConnectModalOpen(true);
+                }}
+                monthlyCDIFactor={macroRates.monthlyCDICompoundFactor}
+              />
+
+              {/* Atividades Recentes Conciliadas (Linhas densas sem cards soltos) */}
+              <section className="rounded-2xl bg-white dark:bg-[#121214] border border-zinc-200 dark:border-[#27272A] overflow-hidden">
+                <div className="px-4 md:px-5 py-3.5 border-b border-zinc-200 dark:border-[#27272A] flex items-center justify-between gap-2">
+                  <div>
+                    <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+                      Atividades Recentes Conciliadas
+                    </h3>
+                    <p className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-0.5">
+                      Entradas do mês:{" "}
+                      <span className="font-mono tabular-nums text-emerald-500 font-medium">
+                        {formatCurrency(monthlyIncome)}
+                      </span>{" "}
+                      • Saídas:{" "}
+                      <span className="font-mono tabular-nums text-zinc-700 dark:text-zinc-300 font-medium">
+                        {formatCurrency(monthlyExpense)}
+                      </span>
                     </p>
+                  </div>
+                  <Link
+                    href="/transactions"
+                    className="text-xs font-medium text-[#FF8216] hover:underline flex items-center gap-1 shrink-0"
+                  >
+                    <span>Ver extrato</span>
+                    <WfIcons.ChevronRight className="w-3.5 h-3.5" />
+                  </Link>
                 </div>
 
-                {/* Ações Superiores */}
-                <div className="flex items-center gap-2 shrink-0 self-stretch sm:self-auto flex-wrap">
-                    <button
-                        onClick={() => setIsSearchModalOpen(true)}
-                        title="Buscar compras, iFood, Uber, lojas... (Atalho: Ctrl+K)"
-                        className="flex-1 sm:flex-initial h-10 px-3.5 rounded-xl bg-white dark:bg-[#121214] hover:bg-slate-100 dark:hover:bg-[#18181B] border border-slate-200 dark:border-[#27272A] hover:border-[#FF8216]/40 text-xs font-semibold text-slate-700 dark:text-[#F8FAFC] flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs group"
-                    >
-                        <span className="material-symbols-outlined text-[18px] text-[#FF8216] group-hover:scale-110 transition-transform">
-                            search
-                        </span>
-                        <span className="hidden sm:inline">Buscar (Ctrl+K)</span>
-                        <span className="sm:hidden">Buscar</span>
-                    </button>
+                {recentConciliatedTxns.length === 0 ? (
+                  <div className="p-8 text-center text-xs text-zinc-500">
+                    Nenhuma movimentação recente encontrada para o filtro selecionado.
+                  </div>
+                ) : (
+                  <div className="divide-y divide-zinc-100 dark:divide-[#27272A]/70">
+                    {recentConciliatedTxns.map((tx) => {
+                      const amt = Number(tx.amount) || 0;
+                      const isCreditCard =
+                        tx.bank_accounts?.type === "CREDIT" ||
+                        tx.bank_accounts?.subtype === "CREDIT_CARD" ||
+                        tx.operation_type === "CREDIT_CARD";
+                      const isExpense = amt < 0 || tx.type === "DEBIT" || isCreditCard;
+                      const absAmt = Math.abs(amt);
+                      const title =
+                        tx.clean_description || tx.description || "Movimentação Bancária";
+                      const category = tx.category_pt || tx.category || "Geral";
+                      const bankName =
+                        tx.bank_accounts?.institution_name ||
+                        tx.bank_accounts?.bank_name ||
+                        "Conta";
 
-                    <a
-                        href="/api/export/spreadsheet"
-                        download
-                        title="Exportar dados consolidados em Planilha (CSV / Excel)"
-                        className="flex-1 sm:flex-initial h-10 px-3.5 rounded-xl bg-white dark:bg-[#121214] hover:bg-slate-100 dark:hover:bg-[#18181B] border border-slate-200 dark:border-[#27272A] text-xs font-semibold text-slate-700 dark:text-[#F8FAFC] flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs"
-                    >
-                        <span className="material-symbols-outlined text-[17px] text-[#FF8216]">
-                            table_chart
-                        </span>
-                        <span className="hidden sm:inline">Exportar Planilha</span>
-                        <span className="sm:hidden">Planilha</span>
-                    </a>
-
-                    <button
-                        onClick={() => revalidate(true)}
-                        title="Atualizar dados bancários agora"
-                        className="flex-1 sm:flex-initial h-10 px-3.5 rounded-xl bg-white dark:bg-[#121214] hover:bg-slate-100 dark:hover:bg-[#18181B] border border-slate-200 dark:border-[#27272A] text-xs font-semibold text-slate-700 dark:text-[#F8FAFC] flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs"
-                    >
-                        <span
-                            className={`material-symbols-outlined text-[17px] text-emerald-500 ${
-                                isRevalidating ? "animate-spin" : ""
-                            }`}
+                      return (
+                        <div
+                          key={tx.id}
+                          className="px-4 md:px-5 py-2.5 flex items-center justify-between gap-3 hover:bg-zinc-50 dark:hover:bg-[#18181B]/60 transition-colors"
                         >
-                            sync
-                        </span>
-                        <span>Atualizar</span>
-                    </button>
+                          <div className="flex items-center gap-3 min-w-0">
+                            <MerchantLogo
+                              cleanName={tx.clean_description}
+                              rawDescription={tx.description}
+                              category={category}
+                              size="sm"
+                            />
+                            <div className="min-w-0">
+                              <p className="text-xs font-semibold text-zinc-900 dark:text-[#F4F4F5] truncate">
+                                {title}
+                              </p>
+                              <p className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate">
+                                {category} • {bankName} • {formatDate(tx.executed_at || tx.date)}
+                              </p>
+                            </div>
+                          </div>
 
-                    <button
-                        onClick={() => {
-                            setConnectForMemberId(null);
-                            setIsConnectModalOpen(true);
-                        }}
-                        className="flex-1 sm:flex-initial h-10 px-4 rounded-xl bg-[#FF8216] hover:bg-[#FFA047] active:bg-[#E66E08] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
-                    >
-                        <span className="material-symbols-outlined text-[17px]">add_link</span>
-                        <span>Conectar Conta</span>
-                    </button>
-                </div>
-            </header>
-
-            {/* Seletor de Granularidade Temporal: Dia a Dia | Semana a Semana | Mês a Mês | Ano a Ano */}
-            <section className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-2.5 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] shadow-xs">
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
-                    <span className="text-[11px] font-bold text-slate-400 px-2 uppercase tracking-wider shrink-0 flex items-center gap-1">
-                        <span className="material-symbols-outlined text-sm text-[#FF8216]">tune</span>
-                        Período:
-                    </span>
-                    {(["day", "week", "month", "year"] as const).map((gran) => {
-                        const labels = {
-                            day: "Dia a Dia",
-                            week: "Semana a Semana",
-                            month: "Mês a Mês",
-                            year: "Ano a Ano",
-                        };
-                        const isSel = timeGranularity === gran;
-                        const isYearLocked = gran === "year";
-                        return (
-                            <button
-                                key={gran}
-                                onClick={() => {
-                                    if (isYearLocked) {
-                                        alert("📈 O comparativo Ano a Ano necessita de pelo menos 365 dias de histórico financeiro consolidado. Estará disponível automaticamente na virada para 2027!");
-                                        return;
-                                    }
-                                    setTimeGranularity(gran);
-                                }}
-                                title={
-                                    isYearLocked
-                                        ? "Disponível a partir de 2027 (requer 365 dias de histórico)"
-                                        : undefined
-                                }
-                                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer shrink-0 flex items-center gap-1.5 ${
-                                    isSel
-                                        ? "bg-[#FF8216] text-white shadow-xs font-bold ring-2 ring-[#FF8216]/20"
-                                        : isYearLocked
-                                        ? "opacity-60 text-slate-400 hover:opacity-100 hover:text-slate-300"
-                                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5"
-                                }`}
+                          <div className="text-right shrink-0">
+                            <span
+                              className={`text-xs font-mono font-semibold tabular-nums ${
+                                tx.is_refund || !isExpense
+                                  ? "text-emerald-500"
+                                  : "text-zinc-900 dark:text-[#F4F4F5]"
+                              }`}
                             >
-                                <span>{labels[gran]}</span>
-                                {isYearLocked && (
-                                    <span className="material-symbols-outlined text-[13px] text-amber-500">lock</span>
-                                )}
-                            </button>
-                        );
-                    })}
-                </div>
-
-                <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 font-mono self-end sm:self-auto px-2">
-                    {timeGranularity === "month" && "📅 Visão Mensal Consolidada"}
-                    {timeGranularity === "day" && "⏱️ Visão dos Últimos 7 Dias"}
-                    {timeGranularity === "week" && "📊 Ritmo das Últimas 2 Semanas"}
-                    {timeGranularity === "year" && "📈 Visão Anual Acumulada"}
-                </div>
-            </section>
-
-            {/* Barra Horizontal de Seleção Global por Banco com Logos SVG Oficiais */}
-            {connectedBanks.length > 0 && (
-                <section className="flex flex-col gap-2">
-                    <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                            Filtro Global por Instituição Financeira
-                        </span>
-                        {selectedBankSlug !== "all" && (
-                            <button
-                                onClick={() => setSelectedBankSlug("all")}
-                                className="text-[11px] font-bold text-[#FF8216] hover:underline cursor-pointer"
-                            >
-                                Limpar filtro de banco
-                            </button>
-                        )}
-                    </div>
-                    <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none -mx-4 px-4 md:mx-0 md:px-0">
-                        <button
-                            onClick={() => setSelectedBankSlug("all")}
-                            className={`whitespace-nowrap h-10 px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
-                                selectedBankSlug === "all"
-                                    ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-xs"
-                                    : "bg-white dark:bg-[#121214] text-slate-600 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-[#27272A]"
-                            }`}
-                        >
-                            <span className="material-symbols-outlined text-[16px] text-[#FF8216]">
-                                account_balance
+                              {isPrivacyMode
+                                ? "R$ ••••••"
+                                : `${tx.is_refund || !isExpense ? "+" : "-"}${formatCurrency(absAmt)}`}
                             </span>
-                            <span>Todos os Bancos (Consolidado)</span>
-                        </button>
-
-                        {connectedBanks.map((bank) => {
-                            const isSelected = selectedBankSlug === bank.slug;
-                            return (
-                                <button
-                                    key={bank.slug}
-                                    onClick={() => setSelectedBankSlug(bank.slug)}
-                                    className={`whitespace-nowrap h-10 px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
-                                        isSelected
-                                            ? "bg-[#FF8216] text-white shadow-xs ring-2 ring-[#FF8216]/30"
-                                            : "bg-white dark:bg-[#121214] text-slate-700 dark:text-slate-200 hover:border-[#FF8216]/50 border border-slate-200 dark:border-[#27272A]"
-                                    }`}
-                                >
-                                    <BankLogo bank={bank.slug} size="xs" />
-                                    <span>{bank.name}</span>
-                                    {bank.accountCount > 0 && (
-                                        <span
-                                            className={`text-[10px] px-1.5 py-0.2 rounded-full ${
-                                                isSelected
-                                                    ? "bg-white/20 text-white"
-                                                    : "bg-slate-100 dark:bg-[#18181B] text-slate-400"
-                                            }`}
-                                        >
-                                            {bank.accountCount}
-                                        </span>
-                                    )}
-                                </button>
-                            );
-                        })}
-                    </div>
-                </section>
-            )}
-
-            {/* Abas de Navegação */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none -mx-4 px-4 md:mx-0 md:px-0">
-                {TABS.map((tab) => {
-                    const isActive = activeTab === tab;
-                    const isFamilyTab = tab === "Espaço Compartilhado" || tab === "Visão Familiar";
-                    return (
-                        <button
-                            key={tab}
-                            onClick={() => setActiveTab(tab)}
-                            className={`whitespace-nowrap px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
-                                isActive
-                                    ? "bg-[#FF8216] text-white shadow-xs"
-                                    : isFamilyTab
-                                      ? "bg-white dark:bg-[#121214] text-[#FF8216] hover:bg-slate-50 dark:hover:bg-[#18181B] border border-[#FF8216]/30"
-                                      : "bg-white dark:bg-[#121214] text-slate-600 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-[#F8FAFC] hover:bg-slate-50 dark:hover:bg-[#18181B] border border-slate-200 dark:border-[#27272A]"
-                            }`}
-                        >
-                            {isFamilyTab && (
-                                <span className="material-symbols-outlined text-[15px]">group</span>
+                            {tx.total_installments && Number(tx.total_installments) > 1 && (
+                              <span className="block text-[10px] font-mono tabular-nums text-[#FF8216]">
+                                {tx.installment_number || 1}/{tx.total_installments}x
+                              </span>
                             )}
-                            {tab}
-                        </button>
-                    );
-                })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
             </div>
 
-            {activeTab === "Visão Geral" ? (
-                <>
-                    {/* Alerta Preventivo de Anomalias */}
-                    <AnomalyAlertCard />
+            {/* COLUNA DIREITA: Metas (SavingGoals), Destaques da Carteira & Diagnóstico Kitsune AI */}
+            <div className="space-y-6 min-w-0">
+              {/* Card Estilo SavingGoals do Wealthfolio */}
+              <section className="p-4 md:p-5 rounded-2xl bg-white dark:bg-[#121214] border border-zinc-200 dark:border-[#27272A] space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <WfIcons.Goals className="w-4 h-4 text-[#FF8216]" />
+                    <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+                      Metas & Reserva
+                    </h3>
+                  </div>
+                  <Link
+                    href="/goals"
+                    className="text-xs font-medium text-[#FF8216] hover:underline"
+                  >
+                    Gerenciar →
+                  </Link>
+                </div>
 
-                    {/* Alerta de Concentração FGC */}
-                    {fgcWarning && (
-                        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
-                            <div className="flex items-center gap-3 min-w-0">
-                                <span className="p-2 rounded-xl bg-amber-500/20 text-amber-500 shrink-0">
-                                    <span className="material-symbols-outlined text-lg">shield_with_heart</span>
-                                </span>
-                                <div className="min-w-0">
-                                    <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate">
-                                        Alerta de Concentração FGC: {fgcWarning.issuerName}
-                                    </h4>
-                                    <p className="text-[11px] text-slate-600 dark:text-slate-400">
-                                        Você possui {formatCurrency(fgcWarning.total)} neste conglomerado emissor, excedendo o teto de R$ 250.000 em {formatCurrency(fgcWarning.excess)}.
-                                    </p>
-                                </div>
-                            </div>
-                            <Link
-                                href="/investments"
-                                className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-500 text-xs font-bold transition-colors shrink-0 self-end sm:self-auto cursor-pointer"
-                            >
-                                Ver Detalhes FGC &gt;
-                            </Link>
-                        </div>
-                    )}
-
-                    {/* Meta Patrimonial Ativa com Progresso Real */}
-                    <section className="p-4 md:p-5 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
-                        <div className="flex items-center gap-3.5 min-w-0">
-                            <div className="w-10 h-10 rounded-xl bg-[#FF8216]/10 text-[#FF8216] border border-[#FF8216]/20 flex items-center justify-center shrink-0">
-                                <span className="material-symbols-outlined text-xl">flag</span>
-                            </div>
-                            <div className="flex flex-col gap-0.5 min-w-0">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                                        Meta Patrimonial em Foco
-                                    </span>
-                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FF8216]/10 text-[#FF8216] border border-[#FF8216]/20">
-                                        {goalDiagnostics.goal}
-                                    </span>
-                                </div>
-                                <p className="text-xs text-slate-700 dark:text-slate-300 font-medium leading-relaxed">
-                                    {goalDiagnostics.text}
-                                </p>
-                            </div>
-                        </div>
-                        <div className="w-full sm:w-48 flex flex-col gap-1.5 shrink-0 self-stretch sm:self-auto">
-                            <div className="flex items-center justify-between text-[11px] font-bold">
-                                <span className="text-slate-400">Progresso</span>
-                                <span className="text-emerald-500 font-black">{goalDiagnostics.progress}%</span>
-                            </div>
-                            <div className="w-full h-2 rounded-full bg-slate-100 dark:bg-[#18181B] overflow-hidden">
-                                <div
-                                    className="h-full bg-gradient-to-r from-[#FF8216] to-emerald-500 rounded-full transition-all duration-700"
-                                    style={{ width: `${goalDiagnostics.progress}%` }}
-                                />
-                            </div>
-                        </div>
-                    </section>
-
-                    {/* Widget: Gastos de Hoje & Atividade Recente (Fiel ao pedido do usuário) */}
-                    <section className="p-4 md:p-5 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] shadow-xs">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-[#27272A]">
-                            <div className="flex items-center gap-2.5">
-                                <div className="w-8 h-8 rounded-xl bg-[#FF8216]/10 text-[#FF8216] flex items-center justify-center">
-                                    <span className="material-symbols-outlined text-[18px]">
-                                        {todaySummary.hasSpentToday ? "today" : "celebration"}
-                                    </span>
-                                </div>
-                                <div>
-                                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                                        <span>{todaySummary.hasSpentToday ? "Gastos de Hoje" : "Nenhum Gasto Hoje 🎉"}</span>
-                                        {todaySummary.hasSpentToday && (
-                                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-500 border border-rose-500/20">
-                                                {formatCurrency(todaySummary.todayTotal)}
-                                            </span>
-                                        )}
-                                    </h3>
-                                    <p className="text-[11px] text-slate-500 dark:text-[#94A3B8]">
-                                        {todaySummary.hasSpentToday
-                                            ? `Você realizou ${todaySummary.todayCount} gasto(s) hoje.`
-                                            : "Seu saldo de hoje está 100% preservado. Veja suas saídas recentes:"}
-                                    </p>
-                                </div>
-                            </div>
-
-                            <button
-                                type="button"
-                                onClick={() => setActiveTab("Transações")}
-                                className="text-xs font-bold text-[#FF8216] hover:underline flex items-center gap-1 self-start sm:self-auto cursor-pointer"
-                            >
-                                <span>Ver extrato completo</span>
-                                <span className="material-symbols-outlined text-[15px]">arrow_forward</span>
-                            </button>
-                        </div>
-
-                        {/* Lista de Gastos de Hoje ou Recentes */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 pt-3">
-                            {(todaySummary.hasSpentToday ? todaySummary.todayTxns : todaySummary.recentTxns).map((tx) => {
-                                const cleanDesc = tx.clean_description || tx.description || "Transação";
-                                const cat = tx.category_pt || tx.category || "Geral";
-                                const amt = Math.abs(Number(tx.amount) || 0);
-                                return (
-                                    <div
-                                        key={tx.id}
-                                        className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200/60 dark:border-[#27272A]/70 flex items-center justify-between gap-2"
-                                    >
-                                        <div className="flex items-center gap-2 min-w-0">
-                                            <MerchantLogo cleanName={cleanDesc} category={cat} size="sm" />
-                                            <div className="min-w-0">
-                                                <span className="text-xs font-bold text-slate-900 dark:text-white truncate block">
-                                                    {cleanDesc}
-                                                </span>
-                                                <span className="text-[10px] text-slate-400 font-mono">
-                                                    {formatDate(tx.date || tx.executed_at)} · {cat}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <span className="text-xs font-black text-rose-500 tabular-nums shrink-0">
-                                            - {formatCurrency(amt)}
-                                        </span>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </section>
-
-                    {/* Hero Kitsune Finance: Insight em Tempo Real & Ritmo de Gastos */}
-                    <section className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-5">
-                        {/* Card Esquerdo: Ei, seu dinheiro tem algo a dizer hoje (5 cols) */}
-                        <SpotlightCard className="lg:col-span-5 p-5 md:p-6 flex flex-col justify-between">
-                            <div>
-                                <div className="flex items-center justify-between mb-2">
-                                    <span className="text-xs font-bold text-[#FF8216] flex items-center gap-1.5">
-                                        <span className="w-2 h-2 rounded-full bg-[#FF8216] animate-pulse" />
-                                        Insight em Tempo Real
-                                    </span>
-                                    <span className="text-[10px] text-slate-400 font-mono">
-                                        {new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}
-                                    </span>
-                                </div>
-                                <h3 className="text-lg md:text-xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-snug">
-                                    Ei, seu dinheiro tem algo a dizer hoje.
-                                </h3>
-                                <p className="text-xs text-slate-600 dark:text-[#94A3B8] mt-2 leading-relaxed">
-                                    {userFirstName}, notei que seus gastos em{" "}
-                                    <strong className="text-slate-900 dark:text-white">
-                                        {categorySummary[0]?.name || "compras e serviços"}
-                                    </strong>{" "}
-                                    somam{" "}
-                                    <strong className="text-[#FF8216]">
-                                        {formatCurrency(categorySummary[0]?.total || 0)}
-                                    </strong>{" "}
-                                    este mês. Seu ritmo de consumo está sob monitoramento preventivo.
-                                </p>
-                            </div>
-
-                            {/* 3 Mini Stats do Kitsune */}
-                            <div className="grid grid-cols-3 gap-2 pt-4 mt-4 border-t border-slate-100 dark:border-[#27272A]">
-                                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200/60 dark:border-[#27272A]/70">
-                                    <span className="text-[9px] text-slate-400 uppercase font-bold block truncate">
-                                        Gasto no mês
-                                    </span>
-                                    <span className="text-xs md:text-sm font-black text-slate-900 dark:text-white tabular-nums block mt-0.5">
-                                        {formatCurrency(monthlyExpense)}
-                                    </span>
-                                </div>
-                                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200/60 dark:border-[#27272A]/70">
-                                    <span className="text-[9px] text-slate-400 uppercase font-bold block truncate">
-                                        vs Mês anterior
-                                    </span>
-                                    <span className={`text-xs md:text-sm font-black tabular-nums block mt-0.5 ${
-                                        spendingCurveData.totalCurrentMonth <= spendingCurveData.totalPreviousMonth
-                                            ? "text-emerald-500"
-                                            : "text-rose-500"
-                                    }`}>
-                                        {spendingCurveData.totalCurrentMonth <= spendingCurveData.totalPreviousMonth
-                                            ? "Econômico"
-                                            : "+Gasto"}
-                                    </span>
-                                </div>
-                                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200/60 dark:border-[#27272A]/70">
-                                    <span className="text-[9px] text-slate-400 uppercase font-bold block truncate">
-                                        Maior Categoria
-                                    </span>
-                                    <span className="text-xs md:text-sm font-black text-[#FF8216] truncate block mt-0.5">
-                                        {categorySummary[0]?.name || "Geral"}
-                                    </span>
-                                </div>
-                            </div>
-                        </SpotlightCard>
-
-                        {/* Card Direito: Gráfico de Ritmo de Gastos (7 cols) */}
-                        <SpotlightCard className="lg:col-span-7 p-5 md:p-6 flex flex-col justify-between">
-                            <SpendingCurveChart
-                                currentMonthDays={spendingCurveData.currentMonthDays}
-                                previousMonthDays={spendingCurveData.previousMonthDays}
-                                currentDay={spendingCurveData.currentDay}
-                                totalCurrentMonth={spendingCurveData.totalCurrentMonth}
-                                totalPreviousMonth={spendingCurveData.totalPreviousMonth}
-                                hideValues={isPrivacyMode}
-                            />
-                        </SpotlightCard>
-                    </section>
-
-                    {/* Key Metrics: 5 Cards Responsivos */}
-                    <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
-                        {/* Card 1: Patrimônio Líquido Consolidado */}
-                        <div className="p-4 md:p-5 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] flex flex-col justify-between gap-2 shadow-xs">
-                            <div className="flex items-center justify-between">
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                                    Patrimônio Líquido
-                                </span>
-                                <div className="w-7 h-7 rounded-lg bg-[#FF8216]/10 flex items-center justify-center text-[#FF8216]">
-                                    <span className="material-symbols-outlined text-[16px]">
-                                        account_balance
-                                    </span>
-                                </div>
-                            </div>
-                            <div>
-                                <span className="text-base md:text-xl font-extrabold text-slate-900 dark:text-[#F8FAFC] tabular-nums tracking-tight block">
-                                    {formatCurrency(totalBalance)}
-                                </span>
-                                <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold mt-0.5 truncate">
-                                    Conta: {formatCurrency(liquidBalance)} • Inv:{" "}
-                                    {formatCurrency(investmentsBalance)}
-                                </p>
-                                <span className="text-[10px] text-slate-400 dark:text-zinc-500 font-mono block mt-1">
-                                    Fonte: {filteredAccounts.length} conta(s) bancária(s)
-                                </span>
-                            </div>
-                            <div className="pt-2 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-[10px] text-slate-400">
-                                <span>Faturas descontadas</span>
-                                <span
-                                    className={
-                                        totalBalance >= 0
-                                            ? "text-emerald-500 font-bold"
-                                            : "text-red-500 font-bold"
-                                    }
-                                >
-                                    {totalBalance >= 0 ? "Positivo" : "Negativo"}
-                                </span>
-                            </div>
-                        </div>
-
-                        {/* Card 2: Liquidez Livre Imediata em Conta */}
-                        <div className="p-4 md:p-5 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] flex flex-col justify-between gap-2 shadow-xs">
-                            <div className="flex items-center justify-between">
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                                    Liquidez Livre em Conta
-                                </span>
-                                <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
-                                    <span className="material-symbols-outlined text-[16px]">
-                                        payments
-                                    </span>
-                                </div>
-                            </div>
-                            <div>
-                                <span className="text-base md:text-xl font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums tracking-tight block">
-                                    {formatCurrency(liquidBalance)}
-                                </span>
-                                <p className="text-[11px] text-slate-400 mt-0.5 truncate">
-                                    Disponível para uso e novos aportes
-                                </p>
-                                <span className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 font-mono block mt-1">
-                                    Sem bloqueios ou carências
-                                </span>
-                            </div>
-                            <div className="pt-2 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-[10px] text-slate-400">
-                                <span>Disponibilidade</span>
-                                <span className="text-emerald-500 font-bold">Imediata</span>
-                            </div>
-                        </div>
-
-                        {/* Card 3: Entradas Reais Conforme Período Selecionado */}
-                        <div className="p-4 md:p-5 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] flex flex-col justify-between gap-2 shadow-xs">
-                            <div className="flex items-center justify-between">
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                                    {timeGranularity === "day"
-                                        ? "Entradas (7 Dias)"
-                                        : timeGranularity === "week"
-                                        ? "Entradas (2 Semanas)"
-                                        : timeGranularity === "year"
-                                        ? "Entradas do Ano"
-                                        : "Entradas do Mês"}
-                                </span>
-                                <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
-                                    <span className="material-symbols-outlined text-[16px]">
-                                        trending_up
-                                    </span>
-                                </div>
-                            </div>
-                            <div>
-                                <span className="text-base md:text-xl font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums tracking-tight block">
-                                    {formatCurrency(monthlyIncome)}
-                                </span>
-                                <p className="text-[11px] text-slate-400 mt-0.5 truncate">
-                                    Salário, rendimentos e créditos
-                                </p>
-                                <span className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 font-mono block mt-1">
-                                    Fonte: {monthlyIncomeCount} crédito(s)
-                                </span>
-                            </div>
-                            <div className="pt-2 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-[10px] text-slate-400">
-                                <span>Mov. Internas</span>
-                                <span className="text-slate-600 dark:text-slate-300 font-semibold tabular-nums">
-                                    {formatCurrency(monthlyInternalTransfers)}
-                                </span>
-                            </div>
-                        </div>
-
-                        {/* Card 4: Saídas Reais Conforme Período Selecionado */}
-                        <div className="p-4 md:p-5 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] flex flex-col justify-between gap-2 shadow-xs">
-                            <div className="flex items-center justify-between">
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                                    {timeGranularity === "day"
-                                        ? "Saídas (7 Dias)"
-                                        : timeGranularity === "week"
-                                        ? "Saídas (2 Semanas)"
-                                        : timeGranularity === "year"
-                                        ? "Saídas do Ano"
-                                        : "Saídas do Mês"}
-                                </span>
-                                <div className="w-7 h-7 rounded-lg bg-red-500/10 flex items-center justify-center text-red-500">
-                                    <span className="material-symbols-outlined text-[16px]">
-                                        shopping_bag
-                                    </span>
-                                </div>
-                            </div>
-                            <div>
-                                <span className="text-base md:text-xl font-extrabold text-red-600 dark:text-red-400 tabular-nums tracking-tight block">
-                                    {formatCurrency(monthlyExpense)}
-                                </span>
-                                <p className="text-[11px] text-slate-400 mt-0.5 truncate">
-                                    {categorySummary[0]
-                                        ? `Top: ${categorySummary[0].name}`
-                                        : "Gastos reais conciliados"}
-                                </p>
-                                <span className="text-[10px] text-rose-500/80 font-mono block mt-1">
-                                    Fonte: {monthlyExpenseCount} saída(s)
-                                </span>
-                            </div>
-                            <div className="pt-2 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-[10px] text-slate-400">
-                                <span>Estornos</span>
-                                <span className="text-emerald-500 font-bold tabular-nums">
-                                    +{formatCurrency(monthlyRefunds)}
-                                </span>
-                            </div>
-                        </div>
-
-                        {/* Card 5: Faturas de Cartão com Detalhe de Parcelado */}
-                        <div className="p-4 md:p-5 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] flex flex-col justify-between gap-2 shadow-xs col-span-2 sm:col-span-1">
-                            <div className="flex items-center justify-between">
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                                    Faturas em Aberto
-                                </span>
-                                <div className="w-7 h-7 rounded-lg bg-[#FF8216]/10 flex items-center justify-center text-[#FF8216]">
-                                    <span className="material-symbols-outlined text-[16px]">
-                                        credit_card
-                                    </span>
-                                </div>
-                            </div>
-                            <div>
-                                <span className="text-base md:text-xl font-extrabold text-[#FF8216] tabular-nums tracking-tight block">
-                                    {formatCurrency(creditCardBalance)}
-                                </span>
-                                <p className="text-[11px] text-slate-400 mt-0.5 truncate">
-                                    {installmentStats.monthlyInstallmentTotal > 0
-                                        ? `Parcelado: ${formatCurrency(installmentStats.monthlyInstallmentTotal)}/mês`
-                                        : "À vista e recorrentes"}
-                                </p>
-                                <span className="text-[10px] text-[#FF8216]/90 font-mono block mt-1 truncate">
-                                    {installmentStats.activeInstallmentCount > 0
-                                        ? `${formatCurrency(installmentStats.totalInstallmentBalance)} total (${installmentStats.activeInstallmentCount} parc.)`
-                                        : `${filteredAccounts.filter((a) => a.type === "CREDIT" || a.subtype === "CREDIT_CARD").length} cartão(ões)`}
-                                </span>
-                            </div>
-                            <div className="pt-2 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-[10px] text-slate-400">
-                                <span>Cobertura líquida</span>
-                                <span className={liquidBalance >= creditCardBalance ? "text-emerald-500 font-semibold" : "text-amber-500 font-semibold"}>
-                                    {liquidBalance >= creditCardBalance ? "100% Coberto" : "Atenção"}
-                                </span>
-                            </div>
-                        </div>
-                    </section>
-
-                    {/* Widgets de Inteligência e Saúde Financeira */}
-                    <section className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
-                        <div className="p-3.5 md:p-4 rounded-xl bg-slate-50 dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] flex items-center justify-between gap-3 shadow-xs">
-                            <div className="flex items-center gap-2.5 min-w-0">
-                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                                    incomeCommitment <= 60
-                                        ? "bg-emerald-500/10 text-emerald-500"
-                                        : incomeCommitment <= 80
-                                        ? "bg-amber-500/10 text-amber-500"
-                                        : "bg-rose-500/10 text-rose-500"
-                                }`}>
-                                    <span className="material-symbols-outlined text-[18px]">pie_chart</span>
-                                </div>
-                                <div className="min-w-0">
-                                    <span className="text-[10px] text-slate-400 uppercase font-bold block truncate">
-                                        Comprometimento de Renda
-                                    </span>
-                                    <span className="text-xs md:text-sm font-black text-slate-900 dark:text-white tabular-nums block">
-                                        {incomeCommitment}% da Renda
-                                    </span>
-                                </div>
-                            </div>
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                                incomeCommitment <= 60
-                                    ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
-                                    : incomeCommitment <= 80
-                                    ? "bg-amber-500/10 text-amber-500 border border-amber-500/20"
-                                    : "bg-rose-500/10 text-rose-500 border border-rose-500/20"
-                            }`}>
-                                {incomeCommitment <= 60 ? "Saudável" : incomeCommitment <= 80 ? "Moderado" : "Elevado"}
-                            </span>
-                        </div>
-
-                        <div className="p-3.5 md:p-4 rounded-xl bg-slate-50 dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] flex items-center justify-between gap-3 shadow-xs">
-                            <div className="flex items-center gap-2.5 min-w-0">
-                                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0">
-                                    <span className="material-symbols-outlined text-[18px]">security</span>
-                                </div>
-                                <div className="min-w-0">
-                                    <span className="text-[10px] text-slate-400 uppercase font-bold block truncate">
-                                        Reserva de Emergência
-                                    </span>
-                                    <span className="text-xs md:text-sm font-black text-slate-900 dark:text-white tabular-nums block">
-                                        {emergencyDays} Dias Cobertos
-                                    </span>
-                                </div>
-                            </div>
-                            <span className="text-[10px] font-semibold text-slate-400">
-                                {(emergencyDays / 30).toFixed(1)} meses
-                            </span>
-                        </div>
-
-                        <div className="p-3.5 md:p-4 rounded-xl bg-slate-50 dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] flex items-center justify-between gap-3 shadow-xs">
-                            <div className="flex items-center gap-2.5 min-w-0">
-                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                                    monthEndForecast >= 0
-                                        ? "bg-emerald-500/10 text-emerald-500"
-                                        : "bg-rose-500/10 text-rose-500"
-                                }`}>
-                                    <span className="material-symbols-outlined text-[18px]">account_balance_wallet</span>
-                                </div>
-                                <div className="min-w-0">
-                                    <span className="text-[10px] text-slate-400 uppercase font-bold block truncate">
-                                        Previsão Fechamento
-                                    </span>
-                                    <span className={`text-xs md:text-sm font-black tabular-nums block ${
-                                        monthEndForecast >= 0 ? "text-emerald-500" : "text-rose-500"
-                                    }`}>
-                                        {formatCurrency(monthEndForecast)}
-                                    </span>
-                                </div>
-                            </div>
-                            <span className={`text-[10px] font-bold ${
-                                monthEndForecast >= 0 ? "text-emerald-500" : "text-rose-500"
-                            }`}>
-                                {monthEndForecast >= 0 ? "Superávit" : "Déficit"}
-                            </span>
-                        </div>
-                    </section>
-
-                    {/* Diagrama de Sankey de Fluxo de Caixa (Fiel ao Maybe Finance) */}
-                    <CashFlowSankey
-                        transactions={periodFilteredTransactions}
-                        isPrivacyMode={isPrivacyMode}
-                        selfAndFamilyNames={[
-                            userProfile?.full_name || "",
-                            userProfile?.display_name || "",
-                            userFirstName,
-                            ...familyMembers.map((f) => f.name),
-                        ]}
-                        periodLabel={
-                            timeGranularity === "day"
-                                ? "Últimos 7 Dias"
-                                : timeGranularity === "week"
-                                  ? "Últimas 2 Semanas"
-                                  : timeGranularity === "year"
-                                    ? "Acumulado Anual"
-                                    : "Mês Atual"
-                        }
-                    />
-
-                    {/* Painel Consultivo da Kitsune AI */}
-                    <AiDiagnosticPanel
-                        aiInsight={aiInsight}
-                        isGenerating={isGeneratingAi}
-                        onRefresh={generateAiInsight}
-                        totalBalance={totalBalance}
-                        liquidBalance={liquidBalance}
-                        creditCardBalance={creditCardBalance}
-                        monthlyIncome={monthlyIncome}
-                        monthlyExpense={monthlyExpense}
-                        kitsuneScore={kitsuneScore}
-                        formatCurrency={formatCurrency}
-                    />
-
-                    {/* Grid de 2 Colunas: Contas Conectadas + Lançamentos Recentes */}
-                    <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                        {/* Coluna Esquerda: Minhas Contas, Cartões & Investimentos (5 cols) */}
-                        <div className="lg:col-span-5 flex flex-col gap-3">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-1.5">
-                                    <span className="material-symbols-outlined text-lg text-[#FF8216]">
-                                        account_balance_wallet
-                                    </span>
-                                    <h2 className="text-sm font-bold text-slate-900 dark:text-[#F8FAFC]">
-                                        Minhas Contas & Cartões
-                                    </h2>
-                                </div>
-                                <span className="text-[11px] text-slate-500 dark:text-[#94A3B8] bg-slate-100 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] px-2 py-0.5 rounded-md">
-                                    {filteredAccounts.length} Ativa(s)
-                                </span>
-                            </div>
-
-                            <div className="flex flex-col gap-2.5">
-                                {filteredAccounts.length > 0 ? (
-                                    <>
-                                        {(showAllAccounts ? filteredAccounts : filteredAccounts.slice(0, 5)).map((account) => {
-                                            const isCredit =
-                                                account.type === "CREDIT" ||
-                                                account.type === "CREDIT_CARD" ||
-                                                account.subtype === "CREDIT_CARD";
-                                            const isSavings = account.subtype === "SAVINGS_ACCOUNT";
-                                            const instName =
-                                                account.institution_name ||
-                                                account.bank_name ||
-                                                "Banco Conectado";
-                                            const prodName =
-                                                account.product_name ||
-                                                account.bank_name ||
-                                                "Conta Bancária";
-                                            const slug =
-                                                account.institution_slug || instName;
-
-                                            return (
-                                                <div
-                                                    key={account.id}
-                                                    className="p-3.5 rounded-xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] flex items-center justify-between hover:border-[#FF8216]/40 transition-colors shadow-xs gap-3"
-                                                >
-                                                    <div className="flex items-center gap-3 min-w-0">
-                                                        <BankLogo bank={slug} size="sm" />
-                                                        <div className="flex flex-col min-w-0">
-                                                            <span className="text-xs font-bold text-slate-900 dark:text-[#F8FAFC] truncate">
-                                                                {prodName}
-                                                            </span>
-                                                            <span className="text-[11px] text-slate-400 truncate">
-                                                                {instName} •{" "}
-                                                                {isCredit
-                                                                    ? account.credit_limit
-                                                                        ? `Limite: ${formatCurrency(Number(account.credit_limit))}`
-                                                                        : "Cartão de Crédito"
-                                                                    : isSavings
-                                                                      ? "Conta Poupança"
-                                                                      : "Conta Corrente"}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="flex flex-col items-end shrink-0 pl-2">
-                                                        <span
-                                                            className={`text-xs md:text-sm font-extrabold tabular-nums ${
-                                                                isCredit
-                                                                    ? "text-[#FF8216]"
-                                                                    : "text-slate-900 dark:text-white"
-                                                            }`}
-                                                        >
-                                                            {formatCurrency(
-                                                                Math.abs(Number(account.balance) || 0)
-                                                            )}
-                                                        </span>
-                                                        <span className="text-[10px] text-slate-400">
-                                                            {isCredit
-                                                                ? account.available_credit_limit != null
-                                                                    ? `Disp: ${formatCurrency(Number(account.available_credit_limit))}`
-                                                                    : "Fatura atual"
-                                                                : "Saldo livre"}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-
-                                        {filteredAccounts.length > 5 && (
-                                            <button
-                                                type="button"
-                                                onClick={() => setShowAllAccounts(!showAllAccounts)}
-                                                className="w-full py-2.5 rounded-xl border border-slate-200 dark:border-[#27272A] bg-slate-50 dark:bg-[#18181B] hover:bg-slate-100 dark:hover:bg-[#202024] text-xs font-bold text-slate-700 dark:text-zinc-300 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-                                            >
-                                                <span>
-                                                    {showAllAccounts
-                                                        ? "Ver menos"
-                                                        : `Ver mais (${filteredAccounts.length - 5} outras contas)`}
-                                                </span>
-                                                <span className="material-symbols-outlined text-[16px]">
-                                                    {showAllAccounts ? "expand_less" : "expand_more"}
-                                                </span>
-                                            </button>
-                                        )}
-                                    </>
-                                ) : (
-                                    <div className="p-6 text-center bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] rounded-xl flex flex-col items-center gap-2">
-                                        <p className="text-xs text-slate-400">
-                                            Nenhuma conta conectada neste filtro.
-                                        </p>
-                                        <Link
-                                            href="/agents"
-                                            className="text-xs font-bold text-[#FF8216] hover:underline"
-                                        >
-                                            Conectar banco no Open Finance
-                                        </Link>
-                                    </div>
-                                )}
-
-                                {/* Resumo Rápido de Investimentos se existirem */}
-                                {filteredInvestments.length > 0 && (
-                                    <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20 flex items-center justify-between mt-1">
-                                        <div className="flex items-center gap-2.5">
-                                            <span className="material-symbols-outlined text-emerald-500 text-lg">
-                                                trending_up
-                                            </span>
-                                            <div>
-                                                <span className="text-xs font-bold text-slate-900 dark:text-white block">
-                                                    {filteredInvestments.length} Títulos / CDBs Sincronizados
-                                                </span>
-                                                <button
-                                                    onClick={() =>
-                                                        setActiveTab("Investimentos")
-                                                    }
-                                                    className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold hover:underline cursor-pointer"
-                                                >
-                                                    Ver carteira detalhada →
-                                                </button>
-                                            </div>
-                                        </div>
-                                        <span className="text-sm font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums">
-                                            {formatCurrency(investmentsBalance)}
-                                        </span>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Coluna Direita: Lançamentos Recentes Enriquecidos (7 cols) */}
-                        <div className="lg:col-span-7 flex flex-col gap-3">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-1.5">
-                                    <span className="material-symbols-outlined text-lg text-[#FF8216]">
-                                        receipt_long
-                                    </span>
-                                    <h2 className="text-sm font-bold text-slate-900 dark:text-[#F8FAFC]">
-                                        Movimentações Recentes Conciliadas
-                                    </h2>
-                                </div>
-                                <button
-                                    onClick={() => setActiveTab("Transações")}
-                                    className="text-xs font-bold text-[#FF8216] hover:underline cursor-pointer flex items-center gap-0.5"
-                                >
-                                    Ver extrato completo
-                                    <span className="material-symbols-outlined text-[14px]">
-                                        arrow_forward
-                                    </span>
-                                </button>
-                            </div>
-
-                            <div className="flex flex-col gap-2">
-                                {filteredTransactions.slice(0, 9).length > 0 ? (
-                                    filteredTransactions.slice(0, 9).map((txn) => {
-                                        const amt = Number(txn.amount) || 0;
-                                        const isCredit = txn.type === "CREDIT";
-                                        const cleanDesc =
-                                            txn.clean_description || txn.description || "Transação";
-                                        const catPt = txn.category_pt || txn.category || "Outros";
-                                        const bankSlug =
-                                            txn.bank_accounts?.institution_slug ||
-                                            txn.bank_accounts?.institution_name ||
-                                            txn.bank_accounts?.bank_name ||
-                                            "generic";
-                                        const bankLabel =
-                                            txn.bank_accounts?.institution_name ||
-                                            txn.bank_accounts?.bank_name ||
-                                            "Banco";
-
-                                        return (
-                                            <div
-                                                key={txn.id}
-                                                className="p-3 rounded-xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] flex items-center justify-between gap-3 shadow-xs"
-                                            >
-                                                <div className="flex items-center gap-3 min-w-0">
-                                                    <BankLogo bank={bankSlug} size="xs" />
-                                                    <div className="flex flex-col min-w-0">
-                                                        <div className="flex items-center gap-2 flex-wrap">
-                                                            <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
-                                                                {cleanDesc}
-                                                            </span>
-                                                            {renderTransactionBadge(txn)}
-                                                        </div>
-                                                        <span className="text-[10px] text-slate-400 truncate mt-0.5">
-                                                            {formatDate(txn.date || txn.executed_at)} •{" "}
-                                                            {bankLabel} • {catPt}
-                                                        </span>
-                                                    </div>
-                                                </div>
-
-                                                <span
-                                                    className={`text-xs md:text-sm font-bold tabular-nums shrink-0 ${
-                                                        txn.is_refund
-                                                            ? "text-emerald-500"
-                                                            : txn.is_internal_transfer
-                                                              ? "text-slate-400"
-                                                              : isCredit
-                                                                ? "text-emerald-500"
-                                                                : "text-slate-800 dark:text-slate-200"
-                                                    }`}
-                                                >
-                                                    {isCredit ? "+" : "-"}
-                                                    {formatCurrency(Math.abs(amt))}
-                                                </span>
-                                            </div>
-                                        );
-                                    })
-                                ) : (
-                                    <div className="p-6 text-center bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] rounded-xl text-xs text-slate-400">
-                                        Nenhuma transação registrada neste filtro.
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </section>
-
-                    {/* Mapa de Calor de Gastos Diários */}
-                    <SpendingHeatmap
-                        transactions={periodFilteredTransactions.filter(
-                            (t) => !t.is_internal_transfer && !t.is_refund
-                        )}
-                        formatCurrency={formatCurrency}
-                    />
-                </>
-            ) : activeTab === "Parcelamentos" ? (
-                <InstallmentsTracker
-                    transactions={filteredTransactions}
-                    formatCurrency={formatCurrency}
-                />
-            ) : activeTab === "Assinaturas" ? (
-                <SubscriptionsTracker
-                    transactions={filteredTransactions}
-                    formatCurrency={formatCurrency}
-                />
-            ) : activeTab === "Transações" || activeTab === "Extrato & Transações" ? (
-                <PaginatedTransactionsView
-                    transactions={filteredTransactions}
-                    accounts={filteredAccounts}
-                    formatCurrency={formatCurrency}
-                    formatDate={(val) => formatDate(val || undefined)}
-                />
-            ) : activeTab === "Cartões" || activeTab === "Cartões de Crédito" ? (
-                <WalletCards
-                    accounts={filteredAccounts}
-                    transactions={filteredTransactions}
-                    formatCurrency={formatCurrency}
-                />
-            ) : activeTab === "Categorias" || activeTab === "Categorias de Gastos" ? (
-                <CategoriesView
-                    transactions={filteredTransactions}
-                    formatCurrency={formatCurrency}
-                    timeGranularity={timeGranularity}
-                />
-            ) : activeTab === "Investimentos" || activeTab === "Investimentos & Carteira" ? (
-                <section className="flex flex-col gap-6">
-                    <div className="bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] rounded-2xl p-5 shadow-xs flex flex-col gap-4">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                            <div>
-                                <div className="flex items-center gap-2">
-                                    <h2 className="text-sm font-bold text-slate-900 dark:text-white">
-                                        Carteira de Investimentos Open Finance ({activeFilteredInvestments.length})
-                                    </h2>
-                                    {totalInvPages > 1 && (
-                                        <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#FF8216]/10 text-[#FF8216]">
-                                            Pág. {invPage} de {totalInvPages}
-                                        </span>
-                                    )}
-                                </div>
-                                <p className="text-xs text-slate-400 mt-0.5">
-                                    CDBs, Renda Fixa, Tesouro e Fundos sincronizados diretamente das instituições conectadas.
-                                </p>
-                            </div>
-                            <div className="flex items-center gap-3 self-start sm:self-auto">
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setShowWithdrawnInv((prev) => !prev);
-                                        setInvPage(1);
-                                    }}
-                                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
-                                        showWithdrawnInv
-                                            ? "border-[#FF8216] bg-[#FF8216]/10 text-[#FF8216]"
-                                            : "border-slate-200 dark:border-[#27272A] text-slate-400 hover:text-white"
-                                    }`}
-                                >
-                                    {showWithdrawnInv ? "Ocultar Zerados (R$ 0)" : "Ver Resgatados / Zerados"}
-                                </button>
-                                <span className="text-lg font-extrabold text-emerald-500 tabular-nums">
-                                    {formatCurrency(investmentsBalance)}
-                                </span>
-                            </div>
-                        </div>
-
-                        {activeFilteredInvestments.length === 0 ? (
-                            <div className="p-6 text-center text-xs text-slate-400">
-                                Nenhum investimento ativo encontrado neste filtro.
-                            </div>
-                        ) : (
-                            <>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    {paginatedInvestments.map((inv) => (
-                                        <div
-                                            key={inv.id}
-                                            className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] flex items-center justify-between gap-3"
-                                        >
-                                            <div className="flex items-center gap-3 min-w-0">
-                                                <BankLogo
-                                                    bank={
-                                                        inv.institution_slug ||
-                                                        inv.institution_name ||
-                                                        inv.issuer
-                                                    }
-                                                    size="sm"
-                                                />
-                                                <div className="min-w-0">
-                                                    <span className="text-xs font-bold text-slate-900 dark:text-white block truncate">
-                                                        {inv.name}
-                                                    </span>
-                                                    <span className="text-[11px] text-slate-400 block truncate">
-                                                        {inv.institution_name || inv.issuer || "Carteira"} •{" "}
-                                                        {inv.subtype || inv.type}
-                                                        {inv.rate
-                                                            ? ` • ${inv.rate}% ${inv.rate_type || "CDI"}`
-                                                            : ""}
-                                                        {inv.due_date
-                                                            ? ` • Venc: ${formatDate(inv.due_date)}`
-                                                            : ""}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            <div className="text-right shrink-0">
-                                                <span className="text-xs md:text-sm font-extrabold text-emerald-500 tabular-nums block">
-                                                    {formatCurrency(Number(inv.balance) || 0)}
-                                                </span>
-                                                <span className="text-[10px] text-emerald-600/90 dark:text-emerald-400/90 block font-medium">
-                                                    +{formatCurrency((Number(inv.balance) || 0) * 0.0085)}/mês (~100% CDI)
-                                                </span>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                {/* Paginação de Investimentos */}
-                                {totalInvPages > 1 && (
-                                    <div className="flex items-center justify-between pt-3 border-t border-slate-200 dark:border-[#27272A]/70">
-                                        <span className="text-xs text-slate-400">
-                                            Exibindo {paginatedInvestments.length} de {activeFilteredInvestments.length} posições
-                                        </span>
-                                        <div className="flex items-center gap-1.5">
-                                            <button
-                                                type="button"
-                                                onClick={() => setInvPage((p) => Math.max(1, p - 1))}
-                                                disabled={invPage === 1}
-                                                className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-[#27272A] text-xs font-bold disabled:opacity-30 hover:bg-white/5 cursor-pointer"
-                                            >
-                                                Anterior
-                                            </button>
-                                            {Array.from({ length: totalInvPages }, (_, i) => i + 1).map((pg) => (
-                                                <button
-                                                    key={pg}
-                                                    type="button"
-                                                    onClick={() => setInvPage(pg)}
-                                                    className={`w-8 h-8 rounded-lg text-xs font-bold cursor-pointer transition-all ${
-                                                        invPage === pg
-                                                            ? "bg-[#FF8216] text-white"
-                                                            : "border border-slate-200 dark:border-[#27272A] text-slate-400 hover:text-white"
-                                                    }`}
-                                                >
-                                                    {pg}
-                                                </button>
-                                            ))}
-                                            <button
-                                                type="button"
-                                                onClick={() => setInvPage((p) => Math.min(totalInvPages, p + 1))}
-                                                disabled={invPage === totalInvPages}
-                                                className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-[#27272A] text-xs font-bold disabled:opacity-30 hover:bg-white/5 cursor-pointer"
-                                            >
-                                                Próxima
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-                            </>
-                        )}
+                <div className="space-y-3.5">
+                  {/* Meta 1: Reserva de Liquidez (6 meses) */}
+                  <div className="p-3 rounded-xl bg-zinc-50 dark:bg-[#18181B] border border-zinc-200/70 dark:border-[#27272A]">
+                    <div className="flex items-center justify-between text-xs mb-1.5">
+                      <span className="font-semibold text-zinc-800 dark:text-zinc-200">
+                        Reserva de Emergência (6m)
+                      </span>
+                      <span className="font-mono tabular-nums font-semibold text-[#FF8216]">
+                        {isPrivacyMode ? "••%" : `${goalsSummary.emergencyPct}%`}
+                      </span>
                     </div>
+                    <div className="h-1.5 w-full rounded-full bg-zinc-200 dark:bg-[#27272A] overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-[#FF8216] transition-all duration-500"
+                        style={{ width: `${goalsSummary.emergencyPct}%` }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] text-zinc-500 dark:text-zinc-400 mt-1.5 font-mono tabular-nums">
+                      <span>
+                        {isPrivacyMode ? "•• meses" : `${goalsSummary.emergencyMonths} meses`}
+                      </span>
+                      <span>Alvo: {formatCurrency(goalsSummary.emergencyTarget)}</span>
+                    </div>
+                  </div>
 
-                    {/* Empréstimos / Financiamentos se existirem */}
-                    <div className="bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] rounded-2xl p-5 shadow-xs flex flex-col gap-4">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <h2 className="text-sm font-bold text-slate-900 dark:text-white">
-                                    Contratos de Empréstimos & Financiamentos ({filteredLoans.length})
-                                </h2>
-                                <p className="text-xs text-slate-400">
-                                    Contratos registrados em GET /loans na Pluggy.
-                                </p>
-                            </div>
-                            <span className="text-lg font-extrabold text-slate-900 dark:text-white tabular-nums">
-                                {formatCurrency(loansBalance)}
-                            </span>
-                        </div>
-                        {filteredLoans.length === 0 ? (
-                            <p className="text-xs text-slate-400">
-                                Nenhum contrato de empréstimo ativo retornado pelas instituições conectadas.
+                  {/* Meta 2: Cobertura FIRE (Renda Passiva CDI vs Custo Mensal) */}
+                  <div className="p-3 rounded-xl bg-zinc-50 dark:bg-[#18181B] border border-zinc-200/70 dark:border-[#27272A]">
+                    <div className="flex items-center justify-between text-xs mb-1.5">
+                      <span className="font-semibold text-zinc-800 dark:text-zinc-200">
+                        Cobertura Passiva CDI (FIRE)
+                      </span>
+                      <span className="font-mono tabular-nums font-semibold text-emerald-500">
+                        {isPrivacyMode ? "••%" : `${goalsSummary.fireCoveragePct}%`}
+                      </span>
+                    </div>
+                    <div className="h-1.5 w-full rounded-full bg-zinc-200 dark:bg-[#27272A] overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-emerald-500 transition-all duration-500"
+                        style={{ width: `${goalsSummary.fireCoveragePct}%` }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] text-zinc-500 dark:text-zinc-400 mt-1.5 font-mono tabular-nums">
+                      <span>+{formatCurrency(goalsSummary.projectedMonthlyYield)}/mês</span>
+                      <span>Custo: {formatCurrency(goalsSummary.monthlyCost)}</span>
+                    </div>
+                  </div>
+
+                  {/* Meta Principal do Perfil */}
+                  <div className="flex items-center justify-between pt-1 text-xs">
+                    <span className="text-zinc-500 dark:text-zinc-400 truncate pr-2">
+                      Foco: <strong className="text-zinc-800 dark:text-zinc-200">{goalsSummary.goalLabel}</strong>
+                    </span>
+                    <span className="font-mono tabular-nums text-zinc-600 dark:text-zinc-300 shrink-0">
+                      {isPrivacyMode ? "••%" : `${goalsSummary.primaryProgress}%`}
+                    </span>
+                  </div>
+                </div>
+              </section>
+
+              {/* Card Destaques de Holdings & Insights */}
+              <section className="p-4 md:p-5 rounded-2xl bg-white dark:bg-[#121214] border border-zinc-200 dark:border-[#27272A] space-y-3.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <WfIcons.Holdings className="w-4 h-4 text-[#FF8216]" />
+                    <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+                      Maiores Posições
+                    </h3>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs">
+                    <Link href="/insights" className="text-zinc-500 hover:text-zinc-200">
+                      Insights
+                    </Link>
+                    <Link href="/investments" className="font-medium text-[#FF8216] hover:underline">
+                      Holdings →
+                    </Link>
+                  </div>
+                </div>
+
+                {topHoldings.length === 0 ? (
+                  <p className="text-xs text-zinc-500 py-3">
+                    Nenhum ativo de investimento sincronizado ainda.
+                  </p>
+                ) : (
+                  <div className="divide-y divide-zinc-100 dark:divide-[#27272A]/70">
+                    {topHoldings.map((item) => (
+                      <div
+                        key={item.id}
+                        className="py-2 flex items-center justify-between gap-2.5 text-xs"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <BankLogo bank={item.slug} size="xs" />
+                          <div className="min-w-0">
+                            <p className="font-medium text-zinc-900 dark:text-[#F4F4F5] truncate">
+                              {item.name}
                             </p>
-                        ) : (
-                            <div className="flex flex-col gap-2.5">
-                                {filteredLoans.map((loan) => (
-                                    <div
-                                        key={loan.id}
-                                        className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] flex items-center justify-between"
-                                    >
-                                        <div>
-                                            <span className="text-xs font-bold text-slate-900 dark:text-white block">
-                                                {loan.product_name}
-                                            </span>
-                                            <span className="text-[11px] text-slate-400">
-                                                {loan.institution_name} • Parcelas:{" "}
-                                                {loan.paid_installments ?? "?"}/
-                                                {loan.total_installments ?? "?"}
-                                            </span>
-                                        </div>
-                                        <span className="text-sm font-extrabold text-[#FF8216] tabular-nums">
-                                            {formatCurrency(Number(loan.outstanding_balance) || 0)}
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                </section>
-            ) : activeTab === "Perfil Open Finance" ? (
-                <section className="flex flex-col gap-5">
-                    <div className="bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] rounded-2xl p-5 md:p-6 shadow-xs flex flex-col gap-5">
-                        <div className="flex flex-col gap-1 border-b border-slate-100 dark:border-white/5 pb-4">
-                            <div className="flex items-center gap-2">
-                                <span className="material-symbols-outlined text-[#FF8216]">
-                                    verified_user
-                                </span>
-                                <h2 className="text-base font-bold text-slate-900 dark:text-white">
-                                    Perfil Open Finance Consolidado (Consenso Multi-Banco)
-                                </h2>
-                            </div>
-                            <p className="text-xs text-slate-400">
-                                Dados cadastrais cruzados e unificados automaticamente a partir do endpoint /identity de todas as suas instituições conectadas.
+                            <p className="text-[11px] text-zinc-500 truncate">
+                              {item.institution}
                             </p>
+                          </div>
                         </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-                            <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A]">
-                                <span className="text-[10px] font-bold uppercase text-slate-400 block">
-                                    Nome Civil Oficial
-                                </span>
-                                <span className="text-sm font-extrabold text-slate-900 dark:text-white mt-1 block">
-                                    {userProfile?.full_name || "Não informado"}
-                                </span>
-                            </div>
-                            <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A]">
-                                <span className="text-[10px] font-bold uppercase text-slate-400 block">
-                                    CPF Protegido
-                                </span>
-                                <span className="text-sm font-extrabold text-emerald-500 mt-1 block tabular-nums">
-                                    {userProfile?.document_mask || "***.***.***-**"}
-                                </span>
-                            </div>
-                            <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A]">
-                                <span className="text-[10px] font-bold uppercase text-slate-400 block">
-                                    Nascimento
-                                </span>
-                                <span className="text-sm font-extrabold text-slate-900 dark:text-white mt-1 block">
-                                    {userProfile?.birth_date
-                                        ? formatDate(userProfile.birth_date)
-                                        : "Não informado"}
-                                </span>
-                            </div>
-                            <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A]">
-                                <span className="text-[10px] font-bold uppercase text-slate-400 block">
-                                    Profissão / Ocupação
-                                </span>
-                                <span className="text-sm font-extrabold text-slate-900 dark:text-white mt-1 block truncate">
-                                    {userProfile?.job_title || "Não informada"}
-                                </span>
-                            </div>
+                        <div className="text-right shrink-0 font-mono tabular-nums">
+                          <p className="font-semibold text-zinc-900 dark:text-[#F4F4F5]">
+                            {formatCurrency(item.balance)}
+                          </p>
+                          <p className="text-[10px] text-zinc-500">
+                            {isPrivacyMode ? "••%" : `${item.weightPct.toFixed(1)}%`}
+                          </p>
                         </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
 
-                        {/* Fontes por Banco */}
-                        <div className="flex flex-col gap-3">
-                            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                                O que cada instituição financeira informa ({userProfile?.bank_sources?.length || 0} fontes)
-                            </h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                {(userProfile?.bank_sources || []).map((src, idx) => (
-                                    <div
-                                        key={`${src.itemId}_${idx}`}
-                                        className="p-4 rounded-xl bg-slate-50 dark:bg-[#18181B] border border-slate-200 dark:border-[#27272A] flex flex-col gap-2"
-                                    >
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2.5">
-                                                <BankLogo
-                                                    bank={src.institutionSlug || src.institutionName}
-                                                    size="xs"
-                                                />
-                                                <span className="text-xs font-bold text-slate-900 dark:text-white">
-                                                    {src.institutionName}
-                                                </span>
-                                            </div>
-                                            <span className="text-[10px] text-emerald-500 font-semibold">
-                                                {src.documentMask || "CPF Verificado"}
-                                            </span>
-                                        </div>
-                                        <div className="text-[11px] text-slate-400 flex flex-col gap-0.5">
-                                            <span>Titular: {src.fullName || "-"}</span>
-                                            {src.jobTitle && <span>Ocupação: {src.jobTitle}</span>}
-                                            {src.emails?.length > 0 && (
-                                                <span>E-mail: {src.emails.join(", ")}</span>
-                                            )}
-                                            {src.phones?.length > 0 && (
-                                                <span>Telefone: {src.phones.join(", ")}</span>
-                                            )}
-                                            {src.cityState && (
-                                                <span>Localidade: {src.cityState}</span>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </section>
-            ) : null}
-
-            <PluggyConnectModal
-                isOpen={isConnectModalOpen}
-                onClose={() => {
-                    setIsConnectModalOpen(false);
-                    setConnectForMemberId(null);
-                }}
-                familyMembers={familyMembers}
-                initialMemberId={connectForMemberId}
-                onMemberCreated={(newMember) => {
-                    addFamilyMemberLocal(newMember);
-                }}
-                onConnectionSuccess={() => {
-                    revalidate(true);
-                }}
-            />
-
-            <GlobalFinanceSearchModal
-                isOpen={isSearchModalOpen}
-                onClose={() => setIsSearchModalOpen(false)}
-                transactions={filteredTransactions}
+              {/* Diagnóstico Executivo Kitsune AI + Camada Determinística MSLR */}
+              <AiDiagnosticPanel
+                aiInsight={aiInsight}
+                isGenerating={isGeneratingAi}
+                onRefresh={generateAiInsight}
+                totalBalance={totalBalance}
+                liquidBalance={liquidBalance}
+                creditCardBalance={creditCardBalance}
+                monthlyIncome={monthlyIncome}
+                monthlyExpense={monthlyExpense}
+                kitsuneScore={kitsuneScore}
                 formatCurrency={formatCurrency}
-                formatDate={formatDate}
-            />
+              />
+            </div>
+          </div>
         </div>
-    );
+      )}
+
+      {/* ========================================================================
+          ABA 2: FLUXO & GASTOS (RITMO DIÁRIO, SANKEY, CATEGORIAS E HEATMAP)
+      ======================================================================== */}
+      {activeTab === "Fluxo & Gastos" && (
+        <div className="space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl bg-white dark:bg-[#121214] border border-zinc-200 dark:border-[#27272A]">
+            <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-300 px-2">
+              Janela de Fluxo de Caixa:
+            </span>
+            <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-zinc-100 dark:bg-[#18181B] border border-zinc-200 dark:border-[#27272A]">
+              {(
+                [
+                  { id: "day", label: "7 Dias" },
+                  { id: "week", label: "14 Dias" },
+                  { id: "month", label: "Mês Atual" },
+                  { id: "year", label: "Ano Atual" },
+                ] as const
+              ).map((g) => (
+                <button
+                  key={g.id}
+                  type="button"
+                  onClick={() => setTimeGranularity(g.id)}
+                  className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                    timeGranularity === g.id
+                      ? "bg-[#FF8216] text-black font-semibold"
+                      : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
+                  }`}
+                >
+                  {g.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <SpendingCurveChart
+              currentMonthDays={spendingCurveData.currentMonthDays}
+              previousMonthDays={spendingCurveData.previousMonthDays}
+              currentDay={spendingCurveData.currentDay}
+              totalCurrentMonth={spendingCurveData.totalCurrentMonth}
+              totalPreviousMonth={spendingCurveData.totalPreviousMonth}
+              hideValues={isPrivacyMode}
+            />
+            <SpendingHeatmap
+              transactions={filteredTransactions}
+              formatCurrency={formatCurrency}
+            />
+          </div>
+
+          <CashFlowSankey
+            transactions={periodFilteredTransactions}
+            isPrivacyMode={isPrivacyMode}
+            selfAndFamilyNames={selfAndFamilyNames}
+            periodLabel={
+              timeGranularity === "day"
+                ? "Últimos 7 dias"
+                : timeGranularity === "week"
+                ? "Últimos 14 dias"
+                : timeGranularity === "year"
+                ? "Ano Atual"
+                : "Mês Atual"
+            }
+          />
+
+          <CategoriesView
+            transactions={filteredTransactions}
+            formatCurrency={formatCurrency}
+            timeGranularity={timeGranularity}
+          />
+        </div>
+      )}
+
+      {/* ========================================================================
+          ABA 3: TRANSAÇÕES (TABELA DENSA WEALTHFOLIO + LISTA EMPILHADA MOBILE)
+      ======================================================================== */}
+      {activeTab === "Transações" && (
+        <PaginatedTransactionsView
+          transactions={filteredTransactions}
+          accounts={filteredAccounts}
+          formatCurrency={formatCurrency}
+          formatDate={formatDate}
+        />
+      )}
+
+      {/* ========================================================================
+          ABA 4: PARCELAS & ASSINATURAS
+      ======================================================================== */}
+      {activeTab === "Parcelas & Assinaturas" && (
+        <div className="space-y-6">
+          <InstallmentsTracker
+            transactions={filteredTransactions}
+            formatCurrency={formatCurrency}
+          />
+          <SubscriptionsTracker
+            transactions={filteredTransactions}
+            formatCurrency={formatCurrency}
+          />
+        </div>
+      )}
+
+      {/* Modais Globais Preservados */}
+      <PluggyConnectModal
+        isOpen={isConnectModalOpen}
+        onClose={() => setIsConnectModalOpen(false)}
+        familyMembers={familyMembers}
+        initialMemberId={connectForMemberId}
+        onMemberCreated={(member) => addFamilyMemberLocal(member)}
+        onConnectionSuccess={() => {
+          setIsConnectModalOpen(false);
+          revalidate(true);
+        }}
+      />
+
+      <GlobalFinanceSearchModal
+        isOpen={isSearchModalOpen}
+        onClose={() => setIsSearchModalOpen(false)}
+        transactions={filteredTransactions}
+        formatCurrency={formatCurrency}
+        formatDate={formatDate}
+      />
+    </div>
+  );
 }

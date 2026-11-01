@@ -149,15 +149,18 @@ export function GlobalFinanceSearchModal({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-8 md:pt-16 px-4 bg-black/80 backdrop-blur-md animate-fade-in">
+        <div
+            className="fixed inset-0 z-50 flex items-start justify-center pt-8 md:pt-16 px-4 bg-black/80 backdrop-blur-md animate-fade-in"
+            onClick={onClose}
+        >
             <div
-                className="w-full max-w-2xl bg-[#0F0F11] border border-white/10 rounded-2xl md:rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[88vh] animate-scale-up"
+                className="w-full max-w-2xl bg-[#121214] border border-[#27272A] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[86vh] animate-scale-up"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header de Pesquisa */}
-                <div className="p-4 md:p-5 border-b border-white/5 flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-[#FF8216]/10 flex items-center justify-center text-[#FF8216] shrink-0">
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="p-4 md:p-5 border-b border-[#27272A] flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-[#FF8216]/10 border border-[#FF8216]/20 flex items-center justify-center text-[#FF8216] shrink-0">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
                     </div>
@@ -165,23 +168,23 @@ export function GlobalFinanceSearchModal({
                         type="text"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        placeholder="Pesquise por iFood, Uber, Supermercado, Netflix..."
-                        className="flex-1 bg-transparent border-none text-base md:text-lg text-white placeholder-slate-500 focus:outline-none"
+                        placeholder="Pesquisar transações, lojas, categorias (iFood, Uber, CDB)..."
+                        className="flex-1 bg-transparent border-none text-sm md:text-base text-[#F4F4F5] placeholder-zinc-500 focus:outline-none"
                         autoFocus
                     />
                     {searchTerm && (
                         <button
                             onClick={() => setSearchTerm("")}
-                            className="p-1.5 text-slate-400 hover:text-white rounded-lg transition-colors"
+                            className="p-1.5 text-zinc-400 hover:text-white rounded-lg transition-colors cursor-pointer"
                         >
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                             </svg>
                         </button>
                     )}
                     <button
                         onClick={onClose}
-                        className="px-2.5 py-1 text-xs font-mono text-slate-400 border border-white/10 rounded-md hover:bg-white/5 transition-colors hidden sm:block"
+                        className="px-2 py-1 text-[11px] font-mono text-zinc-400 bg-[#18181B] border border-[#27272A] rounded-md hover:text-white transition-colors cursor-pointer"
                     >
                         ESC
                     </button>

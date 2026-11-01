@@ -13,6 +13,7 @@
 - [x] **Etapa 4:** Performance Client-Side (Read-Through Cache IndexedDB `0ms`, Lista Virtualizada 60 FPS e Diagrama de Sankey em SVG).
 - [x] **Etapa 5:** Reconciliador Dinâmico no Espaço Compartilhado ("Pix de Acerto Único"), UI Interativa do Simulador de Dívidas/Antecipação e Auditoria Upstream (`pluggy-node`, `BrasilAPI` e `minha-receita`).
 - [x] **Release v2.0 (Consolidação em Produção):** Higienização profunda (zero artefatos órfãos), Webhook Real-Time Pluggy com invalidação de cache IA, Monitor de Garantia FGC por Emissor Real e Simulador de Equivalência Tributária em `/investments`, README.md executivo v2.0 e build de produção validado (33/33 rotas).
+- [x] **Release v2.1 (Fusão Total UI/UX Wealthfolio):** Portabilidade completa da navegação (Sidebar colapsável + Mobile Bottom Nav `safe-area`), Net Worth Area Chart (`1M`–`ALL`), tabelas densas `tabular-nums` com modo empilhado mobile, Gauges `180°`, Treemap e Histórico de Proventos em Barras Finas na paleta estrita Warm Obsidian (`#0A0A0A` / `#121214` / `#18181B` / `#27272A` / `#FF8216`).
 
 ---
 
@@ -99,5 +100,6 @@ Todos os algoritmos devem ser puros, zero-dependency, 100% determinísticos em T
 | **BrasilAPI SDK** | [github.com/guhcostan/brasilapi-sdk](https://github.com/guhcostan/brasilapi-sdk) | SDK em TypeScript para consulta gratuita de dados públicos governamentais (CNPJ, feriados bancários e tabelas FIPE). |
 | **MinhaReceita API** | [github.com/lenivene/minha-receita-api](https://github.com/lenivene/minha-receita-api) | Microsserviço aberto de enriquecimento de CNPJ e CNAE primário para decodificação de credenciadoras (Cielo, Stone, PagSeguro) em categorias comerciais amigáveis. |
 | **Pierre Finance** | [pierre.finance](https://pierre.finance) | Referência visual para interface mobile-first de alto padrão, dock bar flutuante inferior em pill arredondado, carrossel de cartões com mouse-drag e micro-interações fluidas. |
+| **Wealthfolio** | [github.com/wealthfolio/wealthfolio](https://github.com/wealthfolio/wealthfolio) | Arquitetura oficial de UI/UX adotada na v2.1: Sidebar colapsável + Mobile Bottom Nav com `safe-area`, Net Worth Hero Chart, linhas densas agrupadas de contas/passivos, tabelas `tabular-nums` responsivas, Gauges `180°`, Treemap e barras finas de proventos. |
 
 

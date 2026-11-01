@@ -62,8 +62,8 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="bg-[#F8FAFC] dark:bg-[#0A0A0A] text-slate-900 dark:text-[#F8FAFC] antialiased" suppressHydrationWarning>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem={true}>
+      <body className="bg-[#FAFAFA] dark:bg-[#0A0A0A] text-zinc-900 dark:text-[#F4F4F5] antialiased" suppressHydrationWarning>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={true}>
           <FinanceDataProvider>
             <SmoothScrollProvider>
               <ServiceWorkerRegistrar />

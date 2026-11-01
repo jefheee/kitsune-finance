@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { parseLocalDate } from "@/utils/finance/reconciler";
 
 interface TransactionLike {
   id: string;
@@ -8,6 +9,9 @@ interface TransactionLike {
   amount: number | string;
   category?: string | null;
   type?: string;
+  operation_type?: string | null;
+  is_internal_transfer?: boolean;
+  is_refund?: boolean;
   date?: string;
   executed_at?: string;
   value_date?: string;
@@ -32,12 +36,17 @@ export function SpendingHeatmap({ transactions, formatCurrency }: SpendingHeatma
 
     let total = 0;
     transactions.forEach((t) => {
+      if (t.is_internal_transfer || t.is_refund) return;
       const rawDate = t.executed_at || t.date || t.value_date;
       if (!rawDate) return;
-      const tDate = new Date(rawDate);
+      const tDate = parseLocalDate(rawDate);
       if (tDate.getFullYear() === currentYear && tDate.getMonth() === currentMonth) {
         const amt = Number(t.amount) || 0;
-        const isDebit = t.type === "DEBIT" || t.type === "OUTFLOW" || amt < 0;
+        const isDebit =
+          t.type === "DEBIT" ||
+          t.type === "OUTFLOW" ||
+          t.operation_type === "CREDIT_CARD" ||
+          amt < 0;
         if (isDebit) {
           const absAmt = Math.abs(amt);
           const day = tDate.getDate();
@@ -69,42 +78,42 @@ export function SpendingHeatmap({ transactions, formatCurrency }: SpendingHeatma
   }, [transactions]);
 
   const getIntensityClass = (amount: number) => {
-    if (amount === 0) return "bg-slate-100 dark:bg-[#18181B] text-slate-400";
-    if (amount < dailyAverage * 0.5) return "bg-[#FF8216]/20 text-[#FF8216] dark:text-[#FF8216]";
-    if (amount <= dailyAverage * 1.2) return "bg-[#FF8216]/40 text-white font-semibold";
-    if (amount <= dailyAverage * 2) return "bg-[#FF8216]/70 text-white font-bold";
-    return "bg-[#FF8216] text-white font-black shadow-xs";
+    if (amount === 0) return "bg-zinc-100 dark:bg-[#18181B] text-zinc-400 dark:text-zinc-500";
+    if (amount < dailyAverage * 0.5)
+      return "bg-[#FF8216]/20 text-[#FF8216] border border-[#FF8216]/25";
+    if (amount <= dailyAverage * 1.2) return "bg-[#FF8216]/45 text-white font-semibold";
+    if (amount <= dailyAverage * 2) return "bg-[#FF8216]/75 text-white font-bold";
+    return "bg-[#FF8216] text-black font-bold";
   };
 
   const daysList = Object.keys(daysData).map(Number);
   const weekdays = ["D", "S", "T", "Q", "Q", "S", "S"];
 
   return (
-    <div className="p-5 rounded-2xl bg-white dark:bg-[#121214] border border-slate-200 dark:border-[#27272A] shadow-xs flex flex-col justify-between gap-4">
+    <div className="p-5 rounded-2xl bg-white dark:bg-[#121214] border border-zinc-200 dark:border-[#27272A] flex flex-col justify-between gap-4">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
             Mapa de Calor de Gastos
           </span>
           <div className="flex items-baseline gap-2 mt-0.5">
-            <span className="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-white tabular-nums">
+            <span className="text-xl font-bold font-mono tabular-nums text-zinc-900 dark:text-[#F4F4F5]">
               {formatCurrency(totalMonthSpend)}
             </span>
-            <span className="text-[11px] text-slate-500 dark:text-slate-400">
-              Média diária: <strong className="text-slate-700 dark:text-slate-300">{formatCurrency(dailyAverage)}</strong>
+            <span className="text-[11px] text-zinc-500 dark:text-zinc-400 font-mono tabular-nums">
+              Média/dia: <strong className="text-zinc-700 dark:text-zinc-300">{formatCurrency(dailyAverage)}</strong>
             </span>
           </div>
         </div>
-        <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">
+        <span className="text-[10px] font-semibold capitalize text-emerald-500 bg-emerald-500/12 border border-emerald-500/25 px-2.5 py-0.5 rounded-full">
           {new Date().toLocaleDateString("pt-BR", { month: "long" })}
         </span>
       </div>
 
-      {/* Grid de Dias */}
       <div>
         <div className="grid grid-cols-7 gap-1.5 text-center mb-1.5">
           {weekdays.map((w, idx) => (
-            <span key={idx} className="text-[10px] font-bold text-slate-400">
+            <span key={idx} className="text-[10px] font-semibold text-zinc-500">
               {w}
             </span>
           ))}
@@ -117,7 +126,7 @@ export function SpendingHeatmap({ transactions, formatCurrency }: SpendingHeatma
               <div
                 key={day}
                 title={`Dia ${day}: ${formatCurrency(amount)}`}
-                className={`h-8 rounded-lg flex items-center justify-center text-[11px] transition-transform hover:scale-105 cursor-pointer select-none ${getIntensityClass(
+                className={`h-8 rounded-lg flex items-center justify-center text-[11px] font-mono tabular-nums transition-transform hover:scale-105 select-none ${getIntensityClass(
                   amount
                 )}`}
               >
@@ -128,11 +137,10 @@ export function SpendingHeatmap({ transactions, formatCurrency }: SpendingHeatma
         </div>
       </div>
 
-      {/* Legenda & Maior Gasto */}
-      <div className="pt-2 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-[11px] text-slate-400">
+      <div className="pt-2.5 border-t border-zinc-100 dark:border-[#27272A] flex items-center justify-between text-[11px] text-zinc-500">
         <div className="flex items-center gap-1.5">
           <span>Menos</span>
-          <span className="w-2.5 h-2.5 rounded bg-slate-100 dark:bg-[#18181B]" />
+          <span className="w-2.5 h-2.5 rounded bg-zinc-100 dark:bg-[#18181B]" />
           <span className="w-2.5 h-2.5 rounded bg-[#FF8216]/30" />
           <span className="w-2.5 h-2.5 rounded bg-[#FF8216]/70" />
           <span className="w-2.5 h-2.5 rounded bg-[#FF8216]" />
@@ -140,8 +148,8 @@ export function SpendingHeatmap({ transactions, formatCurrency }: SpendingHeatma
         </div>
 
         {maxDaySpend > 0 && (
-          <span className="text-[11px] text-slate-500 dark:text-slate-400">
-            Maior gasto: <strong className="text-[#FF8216]">{formatCurrency(maxDaySpend)}</strong> dia {maxDayNumber}
+          <span className="text-[11px] text-zinc-500 dark:text-zinc-400 font-mono tabular-nums">
+            Pico: <strong className="text-[#FF8216]">{formatCurrency(maxDaySpend)}</strong> (dia {maxDayNumber})
           </span>
         )}
       </div>
