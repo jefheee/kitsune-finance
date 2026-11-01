@@ -66,3 +66,17 @@ Todos os algoritmos devem ser puros, zero-dependency, 100% determinísticos em T
 1. **Cálculo de Liquidação Mínima no `/shared`:** Algoritmo que cruza os gastos compartilhados do mês ponderados pelo peso da renda líquida de cada membro e gera o card de **Liquidação em 1 Pix** (quem transfere exatamente quanto para quem para zerar o mês).
 2. **Modal Interativo de Quitação e Antecipação em `/cards`:** Interface visual ligada ao `debt-payoff.ts` e `cet.ts`.
 
+---
+
+## Repositórios & Projetos de Referência Arquitetural
+
+| Projeto | Repositório Oficial / Documentação | Conceitos & Padrões Absorvidos no Kitsune |
+| :--- | :--- | :--- |
+| **Maybe Finance** | [github.com/maybe-finance/maybe](https://github.com/maybe-finance/maybe) | Pipeline Open Finance, classificação determinística de transações (`kind`), macro-tools de estado contábil (`get_balance_sheet`, `get_income_statement`) e reconciliação temporal de transferências. |
+| **Ghostfolio** | [github.com/ghostfolio/ghostfolio](https://github.com/ghostfolio/ghostfolio) | Motor de auditoria patrimonial X-Ray, pontuação de saúde financeira modular (0-100), análise de liquidez e exposição ao protocolo MCP. |
+| **Actual Budget** | [github.com/actualbudget/actual](https://github.com/actualbudget/actual) | Arquitetura local-first com cache read-through de alta performance (`0ms`), regras de orçamento base zero e pareamento de pendentes/postadas. |
+| **Firefly III** | [github.com/firefly-iii/firefly-iii](https://github.com/firefly-iii/firefly-iii) | Motor de auditoria contábil dupla, detecção de fluxos internos entre contas da mesma titularidade e categorização financeira. |
+| **Pierre Finance** | [pierre.finance](https://pierre.finance) | UI/UX minimalista mobile-first, dock flutuante em pill, micro-interações de cartões e experiência visual limpa. |
+| **BrasilAPI** | [github.com/BrasilAPI/BrasilAPI](https://github.com/BrasilAPI/BrasilAPI) / [brasilapi.com.br](https://brasilapi.com.br) | Enriquecimento público gratuito e em tempo real de estabelecimentos comerciais via CNPJ e CNAE fiscal. |
+
+

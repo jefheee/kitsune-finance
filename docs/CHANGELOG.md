@@ -4,6 +4,14 @@ Todas as alterações notáveis no projeto Kitsune Finance são registradas de f
 
 ---
 
+## [2026-10-31] - Mapeamento de Repositórios de Referência no Blueprint Técnico
+- **Arquivos Afetados:** `docs/ARCHITECTURE_EXPANSION.md`, `docs/CHANGELOG.md`.
+- **Objetivo:**
+  - Adição de seção dedicada mapeando todos os repositórios open-source de referência com links oficiais (Maybe Finance, Ghostfolio, Actual Budget, Firefly III, Pierre Finance e BrasilAPI).
+  - Especificação explícita dos padrões arquiteturais absorvidos de cada projeto.
+
+---
+
 ## [2026-10-31] - Remoção do Arquivo Bruto de Pesquisa Arquitetural
 - **Arquivos Afetados:** `Expansão Arquitetural Kitsune Finance.md`, `docs/CHANGELOG.md`.
 - **Objetivo:**
