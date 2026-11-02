@@ -4,6 +4,18 @@ Todas as alterações notáveis no projeto Kitsune Finance são registradas de f
 
 ---
 
+## [2026-11-02] - Hub Técnico Unificado (/docs), Favicon Transparente, iPhone Mockup Flanqueado & Expurgador de Sessões
+- **Arquivos Afetados:** `src/app/docs/page.tsx`, `src/app/api/docs/content/route.ts`, `src/app/page.tsx`, `src/app/layout.tsx`, `public/favicon*`, `src/app/{favicon.ico, icon.png, apple-icon.png}`, `src/components/layout/AppShell.tsx`, `src/components/security/BiometricLockGuard.tsx`, `src/context/FinanceDataContext.tsx`, `supabase/migrations/20261101_access_control_and_governance.sql`.
+- **Objetivo:**
+  - Criação do Hub Técnico unificado (`/docs`) com abas integradas para Documentação (consumindo dinamicamente `PROJECT_STATE.md` com renderização estruturada e navegação por scroll suave), Changelog completo (paginado em 6 itens por página consumindo `CHANGELOG.md`) e Termos de Uso/Privacidade.
+  - Eliminação da barra lateral interna em rotas públicas (`/docs`, `/changelog`, `/terms`) tanto no AppShell quanto no BiometricLockGuard.
+  - Favicon de altíssima nitidez e transparência real (eliminado bloco preto opaco anterior, raposa origami ocupando 92% do canvas em múltiplos tamanhos).
+  - Mockup do iPhone 16 Pro responsivo flanqueado por cards flutuantes no desktop e sem overflow horizontal no mobile, com headline respirada e padding superior ajustado.
+  - RPC PostgreSQL com SECURITY DEFINER `delete_unauthorized_user` para expurgar instantaneamente contas não autorizadas de `auth.users` no login Google OAuth, prevenindo resíduos no banco.
+  - Preservação estrita das credenciais de biometria / Windows Hello no logout.
+
+---
+
 ## [2026-11-01] - Expansão do Painel de Admin, Scanner OCR, Fix Kitsune AI, Biometria Híbrida & Landing Page 2.0
 - **Arquivos Afetados:** `src/app/admin/page.tsx`, `src/app/api/admin/system/route.ts`, `src/app/api/ai/scan-receipt/route.ts`, `src/components/finance/ManualTransactionModal.tsx`, `src/app/api/transactions/manual/route.ts`, `src/components/chat/CompactKitsuneChat.tsx`, `src/app/api/chat/route.ts`, `src/app/{login, signup}/page.tsx`, `src/components/security/BiometricLockGuard.tsx`, `src/app/page.tsx`, `src/app/{docs, changelog, terms}/page.tsx`.
 - **Objetivo:**

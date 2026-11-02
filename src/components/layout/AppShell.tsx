@@ -122,7 +122,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const isPublic = pathname === "/login" || pathname === "/signup" || pathname === "/";
+    const isPublic =
+      pathname === "/login" ||
+      pathname === "/signup" ||
+      pathname === "/" ||
+      pathname.startsWith("/docs") ||
+      pathname.startsWith("/changelog") ||
+      pathname.startsWith("/terms");
     if (isPublic) return;
     fetchUnreadNotifs();
     const interval = setInterval(fetchUnreadNotifs, 20000);
@@ -159,7 +165,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     return dateString;
   }, []);
 
-  const isPublicRoute = pathname === "/login" || pathname === "/signup" || pathname === "/";
+  const isPublicRoute =
+    pathname === "/login" ||
+    pathname === "/signup" ||
+    pathname === "/" ||
+    pathname.startsWith("/docs") ||
+    pathname.startsWith("/changelog") ||
+    pathname.startsWith("/terms");
   if (isPublicRoute) {
     return <>{children}</>;
   }

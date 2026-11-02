@@ -138,6 +138,16 @@ function clearBrowserCacheForUser(targetUserId?: string | null, wipeAllKitsuneKe
         for (let i = 0; i < window.localStorage.length; i++) {
             const key = window.localStorage.key(i);
             if (!key) continue;
+
+            // 🛡️ PRESERVAÇÃO DE SEGURANÇA: Nunca apaga configurações do Windows Hello / Biometria ou PIN do dispositivo no logout
+            if (
+                key.includes('_biometric_settings') ||
+                key.includes('_security_pin') ||
+                key.includes('prompt_dismissed')
+            ) {
+                continue;
+            }
+
             if (wipeAllKitsuneKeys && key.startsWith('kitsune_')) {
                 keysToRemove.push(key);
             } else if (targetUserId && key.startsWith(`kitsune_${targetUserId}_`)) {

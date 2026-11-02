@@ -34,12 +34,12 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: '/assets/logo/logo-transparent.png', type: 'image/png' },
       { url: '/favicon.ico', sizes: 'any' },
+      { url: '/favicon.png', type: 'image/png' },
       { url: '/assets/logo/icon-192x192.png', sizes: '192x192', type: 'image/png' },
       { url: '/assets/logo/icon-512x512.png', sizes: '512x512', type: 'image/png' },
     ],
-    shortcut: '/assets/logo/logo-transparent.png',
+    shortcut: '/favicon.ico',
     apple: '/assets/logo/icon-192x192.png',
   },
 };

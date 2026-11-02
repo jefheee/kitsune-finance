@@ -80,7 +80,13 @@ export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
   }, []);
 
   useEffect(() => {
-    const isAuthPage = pathname === "/login" || pathname === "/signup" || pathname === "/";
+    const isAuthPage =
+      pathname === "/login" ||
+      pathname === "/signup" ||
+      pathname === "/" ||
+      pathname.startsWith("/docs") ||
+      pathname.startsWith("/changelog") ||
+      pathname.startsWith("/terms");
     if (!userId || isAuthPage) {
       setSettings(null);
       setIsLocked(false);

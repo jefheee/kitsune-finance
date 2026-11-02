@@ -230,15 +230,24 @@
     - Termos de uso e soberania de dados (`/terms`).
   - **Estabilidade:** Validação TypeScript rigorosa com 0 erros (`npx tsc --noEmit`).
 
+- [x] Hub Técnico Unificado (/docs), Favicon Transparente, iPhone Mockup Flanqueado & Expurgador de Sessões (Release v3.5):
+  - **Hub Técnico Unificado (`/docs`):** Abas integradas para Documentação (consumindo dinamicamente `docs/PROJECT_STATE.md` com renderização estruturada de checkboxes e seções e navegação por scroll suave com offset de cabeçalho), Changelog completo (paginado em 6 itens por página consumindo `docs/CHANGELOG.md`) e Termos & Privacidade. Rotas legadas `/changelog` e `/terms` redirecionam suavemente para `/docs?tab=changelog` e `/docs?tab=terms`.
+  - **Remoção da Sidebar em Rotas Públicas:** Isolamento estrito em `AppShell.tsx` e `BiometricLockGuard.tsx` garantindo que `/docs`, `/changelog` e `/terms` sejam tratadas como páginas institucionais abertas, sem barra lateral interna e sem ativação de cortina biométrica.
+  - **Favicon de Alta Fidelidade & Transparência Real:** Eliminação do antigo bloco preto opaco; ícone da raposa origami recortado nas bordas reais (533x684) e centralizado ocupando 92% do canvas em múltiplos tamanhos (16x16, 32x32, 48x48, 64x64 em `.ico` e `.png`), com `apple-icon.png` em Warm Obsidian para home screens móveis.
+  - **Mockup iPhone 16 Pro Flanqueado & Hero Respirada:** Seção `#mobile-preview` com moldura do iPhone 16 Pro, halo translúcido e dois cards flutuantes no desktop (Últimas Transações e Alerta Sentinela Kitsune) com `hidden lg:flex` para prevenir qualquer overflow horizontal em celulares. Padding superior da Hero aumentado para `pt-36 sm:pt-44` eliminando sobreposição da navbar fixa.
+  - **Higienização de Contas Não Autorizadas no Supabase:** RPC `delete_unauthorized_user` com SECURITY DEFINER executada automaticamente no callback OAuth antes de `signOut()`, expurgando imediatamente qualquer tentativa de login não autorizada de `auth.users` e mantendo a base 100% limpa.
+  - **Preservação de Biometria no PC:** `clearBrowserCacheForUser` preserva as chaves `_biometric_settings`, `_security_pin` e `prompt_dismissed` durante o logout.
+  - **Estabilidade:** Validação de build com 52/52 rotas geradas e 0 erros TypeScript (`npx tsc --noEmit`).
+
 ---
 
 ## 4. Context Handoff (Memória de Continuidade entre Chats)
-- **Última Etapa Concluída:** Release v3.4 — **Super Painel de Admin, Scanner OCR de Comprovantes, Lançamentos Manuais Parcelados, Fix Falar com IA, Biometria PC/Mobile e Nova Landing Page com Docs, Changelog e Termos**:
-  1. **Falar com IA:** Totalmente operacional no Dashboard com respostas imediatas e transição fluida para o chat completo.
-  2. **Cadastro:** Removidas opções avulsas de signup; a plataforma opera 100% sob convite e aprovação do Master Owner.
-  3. **Lançamentos Manuais & OCR:** Leitura automática de comprovantes por IA (`/api/ai/scan-receipt`) e parcelamento em até 48x.
-  4. **Painel de Admin:** Expandido com métricas globais, telemetria de APIs e ações de manutenção.
-  5. **Biometria:** Contextualizada para PC (Windows Hello/Chave) e Mobile (Face ID/Digital).
-  6. **Landing Page 2.0:** Completa com showcase interativo, documentação em `/docs`, histórico em `/changelog` e termos em `/terms`.
-- **Próxima Etapa Imediata:** Continuar aprimorando funcionalidades sob demanda do usuário (ex: refinamentos em relatórios patrimoniais ou exportações).
-- **Pendências ou Bloqueios:** Nenhum. Todo o código compila com 0 erros (`npx tsc --noEmit`).
+- **Última Etapa Concluída:** Release v3.5 — **Hub Técnico Unificado (/docs), Favicon Transparente, iPhone Mockup Flanqueado, Expurgador de Contas Não Autorizadas e Build de Produção Validado**:
+  1. **Favicon:** Nítido, transparente e sem fundo quadrado preto em todas as abas e resoluções.
+  2. **Hub Técnico `/docs`:** Unificado com abas Docs (dinâmico via `PROJECT_STATE.md`), Changelog (paginado via `CHANGELOG.md`) e Termos.
+  3. **Sidebar Ocultada:** Nenhuma barra lateral de usuário logado em rotas públicas.
+  4. **Landing Page:** Headline respirada, iPhone mockup responsivo flanqueado e terminal com comando git clone completo.
+  5. **Supabase & Segurança:** RPC `delete_unauthorized_user` ativa; zero poluição de usuários não autorizados no banco.
+  6. **Compilação:** 100% testado (`npx tsc --noEmit` e `npm run build` com código 0).
+- **Próxima Etapa Imediata:** Realizar `git add`, `git commit` e `git push origin master` para atualizar o deploy em produção na Vercel (`https://mykitsune.vercel.app/`).
+- **Pendências ou Bloqueios:** Nenhum. Todo o código compila com 0 erros.

@@ -6,14 +6,11 @@ import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { LandingQrCode } from "@/components/landing/LandingQrCode";
 import { BankLogo } from "@/components/BankLogo";
-import { SpotlightCard } from "@/components/react-bits/SpotlightCard";
-import { ShinyText } from "@/components/react-bits/ShinyText";
-import { CountUp } from "@/components/react-bits/CountUp";
 
 const FAQ_ITEMS = [
   {
     q: "O Kitsune Finance é realmente gratuito e com custo zero?",
-    a: "Sim. A arquitetura foi construída para operar com custo perpétuo de $0.00/mês, aproveitando os free tiers generosos da Vercel (Edge Functions), Supabase (PostgreSQL 17 com RLS), Google AI Studio (Gemini 3.8 Flash) e Groq Cloud (Llama 3.3).",
+    a: "Sim. A arquitetura foi concebida para operar com custo perpétuo de $0.00/mês, aproveitando os free tiers generosos da Vercel (Edge Functions), Supabase (PostgreSQL 17 com RLS), Google AI Studio (Gemini 3.8 Flash) e Groq Cloud (Llama 3.3).",
   },
   {
     q: "Como funciona a conciliação híbrida de Open Finance com Lançamentos Manuais?",
@@ -78,18 +75,102 @@ const SPECIALIST_AGENTS = [
   },
 ];
 
-// Mock interativo para o Hero Showcase
-const TIMEFRAME_DATA: Record<string, { value: number; change: string; points: string }> = {
-  "1M": { value: 412850, change: "+2.4% este mês", points: "0,120 50,110 100,115 150,90 200,85 250,70 300,50 350,45 400,30" },
-  "3M": { value: 412850, change: "+6.8% em 90 dias", points: "0,140 50,130 100,110 150,105 200,80 250,65 300,55 350,40 400,30" },
-  "6M": { value: 412850, change: "+11.5% no semestre", points: "0,160 50,145 100,135 150,120 200,95 250,80 300,60 350,45 400,30" },
-  "1Y": { value: 412850, change: "+18.9% no ano", points: "0,180 50,160 100,140 150,115 200,90 250,75 300,50 350,38 400,30" },
-  "ALL": { value: 412850, change: "+34.2% acumulado", points: "0,190 50,175 100,150 150,130 200,100 250,70 300,45 350,35 400,30" },
+// Dados com coordenadas reais para Tooltip Interativo no Hover do Gráfico
+const TIMEFRAME_DETAILS: Record<
+  string,
+  {
+    label: string;
+    total: number;
+    change: string;
+    dataPoints: Array<{ x: number; y: number; date: string; value: number }>;
+  }
+> = {
+  "1M": {
+    label: "Últimos 30 Dias",
+    total: 412850,
+    change: "+2.4% este mês",
+    dataPoints: [
+      { x: 0, y: 130, date: "01 Out", value: 403200 },
+      { x: 50, y: 120, date: "06 Out", value: 405100 },
+      { x: 100, y: 125, date: "11 Out", value: 404800 },
+      { x: 150, y: 100, date: "16 Out", value: 407500 },
+      { x: 200, y: 90, date: "21 Out", value: 408900 },
+      { x: 250, y: 75, date: "26 Out", value: 410600 },
+      { x: 300, y: 55, date: "28 Out", value: 411800 },
+      { x: 350, y: 45, date: "30 Out", value: 412200 },
+      { x: 400, y: 30, date: "01 Nov", value: 412850 },
+    ],
+  },
+  "3M": {
+    label: "Último Trimestre",
+    total: 412850,
+    change: "+6.8% em 90 dias",
+    dataPoints: [
+      { x: 0, y: 145, date: "Ago", value: 386500 },
+      { x: 50, y: 135, date: "Ago", value: 389200 },
+      { x: 100, y: 120, date: "Set", value: 395100 },
+      { x: 150, y: 110, date: "Set", value: 398400 },
+      { x: 200, y: 90, date: "Out", value: 404000 },
+      { x: 250, y: 70, date: "Out", value: 408200 },
+      { x: 300, y: 55, date: "Out", value: 410500 },
+      { x: 350, y: 40, date: "Nov", value: 412000 },
+      { x: 400, y: 30, date: "Hoje", value: 412850 },
+    ],
+  },
+  "6M": {
+    label: "Último Semestre",
+    total: 412850,
+    change: "+11.5% no semestre",
+    dataPoints: [
+      { x: 0, y: 165, date: "Mai", value: 370200 },
+      { x: 50, y: 150, date: "Jun", value: 376400 },
+      { x: 100, y: 135, date: "Jul", value: 384000 },
+      { x: 150, y: 115, date: "Ago", value: 391500 },
+      { x: 200, y: 95, date: "Set", value: 399800 },
+      { x: 250, y: 75, date: "Out", value: 406500 },
+      { x: 300, y: 55, date: "Out", value: 410200 },
+      { x: 350, y: 40, date: "Nov", value: 412100 },
+      { x: 400, y: 30, date: "Hoje", value: 412850 },
+    ],
+  },
+  "1Y": {
+    label: "Ano Corrente",
+    total: 412850,
+    change: "+18.9% no ano",
+    dataPoints: [
+      { x: 0, y: 180, date: "Nov/25", value: 347200 },
+      { x: 50, y: 165, date: "Jan", value: 356000 },
+      { x: 100, y: 145, date: "Mar", value: 368400 },
+      { x: 150, y: 120, date: "Mai", value: 380100 },
+      { x: 200, y: 95, date: "Jul", value: 392500 },
+      { x: 250, y: 75, date: "Set", value: 403200 },
+      { x: 300, y: 55, date: "Out", value: 409800 },
+      { x: 350, y: 40, date: "Nov", value: 412000 },
+      { x: 400, y: 30, date: "Hoje", value: 412850 },
+    ],
+  },
+  "ALL": {
+    label: "Histórico Total",
+    total: 412850,
+    change: "+34.2% acumulado",
+    dataPoints: [
+      { x: 0, y: 190, date: "2024", value: 307500 },
+      { x: 50, y: 175, date: "2024", value: 320000 },
+      { x: 100, y: 155, date: "2025", value: 342000 },
+      { x: 150, y: 130, date: "2025", value: 365000 },
+      { x: 200, y: 105, date: "2025", value: 385000 },
+      { x: 250, y: 80, date: "2026", value: 401000 },
+      { x: 300, y: 55, date: "2026", value: 409500 },
+      { x: 350, y: 40, date: "2026", value: 411800 },
+      { x: 400, y: 30, date: "Hoje", value: 412850 },
+    ],
+  },
 };
 
 export default function LandingPage() {
   const [activeTab, setActiveTab] = useState<"dashboard" | "scanner" | "allocation" | "reconciliation">("dashboard");
   const [selectedTimeframe, setSelectedTimeframe] = useState<"1M" | "3M" | "6M" | "1Y" | "ALL">("1Y");
+  const [hoveredPoint, setHoveredPoint] = useState<{ x: number; y: number; date: string; value: number } | null>(null);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [copiedCmd, setCopiedCmd] = useState(false);
 
@@ -98,6 +179,9 @@ export default function LandingPage() {
     setCopiedCmd(true);
     setTimeout(() => setCopiedCmd(false), 2000);
   };
+
+  const currentTfData = TIMEFRAME_DETAILS[selectedTimeframe];
+  const pointsString = currentTfData.dataPoints.map((p) => `${p.x},${p.y}`).join(" ");
 
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white selection:bg-[#E11D48] selection:text-white font-sans overflow-x-hidden">
@@ -120,22 +204,33 @@ export default function LandingPage() {
           </span>
         </Link>
 
-        {/* Links Centrais */}
-        <nav className="hidden md:flex items-center gap-6 text-xs text-zinc-400 font-medium">
-          <a href="#showcase" className="hover:text-white transition-colors">
-            Showcase
-          </a>
-          <a href="#arquitetura" className="hover:text-white transition-colors">
-            Motores MSLR
-          </a>
-          <a href="#agentes" className="hover:text-white transition-colors">
-            Agentes IA
-          </a>
-          <Link href="/docs" className="hover:text-white transition-colors">
-            Docs
-          </Link>
-          <Link href="/changelog" className="hover:text-white transition-colors">
-            Changelog
+        {/* NAVEGAÇÃO: SEPARAÇÃO VISUAL CLARA ENTRE ÂNCORAS DA PÁGINA E LINKS EXTERNOS */}
+        <nav className="hidden md:flex items-center gap-5 text-xs font-medium">
+          {/* Âncoras da Landing Page */}
+          <div className="flex items-center gap-4 text-zinc-400">
+            <a href="#showcase" className="hover:text-white transition-colors">
+              Showcase
+            </a>
+            <a href="#mobile-preview" className="hover:text-white transition-colors">
+              App Mobile
+            </a>
+            <a href="#motores" className="hover:text-white transition-colors">
+              Motores MSLR
+            </a>
+            <a href="#agentes" className="hover:text-white transition-colors">
+              Agentes IA
+            </a>
+          </div>
+
+          <div className="h-3.5 w-px bg-zinc-700/60" />
+
+          {/* Hub Técnico Unificado (Docs, Changelog, Termos) */}
+          <Link
+            href="/docs"
+            className="flex items-center gap-1 text-zinc-300 hover:text-white font-semibold transition-colors"
+          >
+            <span>Hub Técnico & Docs</span>
+            <span className="material-symbols-outlined text-[13px] text-zinc-400">arrow_outward</span>
           </Link>
         </nav>
 
@@ -161,7 +256,7 @@ export default function LandingPage() {
       </header>
 
       {/* HERO SECTION */}
-      <section className="relative pt-32 pb-20 px-4 sm:px-6 max-w-5xl mx-auto text-center space-y-7">
+      <section className="relative pt-36 sm:pt-44 pb-16 px-4 sm:px-6 max-w-5xl mx-auto text-center space-y-7">
         {/* Badges de Destaque */}
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#121214] border border-[#27272A] shadow-md">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -208,16 +303,18 @@ export default function LandingPage() {
           </Link>
         </div>
 
-        {/* QUICKSTART TERMINAL ESTILO OPENCODE */}
-        <div className="pt-4 max-w-md mx-auto">
-          <div className="flex items-center justify-between p-2.5 rounded-2xl bg-[#121214] border border-[#27272A] font-mono text-[11px] text-zinc-300 shadow-lg">
-            <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pr-2">
-              <span className="text-[#E11D48] font-bold">$</span>
-              <span className="truncate">git clone https://github.com/jefheee/kitsune-finance.git</span>
+        {/* QUICKSTART TERMINAL COMPLETO SEM CORTE DE TEXTO */}
+        <div className="pt-4 max-w-xl mx-auto">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-2xl bg-[#121214] border border-[#27272A] font-mono text-xs text-zinc-300 shadow-lg text-left">
+            <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1">
+              <span className="text-[#E11D48] font-bold select-none">$</span>
+              <span className="whitespace-nowrap select-all text-zinc-200">
+                git clone https://github.com/jefheee/kitsune-finance.git
+              </span>
             </div>
             <button
               onClick={handleCopyCommand}
-              className="px-2.5 py-1 rounded-lg bg-[#18181B] hover:bg-[#27272A] border border-[#27272A] text-[10px] font-bold text-zinc-300 hover:text-white transition-colors cursor-pointer shrink-0"
+              className="px-3 py-1.5 rounded-xl bg-[#18181B] hover:bg-[#27272A] border border-[#27272A] text-[11px] font-bold text-white transition-colors cursor-pointer shrink-0 self-end sm:self-auto"
             >
               {copiedCmd ? "Copiado! ✓" : "Copiar"}
             </button>
@@ -225,17 +322,17 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* SHOWCASE INTERATIVO (DEMONSTRAÇÃO FUNCIONANDO COM DADOS MOCKADOS) */}
+      {/* SHOWCASE INTERATIVO (COM TOOLTIP INTERATIVO NO HOVER DO GRÁFICO) */}
       <section id="showcase" className="py-16 px-4 sm:px-6 max-w-5xl mx-auto space-y-6">
         <div className="text-center space-y-2 pb-4">
           <h2 className="text-xs font-mono font-bold uppercase tracking-[0.2em] text-[#E11D48]">
-            Experiência Real da Plataforma
+            Showcase Interativo
           </h2>
           <p className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-            Veja as funções vitais em ação
+            Funções vitais operando em tempo real
           </p>
           <p className="text-xs text-zinc-400 max-w-lg mx-auto">
-            Interaja com as abas e seletores abaixo para conferir a precisão visual e o refinamento do Wealth OS.
+            Passe o mouse sobre os pontos do gráfico de patrimônio líquido para auditar datas e valores históricos.
           </p>
         </div>
 
@@ -283,9 +380,9 @@ export default function LandingPage() {
           </button>
         </div>
 
-        {/* Card Principal Interativo */}
+        {/* Card Principal do Showcase */}
         <div className="p-6 sm:p-8 rounded-3xl bg-[#121214] border border-[#27272A] shadow-2xl relative overflow-hidden">
-          {/* ABA 1: CURVA PATRIMONIAL */}
+          {/* ABA 1: CURVA PATRIMONIAL COM HOVER INTERATIVO */}
           {activeTab === "dashboard" && (
             <div className="space-y-6 animate-in fade-in duration-300">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -293,10 +390,12 @@ export default function LandingPage() {
                   <span className="text-xs text-zinc-400 font-medium">Patrimônio Líquido Consolidado</span>
                   <div className="flex items-baseline gap-3">
                     <span className="text-3xl sm:text-4xl font-black text-white font-mono tracking-tight">
-                      R$ {TIMEFRAME_DATA[selectedTimeframe].value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      R$ {hoveredPoint
+                        ? hoveredPoint.value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })
+                        : currentTfData.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                     </span>
                     <span className="text-xs font-mono font-bold text-emerald-400">
-                      {TIMEFRAME_DATA[selectedTimeframe].change}
+                      {hoveredPoint ? `(${hoveredPoint.date})` : currentTfData.change}
                     </span>
                   </div>
                 </div>
@@ -306,7 +405,10 @@ export default function LandingPage() {
                   {(["1M", "3M", "6M", "1Y", "ALL"] as const).map((tf) => (
                     <button
                       key={tf}
-                      onClick={() => setSelectedTimeframe(tf)}
+                      onClick={() => {
+                        setSelectedTimeframe(tf);
+                        setHoveredPoint(null);
+                      }}
                       className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-colors cursor-pointer ${
                         selectedTimeframe === tf
                           ? "bg-white text-black"
@@ -319,8 +421,11 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              {/* Gráfico SVG em Spline Cúbica Branca */}
-              <div className="h-44 sm:h-56 w-full relative pt-4">
+              {/* Gráfico SVG com Suporte a Hover Interativo */}
+              <div
+                className="h-44 sm:h-56 w-full relative pt-4 cursor-crosshair"
+                onMouseLeave={() => setHoveredPoint(null)}
+              >
                 <svg viewBox="0 0 400 200" className="w-full h-full overflow-visible" preserveAspectRatio="none">
                   <defs>
                     <linearGradient id="landingGradient" x1="0" y1="0" x2="0" y2="1">
@@ -328,24 +433,67 @@ export default function LandingPage() {
                       <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.0" />
                     </linearGradient>
                   </defs>
-                  {/* Área com gradiente */}
+
+                  {/* Área preenchida */}
                   <polygon
-                    points={`0,200 ${TIMEFRAME_DATA[selectedTimeframe].points} 400,200`}
+                    points={`0,200 ${pointsString} 400,200`}
                     fill="url(#landingGradient)"
                   />
-                  {/* Linha traçada branca pura */}
+
+                  {/* Linha traçada branca */}
                   <polyline
-                    points={TIMEFRAME_DATA[selectedTimeframe].points}
+                    points={pointsString}
                     fill="none"
                     stroke="#FFFFFF"
                     strokeWidth="2.5"
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   />
+
+                  {/* Linha guia vertical quando houver hover */}
+                  {hoveredPoint && (
+                    <line
+                      x1={hoveredPoint.x}
+                      y1={0}
+                      x2={hoveredPoint.x}
+                      y2={200}
+                      stroke="rgba(255,255,255,0.4)"
+                      strokeWidth="1.5"
+                      strokeDasharray="4 4"
+                    />
+                  )}
+
+                  {/* Círculos interativos em cada ponto para captura de hover */}
+                  {currentTfData.dataPoints.map((pt, i) => (
+                    <circle
+                      key={i}
+                      cx={pt.x}
+                      cy={pt.y}
+                      r={hoveredPoint?.x === pt.x ? 6 : 4}
+                      fill={hoveredPoint?.x === pt.x ? "#E11D48" : "#FFFFFF"}
+                      stroke="#0A0A0A"
+                      strokeWidth="2"
+                      className="transition-all cursor-pointer"
+                      onMouseEnter={() => setHoveredPoint(pt)}
+                    />
+                  ))}
                 </svg>
+
+                {/* Tooltip Flutuante */}
+                {hoveredPoint && (
+                  <div
+                    className="absolute -top-3 pointer-events-none p-2 rounded-xl bg-[#0A0A0A] border border-[#27272A] shadow-2xl text-[11px] font-mono space-y-0.5 -translate-x-1/2"
+                    style={{ left: `${(hoveredPoint.x / 400) * 100}%` }}
+                  >
+                    <p className="text-zinc-400 text-[10px]">{hoveredPoint.date}</p>
+                    <p className="font-bold text-white">
+                      R$ {hoveredPoint.value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                )}
               </div>
 
-              {/* Indicadores Vitais do Dashboard */}
+              {/* Indicadores Vitais */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-[#27272A]">
                 <div className="p-3 rounded-xl bg-[#18181B] border border-[#27272A]">
                   <span className="text-[10px] text-zinc-400 uppercase font-mono block">Liquidez Livre</span>
@@ -377,7 +525,7 @@ export default function LandingPage() {
                 <div>
                   <h3 className="text-base font-bold text-white">Leitura Inteligente por IA (Kitsune Vision)</h3>
                   <p className="text-xs text-zinc-400">
-                    Demonstração de extração automática de dados a partir de um cupom fiscal ou nota Pix
+                    Extração automática de cupons fiscais, recibos e notas Pix com 0 digitação
                   </p>
                 </div>
               </div>
@@ -495,8 +643,140 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* SEÇÃO MOBILE APP / IPHONE COM HALO REFINADO */}
+      <section id="mobile-preview" className="py-16 px-4 sm:px-6 max-w-5xl mx-auto space-y-10">
+        <div className="text-center space-y-2">
+          <h2 className="text-xs font-mono font-bold uppercase tracking-[0.2em] text-[#E11D48]">
+            PWA Mobile & Biometria Nativa
+          </h2>
+          <p className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+            Experiência Nativa no seu Smartphone
+          </p>
+          <p className="text-xs sm:text-sm text-zinc-400 max-w-xl mx-auto">
+            Instale diretamente pelo navegador sem lojas de apps. Protegido com Face ID / Impressão Digital sob a tela e bloqueio instantâneo em multitarefa.
+          </p>
+        </div>
+
+        {/* MOCKUP DO IPHONE 16 PRO COM HALO TRANSLÚCIDO REFINADO E CARDS FLUTUANTES NO DESKTOP */}
+        <div className="relative flex items-center justify-center py-6">
+          {/* Halo Translúcido Sofisticado (Carmesim Suave + Branco Puro) */}
+          <div className="absolute w-72 sm:w-96 h-72 sm:h-96 rounded-full bg-[#E11D48]/10 blur-[100px] pointer-events-none" />
+          <div className="absolute w-60 sm:w-80 h-60 sm:h-80 rounded-full bg-white/5 blur-[80px] pointer-events-none" />
+
+          {/* Card Flutuante Esquerdo (Últimas Transações - Exclusivo Desktop) */}
+          <div className="hidden lg:flex flex-col gap-2 p-4 rounded-2xl bg-[#121214]/90 backdrop-blur-md border border-[#27272A] w-64 shadow-2xl absolute -left-16 xl:-left-24 top-1/3 -translate-y-1/2 z-20 animate-in fade-in slide-in-from-left-4 duration-300">
+            <div className="flex items-center justify-between pb-2 border-b border-[#27272A]">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 font-bold">
+                Últimas Transações
+              </span>
+              <span className="w-2 h-2 rounded-full bg-emerald-400" />
+            </div>
+            <div className="space-y-2 pt-1">
+              <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-red-500/10 text-red-400 font-bold text-[10px] flex items-center justify-center">
+                    IF
+                  </div>
+                  <div>
+                    <p className="font-semibold text-white text-[11px]">iFood Delivery</p>
+                    <p className="text-[10px] text-zinc-500">Hoje, 20:14</p>
+                  </div>
+                </div>
+                <span className="font-mono font-bold text-zinc-300 text-xs">-R$ 42,90</span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-blue-500/10 text-blue-400 font-bold text-[10px] flex items-center justify-center">
+                    AB
+                  </div>
+                  <div>
+                    <p className="font-semibold text-white text-[11px]">Airbnb Hospedagem</p>
+                    <p className="text-[10px] text-zinc-500">Ontem</p>
+                  </div>
+                </div>
+                <span className="font-mono font-bold text-zinc-300 text-xs">-R$ 380,00</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Card Flutuante Direito (Sentinela Kitsune - Exclusivo Desktop) */}
+          <div className="hidden lg:flex flex-col gap-2 p-4 rounded-2xl bg-[#121214]/90 backdrop-blur-md border border-[#27272A] w-72 shadow-2xl absolute -right-16 xl:-right-24 top-1/2 -translate-y-1/2 z-20 animate-in fade-in slide-in-from-right-4 duration-300 text-left">
+            <div className="flex items-center gap-2 pb-1 text-[#E11D48] text-xs font-bold uppercase tracking-wider">
+              <span className="w-2 h-2 rounded-full bg-[#E11D48] animate-pulse" />
+              <span>Sentinela Kitsune</span>
+            </div>
+            <h4 className="text-xs font-bold text-white">Cobrança duplicada evitada!</h4>
+            <p className="text-[11px] text-zinc-400 leading-relaxed">
+              Streaming de R$ 49,90 debitado duas vezes na mesma hora. Alerta disparado e conciliação ativada com sucesso.
+            </p>
+          </div>
+
+          {/* Moldura do iPhone 16 Pro */}
+          <div className="relative w-[280px] sm:w-[320px] rounded-[48px] p-3 bg-gradient-to-b from-zinc-700 via-zinc-900 to-black border-4 border-zinc-800 shadow-[0_0_60px_rgba(0,0,0,0.9)] z-10">
+            {/* Tela Interna */}
+            <div className="rounded-[38px] bg-[#0A0A0A] border border-white/10 overflow-hidden p-4 space-y-4">
+              {/* Dynamic Island */}
+              <div className="w-24 h-5 rounded-full bg-black mx-auto flex items-center justify-center gap-1.5 px-2">
+                <span className="w-2 h-2 rounded-full bg-[#E11D48]" />
+                <span className="text-[9px] font-mono text-zinc-400">Kitsune AI</span>
+              </div>
+
+              {/* Conteúdo Simulado do App Mobile */}
+              <div className="space-y-3 pt-2 text-left">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] text-zinc-400 block font-mono">PATRIMÔNIO</span>
+                    <span className="text-base font-black text-white font-mono">R$ 412.850,00</span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 text-[10px] font-bold">
+                    +18.9%
+                  </span>
+                </div>
+
+                {/* Balão de Mensagem Kitsune AI */}
+                <div className="p-3 rounded-2xl bg-[#18181B] border border-[#27272A] space-y-1.5 text-[11px]">
+                  <div className="flex items-center gap-1.5 text-[#E11D48] font-bold">
+                    <span className="material-symbols-outlined text-[13px]">smart_toy</span>
+                    <span>Sentinela Kitsune</span>
+                  </div>
+                  <p className="text-zinc-300 leading-relaxed text-[11px]">
+                    Sua fatura fecha em 4 dias. Com o saldo disponível de R$ 28,4k, você tem cobertura total sem comprometer a reserva.
+                  </p>
+                </div>
+
+                {/* Transações Recentes Compactas */}
+                <div className="space-y-1.5 pt-1">
+                  <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider block">
+                    Últimas Entradas / Saídas
+                  </span>
+                  <div className="p-2 rounded-xl bg-[#121214] flex items-center justify-between text-[11px]">
+                    <span className="text-zinc-300">Proventos CDB BTG</span>
+                    <span className="text-emerald-400 font-bold font-mono">+R$ 842,10</span>
+                  </div>
+                  <div className="p-2 rounded-xl bg-[#121214] flex items-center justify-between text-[11px]">
+                    <span className="text-zinc-300">Supermercado Pão de Açúcar</span>
+                    <span className="text-zinc-400 font-bold font-mono">-R$ 342,80</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Botão de Ação Rápida */}
+              <div className="pt-2">
+                <Link
+                  href="/login"
+                  className="w-full py-2.5 rounded-xl bg-white hover:bg-zinc-200 text-black text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  <span>Experimentar App</span>
+                  <span className="material-symbols-outlined text-[13px]">touch_app</span>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* SEÇÃO ARQUITETURA DETERMINÍSTICA (MSLR) */}
-      <section id="arquitetura" className="py-16 px-4 sm:px-6 max-w-5xl mx-auto space-y-8">
+      <section id="motores" className="py-16 px-4 sm:px-6 max-w-5xl mx-auto space-y-8">
         <div className="text-center space-y-2">
           <h2 className="text-xs font-mono font-bold uppercase tracking-[0.2em] text-[#E11D48]">
             Engenharia Matemática Soberana
@@ -617,16 +897,16 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* FOOTER */}
-      <footer className="border-t border-[#27272A] bg-[#0A0A0A] py-12 px-4 sm:px-8">
+      {/* FOOTER COM LOGO EM TAMANHO ADEQUADO */}
+      <footer className="border-t border-[#27272A] bg-[#0A0A0A] py-14 px-4 sm:px-8">
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-xs text-zinc-500">
           <div className="flex items-center gap-3">
             <Image
               src="/assets/logo/logo-horizontal-transparent.png"
               alt="Kitsune Finance"
-              width={140}
-              height={32}
-              className="h-7 w-auto object-contain"
+              width={200}
+              height={48}
+              className="h-10 sm:h-11 w-auto object-contain"
             />
           </div>
 
@@ -634,17 +914,17 @@ export default function LandingPage() {
             <Link href="/docs" className="hover:text-white transition-colors">
               Documentação
             </Link>
-            <Link href="/changelog" className="hover:text-white transition-colors">
+            <Link href="/docs?tab=changelog" className="hover:text-white transition-colors">
               Changelog
             </Link>
-            <Link href="/terms" className="hover:text-white transition-colors">
+            <Link href="/docs?tab=terms" className="hover:text-white transition-colors">
               Termos & Privacidade
             </Link>
             <a
               href="https://github.com/jefheee/kitsune-finance"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-white transition-colors flex items-center gap-1"
+              className="hover:text-white transition-colors flex items-center gap-1 font-semibold"
             >
               <span>GitHub</span>
               <span className="material-symbols-outlined text-[13px]">open_in_new</span>
