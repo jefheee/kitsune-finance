@@ -52,6 +52,13 @@ export async function GET(request: Request) {
       const authCheck = await isUserAuthorized(userEmail)
 
       if (!authCheck.authorized) {
+        // 🧹 Higienização Instantânea: Expurga o usuário de auth.users para evitar poluição no banco
+        try {
+          await supabase.rpc('delete_unauthorized_user', { target_user_id: sessionData.user.id })
+        } catch (cleanupErr) {
+          console.error('[OAuth Callback] Erro ao expurgar usuário não autorizado:', cleanupErr)
+        }
+
         // Encerra imediatamente a sessão recém-criada
         await supabase.auth.signOut()
 
