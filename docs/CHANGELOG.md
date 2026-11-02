@@ -4,6 +4,18 @@ Todas as alterações notáveis no projeto Kitsune Finance são registradas de f
 
 ---
 
+## [2026-11-01] - Expansão do Painel de Admin, Scanner OCR, Fix Kitsune AI, Biometria Híbrida & Landing Page 2.0
+- **Arquivos Afetados:** `src/app/admin/page.tsx`, `src/app/api/admin/system/route.ts`, `src/app/api/ai/scan-receipt/route.ts`, `src/components/finance/ManualTransactionModal.tsx`, `src/app/api/transactions/manual/route.ts`, `src/components/chat/CompactKitsuneChat.tsx`, `src/app/api/chat/route.ts`, `src/app/{login, signup}/page.tsx`, `src/components/security/BiometricLockGuard.tsx`, `src/app/page.tsx`, `src/app/{docs, changelog, terms}/page.tsx`.
+- **Objetivo:**
+  - Correção definitiva do chat rápido no dashboard ("Falar com Kitsune AI") com envio tolerante de parâmetros e respostas instantâneas inline.
+  - Eliminação de opções avulsas de cadastro no login e redirecionamento de `/signup` para `/login`, garantindo integridade de perímetro fechado.
+  - Scanner de comprovantes por IA no modal de transações manuais com extração de valores/data e parcelamento em até 48x.
+  - Painel de Administração expandido com telemetria de APIs (Supabase, Gemini, Groq, Pluggy), contagem global da base e ações de manutenção.
+  - Autenticação de segurança adaptada contextualmente para PC (Windows Hello / Chave) e Mobile (Biometria nativa).
+  - Landing Page 2.0 com showcase interativo de patrimônio líquido, terminal quickstart e novas subpáginas `/docs`, `/changelog` e `/terms`.
+
+---
+
 ## [2026-11-01] - Blindagem de Segurança, Perímetro Fechado (Allowlist), Rate Limiting & Governança (/admin)
 - **Arquivos Afetados:** `src/app/admin/page.tsx`, `src/app/api/admin/members/route.ts`, `src/utils/security/{auth-guard.ts, rate-limiter.ts}`, `src/middleware.ts`, `src/app/auth/callback/route.ts`, `src/app/settings/page.tsx`, `src/app/api/{assets, family-members, notifications}/route.ts`, `supabase/migrations/20261101_access_control_and_governance.sql`, `C:\Users\jefhi\.gemini\config\rules\security-governance-protocol.md`.
 - **Objetivo:**

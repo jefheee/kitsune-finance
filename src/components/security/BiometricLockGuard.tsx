@@ -71,6 +71,9 @@ export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
     }
   }, []);
 
+  // Detecta se o cliente é desktop/PC
+  const isDesktop = typeof window !== "undefined" ? !isMobileClient() : false;
+
   // Carrega diagnóstico de hardware e configurações locais
   useEffect(() => {
     diagnoseBiometricSupport().then((diag) => setDiagnosis(diag));
@@ -114,12 +117,8 @@ export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
       }
     }
 
-    // Modal de ativação proativo: EXCLUSIVO para dispositivos móveis reais (nunca no PC)
+    // Modal de ativação proativo para novos dispositivos (Mobile e Desktop)
     if (!hasProtection && !currentSettings.dismissedPrompt) {
-      if (!isMobileClient()) {
-        return; // No PC, o usuário configura em /settings se desejar; não exibe modal móvel
-      }
-
       let deviceDismissed = false;
       try {
         deviceDismissed = localStorage.getItem("kitsune_prompt_dismissed_device") === "true";
@@ -451,21 +450,25 @@ export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
         <div className="fixed inset-0 z-[99990] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="w-full max-w-sm rounded-3xl bg-[#121214] border border-[#27272A] p-6 shadow-2xl space-y-5 text-center">
             <div className="w-14 h-14 rounded-2xl bg-[#E11D48]/10 border border-[#E11D48]/30 flex items-center justify-center mx-auto text-[#E11D48]">
-              <span className="material-symbols-outlined text-3xl">fingerprint</span>
+              <span className="material-symbols-outlined text-3xl">
+                {isDesktop ? "security" : "fingerprint"}
+              </span>
             </div>
 
             <div className="space-y-1.5">
               <h3 className="text-base font-bold text-white">
-                Proteger com Biometria ou PIN?
+                {isDesktop ? "Proteger Acesso neste Computador?" : "Proteger com Biometria ou PIN?"}
               </h3>
               <p className="text-xs text-zinc-400 leading-relaxed">
-                Proteja seus saldos e faturas contra visualização indevida ao alternar de tela no seu celular.
+                {isDesktop
+                  ? "Exija autenticação do Windows Hello / Chave de Segurança ou crie um PIN para proteger seus dados financeiros."
+                  : "Proteja seus saldos e faturas contra visualização indevida ao alternar de tela no seu celular."}
               </p>
             </div>
 
             {diagnosis && !diagnosis.isSecureContext && (
               <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-400 text-[11px] text-left">
-                <strong>Atenção:</strong> Conexão HTTP detectada. Para usar o leitor de digital no celular, acesse via HTTPS (ex: Vercel). Você pode usar um <strong>PIN numérico</strong> agora.
+                <strong>Atenção:</strong> Conexão HTTP detectada. Para autenticar nativamente no dispositivo, acesse via HTTPS. Você pode usar um <strong>PIN numérico</strong> agora.
               </div>
             )}
 
@@ -488,8 +491,10 @@ export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
                       <Spinner size={16} className="text-black" />
                     ) : (
                       <>
-                        <span className="material-symbols-outlined text-[18px]">fingerprint</span>
-                        <span>Ativar Face ID / Digital</span>
+                        <span className="material-symbols-outlined text-[18px]">
+                          {isDesktop ? "passkey" : "fingerprint"}
+                        </span>
+                        <span>{isDesktop ? "Ativar Windows Hello / Chave" : "Ativar Face ID / Digital"}</span>
                       </>
                     )}
                   </button>
@@ -581,7 +586,7 @@ export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
             <div className="flex items-center gap-2 pt-6">
               <span className="w-2 h-2 rounded-full bg-[#E11D48] animate-pulse" />
               <span className="text-[11px] font-mono tracking-[0.2em] uppercase text-zinc-400 font-bold">
-                KITSUNE BIOMETRIC GUARDIAN
+                {isDesktop ? "COFRE DE SEGURANÇA KITSUNE" : "KITSUNE BIOMETRIC GUARDIAN"}
               </span>
             </div>
 
@@ -608,6 +613,8 @@ export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
                 <p className="text-xs text-zinc-400 leading-relaxed max-w-xs mx-auto">
                   {isPinModeActive
                     ? "Digite seu PIN de 4 a 6 dígitos para acessar sua conta."
+                    : isDesktop
+                    ? "Autenticação do dispositivo (Windows Hello / Chave) ou PIN necessária para acessar seus dados patrimoniais."
                     : "Autenticação biométrica necessária para acessar seus dados patrimoniais."}
                 </p>
               </div>
@@ -626,17 +633,19 @@ export function BiometricLockGuard({ children }: BiometricLockGuardProps) {
                       type="button"
                       onClick={handleUnlockWithBiometrics}
                       disabled={isAuthenticating}
-                      className="w-full h-13 px-6 rounded-2xl bg-white hover:bg-zinc-200 active:bg-zinc-300 text-black font-extrabold text-sm flex items-center justify-center gap-2.5 shadow-[0_4px_20px_rgba(255,130,22,0.3)] transition-all cursor-pointer disabled:opacity-50"
+                      className="w-full h-13 px-6 rounded-2xl bg-white hover:bg-zinc-200 active:bg-zinc-300 text-black font-extrabold text-sm flex items-center justify-center gap-2.5 shadow-[0_4px_20px_rgba(225,29,72,0.2)] transition-all cursor-pointer disabled:opacity-50"
                     >
                       {isAuthenticating ? (
                         <>
                           <Spinner size={18} className="text-black" />
-                          <span>Validando Biometria...</span>
+                          <span>{isDesktop ? "Validando no Dispositivo..." : "Validando Biometria..."}</span>
                         </>
                       ) : (
                         <>
-                          <span className="material-symbols-outlined text-[22px]">fingerprint</span>
-                          <span>Desbloquear com Biometria</span>
+                          <span className="material-symbols-outlined text-[22px]">
+                            {isDesktop ? "passkey" : "fingerprint"}
+                          </span>
+                          <span>{isDesktop ? "Desbloquear com Windows Hello" : "Desbloquear com Biometria"}</span>
                         </>
                       )}
                     </button>

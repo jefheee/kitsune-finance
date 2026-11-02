@@ -120,7 +120,8 @@ export async function POST(req: Request) {
         }
 
         const body = await req.json();
-        const userMessage = typeof body?.message === 'string' ? body.message.trim() : '';
+        const rawInput = typeof body?.message === 'string' ? body.message : (typeof body?.prompt === 'string' ? body.prompt : '');
+        const userMessage = rawInput.trim();
         const attachedContexts: string[] = Array.isArray(body?.attachedContexts) ? body.attachedContexts : [];
         const images: Array<{ mimeType: string; data: string }> = Array.isArray(body?.images) ? body.images : [];
         const requestedModel = typeof body?.model === 'string' ? body.model : 'auto';

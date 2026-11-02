@@ -217,16 +217,28 @@
     - Criado protocolo permanente em `C:\Users\jefhi\.gemini\config\rules\security-governance-protocol.md` garantindo que todos os futuros agentes sigam esse padrão.
   - **Estabilidade:** 100% dos tipos validados com 0 erros (`npx tsc --noEmit`).
 
+- [x] Expansão do Painel de Admin, Lançamentos Manuais com Visão OCR, Fix Kitsune AI, Biometria Híbrida & Landing Page 2.0 (Release v3.4):
+  - **Correção "Falar com Kitsune AI":** Resolução do desacoplamento de payload no endpoint `/api/chat` (suporte universal a `message` e `prompt`) e leitura de `data.message` em `CompactKitsuneChat.tsx`, permitindo respostas instantâneas no dashboard e fluxo integrado para `/kitsune`.
+  - **Desativação de Cadastros Públicos Avulsos:** Removido link de cadastro na tela de login e rota `/signup` redirecionada estritamente para `/login`, reforçando a soberania de perímetro fechado.
+  - **Super Painel de Administração (`/admin` & `/api/admin/system`):** Telemetria em tempo real do banco de dados PostgreSQL, status das APIs (Gemini, Groq, Pluggy), contagem global de transações, ativos e contas, teste de conectividade em 1 clique e botão de limpeza de cache de dossiê de IA.
+  - **Lançamentos Manuais Híbridos & Scanner de Comprovantes com IA (`ManualTransactionModal.tsx` & `/api/ai/scan-receipt`):** Upload e leitura instantânea de fotos de cupons fiscais (NFC-e), comprovantes Pix e faturas via Gemini Multimodal com auto-preenchimento e suporte a compras parceladas (1x a 48x).
+  - **Autenticação de Segurança Contextualizada (PC vs Mobile):** Detecção refinada em `BiometricLockGuard.tsx` com textos adaptados para "Windows Hello / Chave de Segurança" no Desktop e "Face ID / Digital" no Mobile.
+  - **Landing Page 2.0 & Subpáginas (`/docs`, `/changelog`, `/terms`):**
+    - Showcase interativo com gráfico de patrimônio líquido (spline cúbica e alternador 1M/3M/6M/1Y/ALL), abas de demonstração do scanner OCR, alocação de ativos e antifraude.
+    - Terminal quickstart com comando de clone 1 clique.
+    - Nova página de documentação técnica (`/docs`) e histórico de releases (`/changelog`).
+    - Termos de uso e soberania de dados (`/terms`).
+  - **Estabilidade:** Validação TypeScript rigorosa com 0 erros (`npx tsc --noEmit`).
+
 ---
 
 ## 4. Context Handoff (Memória de Continuidade entre Chats)
-- **Última Etapa Concluída:** Release v3.3 — **Auditoria Completa de Segurança, Perímetro Fechado (Allowlist), Rate Limiting & Governança (/admin)**:
-  1. **Favicon:** Atualizado para transparência circular com alto contraste e nitidez.
-  2. **Controle de Acesso:** Allowlist ativa no Supabase e em memória, impedindo cadastros e acessos de desconhecidos na Vercel pública.
-  3. **Painel /admin:** Master Owner (`jnnebu@gmail.com`) com poder absoluto de gerenciamento de membros.
-  4. **Rate Limiting & Headers:** Proteção contra esgotamento de cotas de IA, brute-force e clickjacking.
-  5. **Sanitização de Erros:** Exposição de erros SQL eliminada nas APIs do backend.
-  6. **Domínio e URLs:** Atualização das URLs base para `https://mykitsune.vercel.app`.
-  7. **Regra Global:** Documentada em `C:\Users\jefhi\.gemini\config\rules\security-governance-protocol.md`.
-- **Próxima Etapa Imediata:** Continuar a expansão das funcionalidades planejadas no roadmap do Kitsune Finance (ex: conexões adicionais do Open Finance, refinamentos visuais contínuos ou evolução opcional do rate limiter para Upstash Redis).
-- **Pendências ou Bloqueios:** Nenhum. Todo o código compila com 0 erros e o sistema está 100% blindado contra acessos não autorizados.
+- **Última Etapa Concluída:** Release v3.4 — **Super Painel de Admin, Scanner OCR de Comprovantes, Lançamentos Manuais Parcelados, Fix Falar com IA, Biometria PC/Mobile e Nova Landing Page com Docs, Changelog e Termos**:
+  1. **Falar com IA:** Totalmente operacional no Dashboard com respostas imediatas e transição fluida para o chat completo.
+  2. **Cadastro:** Removidas opções avulsas de signup; a plataforma opera 100% sob convite e aprovação do Master Owner.
+  3. **Lançamentos Manuais & OCR:** Leitura automática de comprovantes por IA (`/api/ai/scan-receipt`) e parcelamento em até 48x.
+  4. **Painel de Admin:** Expandido com métricas globais, telemetria de APIs e ações de manutenção.
+  5. **Biometria:** Contextualizada para PC (Windows Hello/Chave) e Mobile (Face ID/Digital).
+  6. **Landing Page 2.0:** Completa com showcase interativo, documentação em `/docs`, histórico em `/changelog` e termos em `/terms`.
+- **Próxima Etapa Imediata:** Continuar aprimorando funcionalidades sob demanda do usuário (ex: refinamentos em relatórios patrimoniais ou exportações).
+- **Pendências ou Bloqueios:** Nenhum. Todo o código compila com 0 erros (`npx tsc --noEmit`).

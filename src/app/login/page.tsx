@@ -211,11 +211,15 @@ export default function LoginPage() {
           </form>
         )}
         
-        {/* LINK PARA CRIAR CONTA MANUAL */}
-        <div className="mt-4 text-center">
-          <Link href="/signup" className="text-xs font-sans text-zinc-500 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white transition-colors">
-            Não tem uma conta? <strong className="font-bold text-white hover:underline">Cadastre-se manualmente</strong>
-          </Link>
+        {/* NOTA DE GOVERNANÇA E ACESSO PRIVADO */}
+        <div className="mt-6 pt-4 border-t border-zinc-200 dark:border-[#27272A] text-center space-y-1">
+          <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 flex items-center justify-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            Ambiente Fechado por Allowlist
+          </p>
+          <p className="text-[10px] text-zinc-400 dark:text-zinc-500">
+            Acessível exclusivamente para contas previamente autorizadas pela governança.
+          </p>
         </div>
       </div>
     </div>

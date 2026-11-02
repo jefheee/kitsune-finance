@@ -35,6 +35,7 @@ export function CompactKitsuneChat({ onOpenFullChat }: CompactKitsuneChatProps) 
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          message: text,
           prompt: text,
           model: "auto",
         }),
@@ -45,7 +46,7 @@ export function CompactKitsuneChat({ onOpenFullChat }: CompactKitsuneChatProps) 
         throw new Error(data.error || "Erro ao consultar Kitsune AI");
       }
 
-      setResponse(data.reply || data.text || "Consulta processada.");
+      setResponse(data.message || data.reply || data.text || "Consulta processada com sucesso.");
     } catch (err: any) {
       setError(err.message || "Não foi possível obter resposta.");
     } finally {
